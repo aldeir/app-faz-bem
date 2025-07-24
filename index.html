@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Faz Bem - Campanhas</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .transition-all {
+            transition: all 0.3s ease-in-out;
+        }
+        /* Animação de carregamento */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #22c55e;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Container Principal -->
+    <div class="container mx-auto max-w-4xl p-4 sm:p-6">
+
+        <!-- Cabeçalho -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl sm:text-5xl font-bold text-green-600">Faz Bem</h1>
+            <p class="text-lg text-gray-600 mt-2">Conectando corações e transformando vidas em Guaçuí-ES.</p>
+        </header>
+
+        <!-- Seção de Campanhas Ativas -->
+        <main>
+            <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b-2 border-green-200 pb-2">Campanhas Ativas</h2>
+
+            <!-- Container para o estado de carregamento -->
+            <div id="loading-container" class="text-center py-10">
+                <div class="loader mx-auto"></div>
+                <p class="mt-4 text-gray-600">Carregando campanhas...</p>
+            </div>
+
+            <!-- Grid de Campanhas (será preenchido dinamicamente) -->
+            <div id="campaign-list" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Os cards das campanhas serão inseridos aqui pelo JavaScript -->
+            </div>
+
+            <!-- Container para quando não houver campanhas -->
+            <div id="empty-state-container" class="hidden text-center py-10 bg-gray-100 rounded-lg">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 class="mt-2 text-lg font-medium text-gray-800">Nenhuma campanha ativa no momento</h3>
+                <p class="mt-1 text-sm text-gray-500">Volte em breve ou incentive uma entidade local a criar uma campanha!</p>
+            </div>
+        </main>
+
+        <!-- Rodapé -->
+        <footer class="text-center mt-12 py-4 border-t">
+            <p class="text-gray-500">&copy; 2025 App Faz Bem. Uma iniciativa comunitária.</p>
+        </footer>
+    </div>
+
+    <!-- Módulos do Firebase -->
+    <script type="module">
+        // Importações necessárias do SDK do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Configuração do Firebase ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : { apiKey: "DEMO", authDomain: "DEMO", projectId: "DEMO" };
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'faz-bem-app';
+
+        // Inicializa o Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- Lógica do Aplicativo ---
+        const campaignList = document.getElementById('campaign-list');
+        const loadingContainer = document.getElementById('loading-container');
+        const emptyStateContainer = document.getElementById('empty-state-container');
+
+        // Função para criar o card de uma campanha como um link
+        function createCampaignCard(campaign) {
+            const colorMap = {
+                'agasalho': { text: 'text-green-600', progress: 'bg-green-500' },
+                'sangue': { text: 'text-red-600', progress: 'bg-red-500' },
+                'alimento': { text: 'text-orange-600', progress: 'bg-orange-500' },
+                'default': { text: 'text-blue-600', progress: 'bg-blue-500' }
+            };
+            const theme = colorMap[campaign.type] || colorMap['default'];
+            const descriptionSnippet = campaign.description.length > 100 ? campaign.description.substring(0, 100) + '...' : campaign.description;
+            const imageUrl = campaign.images && campaign.images.length > 0 ? campaign.images[0] : 'https://placehold.co/600x400/e2e8f0/e2e8f0?text=Sem+Imagem';
+
+            return `
+                <a href="detalhes.html?id=${campaign.id}" class="block bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:-translate-y-1">
+                    <img class="h-48 w-full object-cover" src="${imageUrl}" alt="Imagem da ${campaign.title}" onerror="this.onerror=null;this.src='https://placehold.co/600x400/cccccc/ffffff?text=Imagem+Indisponível';">
+                    <div class="p-6">
+                        <div class="uppercase tracking-wide text-sm ${theme.text} font-semibold">${campaign.entityName}</div>
+                        <h3 class="block mt-1 text-xl leading-tight font-bold text-black truncate">${campaign.title}</h3>
+                        <p class="mt-2 text-gray-500 h-12">${descriptionSnippet}</p>
+                        
+                        <div class="mt-4">
+                            <div class="flex justify-between text-sm font-medium text-gray-600">
+                                <span>Progresso</span>
+                                <span>${campaign.progress || 0}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 mt-1">
+                                <div class="${theme.progress} h-2.5 rounded-full" style="width: ${campaign.progress || 0}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 text-center text-sm font-bold ${theme.text}">
+                            Ver Detalhes &rarr;
+                        </div>
+                    </div>
+                </a>
+            `;
+        }
+        
+        // Função para autenticar e buscar os dados
+        async function authAndFetchData() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                const campaignsColPath = `/artifacts/${appId}/public/data/campaigns`;
+                const q = query(collection(db, campaignsColPath));
+
+                onSnapshot(q, (querySnapshot) => {
+                    loadingContainer.style.display = 'none';
+                    
+                    if (querySnapshot.empty) {
+                        emptyStateContainer.style.display = 'block';
+                        campaignList.innerHTML = '';
+                    } else {
+                        emptyStateContainer.style.display = 'none';
+                        let cardsHtml = '';
+                        querySnapshot.forEach((doc) => {
+                            cardsHtml += createCampaignCard({ id: doc.id, ...doc.data() });
+                        });
+                        campaignList.innerHTML = cardsHtml;
+                    }
+                }, (error) => {
+                    console.error("Erro ao buscar campanhas: ", error);
+                    loadingContainer.innerHTML = "<p class='text-red-500'>Ocorreu um erro ao carregar as campanhas.</p>";
+                });
+
+            } catch(error) {
+                console.error("Erro na autenticação ou busca: ", error);
+                loadingContainer.innerHTML = "<p class='text-red-500'>Não foi possível conectar ao serviço. Tente novamente mais tarde.</p>";
+            }
+        }
+
+        authAndFetchData();
+
+    </script>
+</body>
+</html>
