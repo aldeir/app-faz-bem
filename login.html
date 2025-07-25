@@ -156,6 +156,14 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                const params = new URLSearchParams(window.location.search);
+                const redirectUrl = params.get('redirect');
+
+                if (redirectUrl) {
+                    window.location.href = redirectUrl; // Redireciona para o destino original
+                    return;
+                }
+
                 const userDocRef = doc(db, "users", user.uid);
                 const docSnap = await getDoc(userDocRef);
 
@@ -166,12 +174,11 @@
                         window.location.href = 'index.html';
                     }
                 } else {
-                    // Novo usuário vindo do Google Sign-In, define um papel padrão.
                     await setDoc(userDocRef, {
                         uid: user.uid,
                         displayName: user.displayName,
                         email: user.email,
-                        role: 'doador' // Papel padrão para novos usuários do Google
+                        role: 'doador'
                     });
                     window.location.href = 'index.html';
                 }
