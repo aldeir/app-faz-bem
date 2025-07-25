@@ -78,7 +78,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, query, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
@@ -99,13 +99,28 @@
         const emptyStateContainer = document.getElementById('empty-state-container');
         const userAuthContainer = document.getElementById('user-auth-container');
         const appId = firebaseConfig.projectId;
+        const ADMIN_EMAIL = "aldeir@gmail.com";
 
-        // Gerencia a exibição do botão de login/logout
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
+                const userDocRef = doc(db, "users", user.uid);
+                const docSnap = await getDoc(userDocRef);
+                let userRole = 'doador'; // Padrão
+                if (docSnap.exists()) {
+                    userRole = docSnap.data().role;
+                }
+
+                let panelLink = '';
+                if (user.email === ADMIN_EMAIL) {
+                    panelLink = `<a href="superadmin.html" class="text-sm font-medium text-red-600 hover:underline">Painel Admin</a>`;
+                } else if (userRole === 'entidade') {
+                    panelLink = `<a href="admin.html" class="text-sm font-medium text-blue-600 hover:underline">Painel da Entidade</a>`;
+                }
+
                 userAuthContainer.innerHTML = `
-                    <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-3">
                         <span class="text-sm font-medium text-gray-700">Olá, ${user.displayName || 'Usuário'}</span>
+                        ${panelLink}
                         <button id="logout-btn" class="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium">Sair</button>
                     </div>
                 `;
@@ -117,13 +132,11 @@
             }
         });
 
-        // Função para lidar com o clique no card da campanha
         window.handleCampaignClick = (campaignId) => {
             const user = auth.currentUser;
             if (user) {
                 window.location.href = `detalhes.html?id=${campaignId}`;
             } else {
-                // Salva o destino e redireciona para o login
                 const destination = `detalhes.html?id=${campaignId}`;
                 window.location.href = `login.html?redirect=${encodeURIComponent(destination)}`;
             }
