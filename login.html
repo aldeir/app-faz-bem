@@ -21,7 +21,7 @@
 
     <div id="app-container">
 
-        <!-- TELA DE LOGIN -->
+        <!-- TELA DE LOGIN / ESCOLHA DE CADASTRO -->
         <div id="login-view">
             <div class="min-h-screen flex items-center justify-center py-12 px-4">
                 <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
@@ -38,45 +38,29 @@
                         <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">Entrar</button>
                     </form>
                     <div class="mt-6"><div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Ou</span></div></div><div class="mt-6"><button id="google-login-btn" class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"><img class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo">Entrar com Google</button></div></div>
-                    <div class="text-center mt-4">
-                        <p class="text-sm text-gray-600">Ainda não faz parte? <button id="show-signup-btn" class="font-medium text-green-600 hover:text-green-500">Cadastre-se</button></p>
+                    
+                    <div class="mt-8 pt-6 border-t border-gray-200 text-center">
+                         <h3 class="text-lg font-medium text-gray-800">Ainda não faz parte?</h3>
+                         <p class="text-sm text-gray-500 mt-1">Escolha como você quer ajudar:</p>
+                         <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <a href="cadastro-doador.html" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-500 hover:bg-green-600">
+                                Quero ser Doador
+                            </a>
+                            <a href="cadastro-entidade.html" class="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                                Cadastrar Entidade
+                            </a>
+                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- TELA DE CADASTRO -->
-        <div id="signup-view" class="hidden">
-            <div class="min-h-screen flex items-center justify-center py-12 px-4">
-                <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
-                    <h2 class="text-center text-2xl font-bold text-gray-900">Crie sua Conta</h2>
-                    <form id="signup-form" class="mt-8 space-y-6">
-                         <input id="signup-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Seu nome ou nome da entidade">
-                         <input id="signup-email" type="email" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Seu e-mail">
-                         <input id="signup-password" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Crie uma senha (mínimo 6 caracteres)">
-                         <div>
-                            <label for="user-role" class="block text-sm font-medium text-gray-700">Você é:</label>
-                            <select id="user-role" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
-                                <option value="doador">Doador(a)</option>
-                                <option value="entidade">Entidade / Organização</option>
-                            </select>
-                         </div>
-                        <div id="signup-error" class="text-red-500 text-sm hidden mt-2"></div>
-                        <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">Criar Conta</button>
-                    </form>
-                    <div class="mt-6"><div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Ou</span></div></div><div class="mt-6"><button id="google-signup-btn" class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"><img class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo">Cadastrar com Google</button></div></div>
-                    <div class="text-center mt-4">
-                        <p class="text-sm text-gray-600">Já tem uma conta? <button id="show-login-btn" class="font-medium text-green-600 hover:text-green-500">Fazer Login</button></p>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Módulos do Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -93,25 +77,13 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // ... (elementos da UI)
-        const loginView = document.getElementById('login-view');
-        const signupView = document.getElementById('signup-view');
-        const showSignupBtn = document.getElementById('show-signup-btn');
-        const showLoginBtn = document.getElementById('show-login-btn');
         const loginForm = document.getElementById('login-form');
-        const signupForm = document.getElementById('signup-form');
         const googleLoginBtn = document.getElementById('google-login-btn');
-        const googleSignupBtn = document.getElementById('google-signup-btn');
-
-        showSignupBtn.addEventListener('click', () => { loginView.classList.add('hidden'); signupView.classList.remove('hidden'); });
-        showLoginBtn.addEventListener('click', () => { signupView.classList.add('hidden'); loginView.classList.remove('hidden'); });
-        
         let isRedirecting = false;
 
-        const handleUserRedirect = async (user) => {
+        const handleRedirect = async (user) => {
             if (isRedirecting) return;
             isRedirecting = true;
-            console.log("Iniciando redirecionamento para o usuário:", user.email);
 
             const userDocRef = doc(db, "users", user.uid);
             const docSnap = await getDoc(userDocRef);
@@ -120,67 +92,27 @@
             const redirectUrl = params.get('redirect');
 
             if (redirectUrl) {
-                console.log("Redirecionando para o destino original:", redirectUrl);
                 window.location.href = redirectUrl;
             } else if (docSnap.exists() && docSnap.data().role === 'entidade') {
-                console.log("Usuário é uma entidade, redirecionando para admin.html");
                 window.location.href = 'admin.html';
             } else {
-                console.log("Usuário é um doador ou novo, redirecionando para index.html");
                 window.location.href = 'index.html';
             }
         };
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                console.log("onAuthStateChanged: Usuário detectado.", user.uid);
-                handleUserRedirect(user);
-            } else {
-                console.log("onAuthStateChanged: Nenhum usuário logado.");
-            }
-        });
-
-        const setupUserDocument = async (user, role) => {
-            const userDocRef = doc(db, "users", user.uid);
-            const docSnap = await getDoc(userDocRef);
-            if (!docSnap.exists()) {
-                console.log("Criando novo documento de usuário para:", user.email);
-                await setDoc(userDocRef, {
-                    uid: user.uid,
-                    displayName: user.displayName,
-                    email: user.email,
-                    role: role
-                });
-            }
-        };
-
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = signupForm['signup-name'].value;
-            const email = signupForm['signup-email'].value;
-            const password = signupForm['signup-password'].value;
-            const role = signupForm['user-role'].value;
-            const errorDiv = document.getElementById('signup-error');
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                await updateProfile(user, { displayName: name });
-                await setupUserDocument(user, role);
-                // onAuthStateChanged irá redirecionar
-            } catch (error) {
-                errorDiv.textContent = "Erro: " + error.message;
-                errorDiv.classList.remove('hidden');
+                handleRedirect(user);
             }
         });
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = loginForm['login-email'].value;
-            const password = loginForm['login-password'].value;
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
             const errorDiv = document.getElementById('login-error');
             try {
                 await signInWithEmailAndPassword(auth, email, password);
-                // onAuthStateChanged irá redirecionar
             } catch (error) {
                 errorDiv.textContent = "Email ou senha inválidos.";
                 errorDiv.classList.remove('hidden');
@@ -192,19 +124,26 @@
             try {
                 const result = await signInWithPopup(auth, provider);
                 const user = result.user;
-                const role = signupView.classList.contains('hidden') ? 'doador' : document.getElementById('user-role').value;
-                await setupUserDocument(user, role);
-                // onAuthStateChanged irá redirecionar
+                
+                const userDocRef = doc(db, "users", user.uid);
+                const docSnap = await getDoc(userDocRef);
+
+                if (!docSnap.exists()) {
+                    await setDoc(userDocRef, {
+                        uid: user.uid,
+                        displayName: user.displayName,
+                        email: user.email,
+                        role: 'doador' // Padrão para login direto com Google
+                    });
+                }
             } catch (error) {
                 console.error("Erro no login com Google:", error);
-                const errorDiv = document.getElementById('login-error');
-                errorDiv.textContent = "Falha ao autenticar com o Google. Tente novamente.";
-                errorDiv.classList.remove('hidden');
+                document.getElementById('login-error').textContent = "Falha ao autenticar com o Google. Tente novamente.";
+                document.getElementById('login-error').classList.remove('hidden');
             }
         };
 
         googleLoginBtn.addEventListener('click', handleGoogleSignIn);
-        googleSignupBtn.addEventListener('click', handleGoogleSignIn);
     </script>
 </body>
 </html>
