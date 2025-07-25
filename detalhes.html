@@ -38,8 +38,8 @@
     <!-- Cabeçalho Fixo -->
     <header class="bg-white shadow-sm sticky top-0 z-10">
         <nav class="container mx-auto max-w-5xl p-4 flex justify-between items-center">
-            <a href="#" class="text-2xl font-bold text-green-600">Faz Bem</a>
-            <a href="#" class="text-sm font-medium text-gray-600 hover:text-green-600">&larr; Voltar para todas as campanhas</a>
+            <a href="index.html" class="text-2xl font-bold text-green-600">Faz Bem</a>
+            <a href="index.html" class="text-sm font-medium text-gray-600 hover:text-green-600">&larr; Voltar para todas as campanhas</a>
         </nav>
     </header>
 
@@ -65,26 +65,26 @@
                         </div>
                     </div>
                     <h2 class="text-2xl font-bold text-gray-800 mb-2">Sobre a Campanha</h2>
-                    <p id="campaign-description" class="text-gray-600 leading-relaxed">Carregando descrição...</p>
+                    <p id="campaign-description" class="text-gray-600 leading-relaxed"></p>
                 </div>
 
                 <!-- Coluna de Informações e Ação (Direita) -->
                 <div class="lg:col-span-2 bg-gray-50 p-6">
                     <div class="sticky top-24">
-                        <h1 id="campaign-title" class="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">Carregando Título...</h1>
-                        <p class="mt-2 text-md text-gray-500">por <span id="entity-name" class="font-semibold text-gray-700">Entidade...</span></p>
+                        <h1 id="campaign-title" class="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight"></h1>
+                        <p class="mt-2 text-md text-gray-500">por <span id="entity-name" class="font-semibold text-gray-700"></span></p>
 
                         <!-- Contador Regressivo -->
                         <div class="mt-6 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 p-4 rounded-r-lg">
                             <h3 class="font-bold">Esta campanha termina em:</h3>
-                            <div id="countdown-timer" class="text-2xl font-mono font-bold">00d 00h 00m 00s</div>
+                            <div id="countdown-timer" class="text-2xl font-mono font-bold"></div>
                         </div>
 
                         <!-- Progresso da Meta -->
                         <div class="mt-6">
                             <div class="flex justify-between items-end">
-                                <span class="text-lg font-bold text-green-600">Meta: <span id="goal-value">--</span></span>
-                                <span id="progress-percentage" class="text-sm font-medium text-gray-600">0%</span>
+                                <span class="text-lg font-bold text-green-600">Meta: <span id="goal-value"></span></span>
+                                <span id="progress-percentage" class="text-sm font-medium text-gray-600"></span>
                             </div>
                             <div class="w-full bg-gray-200 rounded-full h-4 mt-2">
                                 <div id="progress-bar" class="bg-green-500 h-4 rounded-full transition-all duration-500" style="width: 0%"></div>
@@ -99,7 +99,7 @@
                                     <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                                     <div>
                                         <h4 class="font-semibold">Local de Entrega</h4>
-                                        <p id="campaign-address" class="text-gray-600">Carregando endereço...</p>
+                                        <p id="campaign-address" class="text-gray-600"></p>
                                         <a id="map-link" href="#" target="_blank" class="text-sm text-green-600 hover:underline">Ver no mapa</a>
                                     </div>
                                 </div>
@@ -107,14 +107,14 @@
                                      <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     <div>
                                         <h4 class="font-semibold">Horário</h4>
-                                        <p id="campaign-hours" class="text-gray-600">Carregando...</p>
+                                        <p id="campaign-hours" class="text-gray-600"></p>
                                     </div>
                                 </div>
                                 <div class="flex items-start">
                                     <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                     <div>
                                         <h4 class="font-semibold">Documentos Necessários</h4>
-                                        <p id="campaign-docs" class="text-gray-600">Carregando...</p>
+                                        <p id="campaign-docs" class="text-gray-600"></p>
                                     </div>
                                 </div>
                             </div>
@@ -133,39 +133,39 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : { apiKey: "DEMO", authDomain: "DEMO", projectId: "DEMO" };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'faz-bem-app';
+        const firebaseConfig = {
+            apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
+            authDomain: "app-faz-bem-guacui.firebaseapp.com",
+            projectId: "app-faz-bem-guacui",
+            storageBucket: "app-faz-bem-guacui.appspot.com",
+            messagingSenderId: "218995880923",
+            appId: "1:218995880923:web:ce8a371bc402904c0dedfe",
+            measurementId: "G-R5W1F2NXH4"
+        };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const appId = firebaseConfig.projectId; // CORREÇÃO
 
         const loadingContainer = document.getElementById('loading-container');
         const campaignContent = document.getElementById('campaign-content');
-
         let countdownInterval;
 
         function updateCountdown(expiresAt) {
             if (countdownInterval) clearInterval(countdownInterval);
-            
             const timerEl = document.getElementById('countdown-timer');
-            
             countdownInterval = setInterval(() => {
                 const now = new Date().getTime();
                 const distance = expiresAt.getTime() - now;
-
                 if (distance < 0) {
                     clearInterval(countdownInterval);
                     timerEl.textContent = "CAMPANHA ENCERRADA";
                     return;
                 }
-
                 const days = Math.floor(distance / (1000 * 60 * 60 * 24));
                 const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
                 const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
                 timerEl.innerHTML = `${String(days).padStart(2, '0')}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
             }, 1000);
         }
@@ -185,39 +185,32 @@
 
                 if (docSnap.exists()) {
                     const campaign = docSnap.data();
-                    
-                    // Preencher os dados na página
                     document.getElementById('campaign-title').textContent = campaign.title;
                     document.getElementById('entity-name').textContent = campaign.entityName;
                     document.getElementById('campaign-description').textContent = campaign.description;
                     
-                    // Imagens
                     const mainImage = document.getElementById('main-image');
                     const thumbContainer = document.getElementById('thumbnail-container');
-                    mainImage.src = campaign.images[0] || 'https://placehold.co/800x600/e2e8f0/e2e8f0?text=Imagem+Principal';
+                    mainImage.src = campaign.images[0] || 'https://placehold.co/800x600/e2e8f0/e2e8f0?text=Imagem';
                     thumbContainer.innerHTML = '';
                     campaign.images.forEach(imgUrl => {
                         const thumb = document.createElement('img');
                         thumb.src = imgUrl;
-                        thumb.className = 'w-20 h-16 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-green-500';
+                        thumb.className = 'w-20 h-16 object-cover rounded-md cursor-pointer border-2 hover:border-green-500';
                         thumb.onclick = () => mainImage.src = imgUrl;
                         thumbContainer.appendChild(thumb);
                     });
 
-
-                    // Progresso
                     const progress = campaign.progress || 0;
                     document.getElementById('goal-value').textContent = campaign.goal ? `${campaign.goal} unidades` : 'Não definida';
                     document.getElementById('progress-percentage').textContent = `${progress}%`;
                     document.getElementById('progress-bar').style.width = `${progress}%`;
 
-                    // Endereço e Operação
                     document.getElementById('campaign-address').textContent = `${campaign.address.street}, ${campaign.address.number} - ${campaign.address.district}`;
                     document.getElementById('map-link').href = campaign.address.mapLink || '#';
                     document.getElementById('campaign-hours').textContent = campaign.operation.hours || 'Não informado';
                     document.getElementById('campaign-docs').textContent = campaign.operation.requiredDocs || 'Nenhum';
                     
-                    // Contagem regressiva
                     if (campaign.expiresAt) {
                         updateCountdown(campaign.expiresAt.toDate());
                     }
@@ -228,8 +221,8 @@
                     loadingContainer.innerHTML = '<p class="text-red-500 text-center">Campanha não encontrada.</p>';
                 }
             } catch (error) {
-                console.error("Erro ao buscar detalhes da campanha:", error);
-                loadingContainer.innerHTML = '<p class="text-red-500 text-center">Ocorreu um erro ao carregar a campanha.</p>';
+                console.error("Erro ao buscar detalhes:", error);
+                loadingContainer.innerHTML = '<p class="text-red-500 text-center">Ocorreu um erro ao carregar.</p>';
             }
         }
 
