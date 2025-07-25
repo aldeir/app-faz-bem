@@ -104,8 +104,13 @@
 
         showSignupBtn.addEventListener('click', () => { loginView.classList.add('hidden'); signupView.classList.remove('hidden'); });
         showLoginBtn.addEventListener('click', () => { signupView.classList.add('hidden'); loginView.classList.remove('hidden'); });
+        
+        let isRedirecting = false; // Flag to prevent multiple redirects
 
         const redirectToApp = async (user) => {
+            if (isRedirecting) return;
+            isRedirecting = true;
+
             const userDocRef = doc(db, "users", user.uid);
             const docSnap = await getDoc(userDocRef);
 
@@ -129,12 +134,36 @@
 
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            // ... (código de cadastro com email/senha, sem alterações)
+            const name = signupForm['signup-name'].value;
+            const email = signupForm['signup-email'].value;
+            const password = signupForm['signup-password'].value;
+            const role = signupForm['user-role'].value;
+            const errorDiv = document.getElementById('signup-error');
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                await updateProfile(user, { displayName: name });
+                const userDocRef = doc(db, "users", user.uid);
+                await setDoc(userDocRef, { uid: user.uid, displayName: name, email: user.email, role: role });
+                // onAuthStateChanged will handle redirect
+            } catch (error) {
+                errorDiv.textContent = "Erro: " + error.message;
+                errorDiv.classList.remove('hidden');
+            }
         });
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            // ... (código de login com email/senha, sem alterações)
+            const email = loginForm['login-email'].value;
+            const password = loginForm['login-password'].value;
+            const errorDiv = document.getElementById('login-error');
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // onAuthStateChanged will handle redirect
+            } catch (error) {
+                errorDiv.textContent = "Email ou senha inválidos.";
+                errorDiv.classList.remove('hidden');
+            }
         });
         
         const handleGoogleSignIn = async () => {
@@ -155,7 +184,7 @@
                         role: role
                     });
                 }
-                // onAuthStateChanged irá disparar e cuidar do redirecionamento
+                // onAuthStateChanged will now reliably redirect
             } catch (error) {
                 console.error("Erro no login com Google:", error);
                 const errorDiv = document.getElementById('login-error');
