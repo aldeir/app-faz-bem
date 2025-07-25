@@ -49,30 +49,24 @@
                 <div class="px-4">
                     <h2 class="text-2xl font-semibold text-gray-800 mb-4">Resumo Geral</h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <!-- Card Total de Utilizadores -->
-                        <div class="bg-white p-6 rounded-lg shadow">
-                            <h3 class="text-sm font-medium text-gray-500">Total de Utilizadores</h3>
+                        <!-- Card Gestão de Utilizadores -->
+                        <a href="#" id="manage-users-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-transform transform hover:-translate-y-1">
+                            <h3 class="text-sm font-medium text-gray-500">Gestão de Utilizadores</h3>
                             <p id="total-users" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
-                        </div>
-                        <!-- Card Total de Entidades -->
-                        <div class="bg-white p-6 rounded-lg shadow">
-                            <h3 class="text-sm font-medium text-gray-500">Total de Entidades</h3>
-                            <p id="total-entities" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
-                        </div>
-                        <!-- Card Total de Campanhas -->
-                        <div class="bg-white p-6 rounded-lg shadow">
-                            <h3 class="text-sm font-medium text-gray-500">Campanhas Ativas</h3>
+                            <p class="text-sm text-gray-500 mt-2">Gerir doadores e entidades.</p>
+                        </a>
+                        <!-- Card Gestão de Entidades Pendentes -->
+                        <a href="#" id="manage-pending-entities-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-transform transform hover:-translate-y-1">
+                            <h3 class="text-sm font-medium text-gray-500">Entidades Pendentes</h3>
+                            <p id="total-pending-entities" class="mt-1 text-3xl font-semibold text-yellow-600">0</p>
+                            <p class="text-sm text-gray-500 mt-2">Aprovar ou reprovar novas entidades.</p>
+                        </a>
+                        <!-- Card Gestão de Campanhas -->
+                        <a href="#" id="manage-campaigns-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-transform transform hover:-translate-y-1">
+                            <h3 class="text-sm font-medium text-gray-500">Gestão de Campanhas</h3>
                             <p id="total-campaigns" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Secção de Gestão de Utilizadores -->
-                <div class="px-4 py-6 sm:px-0 mt-8">
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Gestão de Utilizadores</h2>
-                    <div id="all-users-list" class="bg-white rounded-lg shadow">
-                         <p id="users-placeholder" class="text-gray-500 p-6">Nenhum utilizador encontrado.</p>
-                         <!-- Os utilizadores serão inseridos aqui -->
+                            <p class="text-sm text-gray-500 mt-2">Gerir todas as campanhas ativas.</p>
+                        </a>
                     </div>
                 </div>
             </main>
@@ -82,7 +76,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, query, onSnapshot, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
@@ -105,8 +99,6 @@
         const dashboardView = document.getElementById('dashboard-view');
         const userEmailDisplay = document.getElementById('user-email-display');
         const logoutBtn = document.getElementById('logout-btn');
-        const allUsersList = document.getElementById('all-users-list');
-        const usersPlaceholder = document.getElementById('users-placeholder');
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -115,7 +107,6 @@
                     accessDeniedView.classList.add('hidden');
                     userEmailDisplay.textContent = user.email;
                     loadDashboardMetrics();
-                    loadAllUsers();
                 } else {
                     dashboardView.classList.add('hidden');
                     accessDeniedView.classList.remove('hidden');
@@ -133,8 +124,11 @@
                 const users = snapshot.docs;
                 const totalUsers = users.length;
                 const totalEntities = users.filter(doc => doc.data().role === 'entidade').length;
+                const pendingEntities = users.filter(doc => doc.data().status === 'pendente_aprovacao').length;
+                
                 document.getElementById('total-users').textContent = totalUsers;
                 document.getElementById('total-entities').textContent = totalEntities;
+                document.getElementById('total-pending-entities').textContent = pendingEntities;
             });
 
             const campaignsQuery = query(collection(db, `/artifacts/${appId}/public/data/campaigns`));
@@ -142,71 +136,6 @@
                 document.getElementById('total-campaigns').textContent = snapshot.size;
             });
         }
-
-        function loadAllUsers() {
-            const usersColPath = `/users`;
-            const q = query(collection(db, usersColPath));
-
-            onSnapshot(q, (snapshot) => {
-                allUsersList.innerHTML = '';
-                if (snapshot.empty) {
-                    allUsersList.appendChild(usersPlaceholder);
-                } else {
-                    snapshot.docs.sort((a, b) => a.data().displayName.localeCompare(b.data().displayName)).forEach(doc => {
-                        const user = doc.data();
-                        
-                        const statusClasses = {
-                            'ativo': 'bg-green-100 text-green-800',
-                            'pendente_aprovacao': 'bg-yellow-100 text-yellow-800',
-                            'bloqueado': 'bg-red-100 text-red-800',
-                        };
-                        const statusText = {
-                            'ativo': 'Ativo',
-                            'pendente_aprovacao': 'Pendente',
-                            'bloqueado': 'Bloqueado',
-                        };
-
-                        const card = document.createElement('div');
-                        card.className = 'p-4 border-b flex justify-between items-center';
-                        card.innerHTML = `
-                            <div class="flex-1">
-                                <h4 class="font-bold">${user.displayName} <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${user.role === 'entidade' ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-800'}">${user.role}</span></h4>
-                                <p class="text-sm text-gray-600">${user.email}</p>
-                            </div>
-                            <div class="flex items-center space-x-4">
-                                <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusClasses[user.status] || 'bg-gray-200'}">
-                                    ${statusText[user.status] || user.status || 'N/A'}
-                                </span>
-                                <button data-action="block" data-uid="${user.uid}" class="text-yellow-600 hover:underline text-sm">Bloquear</button>
-                                <button data-action="delete" data-uid="${user.uid}" class="text-red-600 hover:underline text-sm">Excluir</button>
-                            </div>
-                        `;
-                        allUsersList.appendChild(card);
-                    });
-                }
-            });
-        }
-        
-        allUsersList.addEventListener('click', async (e) => {
-            if (e.target.dataset.action) {
-                const uid = e.target.dataset.uid;
-                const action = e.target.dataset.action;
-                const userDocRef = doc(db, "users", uid);
-
-                if (action === 'block') {
-                    if (confirm('Tem a certeza de que quer bloquear este utilizador?')) {
-                        await updateDoc(userDocRef, { status: 'bloqueado' });
-                    }
-                }
-                
-                if (action === 'delete') {
-                    if (confirm('ATENÇÃO: Deseja excluir permanentemente os DADOS deste utilizador? Esta ação não pode ser desfeita.')) {
-                        await deleteDoc(userDocRef);
-                        alert('Dados do utilizador excluídos. A conta de autenticação ainda existe, mas o e-mail está livre para um novo registo.');
-                    }
-                }
-            }
-        });
     </script>
 </body>
 </html>
