@@ -21,7 +21,7 @@
 
     <div id="app-container">
 
-        <!-- TELA DE LOGIN / ESCOLHA DE CADASTRO -->
+        <!-- TELA DE LOGIN -->
         <div id="login-view">
             <div class="min-h-screen flex items-center justify-center py-12 px-4">
                 <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
@@ -41,7 +41,7 @@
                     
                     <div class="mt-8 pt-6 border-t border-gray-200 text-center">
                          <h3 class="text-lg font-medium text-gray-800">Ainda não faz parte?</h3>
-                         <p class="text-sm text-gray-500 mt-1">Escolha como você quer ajudar:</p>
+                         <p class="text-sm text-gray-500 mt-1">Escolha como quer ajudar:</p>
                          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <a href="cadastro-doador.html" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-500 hover:bg-green-600">
                                 Quero ser Doador
@@ -86,7 +86,20 @@
             isRedirecting = true;
 
             const userDocRef = doc(db, "users", user.uid);
-            const docSnap = await getDoc(userDocRef);
+            let docSnap = await getDoc(userDocRef);
+
+            // **NOVA LÓGICA DE AUTO-REPARAÇÃO**
+            // Se o utilizador está autenticado mas não tem um perfil na base de dados, cria um.
+            if (!docSnap.exists()) {
+                await setDoc(userDocRef, {
+                    uid: user.uid,
+                    displayName: user.displayName || 'Utilizador Recuperado',
+                    email: user.email,
+                    role: 'doador', // Papel padrão para utilizadores recuperados
+                    status: 'ativo'
+                });
+                docSnap = await getDoc(userDocRef); // Recarrega os dados após criar
+            }
 
             const params = new URLSearchParams(window.location.search);
             const redirectUrl = params.get('redirect');
@@ -122,20 +135,8 @@
         const handleGoogleSignIn = async () => {
             const provider = new GoogleAuthProvider();
             try {
-                const result = await signInWithPopup(auth, provider);
-                const user = result.user;
-                
-                const userDocRef = doc(db, "users", user.uid);
-                const docSnap = await getDoc(userDocRef);
-
-                if (!docSnap.exists()) {
-                    await setDoc(userDocRef, {
-                        uid: user.uid,
-                        displayName: user.displayName,
-                        email: user.email,
-                        role: 'doador' // Padrão para login direto com Google
-                    });
-                }
+                await signInWithPopup(auth, provider);
+                // onAuthStateChanged irá agora tratar de tudo, incluindo a criação do perfil se necessário.
             } catch (error) {
                 console.error("Erro no login com Google:", error);
                 document.getElementById('login-error').textContent = "Falha ao autenticar com o Google. Tente novamente.";
