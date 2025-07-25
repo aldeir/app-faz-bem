@@ -103,6 +103,14 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                // **NOVA VERIFICAÇÃO DE E-MAIL**
+                if (!user.emailVerified && user.providerData.some(p => p.providerId === 'password')) {
+                    // Se o usuário se cadastrou com senha e não verificou o e-mail, redireciona
+                    window.location.href = 'verificar-email.html';
+                    return;
+                }
+
+                // Se passou na verificação, continua para exibir o menu
                 const userDocRef = doc(db, "users", user.uid);
                 const docSnap = await getDoc(userDocRef);
                 
@@ -136,6 +144,10 @@
         window.handleCampaignClick = (campaignId) => {
             const user = auth.currentUser;
             if (user) {
+                 if (!user.emailVerified && user.providerData.some(p => p.providerId === 'password')) {
+                    window.location.href = 'verificar-email.html';
+                    return;
+                }
                 window.location.href = `detalhes.html?id=${campaignId}`;
             } else {
                 const destination = `detalhes.html?id=${campaignId}`;
@@ -144,6 +156,7 @@
         };
 
         function createCampaignCard(campaign) {
+            // ... (código sem alterações)
             const colorMap = {
                 'agasalho': { text: 'text-green-600', progress: 'bg-green-500' },
                 'sangue': { text: 'text-red-600', progress: 'bg-red-500' },
