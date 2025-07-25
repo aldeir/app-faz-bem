@@ -156,30 +156,30 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const params = new URLSearchParams(window.location.search);
-                const redirectUrl = params.get('redirect');
-
-                if (redirectUrl) {
-                    window.location.href = redirectUrl; // Redireciona para o destino original
-                    return;
-                }
-
                 const userDocRef = doc(db, "users", user.uid);
-                const docSnap = await getDoc(userDocRef);
+                let docSnap = await getDoc(userDocRef);
 
-                if (docSnap.exists()) {
-                    if (docSnap.data().role === 'entidade') {
-                        window.location.href = 'admin.html';
-                    } else {
-                        window.location.href = 'index.html';
-                    }
-                } else {
+                // Se o usuário não existe no Firestore (primeiro login com Google), cria o documento.
+                if (!docSnap.exists()) {
+                    const role = document.getElementById('user-role').value; // Pega o papel selecionado no cadastro
                     await setDoc(userDocRef, {
                         uid: user.uid,
                         displayName: user.displayName,
                         email: user.email,
-                        role: 'doador'
+                        role: signupView.classList.contains('hidden') ? 'doador' : role // Se estiver na tela de login, padrão é doador. Senão, usa o que foi selecionado.
                     });
+                    docSnap = await getDoc(userDocRef); // Recarrega os dados após criar
+                }
+
+                // Agora, com o usuário garantido no DB, faz o redirecionamento.
+                const params = new URLSearchParams(window.location.search);
+                const redirectUrl = params.get('redirect');
+
+                if (redirectUrl) {
+                    window.location.href = redirectUrl;
+                } else if (docSnap.data().role === 'entidade') {
+                    window.location.href = 'admin.html';
+                } else {
                     window.location.href = 'index.html';
                 }
             }
