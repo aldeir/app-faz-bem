@@ -38,9 +38,14 @@
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-    <div class="container mx-auto max-w-4xl p-4 sm:p-6">
+    <div class="container mx-auto max-w-4xl p-4 sm:p-6 relative">
 
-        <header class="text-center mb-8">
+        <!-- Seção de Autenticação do Usuário -->
+        <div id="user-auth-container" class="absolute top-4 right-4 z-10">
+            <!-- Conteúdo dinâmico: Entrar ou Perfil do Usuário -->
+        </div>
+
+        <header class="text-center mb-8 pt-12">
             <h1 class="text-4xl sm:text-5xl font-bold text-green-600">Faz Bem</h1>
             <p class="text-lg text-gray-600 mt-2">Conectando corações e transformando vidas em Guaçuí-ES.</p>
         </header>
@@ -72,10 +77,9 @@
     <!-- Módulos do Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Configuração do Firebase ---
         const firebaseConfig = {
             apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
             authDomain: "app-faz-bem-guacui.firebaseapp.com",
@@ -86,16 +90,44 @@
             measurementId: "G-R5W1F2NXH4"
         };
 
-        // Inicializa o Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- Lógica do Aplicativo ---
         const campaignList = document.getElementById('campaign-list');
         const loadingContainer = document.getElementById('loading-container');
         const emptyStateContainer = document.getElementById('empty-state-container');
-        const appId = firebaseConfig.projectId; // CORREÇÃO: Usa o ID do projeto correto
+        const userAuthContainer = document.getElementById('user-auth-container');
+        const appId = firebaseConfig.projectId;
+
+        // Gerencia a exibição do botão de login/logout
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userAuthContainer.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm font-medium text-gray-700">Olá, ${user.displayName || 'Usuário'}</span>
+                        <button id="logout-btn" class="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium">Sair</button>
+                    </div>
+                `;
+                document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+            } else {
+                userAuthContainer.innerHTML = `
+                    <a href="login.html" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700">Entrar / Cadastrar</a>
+                `;
+            }
+        });
+
+        // Função para lidar com o clique no card da campanha
+        window.handleCampaignClick = (campaignId) => {
+            const user = auth.currentUser;
+            if (user) {
+                window.location.href = `detalhes.html?id=${campaignId}`;
+            } else {
+                // Salva o destino e redireciona para o login
+                const destination = `detalhes.html?id=${campaignId}`;
+                window.location.href = `login.html?redirect=${encodeURIComponent(destination)}`;
+            }
+        };
 
         function createCampaignCard(campaign) {
             const colorMap = {
@@ -109,13 +141,12 @@
             const imageUrl = campaign.images && campaign.images.length > 0 ? campaign.images[0] : 'https://placehold.co/600x400/e2e8f0/e2e8f0?text=Sem+Imagem';
 
             return `
-                <a href="detalhes.html?id=${campaign.id}" class="block bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:-translate-y-1">
+                <div onclick="handleCampaignClick('${campaign.id}')" class="cursor-pointer block bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:-translate-y-1">
                     <img class="h-48 w-full object-cover" src="${imageUrl}" alt="Imagem da ${campaign.title}" onerror="this.onerror=null;this.src='https://placehold.co/600x400/cccccc/ffffff?text=Imagem+Indisponível';">
                     <div class="p-6">
                         <div class="uppercase tracking-wide text-sm ${theme.text} font-semibold">${campaign.entityName}</div>
                         <h3 class="block mt-1 text-xl leading-tight font-bold text-black truncate">${campaign.title}</h3>
                         <p class="mt-2 text-gray-500 h-12">${descriptionSnippet}</p>
-                        
                         <div class="mt-4">
                             <div class="flex justify-between text-sm font-medium text-gray-600">
                                 <span>Progresso</span>
@@ -125,48 +156,37 @@
                                 <div class="${theme.progress} h-2.5 rounded-full" style="width: ${campaign.progress || 0}%"></div>
                             </div>
                         </div>
-
                         <div class="mt-6 text-center text-sm font-bold ${theme.text}">
                             Ver Detalhes &rarr;
                         </div>
                     </div>
-                </a>
+                </div>
             `;
         }
         
-        async function authAndFetchData() {
-            try {
-                await signInAnonymously(auth);
-                
-                const campaignsColPath = `/artifacts/${appId}/public/data/campaigns`;
-                const q = query(collection(db, campaignsColPath));
-
-                onSnapshot(q, (querySnapshot) => {
-                    loadingContainer.style.display = 'none';
-                    
-                    if (querySnapshot.empty) {
-                        emptyStateContainer.style.display = 'block';
-                        campaignList.innerHTML = '';
-                    } else {
-                        emptyStateContainer.style.display = 'none';
-                        let cardsHtml = '';
-                        querySnapshot.forEach((doc) => {
-                            cardsHtml += createCampaignCard({ id: doc.id, ...doc.data() });
-                        });
-                        campaignList.innerHTML = cardsHtml;
-                    }
-                }, (error) => {
-                    console.error("Erro ao buscar campanhas: ", error);
-                    loadingContainer.innerHTML = "<p class='text-red-500'>Ocorreu um erro ao carregar as campanhas.</p>";
-                });
-
-            } catch(error) {
-                console.error("Erro na autenticação ou busca: ", error);
-                loadingContainer.innerHTML = "<p class='text-red-500'>Não foi possível conectar ao serviço. Tente novamente mais tarde.</p>";
-            }
+        function fetchCampaigns() {
+            const campaignsColPath = `/artifacts/${appId}/public/data/campaigns`;
+            const q = query(collection(db, campaignsColPath));
+            onSnapshot(q, (querySnapshot) => {
+                loadingContainer.style.display = 'none';
+                if (querySnapshot.empty) {
+                    emptyStateContainer.style.display = 'block';
+                    campaignList.innerHTML = '';
+                } else {
+                    emptyStateContainer.style.display = 'none';
+                    let cardsHtml = '';
+                    querySnapshot.forEach((doc) => {
+                        cardsHtml += createCampaignCard({ id: doc.id, ...doc.data() });
+                    });
+                    campaignList.innerHTML = cardsHtml;
+                }
+            }, (error) => {
+                console.error("Erro ao buscar campanhas: ", error);
+                loadingContainer.innerHTML = "<p class='text-red-500'>Ocorreu um erro ao carregar as campanhas.</p>";
+            });
         }
 
-        authAndFetchData();
+        fetchCampaigns();
     </script>
 </body>
 </html>
