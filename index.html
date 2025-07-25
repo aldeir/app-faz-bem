@@ -105,6 +105,7 @@
             if (user) {
                 const userDocRef = doc(db, "users", user.uid);
                 const docSnap = await getDoc(userDocRef);
+                
                 let userRole = 'doador'; // Padrão
                 if (docSnap.exists()) {
                     userRole = docSnap.data().role;
@@ -118,7 +119,7 @@
                 }
 
                 userAuthContainer.innerHTML = `
-                    <div class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-3 bg-white p-2 rounded-lg shadow">
                         <span class="text-sm font-medium text-gray-700">Olá, ${user.displayName || 'Usuário'}</span>
                         ${panelLink}
                         <button id="logout-btn" class="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium">Sair</button>
@@ -127,7 +128,7 @@
                 document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
             } else {
                 userAuthContainer.innerHTML = `
-                    <a href="login.html" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700">Entrar / Cadastrar</a>
+                    <a href="login.html" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 shadow">Entrar / Cadastrar</a>
                 `;
             }
         });
