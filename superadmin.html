@@ -45,9 +45,31 @@
             </nav>
 
             <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                <!-- Secção de Utilizadores -->
-                <div class="px-4 py-6 sm:px-0">
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Gestão de Utilizadores (Entidades e Doadores)</h2>
+                <!-- Secção de Dashboard com Métricas -->
+                <div class="px-4">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Resumo Geral</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Card Total de Utilizadores -->
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-sm font-medium text-gray-500">Total de Utilizadores</h3>
+                            <p id="total-users" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
+                        </div>
+                        <!-- Card Total de Entidades -->
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-sm font-medium text-gray-500">Total de Entidades</h3>
+                            <p id="total-entities" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
+                        </div>
+                        <!-- Card Total de Campanhas -->
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-sm font-medium text-gray-500">Campanhas Ativas</h3>
+                            <p id="total-campaigns" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secção de Gestão de Utilizadores -->
+                <div class="px-4 py-6 sm:px-0 mt-8">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Gestão de Utilizadores</h2>
                     <div id="all-users-list" class="bg-white rounded-lg shadow">
                          <p id="users-placeholder" class="text-gray-500 p-6">Nenhum utilizador encontrado.</p>
                          <!-- Os utilizadores serão inseridos aqui -->
@@ -77,6 +99,7 @@
         const db = getFirestore(app);
         
         const ADMIN_EMAIL = "aldeir@gmail.com";
+        const appId = firebaseConfig.projectId;
 
         const accessDeniedView = document.getElementById('access-denied-view');
         const dashboardView = document.getElementById('dashboard-view');
@@ -91,6 +114,7 @@
                     dashboardView.classList.remove('hidden');
                     accessDeniedView.classList.add('hidden');
                     userEmailDisplay.textContent = user.email;
+                    loadDashboardMetrics();
                     loadAllUsers();
                 } else {
                     dashboardView.classList.add('hidden');
@@ -102,6 +126,22 @@
         });
 
         logoutBtn.addEventListener('click', () => signOut(auth));
+
+        function loadDashboardMetrics() {
+            const usersQuery = query(collection(db, "/users"));
+            onSnapshot(usersQuery, (snapshot) => {
+                const users = snapshot.docs;
+                const totalUsers = users.length;
+                const totalEntities = users.filter(doc => doc.data().role === 'entidade').length;
+                document.getElementById('total-users').textContent = totalUsers;
+                document.getElementById('total-entities').textContent = totalEntities;
+            });
+
+            const campaignsQuery = query(collection(db, `/artifacts/${appId}/public/data/campaigns`));
+            onSnapshot(campaignsQuery, (snapshot) => {
+                document.getElementById('total-campaigns').textContent = snapshot.size;
+            });
+        }
 
         function loadAllUsers() {
             const usersColPath = `/users`;
