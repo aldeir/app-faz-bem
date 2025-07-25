@@ -22,7 +22,6 @@
         .transition-all {
             transition: all 0.3s ease-in-out;
         }
-        /* Animação de carregamento */
         .loader {
             border: 4px solid #f3f3f3;
             border-top: 4px solid #22c55e;
@@ -39,31 +38,23 @@
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-    <!-- Container Principal -->
     <div class="container mx-auto max-w-4xl p-4 sm:p-6">
 
-        <!-- Cabeçalho -->
         <header class="text-center mb-8">
             <h1 class="text-4xl sm:text-5xl font-bold text-green-600">Faz Bem</h1>
             <p class="text-lg text-gray-600 mt-2">Conectando corações e transformando vidas em Guaçuí-ES.</p>
         </header>
 
-        <!-- Seção de Campanhas Ativas -->
         <main>
             <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b-2 border-green-200 pb-2">Campanhas Ativas</h2>
 
-            <!-- Container para o estado de carregamento -->
             <div id="loading-container" class="text-center py-10">
                 <div class="loader mx-auto"></div>
                 <p class="mt-4 text-gray-600">Carregando campanhas...</p>
             </div>
 
-            <!-- Grid de Campanhas (será preenchido dinamicamente) -->
-            <div id="campaign-list" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Os cards das campanhas serão inseridos aqui pelo JavaScript -->
-            </div>
+            <div id="campaign-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
 
-            <!-- Container para quando não houver campanhas -->
             <div id="empty-state-container" class="hidden text-center py-10 bg-gray-100 rounded-lg">
                  <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -73,7 +64,6 @@
             </div>
         </main>
 
-        <!-- Rodapé -->
         <footer class="text-center mt-12 py-4 border-t">
             <p class="text-gray-500">&copy; 2025 App Faz Bem. Uma iniciativa comunitária.</p>
         </footer>
@@ -81,17 +71,21 @@
 
     <!-- Módulos do Firebase -->
     <script type="module">
-        // Importações necessárias do SDK do Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Configuração do Firebase ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : { apiKey: "DEMO", authDomain: "DEMO", projectId: "DEMO" };
-
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'faz-bem-app';
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
+            authDomain: "app-faz-bem-guacui.firebaseapp.com",
+            projectId: "app-faz-bem-guacui",
+            storageBucket: "app-faz-bem-guacui.appspot.com",
+            messagingSenderId: "218995880923",
+            appId: "1:218995880923:web:ce8a371bc402904c0dedfe",
+            measurementId: "G-R5W1F2NXH4"
+        };
 
         // Inicializa o Firebase
         const app = initializeApp(firebaseConfig);
@@ -102,8 +96,8 @@
         const campaignList = document.getElementById('campaign-list');
         const loadingContainer = document.getElementById('loading-container');
         const emptyStateContainer = document.getElementById('empty-state-container');
+        const appId = 'faz-bem-app'; // ID fixo para o caminho do banco de dados
 
-        // Função para criar o card de uma campanha como um link
         function createCampaignCard(campaign) {
             const colorMap = {
                 'agasalho': { text: 'text-green-600', progress: 'bg-green-500' },
@@ -141,14 +135,9 @@
             `;
         }
         
-        // Função para autenticar e buscar os dados
         async function authAndFetchData() {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                await signInAnonymously(auth);
                 
                 const campaignsColPath = `/artifacts/${appId}/public/data/campaigns`;
                 const q = query(collection(db, campaignsColPath));
@@ -179,7 +168,6 @@
         }
 
         authAndFetchData();
-
     </script>
 </body>
 </html>
