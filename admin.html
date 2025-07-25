@@ -5,91 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Faz Bem - Área da Entidade</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-        .transition-all { transition: all 0.3s ease-in-out; }
-        .modal-backdrop {
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-        .modal-body {
-            max-height: 70vh;
-            overflow-y: auto;
-        }
+        body { font-family: 'Inter', sans-serif; }
+        .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); }
+        .modal-body { max-height: 70vh; overflow-y: auto; }
     </style>
 </head>
 <body class="bg-gray-100">
 
     <div id="app-container">
-
-        <!-- TELA DE LOGIN -->
-        <div id="login-view">
-            <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-                <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
-                    <div>
-                        <h1 class="text-center text-4xl font-bold text-green-600">Faz Bem</h1>
-                        <h2 class="mt-4 text-center text-2xl font-semibold text-gray-900">Acesso da Entidade</h2>
-                    </div>
-                    <form id="login-form" class="mt-8 space-y-6">
-                        <div class="rounded-md shadow-sm -space-y-px">
-                            <input id="login-email" type="email" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="Email da entidade">
-                            <input id="login-password" type="password" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="Senha">
-                        </div>
-                        <div id="login-error" class="text-red-500 text-sm hidden mt-2"></div>
-                        <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">Entrar</button>
-                    </form>
-                    <div class="text-center mt-6">
-                        <p class="text-sm text-gray-600">Não tem uma conta? <button id="show-signup-btn" class="font-medium text-green-600 hover:text-green-500">Cadastre sua entidade</button></p>
-                    </div>
-                </div>
+        <!-- TELA DE CARREGAMENTO/VERIFICAÇÃO -->
+        <div id="loading-view">
+            <div class="min-h-screen flex items-center justify-center">
+                <p class="text-gray-600">Carregando...</p>
             </div>
         </div>
         
-        <!-- TELA DE CADASTRO -->
-        <div id="signup-view" class="hidden">
-            <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-                <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
-                    <h2 class="text-center text-2xl font-bold text-gray-900">Cadastro de Nova Entidade</h2>
-                    <form id="signup-form" class="mt-8 space-y-6">
-                        <input id="signup-entity-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Nome da Entidade">
-                        <input id="signup-email" type="email" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Email de contato">
-                        <input id="signup-password" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Crie uma senha (mínimo 6 caracteres)">
-                        <div id="signup-error" class="text-red-500 text-sm hidden mt-2"></div>
-                        <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">Cadastrar</button>
-                    </form>
-                    <div class="text-center mt-6">
-                        <p class="text-sm text-gray-600">Já tem uma conta? <button id="show-login-btn" class="font-medium text-green-600 hover:text-green-500">Fazer Login</button></p>
+        <!-- PAINEL DE CONTROLE DA ENTIDADE -->
+        <div id="dashboard-view" class="hidden">
+            <nav class="bg-white shadow-sm">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex justify-between h-16">
+                        <div class="flex items-center space-x-4">
+                            <span class="text-2xl font-bold text-green-600">Faz Bem</span>
+                            <span class="font-semibold text-gray-500">Painel de Controle</span>
+                            <a href="index.html" class="text-sm text-gray-500 hover:text-green-600 border-l pl-4">← Voltar à Home</a>
+                        </div>
+                        <div class="flex items-center">
+                             <span id="user-email-display" class="text-sm text-gray-700 mr-4"></span>
+                            <button id="logout-btn" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-md text-sm font-medium">Sair</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </nav>
 
-        <!-- PAINEL DE CONTROLE -->
-        <div id="dashboard-view" class="hidden">
-            <nav class="bg-white shadow-sm"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div class="flex justify-between h-16"><div class="flex items-center"><span class="text-2xl font-bold text-green-600">Faz Bem</span><span class="ml-4 text-gray-500">Painel de Controle</span></div><div class="flex items-center"><span id="user-email-display" class="text-sm text-gray-700 mr-4"></span><button id="logout-btn" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-md text-sm font-medium">Sair</button></div></div></div></nav>
-            <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8"><div class="px-4 py-6 sm:px-0"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-semibold text-gray-800">Suas Campanhas</h2><button id="open-modal-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">+ Criar Nova Campanha</button></div><div id="my-campaigns-list" class="bg-white rounded-lg shadow p-6"><p id="my-campaigns-placeholder" class="text-gray-500">Você ainda não criou nenhuma campanha.</p></div></div></main>
+            <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                <div class="px-4 py-6 sm:px-0">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-semibold text-gray-800">Suas Campanhas</h2>
+                        <button id="open-modal-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">+ Criar Nova Campanha</button>
+                    </div>
+                    <div id="my-campaigns-list" class="bg-white rounded-lg shadow p-6">
+                        <p id="my-campaigns-placeholder" class="text-gray-500">Você ainda não criou nenhuma campanha.</p>
+                    </div>
+                </div>
+            </main>
         </div>
     </div>
 
-    <!-- MODAL -->
+    <!-- MODAL DE CRIAÇÃO DE CAMPANHA -->
     <div id="create-campaign-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-backdrop flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl"><form id="create-campaign-form"><div class="p-6 modal-body"><h3 class="text-2xl font-semibold mb-6 border-b pb-4">Detalhes da Nova Campanha</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="space-y-4"><div><label for="campaign-title" class="block text-sm font-medium text-gray-700">Título*</label><input type="text" id="campaign-title" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div><div><label for="campaign-description" class="block text-sm font-medium text-gray-700">Descrição*</label><textarea id="campaign-description" rows="4" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></textarea></div><div><label for="campaign-type" class="block text-sm font-medium text-gray-700">Tipo*</label><select id="campaign-type" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="agasalho">Agasalho</option><option value="alimento">Alimento</option><option value="sangue">Doação de Sangue</option><option value="default">Outro</option></select></div><div><label for="campaign-goal" class="block text-sm font-medium text-gray-700">Meta (Unidades)</label><input type="number" id="campaign-goal" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div><div><label for="campaign-duration" class="block text-sm font-medium text-gray-700">Duração*</label><select id="campaign-duration" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="7200">2 horas</option><option value="86400">1 dia</option><option value="259200">3 dias</option><option value="1296000">15 dias</option></select></div></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700">Local da Ação</label><input type="text" id="campaign-address" placeholder="Rua, Av..." class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><input type="text" id="campaign-address-number" placeholder="Número" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><input type="text" id="campaign-address-district" placeholder="Bairro" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div><div><label for="campaign-map-link" class="block text-sm font-medium text-gray-700">Link do Google Maps</label><input type="url" id="campaign-map-link" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div><div><label for="campaign-hours" class="block text-sm font-medium text-gray-700">Horário</label><input type="text" id="campaign-hours" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div><div><label for="campaign-docs" class="block text-sm font-medium text-gray-700">Documentos</label><textarea id="campaign-docs" rows="2" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></textarea></div></div></div><div class="mt-6 pt-4 border-t"><label class="block text-sm font-medium text-gray-700">Imagens</label><input type="url" id="campaign-image-1" required placeholder="URL da Imagem Principal*" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><input type="url" id="campaign-image-2" placeholder="URL da Imagem Secundária (Opcional)" class="mt-2 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div></div><div class="bg-gray-50 px-6 py-4 sm:flex sm:flex-row-reverse items-center"><button type="submit" id="submit-campaign-btn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 sm:ml-3 sm:w-auto sm:text-sm">Publicar Campanha</button><button type="button" id="close-modal-btn" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 sm:mt-0 sm:w-auto sm:text-sm">Cancelar</button><div id="modal-error" class="text-red-600 text-sm mr-auto mt-2 sm:mt-0 hidden"></div></div></form></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, serverTimestamp, Timestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
@@ -104,17 +80,12 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = firebaseConfig.projectId; // CORREÇÃO
+        const appId = firebaseConfig.projectId;
 
-        const loginView = document.getElementById('login-view');
-        const signupView = document.getElementById('signup-view');
+        const loadingView = document.getElementById('loading-view');
         const dashboardView = document.getElementById('dashboard-view');
-        const loginForm = document.getElementById('login-form');
-        const signupForm = document.getElementById('signup-form');
-        const showSignupBtn = document.getElementById('show-signup-btn');
-        const showLoginBtn = document.getElementById('show-login-btn');
-        const logoutBtn = document.getElementById('logout-btn');
         const userEmailDisplay = document.getElementById('user-email-display');
+        const logoutBtn = document.getElementById('logout-btn');
         const myCampaignsList = document.getElementById('my-campaigns-list');
         const myCampaignsPlaceholder = document.getElementById('my-campaigns-placeholder');
         const modal = document.getElementById('create-campaign-modal');
@@ -124,53 +95,22 @@
         const modalError = document.getElementById('modal-error');
         const submitCampaignBtn = document.getElementById('submit-campaign-btn');
 
-        const showDashboard = (user) => {
-            loginView.classList.add('hidden');
-            signupView.classList.add('hidden');
-            dashboardView.classList.remove('hidden');
-            userEmailDisplay.textContent = user.displayName || user.email;
-            loadMyCampaigns(user.uid);
-        };
-        const showLogin = () => {
-            loginView.classList.remove('hidden');
-            signupView.classList.add('hidden');
-            dashboardView.classList.add('hidden');
-        };
-
-        showSignupBtn.addEventListener('click', () => { loginView.classList.add('hidden'); signupView.classList.remove('hidden'); });
-        showLoginBtn.addEventListener('click', () => { signupView.classList.add('hidden'); loginView.classList.remove('hidden'); });
-        
-        onAuthStateChanged(auth, user => { user ? showDashboard(user) : showLogin(); });
-
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const entityName = signupForm['signup-entity-name'].value;
-            const email = signupForm['signup-email'].value;
-            const password = signupForm['signup-password'].value;
-            const errorDiv = document.getElementById('signup-error');
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                await updateProfile(userCredential.user, { displayName: entityName });
-                errorDiv.classList.add('hidden');
-                signupForm.reset();
-            } catch (error) {
-                errorDiv.textContent = "Erro: " + error.message;
-                errorDiv.classList.remove('hidden');
-            }
-        });
-
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = loginForm['login-email'].value;
-            const password = loginForm['login-password'].value;
-            const errorDiv = document.getElementById('login-error');
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-                errorDiv.classList.add('hidden');
-                loginForm.reset();
-            } catch (error) {
-                errorDiv.textContent = "Email ou senha inválidos.";
-                errorDiv.classList.remove('hidden');
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const userDocRef = doc(db, "users", user.uid);
+                const docSnap = await getDoc(userDocRef);
+                if (docSnap.exists() && docSnap.data().role === 'entidade') {
+                    loadingView.classList.add('hidden');
+                    dashboardView.classList.remove('hidden');
+                    userEmailDisplay.textContent = user.displayName || user.email;
+                    loadMyCampaigns(user.uid);
+                } else {
+                    // Se não for entidade, redireciona para a home (acesso negado)
+                    window.location.href = 'index.html';
+                }
+            } else {
+                // Se não estiver logado, redireciona para o login
+                window.location.href = 'login.html';
             }
         });
 
