@@ -76,7 +76,6 @@
         import { getFirestore, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Configuração do Firebase ---
-        // Your web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
             authDomain: "app-faz-bem-guacui.firebaseapp.com",
@@ -96,7 +95,7 @@
         const campaignList = document.getElementById('campaign-list');
         const loadingContainer = document.getElementById('loading-container');
         const emptyStateContainer = document.getElementById('empty-state-container');
-        const appId = 'faz-bem-app'; // ID fixo para o caminho do banco de dados
+        const appId = firebaseConfig.projectId; // CORREÇÃO: Usa o ID do projeto correto
 
         function createCampaignCard(campaign) {
             const colorMap = {
@@ -106,7 +105,7 @@
                 'default': { text: 'text-blue-600', progress: 'bg-blue-500' }
             };
             const theme = colorMap[campaign.type] || colorMap['default'];
-            const descriptionSnippet = campaign.description.length > 100 ? campaign.description.substring(0, 100) + '...' : campaign.description;
+            const descriptionSnippet = campaign.description ? campaign.description.substring(0, 100) + '...' : '';
             const imageUrl = campaign.images && campaign.images.length > 0 ? campaign.images[0] : 'https://placehold.co/600x400/e2e8f0/e2e8f0?text=Sem+Imagem';
 
             return `
