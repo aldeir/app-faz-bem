@@ -93,6 +93,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // ... (elementos da UI)
         const loginView = document.getElementById('login-view');
         const signupView = document.getElementById('signup-view');
         const showSignupBtn = document.getElementById('show-signup-btn');
@@ -105,11 +106,12 @@
         showSignupBtn.addEventListener('click', () => { loginView.classList.add('hidden'); signupView.classList.remove('hidden'); });
         showLoginBtn.addEventListener('click', () => { signupView.classList.add('hidden'); loginView.classList.remove('hidden'); });
         
-        let isRedirecting = false; // Flag to prevent multiple redirects
+        let isRedirecting = false;
 
-        const redirectToApp = async (user) => {
+        const handleUserRedirect = async (user) => {
             if (isRedirecting) return;
             isRedirecting = true;
+            console.log("Iniciando redirecionamento para o usuário:", user.email);
 
             const userDocRef = doc(db, "users", user.uid);
             const docSnap = await getDoc(userDocRef);
@@ -118,19 +120,39 @@
             const redirectUrl = params.get('redirect');
 
             if (redirectUrl) {
+                console.log("Redirecionando para o destino original:", redirectUrl);
                 window.location.href = redirectUrl;
             } else if (docSnap.exists() && docSnap.data().role === 'entidade') {
+                console.log("Usuário é uma entidade, redirecionando para admin.html");
                 window.location.href = 'admin.html';
             } else {
+                console.log("Usuário é um doador ou novo, redirecionando para index.html");
                 window.location.href = 'index.html';
             }
         };
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                redirectToApp(user);
+                console.log("onAuthStateChanged: Usuário detectado.", user.uid);
+                handleUserRedirect(user);
+            } else {
+                console.log("onAuthStateChanged: Nenhum usuário logado.");
             }
         });
+
+        const setupUserDocument = async (user, role) => {
+            const userDocRef = doc(db, "users", user.uid);
+            const docSnap = await getDoc(userDocRef);
+            if (!docSnap.exists()) {
+                console.log("Criando novo documento de usuário para:", user.email);
+                await setDoc(userDocRef, {
+                    uid: user.uid,
+                    displayName: user.displayName,
+                    email: user.email,
+                    role: role
+                });
+            }
+        };
 
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -143,9 +165,8 @@
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
                 await updateProfile(user, { displayName: name });
-                const userDocRef = doc(db, "users", user.uid);
-                await setDoc(userDocRef, { uid: user.uid, displayName: name, email: user.email, role: role });
-                // onAuthStateChanged will handle redirect
+                await setupUserDocument(user, role);
+                // onAuthStateChanged irá redirecionar
             } catch (error) {
                 errorDiv.textContent = "Erro: " + error.message;
                 errorDiv.classList.remove('hidden');
@@ -159,7 +180,7 @@
             const errorDiv = document.getElementById('login-error');
             try {
                 await signInWithEmailAndPassword(auth, email, password);
-                // onAuthStateChanged will handle redirect
+                // onAuthStateChanged irá redirecionar
             } catch (error) {
                 errorDiv.textContent = "Email ou senha inválidos.";
                 errorDiv.classList.remove('hidden');
@@ -171,20 +192,9 @@
             try {
                 const result = await signInWithPopup(auth, provider);
                 const user = result.user;
-                
-                const userDocRef = doc(db, "users", user.uid);
-                const docSnap = await getDoc(userDocRef);
-
-                if (!docSnap.exists()) {
-                    const role = signupView.classList.contains('hidden') ? 'doador' : document.getElementById('user-role').value;
-                    await setDoc(userDocRef, {
-                        uid: user.uid,
-                        displayName: user.displayName,
-                        email: user.email,
-                        role: role
-                    });
-                }
-                // onAuthStateChanged will now reliably redirect
+                const role = signupView.classList.contains('hidden') ? 'doador' : document.getElementById('user-role').value;
+                await setupUserDocument(user, role);
+                // onAuthStateChanged irá redirecionar
             } catch (error) {
                 console.error("Erro no login com Google:", error);
                 const errorDiv = document.getElementById('login-error');
