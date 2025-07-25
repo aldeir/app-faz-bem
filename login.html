@@ -138,26 +138,12 @@
                 errorDiv.classList.remove('hidden');
             }
         });
-
+        
         const handleGoogleSignIn = async () => {
             const provider = new GoogleAuthProvider();
             try {
-                const result = await signInWithPopup(auth, provider);
-                const user = result.user;
-                
-                // Checa se o usuário já existe no Firestore, se não, cria.
-                const userDocRef = doc(db, "users", user.uid);
-                const docSnap = await getDoc(userDocRef);
-                if (!docSnap.exists()) {
-                    const role = signupView.classList.contains('hidden') ? 'doador' : document.getElementById('user-role').value;
-                    await setDoc(userDocRef, {
-                        uid: user.uid,
-                        displayName: user.displayName,
-                        email: user.email,
-                        role: role
-                    });
-                }
-                // A função onAuthStateChanged cuidará do redirecionamento.
+                await signInWithPopup(auth, provider);
+                // O onAuthStateChanged vai cuidar do resto
             } catch (error) {
                 console.error("Erro no login com Google:", error);
                 const errorDiv = document.getElementById('login-error');
@@ -172,12 +158,17 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const userDocRef = doc(db, "users", user.uid);
-                const docSnap = await getDoc(userDocRef);
+                let docSnap = await getDoc(userDocRef);
 
-                // Se o documento ainda não existir (caso raro ou de primeiro login), esperamos um pouco e tentamos de novo.
                 if (!docSnap.exists()) {
-                    setTimeout(() => onAuthStateChanged(auth, (u) => user && (window.location.href = 'index.html')), 1000);
-                    return;
+                    const role = signupView.classList.contains('hidden') ? 'doador' : document.getElementById('user-role').value;
+                    await setDoc(userDocRef, {
+                        uid: user.uid,
+                        displayName: user.displayName,
+                        email: user.email,
+                        role: role
+                    });
+                    docSnap = await getDoc(userDocRef);
                 }
 
                 const params = new URLSearchParams(window.location.search);
@@ -185,7 +176,7 @@
 
                 if (redirectUrl) {
                     window.location.href = redirectUrl;
-                } else if (docSnap.data().role === 'entidade') {
+                } else if (docSnap.exists() && docSnap.data().role === 'entidade') {
                     window.location.href = 'admin.html';
                 } else {
                     window.location.href = 'index.html';
