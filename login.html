@@ -142,7 +142,22 @@
         const handleGoogleSignIn = async () => {
             const provider = new GoogleAuthProvider();
             try {
-                await signInWithPopup(auth, provider);
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+                
+                // Checa se o usuário já existe no Firestore, se não, cria.
+                const userDocRef = doc(db, "users", user.uid);
+                const docSnap = await getDoc(userDocRef);
+                if (!docSnap.exists()) {
+                    const role = signupView.classList.contains('hidden') ? 'doador' : document.getElementById('user-role').value;
+                    await setDoc(userDocRef, {
+                        uid: user.uid,
+                        displayName: user.displayName,
+                        email: user.email,
+                        role: role
+                    });
+                }
+                // A função onAuthStateChanged cuidará do redirecionamento.
             } catch (error) {
                 console.error("Erro no login com Google:", error);
                 const errorDiv = document.getElementById('login-error');
@@ -157,21 +172,14 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const userDocRef = doc(db, "users", user.uid);
-                let docSnap = await getDoc(userDocRef);
+                const docSnap = await getDoc(userDocRef);
 
-                // Se o usuário não existe no Firestore (primeiro login com Google), cria o documento.
+                // Se o documento ainda não existir (caso raro ou de primeiro login), esperamos um pouco e tentamos de novo.
                 if (!docSnap.exists()) {
-                    const role = document.getElementById('user-role').value; // Pega o papel selecionado no cadastro
-                    await setDoc(userDocRef, {
-                        uid: user.uid,
-                        displayName: user.displayName,
-                        email: user.email,
-                        role: signupView.classList.contains('hidden') ? 'doador' : role // Se estiver na tela de login, padrão é doador. Senão, usa o que foi selecionado.
-                    });
-                    docSnap = await getDoc(userDocRef); // Recarrega os dados após criar
+                    setTimeout(() => onAuthStateChanged(auth, (u) => user && (window.location.href = 'index.html')), 1000);
+                    return;
                 }
 
-                // Agora, com o usuário garantido no DB, faz o redirecionamento.
                 const params = new URLSearchParams(window.location.search);
                 const redirectUrl = params.get('redirect');
 
