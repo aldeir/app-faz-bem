@@ -17,12 +17,10 @@
 <body class="bg-gray-100">
 
     <div id="app-container">
-        <!-- TELA DE CARREGAMENTO/VERIFICAÇÃO -->
         <div id="loading-view" class="min-h-screen flex items-center justify-center">
             <p class="text-gray-600">A carregar...</p>
         </div>
 
-        <!-- TELA DE APROVAÇÃO PENDENTE -->
         <div id="pending-approval-view" class="hidden min-h-screen flex items-center justify-center text-center p-4">
             <div class="max-w-md w-full bg-white p-10 rounded-xl shadow-lg">
                 <h1 class="text-2xl font-bold text-yellow-600">Registo em Análise</h1>
@@ -32,7 +30,6 @@
             </div>
         </div>
         
-        <!-- PAINEL DE CONTROLO DA ENTIDADE -->
         <div id="dashboard-view" class="hidden">
             <nav class="bg-white shadow-sm">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -57,7 +54,6 @@
                         <a href="criar-campanha.html" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">+ Criar Nova Campanha</a>
                     </div>
 
-                    <!-- Métricas das Campanhas -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         <div class="bg-white p-6 rounded-lg shadow">
                             <h3 class="text-sm font-medium text-gray-500">Total de Campanhas</h3>
@@ -73,7 +69,6 @@
                         </div>
                     </div>
 
-                    <!-- Lista de Campanhas -->
                     <div id="my-campaigns-list" class="bg-white rounded-lg shadow">
                         <p id="my-campaigns-placeholder" class="text-gray-500 p-6">Ainda não criou nenhuma campanha.</p>
                     </div>
@@ -82,7 +77,6 @@
         </div>
     </div>
 
-    <!-- SCRIPT ATUALIZADO (VERSÃO 2.6) -->
     <script type="module">
         import { auth, db, onAuthStateChanged, logout, firebaseConfig } from './app-config.js';
         import { collection, query, where, onSnapshot, getDoc, doc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -162,17 +156,18 @@
                         ? { text: 'Concluída', color: 'bg-gray-100 text-gray-800' }
                         : { text: 'Ativa', color: 'bg-green-100 text-green-800' };
                     
+                    // BOTÕES DE AÇÃO ATUALIZADOS
                     const actionButtons = !isCompleted ? `
                         <button data-action="end" data-id="${campaignId}" class="text-sm font-medium text-red-600 hover:text-red-800">Concluir Agora</button>
-                        <a href="#" class="text-sm font-medium text-blue-600 hover:text-blue-800">Editar</a>
-                    ` : '';
+                        <a href="criar-campanha.html?editId=${campaignId}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Editar</a>
+                    ` : '<span class="text-sm text-gray-500">Finalizada</span>';
 
                     const card = document.createElement('div');
                     card.className = 'p-4 border-b last:border-b-0';
                     card.innerHTML = `
                         <div class="flex justify-between items-center">
                             <div class="flex items-center space-x-4">
-                                <img src="${campaign.bannerMedia.url}" class="w-24 h-16 object-cover rounded-md bg-gray-200">
+                                <img src="${(campaign.images && campaign.images[0]) || 'https://placehold.co/96x64/e2e8f0/cbd5e0?text=Img'}" class="w-24 h-16 object-cover rounded-md bg-gray-200">
                                 <div>
                                     <h4 class="font-bold text-lg">${campaign.title}</h4>
                                     <p class="text-sm text-gray-500">Termina em: ${campaign.expiresAt.toDate().toLocaleDateString('pt-BR')}</p>
@@ -203,7 +198,6 @@
                     const campaignRef = doc(db, campaignsColPath, campaignId);
                     try {
                         await updateDoc(campaignRef, { expiresAt: Timestamp.now() });
-                        // A lista será atualizada automaticamente pelo onSnapshot
                     } catch (error) {
                         alert('Erro ao concluir a campanha: ' + error.message);
                     }
