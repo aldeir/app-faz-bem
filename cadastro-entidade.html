@@ -28,26 +28,29 @@
                 </div>
                 <form id="signup-form" class="mt-8 space-y-4">
                     
+                    <h3 class="text-lg font-semibold text-gray-700 border-b pb-2">Dados da Entidade</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input id="entity-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Nome da Entidade*">
-                        <input id="entity-cnpj" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="CNPJ*">
+                        <input id="entity-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Nome Oficial da Entidade*">
+                        <input id="entity-public-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Nome Público / Apelido*">
                     </div>
-                    
+                    <input id="entity-cnpj" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="CNPJ*">
+                    <input id="entity-logo-url" type="url" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="URL do Logotipo (imagem)*">
+                    <textarea id="entity-description" rows="3" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Sobre a Entidade (missão, histórico, etc.)"></textarea>
+
+                    <h3 class="text-lg font-semibold text-gray-700 border-b pb-2 pt-4">Dados de Contato e Endereço</h3>
                     <input id="responsible-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Nome do Responsável*">
-                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <input id="signup-email" type="email" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="E-mail de Contato*">
                         <input id="signup-phone" type="tel" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Telefone de Contato">
                     </div>
-
                     <input id="address-street" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Endereço (Rua, Av.)*">
-                    
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <input id="address-number" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Nº*">
                         <input id="address-district" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Bairro*">
                         <input id="address-city" type="text" value="Guaçuí" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Cidade*">
                     </div>
 
+                    <h3 class="text-lg font-semibold text-gray-700 border-b pb-2 pt-4">Dados de Acesso</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <input id="signup-password" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Crie uma senha*">
                         <input id="signup-password-confirm" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Confirme a senha*">
@@ -80,7 +83,10 @@
             e.preventDefault();
             
             const entityName = document.getElementById('entity-name').value;
+            const publicName = document.getElementById('entity-public-name').value;
             const cnpj = document.getElementById('entity-cnpj').value;
+            const logoUrl = document.getElementById('entity-logo-url').value;
+            const description = document.getElementById('entity-description').value;
             const responsibleName = document.getElementById('responsible-name').value;
             const email = document.getElementById('signup-email').value;
             const phone = document.getElementById('signup-phone').value;
@@ -114,10 +120,13 @@
                 await setDoc(userDocRef, {
                     uid: user.uid,
                     displayName: entityName,
+                    publicName: publicName,
+                    logoUrl: logoUrl,
+                    description: description,
                     email: user.email,
                     phone: phone,
                     role: 'entidade',
-                    status: 'pendente_aprovacao', // Status inicial
+                    status: 'pendente_aprovacao',
                     cnpj: cnpj,
                     responsibleName: responsibleName,
                     address: address
