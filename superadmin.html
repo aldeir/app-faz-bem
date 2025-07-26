@@ -64,38 +64,37 @@
                     </div>
                 </div>
 
-                <!-- Secção de Gestão de Utilizadores (Oculta por defeito) -->
-                <div id="users-management-view" class="px-4 mt-8 hidden">
-                    <button id="back-to-dashboard-btn-1" class="text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Todos os Utilizadores</h2>
-                    <div id="all-users-list" class="bg-white rounded-lg shadow">
-                         <p id="users-placeholder" class="text-gray-500 p-6">Nenhum utilizador encontrado.</p>
+                <!-- Container para as Vistas de Gestão -->
+                <div id="management-container" class="mt-8">
+                    <!-- Secção de Gestão de Utilizadores (Oculta por defeito) -->
+                    <div id="users-management-view" class="px-4 hidden">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Todos os Utilizadores</h2>
+                        <div id="all-users-list" class="bg-white rounded-lg shadow">
+                             <p id="users-placeholder" class="text-gray-500 p-6">Nenhum utilizador encontrado.</p>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Secção de Gestão de Entidades Pendentes (Oculta por defeito) -->
-                <div id="pending-entities-view" class="px-4 mt-8 hidden">
-                    <button id="back-to-dashboard-btn-2" class="text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Entidades a Aguardar Aprovação</h2>
-                    <div id="pending-entities-list" class="bg-white rounded-lg shadow">
-                         <p id="pending-entities-placeholder" class="text-gray-500 p-6">Nenhuma entidade pendente.</p>
+                    <!-- Secção de Gestão de Entidades Pendentes (Oculta por defeito) -->
+                    <div id="pending-entities-view" class="px-4 hidden">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Entidades a Aguardar Aprovação</h2>
+                        <div id="pending-entities-list" class="bg-white rounded-lg shadow">
+                             <p id="pending-entities-placeholder" class="text-gray-500 p-6">Nenhuma entidade pendente.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Secção de Gestão de Campanhas (Oculta por defeito) -->
+                    <div id="campaigns-management-view" class="px-4 hidden">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Todas as Campanhas</h2>
+                        <div id="all-campaigns-list" class="bg-white rounded-lg shadow">
+                             <p id="campaigns-placeholder" class="text-gray-500 p-6">Nenhuma campanha encontrada.</p>
+                        </div>
                     </div>
                 </div>
-                
-                <!-- NOVA SECÇÃO: Gestão de Campanhas (Oculta por defeito) -->
-                <div id="campaigns-management-view" class="px-4 mt-8 hidden">
-                    <button id="back-to-dashboard-btn-3" class="text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Todas as Campanhas</h2>
-                    <div id="all-campaigns-list" class="bg-white rounded-lg shadow">
-                         <p id="campaigns-placeholder" class="text-gray-500 p-6">Nenhuma campanha encontrada.</p>
-                    </div>
-                </div>
-
             </main>
         </div>
     </div>
 
-    <!-- SCRIPT REATORIZADO -->
+    <!-- SCRIPT CORRIGIDO -->
     <script type="module">
         import { auth, db, onAuthStateChanged, logout, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
         import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -105,13 +104,10 @@
         const userEmailDisplay = document.getElementById('user-email-display');
         const logoutBtn = document.getElementById('logout-btn');
         
-        // Vistas do Painel
-        const dashboardMetrics = document.getElementById('dashboard-metrics');
         const usersManagementView = document.getElementById('users-management-view');
         const pendingEntitiesView = document.getElementById('pending-entities-view');
         const campaignsManagementView = document.getElementById('campaigns-management-view');
 
-        // Listas
         const allUsersList = document.getElementById('all-users-list');
         const usersPlaceholder = document.getElementById('users-placeholder');
         const pendingEntitiesList = document.getElementById('pending-entities-list');
@@ -119,17 +115,13 @@
         const allCampaignsList = document.getElementById('all-campaigns-list');
         const campaignsPlaceholder = document.getElementById('campaigns-placeholder');
         
-        // Links/Botões de Navegação
         const manageUsersLink = document.getElementById('manage-users-link');
         const managePendingEntitiesLink = document.getElementById('manage-pending-entities-link');
         const manageCampaignsLink = document.getElementById('manage-campaigns-link');
-        const backToDashboardBtn1 = document.getElementById('back-to-dashboard-btn-1');
-        const backToDashboardBtn2 = document.getElementById('back-to-dashboard-btn-2');
-        const backToDashboardBtn3 = document.getElementById('back-to-dashboard-btn-3');
 
-        const showView = (viewToShow) => {
-            [dashboardMetrics, usersManagementView, pendingEntitiesView, campaignsManagementView].forEach(view => view.classList.add('hidden'));
-            viewToShow.classList.remove('hidden');
+        const showManagementView = (viewToShow) => {
+            [usersManagementView, pendingEntitiesView, campaignsManagementView].forEach(view => view.classList.add('hidden'));
+            if(viewToShow) viewToShow.classList.remove('hidden');
         };
 
         onAuthStateChanged(auth, (user) => {
@@ -151,12 +143,9 @@
 
         logoutBtn.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
 
-        manageUsersLink.addEventListener('click', () => showView(usersManagementView));
-        managePendingEntitiesLink.addEventListener('click', () => showView(pendingEntitiesView));
-        manageCampaignsLink.addEventListener('click', () => showView(campaignsManagementView));
-        backToDashboardBtn1.addEventListener('click', () => showView(dashboardMetrics));
-        backToDashboardBtn2.addEventListener('click', () => showView(dashboardMetrics));
-        backToDashboardBtn3.addEventListener('click', () => showView(dashboardMetrics));
+        manageUsersLink.addEventListener('click', () => showManagementView(usersManagementView));
+        managePendingEntitiesLink.addEventListener('click', () => showManagementView(pendingEntitiesView));
+        manageCampaignsLink.addEventListener('click', () => showManagementView(campaignsManagementView));
 
         function loadDashboardMetrics() {
             const usersQuery = query(collection(db, "/users"));
@@ -180,7 +169,7 @@
                 if (snapshot.empty) {
                     allUsersList.appendChild(usersPlaceholder);
                 } else {
-                    snapshot.docs.sort((a, b) => a.data().displayName.localeCompare(b.data().displayName)).forEach(doc => {
+                    snapshot.docs.sort((a, b) => (a.data().displayName || '').localeCompare(b.data().displayName || '')).forEach(doc => {
                         const user = doc.data();
                         const card = document.createElement('div');
                         card.className = 'p-4 border-b flex justify-between items-center';
