@@ -149,7 +149,8 @@
                     loadingView.classList.add('hidden');
                     formView.classList.remove('hidden');
                 } else {
-                    window.location.href = 'admin.html'; // Redireciona se não for admin ou entidade ativa
+                    // Se não for admin ou entidade ativa, redireciona para o painel apropriado
+                    window.location.href = 'admin.html'; 
                 }
             } else {
                 window.location.href = 'login.html';
