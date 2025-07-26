@@ -253,7 +253,8 @@
                     await uploadBytes(storageRef, croppedImageBlob);
                     const logoUrl = await getDownloadURL(storageRef);
 
-                    // 3. Preparar e guardar os dados no Firestore
+                    // 3. Preparar e guardar os dados no Firestore (COM O CAMINHO CORRIGIDO)
+                    const appId = 'app-faz-bem-guacui'; // ID da sua aplicação
                     const profileData = {
                         publicName: document.getElementById('entity-public-name').value,
                         cnpj: cnpjMask.unmaskedValue,
@@ -271,11 +272,19 @@
                         status: 'pendente_aprovacao',
                         email: user.email
                     };
-                    await setDoc(doc(db, "entidades", user.uid), profileData);
+                    // CORREÇÃO: O caminho para salvar os dados agora corresponde às regras de segurança
+                    await setDoc(doc(db, "artifacts", appId, "public", "data", "entidades", user.uid), profileData);
 
                     // 4. Redirecionar em caso de sucesso
-                    alert("Cadastro enviado com sucesso! Você será redirecionado.");
-                    window.location.href = 'verificar-email.html';
+                    submitBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    submitBtn.classList.add('bg-blue-500');
+                    submitBtnText.textContent = 'Sucesso! Redirecionando...';
+                    submitBtnSpinner.classList.add('hidden');
+                    submitBtnText.classList.remove('hidden');
+                    
+                    setTimeout(() => {
+                        window.location.href = 'verificar-email.html';
+                    }, 2000);
 
                 } catch (error) {
                     console.error("Erro no registo:", error);
