@@ -101,7 +101,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT ATUALIZADO (VERSÃO 2.4) -->
+    <!-- SCRIPT ATUALIZADO (VERSÃO 2.5) -->
     <script type="module">
         import { auth, db, onAuthStateChanged, logout, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
         import { collection, query, onSnapshot, doc, updateDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -167,6 +167,19 @@
             loadAllDonors();
             loadAllEntities();
             loadAllCampaigns();
+        }
+
+        // Função para formatar o número de telefone
+        function formatPhoneNumber(phone) {
+            if (!phone || typeof phone !== 'string') return 'N/A';
+            const cleaned = phone.replace(/\D/g, '');
+            if (cleaned.length === 11) {
+                return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
+            }
+            if (cleaned.length === 10) {
+                return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
+            }
+            return phone; // Retorna o original se não corresponder
         }
 
         // Funções de carregamento de dados
@@ -251,13 +264,13 @@
                                     <img src="${entity.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border">
                                     <div>
                                         <h4 class="font-bold">${entity.publicName || 'Nome não definido'}</h4>
-                                        <p class="text-sm text-gray-600">${entity.email} | Telefone: ${entity.phone || 'N/A'}</p>
+                                        <p class="text-sm text-gray-600">${entity.email} | Telefone: ${formatPhoneNumber(entity.phone)}</p>
                                         <p class="text-sm text-gray-500 mt-1">Responsável: ${entity.responsibleName || 'N/A'}</p>
                                     </div>
                                 </div>
                                 <div class="flex items-center space-x-4">
                                      <a href="#" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a>
-                                     <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColor}">${entity.status.replace('_', ' ')}</span>
+                                     <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColor}">${(entity.status || '').replace('_', ' ')}</span>
                                      ${actionButtons}
                                 </div>
                             </div>`;
