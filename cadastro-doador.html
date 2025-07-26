@@ -46,25 +46,11 @@
         </div>
     </div>
 
-    <!-- Módulos do Firebase -->
+    <!-- SCRIPT REATORIZADO -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
-            authDomain: "app-faz-bem-guacui.firebaseapp.com",
-            projectId: "app-faz-bem-guacui",
-            storageBucket: "app-faz-bem-guacui.appspot.com",
-            messagingSenderId: "218995880923",
-            appId: "1:218995880923:web:ce8a371bc402904c0dedfe",
-            measurementId: "G-R5W1F2NXH4"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        import { auth, db } from './app-config.js';
+        import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const signupForm = document.getElementById('signup-form');
         const errorDiv = document.getElementById('signup-error');
@@ -89,7 +75,7 @@
             }
 
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Cadastrando...';
+            submitBtn.textContent = 'A registar...';
 
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -109,7 +95,6 @@
 
                 await sendEmailVerification(user);
 
-                // Redireciona para a página de verificação
                 window.location.href = 'verificar-email.html';
 
             } catch (error) {
