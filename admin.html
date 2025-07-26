@@ -74,7 +74,6 @@
                 <div class="p-6 modal-body">
                     <h3 class="text-2xl font-semibold mb-6 border-b pb-4">Detalhes da Nova Campanha</h3>
                     
-                    <!-- Informações da Entidade (Preenchido Automaticamente) -->
                     <div id="entity-info-header" class="mb-6 p-4 bg-green-50 rounded-lg flex items-center space-x-4">
                         <img id="entity-logo-modal" src="https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo" class="w-16 h-16 rounded-full object-cover border-2 border-green-200">
                         <div>
@@ -87,12 +86,13 @@
                         </div>
                     </div>
 
-                    <!-- Campos do Formulário -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-4">
                             <div><label for="campaign-title" class="block text-sm font-medium text-gray-700">Título da Campanha*</label><input type="text" id="campaign-title" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div>
                             <div><label for="campaign-description" class="block text-sm font-medium text-gray-700">Descrição*</label><textarea id="campaign-description" rows="4" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></textarea></div>
                             <div><label for="campaign-type" class="block text-sm font-medium text-gray-700">Tipo*</label><select id="campaign-type" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="agasalho">Agasalho</option><option value="alimento">Alimento</option><option value="sangue">Doação de Sangue</option><option value="default">Outro</option></select></div>
+                            <div><label for="campaign-goal" class="block text-sm font-medium text-gray-700">Meta (Unidades)</label><input type="number" id="campaign-goal" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div>
+                            <div><label for="campaign-duration" class="block text-sm font-medium text-gray-700">Duração*</label><select id="campaign-duration" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="7200">2 horas</option><option value="86400">1 dia</option><option value="259200">3 dias</option><option value="1296000">15 dias</option></select></div>
                         </div>
                         <div class="space-y-4">
                             <div><label class="block text-sm font-medium text-gray-700">Banner da Campanha (Imagem ou Vídeo MP4)*</label><input type="file" id="campaign-media-upload" accept="image/*,video/mp4" required class="hidden"><label for="campaign-media-upload" class="mt-1 cursor-pointer flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md"><div class="space-y-1 text-center"><svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><p class="text-sm text-gray-600">Clique para carregar</p></div></label></div>
@@ -121,12 +121,13 @@
         </div>
     </div>
 
-    <!-- SCRIPT ATUALIZADO (VERSÃO 2.2) -->
+    <!-- SCRIPT ATUALIZADO (VERSÃO 2.3) -->
     <script type="module">
         import { auth, db, storage, onAuthStateChanged, logout, firebaseConfig } from './app-config.js';
         import { collection, addDoc, query, where, onSnapshot, Timestamp, getDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
+        // ... (o resto do código permanece o mesmo até a função de submissão do formulário)
         const loadingView = document.getElementById('loading-view');
         const dashboardView = document.getElementById('dashboard-view');
         const pendingApprovalView = document.getElementById('pending-approval-view');
@@ -135,8 +136,6 @@
         const logoutBtnPending = document.getElementById('logout-btn-pending');
         const myCampaignsList = document.getElementById('my-campaigns-list');
         const myCampaignsPlaceholder = document.getElementById('my-campaigns-placeholder');
-        
-        // Modal elements
         const modal = document.getElementById('create-campaign-modal');
         const openModalBtn = document.getElementById('open-modal-btn');
         const closeModalBtn = document.getElementById('close-modal-btn');
@@ -148,7 +147,6 @@
         const imagePreview = document.getElementById('image-preview');
         const videoPreview = document.getElementById('video-preview');
         const fileNameDisplay = document.getElementById('file-name');
-        
         let currentEntityData = null;
         let campaignMediaFile = null;
 
@@ -158,14 +156,11 @@
                     window.location.href = 'verificar-email.html';
                     return;
                 }
-
                 const appId = firebaseConfig.projectId;
                 const entityDocRef = doc(db, "artifacts", appId, "public", "data", "entidades", user.uid);
                 const docSnap = await getDoc(entityDocRef);
-
                 if (docSnap.exists() && docSnap.data().role === 'entidade') {
                     currentEntityData = docSnap.data();
-                    
                     if (currentEntityData.status === 'ativo') {
                         loadingView.classList.add('hidden');
                         pendingApprovalView.classList.add('hidden');
@@ -208,13 +203,11 @@
         mediaUploadInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
             campaignMediaFile = file;
             fileNameDisplay.textContent = file.name;
             mediaPreviewContainer.classList.remove('hidden');
             imagePreview.classList.add('hidden');
             videoPreview.classList.add('hidden');
-
             const reader = new FileReader();
             reader.onload = (event) => {
                 if (file.type.startsWith('image/')) {
@@ -230,6 +223,7 @@
 
         createCampaignForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log('--- 🚀 Início da Submissão de Campanha ---');
             const user = auth.currentUser;
             if (!user || !campaignMediaFile) {
                 modalError.textContent = 'Por favor, carregue uma imagem ou vídeo para o banner.';
@@ -243,13 +237,19 @@
 
             try {
                 // 1. Upload media file
+                console.log('1. A fazer upload da mídia...');
                 const mediaFileName = `campaigns/${user.uid}_${Date.now()}_${campaignMediaFile.name}`;
                 const mediaRef = ref(storage, mediaFileName);
                 await uploadBytes(mediaRef, campaignMediaFile);
                 const mediaUrl = await getDownloadURL(mediaRef);
+                console.log('1a. ✅ Mídia carregada com sucesso:', mediaUrl);
 
                 // 2. Create campaign document
+                console.log('2. A preparar os dados da campanha...');
                 const now = Timestamp.now();
+                const durationInSeconds = parseInt(document.getElementById('campaign-duration').value, 10);
+                const expiresAt = new Timestamp(now.seconds + durationInSeconds, now.nanoseconds);
+                
                 const newCampaign = {
                     title: document.getElementById('campaign-title').value,
                     description: document.getElementById('campaign-description').value,
@@ -272,17 +272,21 @@
                     },
                     creatorId: user.uid,
                     createdAt: now,
-                    expiresAt: now, // Placeholder, a duração será adicionada depois se necessário
+                    expiresAt: expiresAt,
                     progress: 0,
                     status: 'active'
                 };
+                console.log('2a. ✅ Dados da campanha preparados:', newCampaign);
+
                 const campaignsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
+                console.log('3. A guardar a campanha no Firestore...');
                 await addDoc(collection(db, campaignsColPath), newCampaign);
+                console.log('3a. ✅ Campanha guardada com sucesso!');
                 
-                closeModalBtn.click(); // Fecha e limpa o modal
+                closeModalBtn.click();
 
             } catch (error) {
-                console.error("Erro ao criar campanha: ", error);
+                console.error("--- ❌ ERRO AO CRIAR CAMPANHA ---", error);
                 modalError.textContent = `Erro ao publicar: ${error.message}`;
                 modalError.classList.remove('hidden');
             } finally {
