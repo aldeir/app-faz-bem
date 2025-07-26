@@ -1,86 +1,55 @@
-// Importa as funções necessárias do SDK do Firebase
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// app-config.js
 
-// --- CONFIGURAÇÃO CENTRAL DO FIREBASE ---
+// Importa as funções que você precisa dos SDKs
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
+
+// A sua configuração do Firebase (fornecida por você)
 const firebaseConfig = {
-    apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
-    authDomain: "app-faz-bem-guacui.firebaseapp.com",
-    projectId: "app-faz-bem-guacui",
-    storageBucket: "app-faz-bem-guacui.appspot.com",
-    messagingSenderId: "218995880923",
-    appId: "1:218995880923:web:ce8a371bc402904c0dedfe",
-    measurementId: "G-R5W1F2NXH4"
+  apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
+  authDomain: "app-faz-bem-guacui.firebaseapp.com",
+  projectId: "app-faz-bem-guacui",
+  storageBucket: "app-faz-bem-guacui.appspot.com",
+  messagingSenderId: "218995880923",
+  appId: "1:218995880923:web:ce8a371bc402904c0dedfe",
+  measurementId: "G-R5W1F2NXH4"
 };
 
-// --- INICIALIZAÇÃO DOS SERVIÇOS ---
+// Inicializa os serviços do Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const ADMIN_EMAIL = "aldeir@gmail.com";
+const storage = getStorage(app);
+const analytics = getAnalytics(app);
 
 /**
- * Obtém o estado atual do utilizador e os seus dados da base de dados.
- * @returns {Promise<object|null>} Um objeto com os dados de autenticação e perfil, ou nulo se não estiver logado.
+ * Função centralizada para registrar uma nova entidade.
+ * Cria o usuário na autenticação e salva o perfil completo no Firestore.
+ * @param {object} authData - Contém email, password e displayName.
+ * @param {object} profileData - Contém todos os outros dados do perfil da entidade.
+ * @returns {Promise<UserCredential>} A credencial do usuário criado.
  */
-const getCurrentUser = () => {
-    return new Promise((resolve) => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            unsubscribe(); // Executa apenas uma vez para obter o estado atual
-            if (user) {
-                const userDocRef = doc(db, "users", user.uid);
-                const docSnap = await getDoc(userDocRef);
-                const profile = docSnap.exists() ? docSnap.data() : null;
-                resolve({ auth: user, profile: profile });
-            } else {
-                resolve(null);
-            }
-        });
-    });
-};
+async function registerUser(authData, profileData) {
+  // 1. Cria o usuário no Firebase Authentication
+  const userCredential = await createUserWithEmailAndPassword(auth, authData.email, authData.password);
+  const user = userCredential.user;
 
-/**
- * **NOVA FUNÇÃO CENTRALIZADA**
- * Regista um novo utilizador (Doador ou Entidade) no sistema.
- * @param {object} userData - Os dados do utilizador a serem registados.
- * @param {string} userData.email - O e-mail do utilizador.
- * @param {string} userData.password - A senha do utilizador.
- * @param {string} userData.displayName - O nome a ser exibido.
- * @param {object} profileData - Os dados adicionais a serem guardados no perfil do Firestore.
- * @returns {Promise<void>}
- */
-const registerUser = async (userData, profileData) => {
-    const { email, password, displayName } = userData;
-    
-    // 1. Cria o utilizador no Firebase Authentication
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+  // 2. Atualiza o perfil do usuário na Autenticação (ex: nome de exibição)
+  await updateProfile(user, { displayName: authData.displayName });
 
-    // 2. Atualiza o perfil de autenticação com o nome
-    await updateProfile(user, { displayName });
+  // 3. Salva o perfil completo da entidade no Firestore, usando o UID do usuário como ID do documento
+  const fullProfileData = {
+    ...profileData,
+    email: user.email, // Garante que o email também seja salvo no perfil
+    uid: user.uid      // É uma boa prática salvar o UID no documento
+  };
+  await setDoc(doc(db, "entidades", user.uid), fullProfileData);
 
-    // 3. Guarda os dados detalhados no Firestore
-    const userDocRef = doc(db, "users", user.uid);
-    await setDoc(userDocRef, {
-        uid: user.uid,
-        email: user.email,
-        displayName: displayName,
-        ...profileData // Adiciona todos os outros dados (role, status, cnpj, etc.)
-    });
+  return userCredential;
+}
 
-    // 4. Envia o e-mail de verificação
-    await sendEmailVerification(user);
-};
-
-
-/**
- * Função de logout.
- */
-const logout = () => {
-    return signOut(auth);
-};
-
-// --- EXPORTAÇÕES ---
-// Exporta as variáveis e funções que outras páginas irão precisar
-export { auth, db, ADMIN_EMAIL, getCurrentUser, logout, onAuthStateChanged, firebaseConfig, registerUser };
+// Exporta os serviços inicializados e a função de registro para serem usados em outras páginas
+export { app, auth, db, storage, analytics, registerUser };
