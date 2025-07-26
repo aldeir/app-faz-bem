@@ -97,7 +97,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT ATUALIZADO (VERSÃO 2.0) -->
+    <!-- SCRIPT ATUALIZADO (VERSÃO 2.1) -->
     <script type="module">
         import { auth, db, onAuthStateChanged, logout, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
         import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -211,6 +211,7 @@
             onSnapshot(q, (snapshot) => {
                 pendingEntitiesList.innerHTML = '';
                 if (snapshot.empty) {
+                    pendingEntitiesList.innerHTML = ''; // Limpa a lista
                     pendingEntitiesList.appendChild(pendingEntitiesPlaceholder);
                 } else {
                     snapshot.docs.forEach(doc => {
@@ -225,8 +226,8 @@
                                     <p class="text-sm text-gray-500 mt-1">Responsável: ${entity.responsibleName || 'N/A'}</p>
                                 </div>
                                 <div class="flex space-x-2">
-                                    <button data-action="approve" data-uid="${entity.uid}" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Aprovar</button>
-                                    <button data-action="reject" data-uid="${entity.uid}" class="bg-red-500 text-white px-3 py-1 rounded text-sm">Reprovar</button>
+                                    <button data-action="approve" data-uid="${entity.uid}" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Aprovar</button>
+                                    <button data-action="reject" data-uid="${entity.uid}" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">Reprovar</button>
                                 </div>
                             </div>
                         `;
@@ -264,6 +265,7 @@
         }
 
         pendingEntitiesList.addEventListener('click', async (e) => {
+            // Verifica se o clique foi num botão com a propriedade 'data-action'
             if (e.target.dataset.action) {
                 const uid = e.target.dataset.uid;
                 const action = e.target.dataset.action;
@@ -272,15 +274,23 @@
 
                 if (action === 'approve') {
                     if (confirm('Tem a certeza de que quer aprovar esta entidade?')) {
-                        await updateDoc(entityDocRef, { status: 'ativo' });
-                        alert('Entidade aprovada com sucesso!');
+                        try {
+                            await updateDoc(entityDocRef, { status: 'ativo' });
+                            // A lista irá atualizar automaticamente graças ao onSnapshot.
+                        } catch (error) {
+                            alert('Erro ao aprovar a entidade: ' + error.message);
+                        }
                     }
                 }
                 
                 if (action === 'reject') {
                     if (confirm('Tem a certeza de que quer reprovar e bloquear esta entidade?')) {
-                        await updateDoc(entityDocRef, { status: 'bloqueado' });
-                        alert('Entidade reprovada e bloqueada.');
+                        try {
+                            await updateDoc(entityDocRef, { status: 'bloqueado' });
+                             // A lista irá atualizar automaticamente.
+                        } catch (error) {
+                            alert('Erro ao reprovar a entidade: ' + error.message);
+                        }
                     }
                 }
             }
