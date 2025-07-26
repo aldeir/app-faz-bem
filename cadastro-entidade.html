@@ -71,9 +71,7 @@
 
     <!-- SCRIPT REATORIZADO -->
     <script type="module">
-        import { auth, db } from './app-config.js';
-        import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { registerUser } from './app-config.js';
 
         const signupForm = document.getElementById('signup-form');
         const errorDiv = document.getElementById('signup-error');
@@ -82,23 +80,8 @@
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const entityName = document.getElementById('entity-name').value;
-            const publicName = document.getElementById('entity-public-name').value;
-            const cnpj = document.getElementById('entity-cnpj').value;
-            const logoUrl = document.getElementById('entity-logo-url').value;
-            const description = document.getElementById('entity-description').value;
-            const responsibleName = document.getElementById('responsible-name').value;
-            const email = document.getElementById('signup-email').value;
-            const phone = document.getElementById('signup-phone').value;
             const password = document.getElementById('signup-password').value;
             const passwordConfirm = document.getElementById('signup-password-confirm').value;
-            
-            const address = {
-                street: document.getElementById('address-street').value,
-                number: document.getElementById('address-number').value,
-                district: document.getElementById('address-district').value,
-                city: document.getElementById('address-city').value,
-            };
 
             errorDiv.classList.add('hidden');
             if (password !== passwordConfirm) {
@@ -110,30 +93,34 @@
             submitBtn.disabled = true;
             submitBtn.textContent = 'A enviar...';
 
+            // Prepara os dados de autenticação
+            const authData = {
+                email: document.getElementById('signup-email').value,
+                password: password,
+                displayName: document.getElementById('entity-name').value
+            };
+
+            // Prepara os dados do perfil do Firestore
+            const profileData = {
+                publicName: document.getElementById('entity-public-name').value,
+                cnpj: document.getElementById('entity-cnpj').value,
+                logoUrl: document.getElementById('entity-logo-url').value,
+                description: document.getElementById('entity-description').value,
+                responsibleName: document.getElementById('responsible-name').value,
+                phone: document.getElementById('signup-phone').value,
+                address: {
+                    street: document.getElementById('address-street').value,
+                    number: document.getElementById('address-number').value,
+                    district: document.getElementById('address-district').value,
+                    city: document.getElementById('address-city').value,
+                },
+                role: 'entidade',
+                status: 'pendente_aprovacao'
+            };
+
             try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                
-                await updateProfile(user, { displayName: entityName });
-                
-                const userDocRef = doc(db, "users", user.uid);
-                await setDoc(userDocRef, {
-                    uid: user.uid,
-                    displayName: entityName,
-                    publicName: publicName,
-                    logoUrl: logoUrl,
-                    description: description,
-                    email: user.email,
-                    phone: phone,
-                    role: 'entidade',
-                    status: 'pendente_aprovacao',
-                    cnpj: cnpj,
-                    responsibleName: responsibleName,
-                    address: address
-                });
-
-                await sendEmailVerification(user);
-
+                // Chama a função centralizada para fazer todo o trabalho
+                await registerUser(authData, profileData);
                 window.location.href = 'verificar-email.html';
 
             } catch (error) {
