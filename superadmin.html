@@ -50,7 +50,7 @@
                     <h2 class="text-2xl font-semibold text-gray-800 mb-4">Resumo Geral</h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <a href="javascript:void(0);" id="manage-users-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-transform transform hover:-translate-y-1">
-                            <h3 class="text-sm font-medium text-gray-500">Gestão de Utilizadores</h3>
+                            <h3 class="text-sm font-medium text-gray-500">Gestão de Doadores</h3>
                             <p id="total-users" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
                         </a>
                         <a href="javascript:void(0);" id="manage-pending-entities-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-transform transform hover:-translate-y-1">
@@ -69,9 +69,9 @@
                     <!-- Secção de Gestão de Utilizadores (Oculta por defeito) -->
                     <div id="users-management-view" class="px-4 hidden">
                         <button class="back-to-dashboard-btn text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
-                        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Todos os Utilizadores</h2>
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Todos os Doadores</h2>
                         <div id="all-users-list" class="bg-white rounded-lg shadow">
-                             <p id="users-placeholder" class="text-gray-500 p-6">Nenhum utilizador encontrado.</p>
+                             <p id="users-placeholder" class="text-gray-500 p-6">Nenhum doador encontrado.</p>
                         </div>
                     </div>
 
@@ -97,7 +97,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT REATORIZADO -->
+    <!-- SCRIPT ATUALIZADO (VERSÃO 2.0) -->
     <script type="module">
         import { auth, db, onAuthStateChanged, logout, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
         import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -162,12 +162,15 @@
         backToDashboardBtns.forEach(btn => btn.addEventListener('click', () => showView(null)));
 
         function loadDashboardMetrics() {
-            const usersQuery = query(collection(db, "/users"));
+            const usersQuery = query(collection(db, "users"));
             onSnapshot(usersQuery, (snapshot) => {
-                const users = snapshot.docs;
-                document.getElementById('total-users').textContent = users.length;
-                const pendingEntities = users.filter(doc => doc.data().status === 'pendente_aprovacao').length;
-                document.getElementById('total-pending-entities').textContent = pendingEntities;
+                document.getElementById('total-users').textContent = snapshot.size;
+            });
+
+            const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`;
+            const pendingEntitiesQuery = query(collection(db, entitiesPath), where("status", "==", "pendente_aprovacao"));
+            onSnapshot(pendingEntitiesQuery, (snapshot) => {
+                document.getElementById('total-pending-entities').textContent = snapshot.size;
             });
 
             const campaignsQuery = query(collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`));
@@ -177,7 +180,7 @@
         }
         
         function loadAllUsers() {
-            const q = query(collection(db, "/users"));
+            const q = query(collection(db, "users"));
             onSnapshot(q, (snapshot) => {
                 allUsersList.innerHTML = '';
                 if (snapshot.empty) {
@@ -189,13 +192,11 @@
                         card.className = 'p-4 border-b flex justify-between items-center';
                         card.innerHTML = `
                             <div class="flex-1">
-                                <h4 class="font-bold">${user.displayName} <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${user.role === 'entidade' ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-800'}">${user.role}</span></h4>
+                                <h4 class="font-bold">${user.displayName}</h4>
                                 <p class="text-sm text-gray-600">${user.email}</p>
                             </div>
                             <div class="flex items-center space-x-4">
                                 <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${user.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${user.status || 'N/A'}</span>
-                                <button data-action="block" data-uid="${user.uid}" class="text-yellow-600 hover:underline text-sm">Bloquear</button>
-                                <button data-action="delete" data-uid="${user.uid}" class="text-red-600 hover:underline text-sm">Excluir</button>
                             </div>
                         `;
                         allUsersList.appendChild(card);
@@ -205,7 +206,8 @@
         }
         
         function loadPendingEntities() {
-            const q = query(collection(db, "/users"), where("status", "==", "pendente_aprovacao"));
+            const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`;
+            const q = query(collection(db, entitiesPath), where("status", "==", "pendente_aprovacao"));
             onSnapshot(q, (snapshot) => {
                 pendingEntitiesList.innerHTML = '';
                 if (snapshot.empty) {
@@ -218,7 +220,7 @@
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <h4 class="font-bold">${entity.displayName}</h4>
+                                    <h4 class="font-bold">${entity.publicName} <span class="text-sm font-normal text-gray-500">(${entity.displayName})</span></h4>
                                     <p class="text-sm text-gray-600">${entity.email} | CNPJ: ${entity.cnpj || 'N/A'}</p>
                                     <p class="text-sm text-gray-500 mt-1">Responsável: ${entity.responsibleName || 'N/A'}</p>
                                 </div>
@@ -261,43 +263,23 @@
             });
         }
 
-        allUsersList.addEventListener('click', async (e) => {
-            if (e.target.dataset.action) {
-                const uid = e.target.dataset.uid;
-                const action = e.target.dataset.action;
-                const userDocRef = doc(db, "users", uid);
-
-                if (action === 'block') {
-                    if (confirm('Tem a certeza de que quer bloquear este utilizador?')) {
-                        await updateDoc(userDocRef, { status: 'bloqueado' });
-                    }
-                }
-                
-                if (action === 'delete') {
-                    if (confirm('ATENÇÃO: Deseja excluir permanentemente os DADOS deste utilizador? Esta ação não pode ser desfeita.')) {
-                        await deleteDoc(userDocRef);
-                        alert('Dados do utilizador excluídos. A conta de autenticação ainda existe, mas o e-mail está livre para um novo registo.');
-                    }
-                }
-            }
-        });
-
         pendingEntitiesList.addEventListener('click', async (e) => {
             if (e.target.dataset.action) {
                 const uid = e.target.dataset.uid;
                 const action = e.target.dataset.action;
-                const userDocRef = doc(db, "users", uid);
+                const appId = firebaseConfig.projectId;
+                const entityDocRef = doc(db, "artifacts", appId, "public", "data", "entidades", uid);
 
                 if (action === 'approve') {
                     if (confirm('Tem a certeza de que quer aprovar esta entidade?')) {
-                        await updateDoc(userDocRef, { status: 'ativo' });
+                        await updateDoc(entityDocRef, { status: 'ativo' });
                         alert('Entidade aprovada com sucesso!');
                     }
                 }
                 
                 if (action === 'reject') {
                     if (confirm('Tem a certeza de que quer reprovar e bloquear esta entidade?')) {
-                        await updateDoc(userDocRef, { status: 'bloqueado' });
+                        await updateDoc(entityDocRef, { status: 'bloqueado' });
                         alert('Entidade reprovada e bloqueada.');
                     }
                 }
