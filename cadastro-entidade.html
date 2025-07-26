@@ -34,7 +34,12 @@
         }
         input[type="file"] { display: none; }
         .cropper-container-modal {
-            max-height: 60vh; /* Aumentado para melhor visualização em diversas telas */
+            max-height: 60vh;
+        }
+        /* Garante que a imagem do cropper ocupe o espaço disponível */
+        #image-to-crop {
+            display: block;
+            max-width: 100%;
         }
     </style>
 </head>
@@ -119,7 +124,7 @@
             <div class="cropper-container-modal bg-gray-100">
                 <img id="image-to-crop">
             </div>
-            <div class="flex justify-end space-x-3">
+            <div class="flex justify-end space-x-3 pt-4">
                 <button id="cancel-crop-btn" type="button" class="px-4 py-2 rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300">Cancelar</button>
                 <button id="confirm-crop-btn" type="button" class="px-4 py-2 rounded-md text-white bg-green-600 hover:bg-green-700">Confirmar</button>
             </div>
@@ -132,173 +137,179 @@
         import { registerUser, storage } from './app-config.js';
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-        // --- Seletores de Elementos do DOM ---
-        const signupForm = document.getElementById('signup-form');
-        const errorDiv = document.getElementById('signup-error');
-        const submitBtn = document.getElementById('submit-btn');
-        const submitBtnText = document.getElementById('submit-btn-text');
-        const submitBtnSpinner = document.getElementById('submit-btn-spinner');
-        
-        const logoUploadInput = document.getElementById('entity-logo-upload');
-        const logoPreview = document.getElementById('logo-preview');
-        const fileInputLabel = document.getElementById('file-input-label');
-        const fileInputLabelText = document.getElementById('file-input-label-text');
+        // Função principal que inicializa tudo.
+        function main() {
+            console.log("Script principal iniciado. Tentando inicializar componentes.");
 
-        const cnpjInput = document.getElementById('entity-cnpj');
-        const phoneInput = document.getElementById('signup-phone');
+            // --- Seletores de Elementos do DOM ---
+            const signupForm = document.getElementById('signup-form');
+            const errorDiv = document.getElementById('signup-error');
+            const submitBtn = document.getElementById('submit-btn');
+            const submitBtnText = document.getElementById('submit-btn-text');
+            const submitBtnSpinner = document.getElementById('submit-btn-spinner');
+            
+            const logoUploadInput = document.getElementById('entity-logo-upload');
+            const logoPreview = document.getElementById('logo-preview');
+            const fileInputLabel = document.getElementById('file-input-label');
+            const fileInputLabelText = document.getElementById('file-input-label-text');
 
-        const cropperModal = document.getElementById('cropper-modal');
-        const imageToCrop = document.getElementById('image-to-crop');
-        const cancelCropBtn = document.getElementById('cancel-crop-btn');
-        const confirmCropBtn = document.getElementById('confirm-crop-btn');
-        
-        let cropper;
-        let croppedImageBlob = null;
+            const cnpjInput = document.getElementById('entity-cnpj');
+            const phoneInput = document.getElementById('signup-phone');
 
-        // --- INICIALIZAÇÃO DAS MÁSCARAS (IMask) ---
-        // Garante que os elementos existem antes de aplicar a máscara.
-        if (cnpjInput) {
-            var cnpjMask = IMask(cnpjInput, { mask: '00.000.000/0000-00' });
-        }
-        if (phoneInput) {
-            var phoneMask = IMask(phoneInput, { 
+            const cropperModal = document.getElementById('cropper-modal');
+            const imageToCrop = document.getElementById('image-to-crop');
+            const cancelCropBtn = document.getElementById('cancel-crop-btn');
+            const confirmCropBtn = document.getElementById('confirm-crop-btn');
+            
+            let cropper;
+            let croppedImageBlob = null;
+
+            // Verificação para garantir que todos os elementos essenciais foram encontrados
+            if (!signupForm || !cnpjInput || !phoneInput || !logoUploadInput || !cropperModal) {
+                console.error("ERRO CRÍTICO: Um ou mais elementos essenciais do formulário não foram encontrados. Verifique os IDs no HTML.");
+                if (errorDiv) {
+                    errorDiv.textContent = "Erro ao carregar a página. Tente recarregar.";
+                    errorDiv.classList.remove('hidden');
+                }
+                return; // Interrompe a execução se algo estiver faltando
+            }
+
+            // --- INICIALIZAÇÃO DAS MÁSCARAS (IMask) ---
+            const cnpjMask = IMask(cnpjInput, { mask: '00.000.000/0000-00', lazy: false });
+            const phoneMask = IMask(phoneInput, { 
                 mask: [
                     { mask: '(00) 0000-0000' },
                     { mask: '(00) 00000-0000' }
-                ]
+                ],
+                lazy: false // Mostra a máscara ao focar no campo
+            });
+            console.log("Máscaras para CNPJ e Telefone aplicadas.");
+
+            // --- LÓGICA DO EDITOR DE IMAGEM (Cropper.js) ---
+            logoUploadInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file || !file.type.startsWith('image/')) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    imageToCrop.src = event.target.result;
+                    cropperModal.classList.remove('hidden');
+                    
+                    if (cropper) cropper.destroy();
+                    
+                    cropper = new Cropper(imageToCrop, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        background: false,
+                        autoCropArea: 0.9,
+                    });
+                    console.log("Cropper.js inicializado e modal exibido.");
+                };
+                reader.readAsDataURL(file);
+                logoUploadInput.value = '';
+            });
+
+            cancelCropBtn.addEventListener('click', () => {
+                cropperModal.classList.add('hidden');
+                if (cropper) cropper.destroy();
+            });
+
+            confirmCropBtn.addEventListener('click', () => {
+                if (!cropper) return;
+                const canvas = cropper.getCroppedCanvas({ width: 256, height: 256 });
+                canvas.toBlob((blob) => {
+                    croppedImageBlob = blob;
+                    logoPreview.src = URL.createObjectURL(blob);
+                    
+                    fileInputLabelText.textContent = 'Imagem Confirmada ✓';
+                    fileInputLabel.classList.remove('bg-green-50', 'text-green-800', 'hover:bg-green-100');
+                    fileInputLabel.classList.add('bg-blue-100', 'text-blue-800');
+
+                    cropperModal.classList.add('hidden');
+                    if (cropper) cropper.destroy();
+                }, 'image/webp', 0.9);
+            });
+
+            // --- LÓGICA DE SUBMISSÃO DO FORMULÁRIO ---
+            signupForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                errorDiv.classList.add('hidden');
+                const password = document.getElementById('signup-password').value;
+                const passwordConfirm = document.getElementById('signup-password-confirm').value;
+
+                if (password !== passwordConfirm) {
+                    errorDiv.textContent = "As senhas não coincidem.";
+                    errorDiv.classList.remove('hidden'); return;
+                }
+                if (!croppedImageBlob) {
+                    errorDiv.textContent = "Por favor, selecione e confirme um logotipo.";
+                    errorDiv.classList.remove('hidden'); return;
+                }
+                if (cnpjMask.unmaskedValue.length !== 14) {
+                    errorDiv.textContent = "O CNPJ está incompleto. Por favor, preencha os 14 dígitos.";
+                    errorDiv.classList.remove('hidden'); return;
+                }
+                if (phoneMask.unmaskedValue.length > 0 && phoneMask.unmaskedValue.length < 10) {
+                     errorDiv.textContent = "O Telefone está incompleto.";
+                     errorDiv.classList.remove('hidden'); return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtnText.classList.add('hidden');
+                submitBtnSpinner.classList.remove('hidden');
+
+                try {
+                    const fileName = `logo_${Date.now()}.webp`;
+                    const storageRef = ref(storage, `logos/${fileName}`);
+                    const uploadTask = await uploadBytes(storageRef, croppedImageBlob);
+                    const logoUrl = await getDownloadURL(uploadTask.ref);
+
+                    const authData = {
+                        email: document.getElementById('signup-email').value,
+                        password: password,
+                        displayName: document.getElementById('entity-name').value
+                    };
+                    const profileData = {
+                        publicName: document.getElementById('entity-public-name').value,
+                        cnpj: cnpjMask.unmaskedValue,
+                        phone: phoneMask.unmaskedValue,
+                        logoUrl: logoUrl,
+                        description: document.getElementById('entity-description').value,
+                        responsibleName: document.getElementById('responsible-name').value,
+                        address: {
+                            street: document.getElementById('address-street').value,
+                            number: document.getElementById('address-number').value,
+                            district: document.getElementById('address-district').value,
+                            city: document.getElementById('address-city').value,
+                        },
+                        role: 'entidade',
+                        status: 'pendente_aprovacao'
+                    };
+
+                    await registerUser(authData, profileData);
+                    window.location.href = 'verificar-email.html';
+
+                } catch (error) {
+                    console.error("Erro no registo:", error);
+                    errorDiv.textContent = "Erro: " + error.message;
+                    
+                    submitBtn.disabled = false;
+                    submitBtnText.classList.remove('hidden');
+                    submitBtnSpinner.classList.add('hidden');
+                    errorDiv.classList.remove('hidden');
+                }
             });
         }
 
-        // --- LÓGICA DO EDITOR DE IMAGEM (Cropper.js) ---
-        logoUploadInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file || !file.type.startsWith('image/')) return;
+        // Garante que o script principal só rode depois que a página estiver completamente carregada.
+        // Isso resolve problemas de o script tentar manipular elementos que ainda não existem.
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', main);
+        } else {
+            main();
+        }
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                imageToCrop.src = event.target.result;
-                cropperModal.classList.remove('hidden');
-                
-                if (cropper) cropper.destroy();
-                
-                cropper = new Cropper(imageToCrop, {
-                    aspectRatio: 1,
-                    viewMode: 1,
-                    background: false,
-                    autoCropArea: 0.9,
-                    responsive: true,
-                    checkOrientation: false,
-                });
-            };
-            reader.readAsDataURL(file);
-            logoUploadInput.value = ''; // Limpa para permitir selecionar a mesma imagem novamente
-        });
-
-        cancelCropBtn.addEventListener('click', () => {
-            cropperModal.classList.add('hidden');
-            if (cropper) cropper.destroy();
-        });
-
-        confirmCropBtn.addEventListener('click', () => {
-            if (!cropper) return;
-            const canvas = cropper.getCroppedCanvas({
-                width: 256,
-                height: 256,
-                imageSmoothingQuality: 'high',
-            });
-
-            canvas.toBlob((blob) => {
-                if (!blob) {
-                    console.error('Falha ao criar o blob da imagem.');
-                    return;
-                }
-                croppedImageBlob = blob;
-                logoPreview.src = URL.createObjectURL(blob);
-                
-                fileInputLabelText.textContent = 'Imagem Confirmada ✓';
-                fileInputLabel.classList.remove('bg-green-50', 'text-green-800', 'hover:bg-green-100');
-                fileInputLabel.classList.add('bg-blue-100', 'text-blue-800');
-
-                cropperModal.classList.add('hidden');
-                if (cropper) cropper.destroy();
-            }, 'image/webp', 0.9); // Formato webp para melhor compressão
-        });
-
-        // --- LÓGICA DE SUBMISSÃO DO FORMULÁRIO ---
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            errorDiv.classList.add('hidden');
-            const password = document.getElementById('signup-password').value;
-            const passwordConfirm = document.getElementById('signup-password-confirm').value;
-
-            // Validações
-            if (password !== passwordConfirm) {
-                errorDiv.textContent = "As senhas não coincidem.";
-                errorDiv.classList.remove('hidden'); return;
-            }
-            if (!croppedImageBlob) {
-                errorDiv.textContent = "Por favor, selecione e confirme um logotipo.";
-                errorDiv.classList.remove('hidden'); return;
-            }
-            if (cnpjMask.unmaskedValue.length !== 14) {
-                errorDiv.textContent = "O CNPJ está incompleto. Por favor, preencha os 14 dígitos.";
-                errorDiv.classList.remove('hidden'); return;
-            }
-            if (phoneMask.unmaskedValue.length > 0 && phoneMask.unmaskedValue.length < 10) {
-                 errorDiv.textContent = "O Telefone está incompleto.";
-                 errorDiv.classList.remove('hidden'); return;
-            }
-
-            // UI de Loading
-            submitBtn.disabled = true;
-            submitBtnText.classList.add('hidden');
-            submitBtnSpinner.classList.remove('hidden');
-
-            try {
-                // 1. Upload do logotipo
-                const fileName = `logo_${Date.now()}.webp`;
-                const storageRef = ref(storage, `logos/${fileName}`);
-                const uploadTask = await uploadBytes(storageRef, croppedImageBlob);
-                const logoUrl = await getDownloadURL(uploadTask.ref);
-
-                // 2. Preparar dados
-                const authData = {
-                    email: document.getElementById('signup-email').value,
-                    password: password,
-                    displayName: document.getElementById('entity-name').value
-                };
-                const profileData = {
-                    publicName: document.getElementById('entity-public-name').value,
-                    cnpj: cnpjMask.unmaskedValue,
-                    phone: phoneMask.unmaskedValue,
-                    logoUrl: logoUrl,
-                    description: document.getElementById('entity-description').value,
-                    responsibleName: document.getElementById('responsible-name').value,
-                    address: {
-                        street: document.getElementById('address-street').value,
-                        number: document.getElementById('address-number').value,
-                        district: document.getElementById('address-district').value,
-                        city: document.getElementById('address-city').value,
-                    },
-                    role: 'entidade',
-                    status: 'pendente_aprovacao'
-                };
-
-                // 3. Registar utilizador
-                await registerUser(authData, profileData);
-                window.location.href = 'verificar-email.html';
-
-            } catch (error) {
-                console.error("Erro no registo:", error);
-                errorDiv.textContent = "Erro: " + error.message;
-                
-                submitBtn.disabled = false;
-                submitBtnText.classList.remove('hidden');
-                submitBtnSpinner.classList.add('hidden');
-                errorDiv.classList.remove('hidden');
-            }
-        });
     </script>
 </body>
 </html>
