@@ -13,17 +13,31 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .media-preview { max-height: 200px; }
+        #submit-campaign-btn:disabled { background-color: #9ca3af; cursor: not-allowed; }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #16a34a;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-100">
 
     <div id="app-container">
-        <!-- TELA DE CARREGAMENTO -->
         <div id="loading-view" class="min-h-screen flex items-center justify-center">
-            <p class="text-gray-600">A verificar permissões...</p>
+            <div class="text-center">
+                <div class="loader mx-auto"></div>
+                <p class="mt-4 text-gray-600">A verificar permissões...</p>
+            </div>
         </div>
 
-        <!-- FORMULÁRIO DE CRIAÇÃO DE CAMPANHA -->
         <div id="form-view" class="hidden">
             <nav class="bg-white shadow-sm">
                 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -40,44 +54,42 @@
             </nav>
 
             <main class="max-w-5xl mx-auto py-8 px-4">
-                <form id="create-campaign-form" class="bg-white p-8 rounded-xl shadow-lg">
+                <form id="create-campaign-form" class="bg-white p-8 rounded-xl shadow-lg" novalidate>
                     <h3 class="text-2xl font-semibold mb-6 border-b pb-4">Detalhes da Campanha</h3>
                     
-                    <!-- Bloco de Informações (Dinâmico) -->
                     <div id="entity-info-container" class="mb-6">
-                        <!-- Conteúdo preenchido via script -->
-                    </div>
+                        </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                        <!-- Coluna Esquerda -->
                         <div class="space-y-4">
                             <div><label for="campaign-title" class="block text-sm font-medium text-gray-700">Título da Campanha*</label><input type="text" id="campaign-title" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div>
                             <div><label for="campaign-description" class="block text-sm font-medium text-gray-700">Descrição*</label><textarea id="campaign-description" rows="4" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></textarea></div>
                             <div><label for="campaign-type" class="block text-sm font-medium text-gray-700">Tipo*</label><select id="campaign-type" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="agasalho">Agasalho</option><option value="alimento">Alimento</option><option value="sangue">Doação de Sangue</option><option value="default">Outro</option></select></div>
-                            <div><label for="campaign-goal" class="block text-sm font-medium text-gray-700">Meta (Unidades)</label><input type="number" id="campaign-goal" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div>
-                            <div><label for="campaign-duration" class="block text-sm font-medium text-gray-700">Duração*</label><select id="campaign-duration" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="7200">2 horas</option><option value="86400">1 dia</option><option value="259200">3 dias</option><option value="1296000">15 dias</option></select></div>
+                            <div><label for="campaign-goal" class="block text-sm font-medium text-gray-700">Meta (Unidades)</label><input type="number" id="campaign-goal" placeholder="Ex: 100" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div>
+                            <div><label for="campaign-duration" class="block text-sm font-medium text-gray-700">Duração*</label><select id="campaign-duration" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="86400">1 dia</option><option value="259200">3 dias</option><option value="604800">7 dias</option><option value="1296000">15 dias</option><option value="2592000">30 dias</option></select></div>
                         </div>
-                        <!-- Coluna Direita -->
                         <div class="space-y-4">
-                            <div><label class="block text-sm font-medium text-gray-700">Banner da Campanha (Imagem ou Vídeo MP4)*</label><input type="file" id="campaign-media-upload" accept="image/*,video/mp4" required class="hidden"><label for="campaign-media-upload" class="mt-1 cursor-pointer flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md"><div class="space-y-1 text-center"><svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><p class="text-sm text-gray-600">Clique para carregar</p></div></label></div>
-                            <div id="media-preview-container" class="hidden text-center">
-                                <img id="image-preview" class="hidden media-preview mx-auto rounded-md">
-                                <video id="video-preview" class="hidden media-preview mx-auto rounded-md" controls></video>
-                                <p id="file-name" class="text-sm text-gray-500 mt-2"></p>
-                            </div>
+                            <div><label for="campaign-media-upload" class="block text-sm font-medium text-gray-700">Imagens da Campanha (até 5)*</label><input type="file" id="campaign-media-upload" accept="image/jpeg, image/png, image/webp" required multiple class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"></div>
+                            <div id="media-preview-container" class="hidden grid grid-cols-3 gap-2">
+                                </div>
                             <div class="pt-4 border-t">
-                                <h4 class="text-lg font-medium text-gray-800 mb-2">Links e Redes Sociais (Opcional)</h4>
+                                <h4 class="text-lg font-medium text-gray-800 mb-2">Local da Ação (se aplicável)</h4>
                                 <div class="space-y-3">
-                                    <input type="url" id="campaign-social-instagram" placeholder="Link do Instagram" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
-                                    <input type="url" id="campaign-social-facebook" placeholder="Link do Facebook" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
-                                    <input type="url" id="campaign-social-website" placeholder="Link do Website" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+                                    <input type="text" id="campaign-address" placeholder="Endereço (Rua, Av.)" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+                                    <input type="text" id="campaign-map-link" placeholder="Link do Google Maps" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+                                    <input type="text" id="campaign-hours" placeholder="Horário de funcionamento" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+                                    <textarea id="campaign-docs" rows="2" placeholder="Documentos necessários ou outras instruções" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></textarea>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div id="form-error" class="text-red-600 text-sm mt-4 hidden"></div>
-                    <div class="mt-8 pt-6 border-t flex justify-end">
-                        <button type="submit" id="submit-campaign-btn" class="inline-flex justify-center rounded-md border border-transparent shadow-sm px-6 py-3 bg-green-600 text-base font-medium text-white hover:bg-green-700">Publicar Campanha</button>
+                    <div class="mt-8 pt-6 border-t flex justify-end items-center">
+                        <span id="submit-feedback" class="text-sm text-green-700 mr-4"></span>
+                        <button type="submit" id="submit-campaign-btn" class="inline-flex items-center justify-center rounded-md border border-transparent shadow-sm px-6 py-3 bg-green-600 text-base font-medium text-white hover:bg-green-700">
+                           <span id="submit-btn-text">Publicar Campanha</span>
+                           <div id="submit-btn-spinner" class="hidden loader"></div>
+                        </button>
                     </div>
                 </form>
             </main>
@@ -86,9 +98,10 @@
 
     <script type="module">
         import { auth, db, storage, onAuthStateChanged, getCurrentUser, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
-        import { collection, addDoc, query, where, onSnapshot, Timestamp, getDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { collection, addDoc, query, where, onSnapshot, Timestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
+        // Elementos do DOM
         const loadingView = document.getElementById('loading-view');
         const formView = document.getElementById('form-view');
         const entityInfoContainer = document.getElementById('entity-info-container');
@@ -97,60 +110,61 @@
         const submitCampaignBtn = document.getElementById('submit-campaign-btn');
         const mediaUploadInput = document.getElementById('campaign-media-upload');
         const mediaPreviewContainer = document.getElementById('media-preview-container');
-        const imagePreview = document.getElementById('image-preview');
-        const videoPreview = document.getElementById('video-preview');
-        const fileNameDisplay = document.getElementById('file-name');
         
-        let campaignMediaFile = null;
+        let campaignMediaFiles = [];
         let allEntities = [];
 
-        // Função para renderizar o cabeçalho de informação
-        const renderInfoHeader = (data) => {
-            if (data.isSuperAdmin) {
-                let optionsHtml = '<option value="app">Campanha do App Faz Bem</option>';
-                allEntities.forEach(entity => {
-                    optionsHtml += `<option value="${entity.id}">${entity.publicName}</option>`;
-                });
-                entityInfoContainer.innerHTML = `
-                    <label for="entity-selector" class="block text-sm font-medium text-gray-700 mb-2">Esta campanha é em nome de:</label>
-                    <select id="entity-selector" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">${optionsHtml}</select>`;
-            } else {
-                entityInfoContainer.innerHTML = `
-                    <div class="p-4 bg-green-50 rounded-lg flex items-center space-x-4">
-                        <img src="${data.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border-2 border-green-200">
-                        <div>
-                            <p class="font-bold text-lg text-gray-800">${data.publicName}</p>
-                            <p class="text-sm text-gray-600">Responsável: ${data.responsibleName}</p>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">
-                                <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-                                Entidade Verificada
-                            </span>
-                        </div>
-                    </div>`;
-            }
+        // Função para renderizar o cabeçalho para Entidades
+        const renderEntityHeader = (profile) => {
+            entityInfoContainer.innerHTML = `
+                <div class="p-4 bg-blue-50 rounded-lg flex items-center space-x-4">
+                    <img src="${profile.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border-2 border-blue-200">
+                    <div>
+                        <p class="font-bold text-lg text-gray-800">${profile.publicName}</p>
+                        <p class="text-sm text-gray-600">Publicando campanha como Entidade Verificada.</p>
+                    </div>
+                </div>`;
+        };
+
+        // Função para renderizar o cabeçalho para o Super Admin
+        const renderSuperAdminHeader = (entities) => {
+            let optionsHtml = '<option value="app_faz_bem">App Faz Bem (Campanha Geral)</option>';
+            entities.forEach(entity => {
+                optionsHtml += `<option value="${entity.id}">${entity.publicName}</option>`;
+            });
+            entityInfoContainer.innerHTML = `
+                <label for="entity-selector" class="block text-sm font-medium text-gray-700 mb-2">Publicar campanha em nome de:</label>
+                <select id="entity-selector" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 bg-yellow-50">${optionsHtml}</select>`;
+        };
+
+        const showLoadingButton = (isSaving) => {
+            document.getElementById('submit-btn-text').classList.toggle('hidden', isSaving);
+            document.getElementById('submit-btn-spinner').classList.toggle('hidden', !isSaving);
+            submitCampaignBtn.disabled = isSaving;
         };
 
         // Verifica o utilizador e prepara o formulário
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const userSession = await getCurrentUser();
+                
                 if (user.email === ADMIN_EMAIL) {
-                    // Carrega todas as entidades para o admin escolher
                     const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`;
                     const q = query(collection(db, entitiesPath), where("status", "==", "ativo"));
-                    onSnapshot(q, (snapshot) => {
-                        allEntities = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        renderInfoHeader({ isSuperAdmin: true });
-                        loadingView.classList.add('hidden');
-                        formView.classList.remove('hidden');
-                    });
-                } else if (userSession && userSession.profile && userSession.profile.role === 'entidade' && userSession.profile.status === 'ativo') {
-                    renderInfoHeader(userSession.profile);
+                    const querySnapshot = await getDocs(q);
+                    allEntities = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    renderSuperAdminHeader(allEntities);
+                    loadingView.classList.add('hidden');
+                    formView.classList.remove('hidden');
+
+                } else if (userSession?.profile?.role === 'entidade' && userSession.profile.status === 'ativo') {
+                    renderEntityHeader(userSession.profile);
                     loadingView.classList.add('hidden');
                     formView.classList.remove('hidden');
                 } else {
-                    // Se não for admin ou entidade ativa, redireciona para o painel apropriado
-                    window.location.href = 'admin.html'; 
+                    alert('Acesso negado. Você precisa ser uma entidade aprovada para criar campanhas.');
+                    window.location.href = 'index.html'; 
                 }
             } else {
                 window.location.href = 'login.html';
@@ -158,56 +172,62 @@
         });
 
         mediaUploadInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            campaignMediaFile = file;
-            fileNameDisplay.textContent = file.name;
+            campaignMediaFiles = Array.from(e.target.files).slice(0, 5); // Limita a 5 arquivos
+            mediaPreviewContainer.innerHTML = '';
             mediaPreviewContainer.classList.remove('hidden');
-            imagePreview.classList.add('hidden');
-            videoPreview.classList.add('hidden');
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                if (file.type.startsWith('image/')) {
-                    imagePreview.src = event.target.result;
-                    imagePreview.classList.remove('hidden');
-                } else if (file.type === 'video/mp4') {
-                    videoPreview.src = event.target.result;
-                    videoPreview.classList.remove('hidden');
-                }
-            };
-            reader.readAsDataURL(file);
+
+            campaignMediaFiles.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = document.createElement('img');
+                    img.src = event.target.result;
+                    img.className = 'w-full h-24 object-cover rounded-md border';
+                    mediaPreviewContainer.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            });
         });
 
         createCampaignForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            formError.classList.add('hidden');
             const user = auth.currentUser;
             if (!user) return;
+            if (campaignMediaFiles.length === 0) {
+                formError.textContent = 'Por favor, selecione pelo menos uma imagem para a campanha.';
+                formError.classList.remove('hidden');
+                return;
+            }
 
-            submitCampaignBtn.disabled = true;
-            submitCampaignBtn.textContent = 'A publicar...';
-            formError.classList.add('hidden');
+            showLoadingButton(true);
 
             try {
-                // Determina a informação da entidade
+                // 1. Determinar a informação da entidade
                 let entityInfo;
                 const entitySelector = document.getElementById('entity-selector');
-                if (entitySelector && entitySelector.value !== 'app') {
-                    const selectedEntity = allEntities.find(e => e.id === entitySelector.value);
-                    entityInfo = { name: selectedEntity.publicName, logo: selectedEntity.logoUrl, responsible: selectedEntity.responsibleName, uid: selectedEntity.id };
-                } else if (entitySelector && entitySelector.value === 'app') {
-                    entityInfo = { name: "App Faz Bem", logo: null, responsible: "Administração", uid: "app" };
-                } else {
+                
+                if (entitySelector) { // Modo Super Admin
+                    const selectedId = entitySelector.value;
+                    if (selectedId === 'app_faz_bem') {
+                        entityInfo = { name: "App Faz Bem", uid: "app_faz_bem" };
+                    } else {
+                        const selectedEntity = allEntities.find(e => e.id === selectedId);
+                        entityInfo = { name: selectedEntity.publicName, uid: selectedEntity.id };
+                    }
+                } else { // Modo Entidade
                     const userSession = await getCurrentUser();
-                    entityInfo = { name: userSession.profile.publicName, logo: userSession.profile.logoUrl, responsible: userSession.profile.responsibleName, uid: user.uid };
+                    entityInfo = { name: userSession.profile.publicName, uid: user.uid };
                 }
 
-                // Upload da mídia
-                const mediaFileName = `campaigns/${user.uid}_${Date.now()}_${campaignMediaFile.name}`;
-                const mediaRef = ref(storage, mediaFileName);
-                await uploadBytes(mediaRef, campaignMediaFile);
-                const mediaUrl = await getDownloadURL(mediaRef);
+                // 2. Upload das imagens
+                const uploadPromises = campaignMediaFiles.map(file => {
+                    const mediaFileName = `campaigns/${user.uid}_${Date.now()}_${file.name}`;
+                    const mediaRef = ref(storage, mediaFileName);
+                    return uploadBytes(mediaRef, file).then(snapshot => getDownloadURL(snapshot.ref));
+                });
+                const imageUrls = await Promise.all(uploadPromises);
 
-                // Criação do documento da campanha
+                // 3. Criação do documento da campanha
                 const now = Timestamp.now();
                 const durationInSeconds = parseInt(document.getElementById('campaign-duration').value, 10);
                 const expiresAt = new Timestamp(now.seconds + durationInSeconds, now.nanoseconds);
@@ -217,33 +237,41 @@
                     description: document.getElementById('campaign-description').value,
                     type: document.getElementById('campaign-type').value,
                     goal: document.getElementById('campaign-goal').value || null,
-                    social: {
-                        instagram: document.getElementById('campaign-social-instagram').value,
-                        facebook: document.getElementById('campaign-social-facebook').value,
-                        website: document.getElementById('campaign-social-website').value,
-                    },
-                    bannerMedia: { url: mediaUrl, type: campaignMediaFile.type },
-                    entityInfo: entityInfo,
+                    progress: 0,
+                    entityName: entityInfo.name,
                     creatorId: user.uid,
+                    entityId: entityInfo.uid,
+                    images: imageUrls,
+                    address: {
+                        street: document.getElementById('campaign-address').value || null,
+                        mapLink: document.getElementById('campaign-map-link').value || null,
+                    },
+                    operation: {
+                        hours: document.getElementById('campaign-hours').value || null,
+                        requiredDocs: document.getElementById('campaign-docs').value || null,
+                    },
+                    status: 'active',
                     createdAt: now,
                     expiresAt: expiresAt,
-                    progress: 0,
-                    status: 'active'
                 };
 
                 const campaignsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
                 await addDoc(collection(db, campaignsColPath), newCampaign);
                 
-                alert('Campanha criada com sucesso!');
-                window.location.href = user.email === ADMIN_EMAIL ? 'superadmin.html' : 'admin.html';
+                document.getElementById('submit-feedback').textContent = 'Campanha publicada com sucesso!';
+                createCampaignForm.reset();
+                mediaPreviewContainer.innerHTML = '';
+
+                setTimeout(() => {
+                   window.location.href = user.email === ADMIN_EMAIL ? 'superadmin.html' : 'admin.html';
+                }, 2000);
 
             } catch (error) {
                 console.error("Erro ao criar campanha: ", error);
                 formError.textContent = `Erro ao publicar: ${error.message}`;
                 formError.classList.remove('hidden');
             } finally {
-                submitCampaignBtn.disabled = false;
-                submitCampaignBtn.textContent = 'Publicar Campanha';
+                showLoadingButton(false);
             }
         });
     </script>
