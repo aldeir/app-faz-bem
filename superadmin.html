@@ -49,19 +49,16 @@
                 <div id="dashboard-metrics" class="px-4">
                     <h2 class="text-2xl font-semibold text-gray-800 mb-4">Resumo Geral</h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <!-- Card Gestão de Utilizadores -->
                         <a href="javascript:void(0);" id="manage-users-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-transform transform hover:-translate-y-1">
                             <h3 class="text-sm font-medium text-gray-500">Gestão de Utilizadores</h3>
                             <p id="total-users" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
                             <p class="text-sm text-gray-500 mt-2">Gerir doadores e entidades.</p>
                         </a>
-                        <!-- Card Gestão de Entidades Pendentes -->
                         <a href="javascript:void(0);" id="manage-pending-entities-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-transform transform hover:-translate-y-1">
                             <h3 class="text-sm font-medium text-gray-500">Entidades Pendentes</h3>
                             <p id="total-pending-entities" class="mt-1 text-3xl font-semibold text-yellow-600">0</p>
                             <p class="text-sm text-gray-500 mt-2">Aprovar ou reprovar novas entidades.</p>
                         </a>
-                        <!-- Card Gestão de Campanhas -->
                         <a href="javascript:void(0);" id="manage-campaigns-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-transform transform hover:-translate-y-1">
                             <h3 class="text-sm font-medium text-gray-500">Gestão de Campanhas</h3>
                             <p id="total-campaigns" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
@@ -78,37 +75,17 @@
                     <h2 class="text-2xl font-semibold text-gray-800 mb-6">Gestão de Utilizadores</h2>
                     <div id="all-users-list" class="bg-white rounded-lg shadow">
                          <p id="users-placeholder" class="text-gray-500 p-6">Nenhum utilizador encontrado.</p>
-                         <!-- Os utilizadores serão inseridos aqui -->
                     </div>
                 </div>
-
             </main>
         </div>
     </div>
 
+    <!-- SCRIPT REATORIZADO -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { auth, db, onAuthStateChanged, logout, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
+        import { collection, query, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
-            authDomain: "app-faz-bem-guacui.firebaseapp.com",
-            projectId: "app-faz-bem-guacui",
-            storageBucket: "app-faz-bem-guacui.appspot.com",
-            messagingSenderId: "218995880923",
-            appId: "1:218995880923:web:ce8a371bc402904c0dedfe",
-            measurementId: "G-R5W1F2NXH4"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        
-        const ADMIN_EMAIL = "aldeir@gmail.com";
-        const appId = firebaseConfig.projectId;
-
-        // Elementos da UI
         const accessDeniedView = document.getElementById('access-denied-view');
         const dashboardView = document.getElementById('dashboard-view');
         const userEmailDisplay = document.getElementById('user-email-display');
@@ -117,8 +94,6 @@
         const usersManagementView = document.getElementById('users-management-view');
         const allUsersList = document.getElementById('all-users-list');
         const usersPlaceholder = document.getElementById('users-placeholder');
-        
-        // Botões de navegação
         const manageUsersLink = document.getElementById('manage-users-link');
         const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
 
@@ -129,7 +104,7 @@
                     accessDeniedView.classList.add('hidden');
                     userEmailDisplay.textContent = user.email;
                     loadDashboardMetrics();
-                    loadAllUsers(); // Carrega os dados, mas a vista está oculta
+                    loadAllUsers();
                 } else {
                     dashboardView.classList.add('hidden');
                     accessDeniedView.classList.remove('hidden');
@@ -139,9 +114,8 @@
             }
         });
 
-        logoutBtn.addEventListener('click', () => signOut(auth));
+        logoutBtn.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
 
-        // Funções de navegação do painel
         manageUsersLink.addEventListener('click', () => {
             dashboardMetrics.classList.add('hidden');
             usersManagementView.classList.remove('hidden');
@@ -157,14 +131,13 @@
             onSnapshot(usersQuery, (snapshot) => {
                 const users = snapshot.docs;
                 const totalUsers = users.length;
-                const totalEntities = users.filter(doc => doc.data().role === 'entidade').length;
                 const pendingEntities = users.filter(doc => doc.data().status === 'pendente_aprovacao').length;
                 
                 document.getElementById('total-users').textContent = totalUsers;
                 document.getElementById('total-pending-entities').textContent = pendingEntities;
             });
 
-            const campaignsQuery = query(collection(db, `/artifacts/${appId}/public/data/campaigns`));
+            const campaignsQuery = query(collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`));
             onSnapshot(campaignsQuery, (snapshot) => {
                 document.getElementById('total-campaigns').textContent = snapshot.size;
             });
@@ -182,16 +155,8 @@
                     snapshot.docs.sort((a, b) => a.data().displayName.localeCompare(b.data().displayName)).forEach(doc => {
                         const user = doc.data();
                         
-                        const statusClasses = {
-                            'ativo': 'bg-green-100 text-green-800',
-                            'pendente_aprovacao': 'bg-yellow-100 text-yellow-800',
-                            'bloqueado': 'bg-red-100 text-red-800',
-                        };
-                        const statusText = {
-                            'ativo': 'Ativo',
-                            'pendente_aprovacao': 'Pendente',
-                            'bloqueado': 'Bloqueado',
-                        };
+                        const statusClasses = { 'ativo': 'bg-green-100 text-green-800', 'pendente_aprovacao': 'bg-yellow-100 text-yellow-800', 'bloqueado': 'bg-red-100 text-red-800' };
+                        const statusText = { 'ativo': 'Ativo', 'pendente_aprovacao': 'Pendente', 'bloqueado': 'Bloqueado' };
 
                         const card = document.createElement('div');
                         card.className = 'p-4 border-b flex justify-between items-center';
