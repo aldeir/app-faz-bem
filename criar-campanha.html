@@ -89,8 +89,12 @@
                             <div class="pt-4 border-t">
                                 <h4 class="text-lg font-medium text-gray-800 mb-2">Local da Ação (se aplicável)</h4>
                                 <div class="space-y-3">
-                                    <input type="text" id="campaign-address" placeholder="Endereço (Rua, Av.)" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
-                                    <input type="text" id="campaign-map-link" placeholder="Link do Google Maps" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+                                    <input type="text" id="campaign-address-street" placeholder="Endereço (Rua, Av.)" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+                                    <div class="grid grid-cols-3 gap-3">
+                                        <input type="text" id="campaign-address-number" placeholder="Nº" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+                                        <input type="text" id="campaign-address-district" placeholder="Bairro" class="block w-full col-span-2 border-gray-300 rounded-md shadow-sm py-2 px-3">
+                                    </div>
+                                    <input type="text" id="campaign-map-link" placeholder="Link do Google Maps (Opcional)" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
                                     <input type="text" id="campaign-hours" placeholder="Horário de funcionamento" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
                                     <textarea id="campaign-docs" rows="2" placeholder="Documentos necessários ou outras instruções" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></textarea>
                                 </div>
@@ -175,7 +179,9 @@
                 const formattedDate = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + 'T' + ('0' + date.getHours()).slice(-2) + ':' + ('0' + date.getMinutes()).slice(-2);
                 document.getElementById('campaign-starts-at').value = formattedDate;
             }
-            document.getElementById('campaign-address').value = data.address?.street || '';
+            document.getElementById('campaign-address-street').value = data.address?.street || '';
+            document.getElementById('campaign-address-number').value = data.address?.number || '';
+            document.getElementById('campaign-address-district').value = data.address?.district || '';
             document.getElementById('campaign-map-link').value = data.address?.mapLink || '';
             document.getElementById('campaign-hours').value = data.operation?.hours || '';
             document.getElementById('campaign-docs').value = data.operation?.requiredDocs || '';
@@ -254,6 +260,9 @@
 
         mediaUploadInput.addEventListener('change', (e) => {
             campaignMediaFiles = Array.from(e.target.files).slice(0, 5);
+            if (e.target.files.length > 5) {
+                alert("Você pode selecionar no máximo 5 imagens. Apenas as 5 primeiras foram consideradas.");
+            }
             const previewUrls = campaignMediaFiles.map(file => URL.createObjectURL(file));
             renderMediaPreview(previewUrls);
         });
@@ -302,7 +311,9 @@
                     type: document.getElementById('campaign-type').value,
                     goal: document.getElementById('campaign-goal').value || null,
                     address: {
-                        street: document.getElementById('campaign-address').value || null,
+                        street: document.getElementById('campaign-address-street').value || null,
+                        number: document.getElementById('campaign-address-number').value || null,
+                        district: document.getElementById('campaign-address-district').value || null,
                         mapLink: document.getElementById('campaign-map-link').value || null,
                     },
                     operation: {
@@ -344,6 +355,7 @@
                         creatorId: user.uid,
                         entityId: entityInfo.uid,
                         progress: 0,
+                        currentAmount: 0,
                         createdAt: now,
                         startsAt: startsAt,
                         expiresAt: expiresAt,
