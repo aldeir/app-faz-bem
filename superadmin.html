@@ -81,6 +81,15 @@
                          <p id="pending-entities-placeholder" class="text-gray-500 p-6">Nenhuma entidade pendente.</p>
                     </div>
                 </div>
+                
+                <!-- NOVA SECÇÃO: Gestão de Campanhas (Oculta por defeito) -->
+                <div id="campaigns-management-view" class="px-4 mt-8 hidden">
+                    <button id="back-to-dashboard-btn-3" class="text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Todas as Campanhas</h2>
+                    <div id="all-campaigns-list" class="bg-white rounded-lg shadow">
+                         <p id="campaigns-placeholder" class="text-gray-500 p-6">Nenhuma campanha encontrada.</p>
+                    </div>
+                </div>
 
             </main>
         </div>
@@ -100,21 +109,26 @@
         const dashboardMetrics = document.getElementById('dashboard-metrics');
         const usersManagementView = document.getElementById('users-management-view');
         const pendingEntitiesView = document.getElementById('pending-entities-view');
+        const campaignsManagementView = document.getElementById('campaigns-management-view');
 
         // Listas
         const allUsersList = document.getElementById('all-users-list');
         const usersPlaceholder = document.getElementById('users-placeholder');
         const pendingEntitiesList = document.getElementById('pending-entities-list');
         const pendingEntitiesPlaceholder = document.getElementById('pending-entities-placeholder');
+        const allCampaignsList = document.getElementById('all-campaigns-list');
+        const campaignsPlaceholder = document.getElementById('campaigns-placeholder');
         
         // Links/Botões de Navegação
         const manageUsersLink = document.getElementById('manage-users-link');
         const managePendingEntitiesLink = document.getElementById('manage-pending-entities-link');
+        const manageCampaignsLink = document.getElementById('manage-campaigns-link');
         const backToDashboardBtn1 = document.getElementById('back-to-dashboard-btn-1');
         const backToDashboardBtn2 = document.getElementById('back-to-dashboard-btn-2');
+        const backToDashboardBtn3 = document.getElementById('back-to-dashboard-btn-3');
 
         const showView = (viewToShow) => {
-            [dashboardMetrics, usersManagementView, pendingEntitiesView].forEach(view => view.classList.add('hidden'));
+            [dashboardMetrics, usersManagementView, pendingEntitiesView, campaignsManagementView].forEach(view => view.classList.add('hidden'));
             viewToShow.classList.remove('hidden');
         };
 
@@ -126,6 +140,7 @@
                 loadDashboardMetrics();
                 loadAllUsers();
                 loadPendingEntities();
+                loadAllCampaigns();
             } else if (user) {
                 dashboardView.classList.add('hidden');
                 accessDeniedView.classList.remove('hidden');
@@ -138,11 +153,53 @@
 
         manageUsersLink.addEventListener('click', () => showView(usersManagementView));
         managePendingEntitiesLink.addEventListener('click', () => showView(pendingEntitiesView));
+        manageCampaignsLink.addEventListener('click', () => showView(campaignsManagementView));
         backToDashboardBtn1.addEventListener('click', () => showView(dashboardMetrics));
         backToDashboardBtn2.addEventListener('click', () => showView(dashboardMetrics));
+        backToDashboardBtn3.addEventListener('click', () => showView(dashboardMetrics));
 
-        function loadDashboardMetrics() { /* ... código sem alterações ... */ }
-        function loadAllUsers() { /* ... código sem alterações ... */ }
+        function loadDashboardMetrics() {
+            const usersQuery = query(collection(db, "/users"));
+            onSnapshot(usersQuery, (snapshot) => {
+                const users = snapshot.docs;
+                document.getElementById('total-users').textContent = users.length;
+                const pendingEntities = users.filter(doc => doc.data().status === 'pendente_aprovacao').length;
+                document.getElementById('total-pending-entities').textContent = pendingEntities;
+            });
+
+            const campaignsQuery = query(collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`));
+            onSnapshot(campaignsQuery, (snapshot) => {
+                document.getElementById('total-campaigns').textContent = snapshot.size;
+            });
+        }
+        
+        function loadAllUsers() {
+            const q = query(collection(db, "/users"));
+            onSnapshot(q, (snapshot) => {
+                allUsersList.innerHTML = '';
+                if (snapshot.empty) {
+                    allUsersList.appendChild(usersPlaceholder);
+                } else {
+                    snapshot.docs.sort((a, b) => a.data().displayName.localeCompare(b.data().displayName)).forEach(doc => {
+                        const user = doc.data();
+                        const card = document.createElement('div');
+                        card.className = 'p-4 border-b flex justify-between items-center';
+                        card.innerHTML = `
+                            <div class="flex-1">
+                                <h4 class="font-bold">${user.displayName} <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${user.role === 'entidade' ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-800'}">${user.role}</span></h4>
+                                <p class="text-sm text-gray-600">${user.email}</p>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${user.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${user.status || 'N/A'}</span>
+                                <button data-action="block" data-uid="${user.uid}" class="text-yellow-600 hover:underline text-sm">Bloquear</button>
+                                <button data-action="delete" data-uid="${user.uid}" class="text-red-600 hover:underline text-sm">Excluir</button>
+                            </div>
+                        `;
+                        allUsersList.appendChild(card);
+                    });
+                }
+            });
+        }
         
         function loadPendingEntities() {
             const q = query(collection(db, "/users"), where("status", "==", "pendente_aprovacao"));
@@ -174,7 +231,53 @@
             });
         }
 
-        allUsersList.addEventListener('click', async (e) => { /* ... código sem alterações ... */ });
+        function loadAllCampaigns() {
+            const q = query(collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`));
+            onSnapshot(q, (snapshot) => {
+                allCampaignsList.innerHTML = '';
+                if (snapshot.empty) {
+                    allCampaignsList.appendChild(campaignsPlaceholder);
+                } else {
+                    snapshot.docs.forEach(doc => {
+                        const campaign = doc.data();
+                        const card = document.createElement('div');
+                        card.className = 'p-4 border-b flex justify-between items-center';
+                        card.innerHTML = `
+                            <div>
+                                <h4 class="font-bold">${campaign.title} <span class="text-sm font-normal text-gray-500">- por ${campaign.entityName}</span></h4>
+                                <p class="text-sm text-gray-600">${campaign.description.substring(0, 70)}...</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="text-blue-500 hover:underline text-sm">Editar</button>
+                                <button class="text-red-500 hover:underline text-sm">Suspender</button>
+                            </div>
+                        `;
+                        allCampaignsList.appendChild(card);
+                    });
+                }
+            });
+        }
+
+        allUsersList.addEventListener('click', async (e) => {
+            if (e.target.dataset.action) {
+                const uid = e.target.dataset.uid;
+                const action = e.target.dataset.action;
+                const userDocRef = doc(db, "users", uid);
+
+                if (action === 'block') {
+                    if (confirm('Tem a certeza de que quer bloquear este utilizador?')) {
+                        await updateDoc(userDocRef, { status: 'bloqueado' });
+                    }
+                }
+                
+                if (action === 'delete') {
+                    if (confirm('ATENÇÃO: Deseja excluir permanentemente os DADOS deste utilizador? Esta ação não pode ser desfeita.')) {
+                        await deleteDoc(userDocRef);
+                        alert('Dados do utilizador excluídos. A conta de autenticação ainda existe, mas o e-mail está livre para um novo registo.');
+                    }
+                }
+            }
+        });
 
         pendingEntitiesList.addEventListener('click', async (e) => {
             if (e.target.dataset.action) {
