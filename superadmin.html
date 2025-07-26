@@ -12,6 +12,8 @@
     
     <style>
         body { font-family: 'Inter', sans-serif; }
+        .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); }
+        .modal-body { max-height: 70vh; overflow-y: auto; }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -47,7 +49,10 @@
             <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 <!-- Secção de Dashboard com Métricas -->
                 <div id="dashboard-metrics" class="px-4">
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Resumo Geral</h2>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-gray-800">Resumo Geral</h2>
+                        <button id="open-modal-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">+ Criar Nova Campanha</button>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <a href="javascript:void(0);" id="manage-donors-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-transform transform hover:-translate-y-1">
                             <h3 class="text-sm font-medium text-gray-500">Doadores</h3>
@@ -100,17 +105,27 @@
             </main>
         </div>
     </div>
+    
+    <!-- MODAL DE CRIAÇÃO DE CAMPANHA -->
+    <div id="create-campaign-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-backdrop flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl"><form id="create-campaign-form"><div class="p-6 modal-body"><h3 class="text-2xl font-semibold mb-6 border-b pb-4">Detalhes da Nova Campanha</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="space-y-4"><div><label for="campaign-title" class="block text-sm font-medium text-gray-700">Título*</label><input type="text" id="campaign-title" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div><div><label for="campaign-description" class="block text-sm font-medium text-gray-700">Descrição*</label><textarea id="campaign-description" rows="4" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></textarea></div><div><label for="campaign-type" class="block text-sm font-medium text-gray-700">Tipo*</label><select id="campaign-type" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="agasalho">Agasalho</option><option value="alimento">Alimento</option><option value="sangue">Doação de Sangue</option><option value="default">Outro</option></select></div><div><label for="campaign-goal" class="block text-sm font-medium text-gray-700">Meta (Unidades)</label><input type="number" id="campaign-goal" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div><div><label for="campaign-duration" class="block text-sm font-medium text-gray-700">Duração*</label><select id="campaign-duration" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="7200">2 horas</option><option value="86400">1 dia</option><option value="259200">3 dias</option><option value="1296000">15 dias</option></select></div></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700">Local da Ação</label><input type="text" id="campaign-address" placeholder="Rua, Av..." class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><input type="text" id="campaign-address-number" placeholder="Número" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><input type="text" id="campaign-address-district" placeholder="Bairro" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div><div><label for="campaign-map-link" class="block text-sm font-medium text-gray-700">Link do Google Maps</label><input type="url" id="campaign-map-link" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div><div><label for="campaign-hours" class="block text-sm font-medium text-gray-700">Horário</label><input type="text" id="campaign-hours" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div><div><label for="campaign-docs" class="block text-sm font-medium text-gray-700">Documentos</label><textarea id="campaign-docs" rows="2" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></textarea></div></div></div><div class="mt-6 pt-4 border-t"><label class="block text-sm font-medium text-gray-700">Imagens</label><input type="url" id="campaign-image-1" required placeholder="URL da Imagem Principal*" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><input type="url" id="campaign-image-2" placeholder="URL da Imagem Secundária (Opcional)" class="mt-2 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div></div><div class="bg-gray-50 px-6 py-4 sm:flex sm:flex-row-reverse items-center"><button type="submit" id="submit-campaign-btn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 sm:ml-3 sm:w-auto sm:text-sm">Publicar Campanha</button><button type="button" id="close-modal-btn" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 sm:mt-0 sm:w-auto sm:text-sm">Cancelar</button><div id="modal-error" class="text-red-600 text-sm mr-auto mt-2 sm:mt-0 hidden"></div></div></form></div></div>
 
-    <!-- SCRIPT ATUALIZADO (VERSÃO 2.5) -->
+    <!-- SCRIPT ATUALIZADO (VERSÃO 2.6) -->
     <script type="module">
         import { auth, db, onAuthStateChanged, logout, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
-        import { collection, query, onSnapshot, doc, updateDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { collection, query, onSnapshot, doc, updateDoc, where, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Vistas principais
+        // Vistas principais e modal
         const accessDeniedView = document.getElementById('access-denied-view');
         const dashboardView = document.getElementById('dashboard-view');
         const userEmailDisplay = document.getElementById('user-email-display');
         const logoutBtn = document.getElementById('logout-btn');
+        const modal = document.getElementById('create-campaign-modal');
+        const openModalBtn = document.getElementById('open-modal-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const createCampaignForm = document.getElementById('create-campaign-form');
+        const modalError = document.getElementById('modal-error');
+        const submitCampaignBtn = document.getElementById('submit-campaign-btn');
         
         // Vistas de gestão
         const dashboardMetrics = document.getElementById('dashboard-metrics');
@@ -133,13 +148,11 @@
         const manageCampaignsLink = document.getElementById('manage-campaigns-link');
         const backToDashboardBtns = document.querySelectorAll('.back-to-dashboard-btn');
 
-        // Função para alternar entre as vistas de gestão
         const showView = (viewToShow) => {
             [dashboardMetrics, donorsManagementView, entitiesManagementView, campaignsManagementView].forEach(view => view.classList.add('hidden'));
             (viewToShow || dashboardMetrics).classList.remove('hidden');
         };
 
-        // Verificação de autenticação e autorização
         onAuthStateChanged(auth, (user) => {
             if (user && user.email === ADMIN_EMAIL) {
                 dashboardView.classList.remove('hidden');
@@ -153,15 +166,15 @@
             }
         });
 
-        // Event Listeners
         logoutBtn.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
         manageDonorsLink.addEventListener('click', () => showView(donorsManagementView));
         manageEntitiesLink.addEventListener('click', () => showView(entitiesManagementView));
         managePendingEntitiesLink.addEventListener('click', () => showView(entitiesManagementView));
         manageCampaignsLink.addEventListener('click', () => showView(campaignsManagementView));
         backToDashboardBtns.forEach(btn => btn.addEventListener('click', () => showView(null)));
+        openModalBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+        closeModalBtn.addEventListener('click', () => { modal.classList.add('hidden'); modalError.classList.add('hidden'); });
 
-        // Função central para carregar todos os dados
         function loadAllData() {
             loadDashboardMetrics();
             loadAllDonors();
@@ -169,24 +182,16 @@
             loadAllCampaigns();
         }
 
-        // Função para formatar o número de telefone
         function formatPhoneNumber(phone) {
             if (!phone || typeof phone !== 'string') return 'N/A';
             const cleaned = phone.replace(/\D/g, '');
-            if (cleaned.length === 11) {
-                return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
-            }
-            if (cleaned.length === 10) {
-                return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
-            }
-            return phone; // Retorna o original se não corresponder
+            if (cleaned.length === 11) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
+            if (cleaned.length === 10) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
+            return phone;
         }
 
-        // Funções de carregamento de dados
         function loadDashboardMetrics() {
-            onSnapshot(query(collection(db, "users")), snap => {
-                document.getElementById('total-donors').textContent = snap.size;
-            });
+            onSnapshot(query(collection(db, "users")), snap => { document.getElementById('total-donors').textContent = snap.size; });
             const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`;
             onSnapshot(query(collection(db, entitiesPath)), snap => {
                 document.getElementById('total-entities').textContent = snap.size;
@@ -201,21 +206,13 @@
         function loadAllDonors() {
             onSnapshot(query(collection(db, "users")), (snapshot) => {
                 allDonorsList.innerHTML = '';
-                if (snapshot.empty) {
-                    allDonorsList.appendChild(donorsPlaceholder);
-                } else {
+                if (snapshot.empty) { allDonorsList.appendChild(donorsPlaceholder); } 
+                else {
                     snapshot.docs.sort((a, b) => (a.data().displayName || '').localeCompare(b.data().displayName || '')).forEach(doc => {
                         const user = doc.data();
                         const card = document.createElement('div');
                         card.className = 'p-4 border-b flex justify-between items-center';
-                        card.innerHTML = `
-                            <div class="flex-1">
-                                <h4 class="font-bold">${user.displayName}</h4>
-                                <p class="text-sm text-gray-600">${user.email}</p>
-                            </div>
-                            <div class="flex items-center space-x-4">
-                                <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${user.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${user.status || 'N/A'}</span>
-                            </div>`;
+                        card.innerHTML = `<div class="flex-1"><h4 class="font-bold">${user.displayName}</h4><p class="text-sm text-gray-600">${user.email}</p></div><div class="flex items-center space-x-4"><span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${user.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${user.status || 'N/A'}</span></div>`;
                         allDonorsList.appendChild(card);
                     });
                 }
@@ -226,54 +223,22 @@
             const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`;
             onSnapshot(query(collection(db, entitiesPath)), (snapshot) => {
                 allEntitiesList.innerHTML = '';
-                if (snapshot.empty) {
-                    allEntitiesList.appendChild(entitiesPlaceholder);
-                } else {
+                if (snapshot.empty) { allEntitiesList.appendChild(entitiesPlaceholder); } 
+                else {
                     const statusOrder = { 'pendente_aprovacao': 1, 'ativo': 2, 'bloqueado': 3 };
-                    const sortedDocs = snapshot.docs.sort((a, b) => {
-                        const statusA = a.data().status || '';
-                        const statusB = b.data().status || '';
-                        return (statusOrder[statusA] || 99) - (statusOrder[statusB] || 99);
-                    });
-
+                    const sortedDocs = snapshot.docs.sort((a, b) => (statusOrder[a.data().status] || 99) - (statusOrder[b.data().status] || 99));
                     sortedDocs.forEach(docSnapshot => {
                         const entity = docSnapshot.data();
                         const entityId = docSnapshot.id;
                         const card = document.createElement('div');
                         card.className = 'p-4 border-b';
-
-                        const statusColors = {
-                            'pendente_aprovacao': 'bg-yellow-100 text-yellow-800',
-                            'ativo': 'bg-green-100 text-green-800',
-                            'bloqueado': 'bg-red-100 text-red-800'
-                        };
+                        const statusColors = { 'pendente_aprovacao': 'bg-yellow-100 text-yellow-800', 'ativo': 'bg-green-100 text-green-800', 'bloqueado': 'bg-red-100 text-red-800' };
                         const statusColor = statusColors[entity.status] || 'bg-gray-100 text-gray-800';
-
                         let actionButtons = '';
                         if (entity.status === 'pendente_aprovacao') {
-                            actionButtons = `
-                                <div class="flex space-x-2">
-                                    <button data-action="approve" data-uid="${entityId}" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Aprovar</button>
-                                    <button data-action="reject" data-uid="${entityId}" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">Reprovar</button>
-                                </div>`;
+                            actionButtons = `<div class="flex space-x-2"><button data-action="approve" data-uid="${entityId}" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Aprovar</button><button data-action="reject" data-uid="${entityId}" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">Reprovar</button></div>`;
                         }
-
-                        card.innerHTML = `
-                            <div class="flex justify-between items-center">
-                                <div class="flex items-center space-x-4">
-                                    <img src="${entity.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border">
-                                    <div>
-                                        <h4 class="font-bold">${entity.publicName || 'Nome não definido'}</h4>
-                                        <p class="text-sm text-gray-600">${entity.email} | Telefone: ${formatPhoneNumber(entity.phone)}</p>
-                                        <p class="text-sm text-gray-500 mt-1">Responsável: ${entity.responsibleName || 'N/A'}</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center space-x-4">
-                                     <a href="#" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a>
-                                     <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColor}">${(entity.status || '').replace('_', ' ')}</span>
-                                     ${actionButtons}
-                                </div>
-                            </div>`;
+                        card.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center space-x-4"><img src="${entity.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border"><div><h4 class="font-bold">${entity.publicName || 'Nome não definido'}</h4><p class="text-sm text-gray-600">${entity.email} | Telefone: ${formatPhoneNumber(entity.phone)}</p><p class="text-sm text-gray-500 mt-1">Responsável: ${entity.responsibleName || 'N/A'}</p></div></div><div class="flex items-center space-x-4"><a href="#" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a><span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColor}">${(entity.status || '').replace('_', ' ')}</span>${actionButtons}</div></div>`;
                         allEntitiesList.appendChild(card);
                     });
                 }
@@ -283,22 +248,13 @@
         function loadAllCampaigns() {
             onSnapshot(query(collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`)), (snapshot) => {
                 allCampaignsList.innerHTML = '';
-                if (snapshot.empty) {
-                    allCampaignsList.appendChild(campaignsPlaceholder);
-                } else {
+                if (snapshot.empty) { allCampaignsList.appendChild(campaignsPlaceholder); } 
+                else {
                     snapshot.docs.forEach(doc => {
                         const campaign = doc.data();
                         const card = document.createElement('div');
                         card.className = 'p-4 border-b flex justify-between items-center';
-                        card.innerHTML = `
-                            <div>
-                                <h4 class="font-bold">${campaign.title} <span class="text-sm font-normal text-gray-500">- por ${campaign.entityName}</span></h4>
-                                <p class="text-sm text-gray-600">${campaign.description.substring(0, 70)}...</p>
-                            </div>
-                            <div class="flex space-x-2">
-                                <button class="text-blue-500 hover:underline text-sm">Editar</button>
-                                <button class="text-red-500 hover:underline text-sm">Suspender</button>
-                            </div>`;
+                        card.innerHTML = `<div><h4 class="font-bold">${campaign.title} <span class="text-sm font-normal text-gray-500">- por ${campaign.entityName}</span></h4><p class="text-sm text-gray-600">${campaign.description.substring(0, 70)}...</p></div><div class="flex space-x-2"><button class="text-blue-500 hover:underline text-sm">Editar</button><button class="text-red-500 hover:underline text-sm">Suspender</button></div>`;
                         allCampaignsList.appendChild(card);
                     });
                 }
@@ -312,26 +268,55 @@
                 const action = button.dataset.action;
                 const appId = firebaseConfig.projectId;
                 const entityDocRef = doc(db, "artifacts", appId, "public", "data", "entidades", uid);
-
                 if (action === 'approve') {
                     if (confirm('Tem a certeza de que quer aprovar esta entidade?')) {
-                        try {
-                            await updateDoc(entityDocRef, { status: 'ativo' });
-                        } catch (error) {
-                            alert('Erro ao aprovar a entidade: ' + error.message);
-                        }
+                        try { await updateDoc(entityDocRef, { status: 'ativo' }); } 
+                        catch (error) { alert('Erro ao aprovar a entidade: ' + error.message); }
                     }
                 }
-                
                 if (action === 'reject') {
                     if (confirm('Tem a certeza de que quer reprovar e bloquear esta entidade?')) {
-                        try {
-                            await updateDoc(entityDocRef, { status: 'bloqueado' });
-                        } catch (error) {
-                            alert('Erro ao reprovar a entidade: ' + error.message);
-                        }
+                        try { await updateDoc(entityDocRef, { status: 'bloqueado' }); } 
+                        catch (error) { alert('Erro ao reprovar a entidade: ' + error.message); }
                     }
                 }
+            }
+        });
+
+        createCampaignForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) return;
+
+            submitCampaignBtn.disabled = true;
+            submitCampaignBtn.textContent = 'A publicar...';
+            modalError.classList.add('hidden');
+
+            try {
+                const now = Timestamp.now();
+                const durationInSeconds = parseInt(createCampaignForm['campaign-duration'].value, 10);
+                const expiresAt = new Timestamp(now.seconds + durationInSeconds, now.nanoseconds);
+                const newCampaign = {
+                    title: createCampaignForm['campaign-title'].value,
+                    description: createCampaignForm['campaign-description'].value, type: createCampaignForm['campaign-type'].value,
+                    goal: createCampaignForm['campaign-goal'].value || null, duration: durationInSeconds,
+                    address: { street: createCampaignForm['campaign-address'].value, number: createCampaignForm['campaign-address-number'].value, district: createCampaignForm['campaign-address-district'].value, city: "Guaçuí", state: "ES", mapLink: createCampaignForm['campaign-map-link'].value },
+                    operation: { hours: createCampaignForm['campaign-hours'].value, requiredDocs: createCampaignForm['campaign-docs'].value, },
+                    images: [ createCampaignForm['campaign-image-1'].value, createCampaignForm['campaign-image-2'].value ].filter(Boolean),
+                    entityName: "Administração Faz Bem", creatorId: user.uid, createdAt: now, expiresAt: expiresAt,
+                    progress: 0, status: 'active'
+                };
+                const campaignsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
+                await addDoc(collection(db, campaignsColPath), newCampaign);
+                createCampaignForm.reset();
+                modal.classList.add('hidden');
+            } catch (error) {
+                console.error("Erro ao criar campanha: ", error);
+                modalError.textContent = `Erro ao publicar: ${error.message}`;
+                modalError.classList.remove('hidden');
+            } finally {
+                submitCampaignBtn.disabled = false;
+                submitCampaignBtn.textContent = 'Publicar Campanha';
             }
         });
     </script>
