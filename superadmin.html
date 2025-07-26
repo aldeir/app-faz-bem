@@ -1,27 +1,184 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faz Bem - Painel do Administrador</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
 <body class="bg-gray-100">
 
     <div id="app-container">
+        <div id="access-denied-view" class="hidden min-h-screen flex items-center justify-center">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold text-red-600">Acesso Negado</h1>
+                <p class="text-lg text-gray-700 mt-4">Não tem permissão para aceder a esta página.</p>
+                <a href="index.html" class="mt-6 inline-block bg-green-600 text-white px-6 py-2 rounded-lg">Voltar à página inicial</a>
+            </div>
         </div>
+
+        <div id="dashboard-view" class="hidden">
+            <nav class="bg-white shadow-sm">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex justify-between h-16">
+                        <div class="flex items-center space-x-4">
+                            <span class="text-2xl font-bold text-green-600">Faz Bem</span>
+                            <span class="font-semibold text-red-600">Painel de Administrador</span>
+                            <a href="index.html" class="text-sm text-gray-500 hover:text-green-600 border-l pl-4">← Voltar à Home</a>
+                        </div>
+                        <div class="flex items-center">
+                             <span id="user-email-display" class="text-sm text-gray-700 mr-4"></span>
+                            <button id="logout-btn" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-md text-sm font-medium">Sair</button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                <div id="dashboard-metrics" class="px-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-gray-800">Resumo Geral</h2>
+                        <a href="criar-campanha.html" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">+ Criar Nova Campanha</a>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <a href="javascript:void(0);" id="manage-donors-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-transform transform hover:-translate-y-1">
+                            <h3 class="text-sm font-medium text-gray-500">Doadores</h3>
+                            <p id="total-donors" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
+                        </a>
+                        <a href="javascript:void(0);" id="manage-entities-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-transform transform hover:-translate-y-1">
+                            <h3 class="text-sm font-medium text-gray-500">Entidades</h3>
+                            <p id="total-entities" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
+                        </a>
+                        <a href="javascript:void(0);" id="manage-pending-entities-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-transform transform hover:-translate-y-1">
+                            <h3 class="text-sm font-medium text-gray-500">Pendentes</h3>
+                            <p id="total-pending-entities" class="mt-1 text-3xl font-semibold text-yellow-600">0</p>
+                        </a>
+                        <a href="javascript:void(0);" id="manage-campaigns-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-transform transform hover:-translate-y-1">
+                            <h3 class="text-sm font-medium text-gray-500">Campanhas</h3>
+                            <p id="total-campaigns" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="management-container" class="mt-8">
+                    <div id="donors-management-view" class="px-4 hidden">
+                        <button class="back-to-dashboard-btn text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Gestão de Doadores</h2>
+                        <div id="all-donors-list" class="bg-white rounded-lg shadow">
+                             <p id="donors-placeholder" class="text-gray-500 p-6">Nenhum doador encontrado.</p>
+                        </div>
+                    </div>
+
+                    <div id="entities-management-view" class="px-4 hidden">
+                        <button class="back-to-dashboard-btn text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-semibold text-gray-800">Gestão de Entidades</h2>
+                            <input type="search" id="entity-search-input" placeholder="Buscar por nome, e-mail, CNPJ..." class="w-1/3 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div id="all-entities-list" class="bg-white rounded-lg shadow">
+                             <p id="entities-placeholder" class="text-gray-500 p-6">Nenhuma entidade encontrada.</p>
+                        </div>
+                    </div>
+                    
+                    <div id="campaigns-management-view" class="px-4 hidden">
+                        <button class="back-to-dashboard-btn text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Todas as Campanhas</h2>
+                        <div id="all-campaigns-list" class="bg-white rounded-lg shadow">
+                             <p id="campaigns-placeholder" class="text-gray-500 p-6">Nenhuma campanha encontrada.</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
     
+    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Título do Modal</h3>
+                            <div class="mt-2">
+                                <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { auth, db, onAuthStateChanged, logout, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
         import { collection, query, onSnapshot, doc, updateDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { showConfirmationModal, showAlertModal, showDetailsModal } from './modal-handler.js';
 
-        // ... Constantes do DOM ...
+        const accessDeniedView = document.getElementById('access-denied-view');
+        const dashboardView = document.getElementById('dashboard-view');
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const logoutBtn = document.getElementById('logout-btn');
+        const dashboardMetrics = document.getElementById('dashboard-metrics');
+        const donorsManagementView = document.getElementById('donors-management-view');
+        const entitiesManagementView = document.getElementById('entities-management-view');
+        const campaignsManagementView = document.getElementById('campaigns-management-view');
+        const allDonorsList = document.getElementById('all-donors-list');
+        const donorsPlaceholder = document.getElementById('donors-placeholder');
+        const allEntitiesList = document.getElementById('all-entities-list');
+        const entitiesPlaceholder = document.getElementById('entities-placeholder');
+        const allCampaignsList = document.getElementById('all-campaigns-list');
+        const campaignsPlaceholder = document.getElementById('campaigns-placeholder');
+        const manageDonorsLink = document.getElementById('manage-donors-link');
+        const manageEntitiesLink = document.getElementById('manage-entities-link');
+        const managePendingEntitiesLink = document.getElementById('manage-pending-entities-link');
+        const manageCampaignsLink = document.getElementById('manage-campaigns-link');
+        const backToDashboardBtns = document.querySelectorAll('.back-to-dashboard-btn');
+        const entitySearchInput = document.getElementById('entity-search-input');
+        
         let allEntitiesData = [];
         let allCampaignsData = [];
 
-        // ... Funções de UI (showView, formatPhoneNumber) ...
+        const showView = (viewToShow) => {
+            [dashboardMetrics, donorsManagementView, entitiesManagementView, campaignsManagementView].forEach(view => view.classList.add('hidden'));
+            (viewToShow || dashboardMetrics).classList.remove('hidden');
+        };
 
-        // Lógica de Autenticação
+        const formatPhoneNumber = (phone) => {
+            if (!phone || typeof phone !== 'string') return 'N/A';
+            const cleaned = phone.replace(/\D/g, '');
+            if (cleaned.length === 11) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
+            if (cleaned.length === 10) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
+            return phone;
+        };
+        
         onAuthStateChanged(auth, (user) => {
             if (user && user.email === ADMIN_EMAIL) {
-                // ... setup da view ...
+                dashboardView.classList.remove('hidden');
+                accessDeniedView.classList.add('hidden');
+                userEmailDisplay.textContent = user.email;
                 loadAllData();
-            } // ... resto da lógica ...
+            } else if (user) {
+                accessDeniedView.classList.remove('hidden');
+                dashboardView.classList.add('hidden');
+            } else {
+                window.location.href = 'login.html';
+            }
         });
 
         function loadAllData() {
@@ -31,12 +188,42 @@
             loadAllCampaigns();
         }
 
-        // ... loadDashboardMetrics e loadAllDonors ...
-
-        // ATUALIZADO: renderEntitiesList para incluir botões dinâmicos de bloquear/desbloquear
+        function loadDashboardMetrics() {
+            onSnapshot(query(collection(db, "users")), snap => { document.getElementById('total-donors').textContent = snap.size; });
+            const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`;
+            onSnapshot(query(collection(db, entitiesPath)), snap => {
+                document.getElementById('total-entities').textContent = snap.size;
+                const pending = snap.docs.filter(doc => doc.data().status === 'pendente_aprovacao').length;
+                document.getElementById('total-pending-entities').textContent = pending;
+            });
+            const campaignsPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
+            onSnapshot(query(collection(db, campaignsPath)), snap => {
+                document.getElementById('total-campaigns').textContent = snap.size;
+            });
+        }
+        
+        function loadAllDonors() {
+            onSnapshot(query(collection(db, "users")), (snapshot) => {
+                allDonorsList.innerHTML = '';
+                if (snapshot.empty) { allDonorsList.appendChild(donorsPlaceholder); } 
+                else {
+                    snapshot.docs.sort((a, b) => (a.data().displayName || '').localeCompare(b.data().displayName || '')).forEach(doc => {
+                        const user = doc.data();
+                        const card = document.createElement('div');
+                        card.className = 'p-4 border-b flex justify-between items-center';
+                        card.innerHTML = `<div class="flex-1"><h4 class="font-bold">${user.displayName}</h4><p class="text-sm text-gray-600">${user.email}</p></div><div class="flex items-center space-x-4"><span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${user.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${user.status || 'N/A'}</span></div>`;
+                        allDonorsList.appendChild(card);
+                    });
+                }
+            });
+        }
+        
         function renderEntitiesList(entities) {
             allEntitiesList.innerHTML = '';
-            if (entities.length === 0) { /* ... */ return; }
+            if (entities.length === 0) {
+                allEntitiesList.innerHTML = `<p id="entities-placeholder" class="text-gray-500 p-6">Nenhuma entidade encontrada.</p>`;
+                return;
+            }
 
             const statusOrder = { 'pendente_aprovacao': 1, 'ativo': 2, 'bloqueado': 3 };
             const sortedEntities = entities.sort((a, b) => (statusOrder[a.data().status] || 99) - (statusOrder[b.data().status] || 99));
@@ -67,7 +254,6 @@
             });
         }
         
-        // ATUALIZADO: renderCampaignsList para botões e status dinâmicos
         function renderCampaignsList(campaigns) {
             allCampaignsList.innerHTML = '';
             if (campaigns.length === 0) {
@@ -84,14 +270,16 @@
                 card.className = 'p-4 border-b flex justify-between items-center';
                 
                 const status = campaign.status || 'active';
-                const statusColors = { 'active': 'bg-green-100 text-green-800', 'suspended': 'bg-yellow-100 text-yellow-800' };
-                const statusTexts = { 'active': 'Ativa', 'suspended': 'Suspensa' };
+                const statusColors = { 'active': 'bg-green-100 text-green-800', 'suspended': 'bg-yellow-100 text-yellow-800', 'upcoming': 'bg-blue-100 text-blue-800' };
+                const statusTexts = { 'active': 'Ativa', 'suspended': 'Suspensa', 'upcoming': 'Próxima' };
 
                 let actionButton;
                 if(status === 'active') {
                     actionButton = `<button data-action="suspend" data-uid="${campaignId}" class="text-red-500 hover:underline text-sm font-medium">Suspender</button>`;
-                } else {
+                } else if (status === 'suspended') {
                     actionButton = `<button data-action="reactivate" data-uid="${campaignId}" class="text-green-500 hover:underline text-sm font-medium">Reativar</button>`;
+                } else {
+                    actionButton = ''; // No action for upcoming campaigns
                 }
 
                 card.innerHTML = `
@@ -100,15 +288,22 @@
                         <p class="text-sm text-gray-600">${campaign.description.substring(0, 70)}...</p>
                     </div>
                     <div class="flex items-center space-x-4 ml-4">
-                        <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColors[status]}">${statusTexts[status]}</span>
+                        <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColors[status] || 'bg-gray-100'}">${statusTexts[status] || status}</span>
                         <a href="criar-campanha.html?editId=${campaignId}" class="text-blue-500 hover:underline text-sm font-medium">Editar</a>
                         <div class="w-20 text-center">${actionButton}</div>
                     </div>`;
                 allCampaignsList.appendChild(card);
             });
         }
+
+        function loadAllEntities() {
+            const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`;
+            onSnapshot(query(collection(db, entitiesPath)), (snapshot) => {
+                allEntitiesData = snapshot.docs;
+                renderEntitiesList(allEntitiesData);
+            });
+        }
         
-        function loadAllEntities() { /* ...código igual ao anterior... */ }
         function loadAllCampaigns() {
             const campaignsPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
             onSnapshot(query(collection(db, campaignsPath)), (snapshot) => {
@@ -117,9 +312,24 @@
             });
         }
         
-        // ... Event listener da busca ...
+        logoutBtn.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
+        manageDonorsLink.addEventListener('click', () => showView(donorsManagementView));
+        manageEntitiesLink.addEventListener('click', () => showView(entitiesManagementView));
+        managePendingEntitiesLink.addEventListener('click', () => showView(entitiesManagementView));
+        manageCampaignsLink.addEventListener('click', () => showView(campaignsManagementView));
+        backToDashboardBtns.forEach(btn => btn.addEventListener('click', () => showView(null)));
 
-        // ATUALIZADO: Event listener de entidades com novas ações
+        entitySearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            const filteredEntities = !searchTerm ? allEntitiesData : allEntitiesData.filter(doc => {
+                const entity = doc.data();
+                return (entity.publicName || '').toLowerCase().includes(searchTerm) ||
+                       (entity.email || '').toLowerCase().includes(searchTerm) ||
+                       (entity.cnpj || '').includes(searchTerm);
+            });
+            renderEntitiesList(filteredEntities);
+        });
+
         allEntitiesList.addEventListener('click', async (e) => {
             e.preventDefault();
             const target = e.target.closest('[data-action]');
@@ -127,7 +337,16 @@
             const uid = target.dataset.uid;
             const action = target.dataset.action;
 
-            if (action === 'view-details') { /* ...código inalterado... */ }
+            if (action === 'view-details') {
+                const entityDoc = allEntitiesData.find(doc => doc.id === uid);
+                if (!entityDoc) return showAlertModal('Erro', 'Não foi possível encontrar os dados desta entidade.');
+                
+                const entity = entityDoc.data();
+                const address = entity.address || {};
+                const detailsHtml = `<p><strong>Nome Público:</strong> ${entity.publicName||'N/A'}</p><p><strong>CNPJ:</strong> ${entity.cnpj||'N/A'}</p><p><strong>E-mail:</strong> ${entity.email||'N/A'}</p><p><strong>Telefone:</strong> ${formatPhoneNumber(entity.phone)}</p><p><strong>Responsável:</strong> ${entity.responsibleName||'N/A'}</p><p class="pt-2 border-t mt-2"><strong>Endereço:</strong> ${address.street||''}, ${address.number||''} - ${address.district||''}, ${address.city||''}</p><p class="pt-2 border-t mt-2"><strong>Sobre:</strong> ${entity.description||'Nenhuma descrição.'}</p>`;
+                await showDetailsModal(`Detalhes de ${entity.publicName}`, detailsHtml);
+                return;
+            }
 
             const entityName = target.closest('.flex.justify-between.items-center').querySelector('h4').textContent;
             const entityDocRef = doc(db, "artifacts", firebaseConfig.projectId, "public", "data", "entidades", uid);
@@ -143,17 +362,14 @@
             if (currentAction) {
                 const confirmed = await showConfirmationModal(currentAction.title, currentAction.message);
                 if (confirmed) {
-                    try {
-                        await updateDoc(entityDocRef, { status: currentAction.status });
-                    } catch (error) {
-                        await showAlertModal('Erro', `Ocorreu um erro: ${error.message}`);
-                    }
+                    try { await updateDoc(entityDocRef, { status: currentAction.status }); }
+                    catch (error) { await showAlertModal('Erro', `Ocorreu um erro: ${error.message}`); }
                 }
             }
         });
 
-        // NOVO: Event listener para a lista de campanhas
         allCampaignsList.addEventListener('click', async (e) => {
+            e.preventDefault();
             const target = e.target.closest('button[data-action]');
             if (!target) return;
 
@@ -162,23 +378,19 @@
             const campaignDocRef = doc(db, "artifacts", firebaseConfig.projectId, "public", "data", "campaigns", uid);
 
             const actions = {
-                'suspend': { title: 'Suspender Campanha', message: 'Tem certeza que quer suspender esta campanha? Ela não será visível para os doadores.', status: 'suspended' },
-                'reactivate': { title: 'Reativar Campanha', message: 'Tem certeza que quer reativar esta campanha? Ela voltará a ser visível para os doadores.', status: 'active' }
+                'suspend': { title: 'Suspender Campanha', message: 'Suspender esta campanha? Ela não será visível para os doadores.', status: 'suspended' },
+                'reactivate': { title: 'Reativar Campanha', message: 'Reativar esta campanha? Ela voltará a ser visível para os doadores.', status: 'active' }
             };
 
             const currentAction = actions[action];
             if (currentAction) {
                 const confirmed = await showConfirmationModal(currentAction.title, currentAction.message);
                 if (confirmed) {
-                    try {
-                        await updateDoc(campaignDocRef, { status: currentAction.status });
-                    } catch (error) {
-                        await showAlertModal('Erro', `Ocorreu um erro: ${error.message}`);
-                    }
+                    try { await updateDoc(campaignDocRef, { status: currentAction.status }); }
+                    catch (error) { await showAlertModal('Erro', `Ocorreu um erro: ${error.message}`); }
                 }
             }
         });
-
     </script>
 </body>
 </html>
