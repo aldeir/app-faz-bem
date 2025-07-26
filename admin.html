@@ -121,7 +121,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT ATUALIZADO (VERSÃO 2.3 COM DEPURAÇÃO) -->
+    <!-- SCRIPT ATUALIZADO (VERSÃO 2.4 COM DEPURAÇÃO) -->
     <script type="module">
         import { auth, db, storage, onAuthStateChanged, logout, firebaseConfig } from './app-config.js';
         import { collection, addDoc, query, where, onSnapshot, Timestamp, getDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -175,4 +175,154 @@
                     window.location.href = 'index.html';
                 }
             } else {
-                wind
+                window.location.href = 'login.html';
+            }
+        });
+
+        logoutBtn.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
+        logoutBtnPending.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
+        
+        openModalBtn.addEventListener('click', () => {
+            if (currentEntityData) {
+                document.getElementById('entity-logo-modal').src = currentEntityData.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo';
+                document.getElementById('entity-name-modal').textContent = currentEntityData.publicName;
+                document.getElementById('entity-responsible-modal').textContent = currentEntityData.responsibleName;
+            }
+            modal.classList.remove('hidden');
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            modalError.classList.add('hidden');
+            createCampaignForm.reset();
+            mediaPreviewContainer.classList.add('hidden');
+            campaignMediaFile = null;
+        });
+
+        mediaUploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            campaignMediaFile = file;
+            fileNameDisplay.textContent = file.name;
+            mediaPreviewContainer.classList.remove('hidden');
+            imagePreview.classList.add('hidden');
+            videoPreview.classList.add('hidden');
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if (file.type.startsWith('image/')) {
+                    imagePreview.src = event.target.result;
+                    imagePreview.classList.remove('hidden');
+                } else if (file.type === 'video/mp4') {
+                    videoPreview.src = event.target.result;
+                    videoPreview.classList.remove('hidden');
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+
+        createCampaignForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log('--- 🚀 Início da Submissão de Campanha ---');
+            const user = auth.currentUser;
+            if (!user || !campaignMediaFile) {
+                modalError.textContent = 'Por favor, carregue uma imagem ou vídeo para o banner.';
+                modalError.classList.remove('hidden');
+                return;
+            }
+
+            submitCampaignBtn.disabled = true;
+            submitCampaignBtn.textContent = 'A publicar...';
+            modalError.classList.add('hidden');
+
+            try {
+                // --- PONTO DE VERIFICAÇÃO: Leitura dos campos do formulário ---
+                console.log('1. Lendo os valores do formulário...');
+                const getFieldValue = (id) => {
+                    const element = document.getElementById(id);
+                    if (!element) {
+                        console.error(`❌ ERRO FATAL: Elemento com ID '${id}' não foi encontrado no DOM.`);
+                        throw new Error(`Elemento do formulário '${id}' em falta.`);
+                    }
+                    console.log(`✅ Campo '${id}' encontrado. Valor:`, element.value);
+                    return element.value;
+                };
+
+                const title = getFieldValue('campaign-title');
+                const description = getFieldValue('campaign-description');
+                const type = getFieldValue('campaign-type');
+                const goal = getFieldValue('campaign-goal') || null;
+                const durationInSeconds = parseInt(getFieldValue('campaign-duration'), 10);
+                const instagram = getFieldValue('campaign-social-instagram');
+                const facebook = getFieldValue('campaign-social-facebook');
+                const website = getFieldValue('campaign-social-website');
+                console.log('1a. ✅ Todos os campos do formulário foram lidos com sucesso.');
+
+                // 2. Upload media file
+                console.log('2. A fazer upload da mídia...');
+                const mediaFileName = `campaigns/${user.uid}_${Date.now()}_${campaignMediaFile.name}`;
+                const mediaRef = ref(storage, mediaFileName);
+                await uploadBytes(mediaRef, campaignMediaFile);
+                const mediaUrl = await getDownloadURL(mediaRef);
+                console.log('2a. ✅ Mídia carregada com sucesso:', mediaUrl);
+
+                // 3. Create campaign document
+                console.log('3. A preparar os dados da campanha...');
+                const now = Timestamp.now();
+                const expiresAt = new Timestamp(now.seconds + durationInSeconds, now.nanoseconds);
+                
+                const newCampaign = {
+                    title, description, type, goal,
+                    social: { instagram, facebook, website },
+                    bannerMedia: { url: mediaUrl, type: campaignMediaFile.type },
+                    entityInfo: {
+                        name: currentEntityData.publicName,
+                        logo: currentEntityData.logoUrl,
+                        responsible: currentEntityData.responsibleName,
+                        uid: user.uid
+                    },
+                    creatorId: user.uid,
+                    createdAt: now,
+                    expiresAt: expiresAt,
+                    progress: 0,
+                    status: 'active'
+                };
+                console.log('3a. ✅ Dados da campanha preparados:', newCampaign);
+
+                const campaignsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
+                console.log('4. A guardar a campanha no Firestore...');
+                await addDoc(collection(db, campaignsColPath), newCampaign);
+                console.log('4a. ✅ Campanha guardada com sucesso!');
+                
+                closeModalBtn.click();
+
+            } catch (error) {
+                console.error("--- ❌ ERRO AO CRIAR CAMPANHA ---", error);
+                modalError.textContent = `Erro ao publicar: ${error.message}`;
+                modalError.classList.remove('hidden');
+            } finally {
+                submitCampaignBtn.disabled = false;
+                submitCampaignBtn.textContent = 'Publicar Campanha';
+            }
+        });
+
+        function loadMyCampaigns(userId) {
+            const campaignsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
+            const q = query(collection(db, campaignsColPath), where("creatorId", "==", userId));
+            onSnapshot(q, (snapshot) => {
+                myCampaignsList.innerHTML = ''; 
+                if (snapshot.empty) {
+                    myCampaignsList.appendChild(myCampaignsPlaceholder);
+                } else {
+                    snapshot.docs.forEach(doc => {
+                        const campaign = doc.data();
+                        const card = document.createElement('div');
+                        card.className = 'p-4 border-b flex justify-between items-center';
+                        card.innerHTML = `<div><h4 class="font-bold">${campaign.title}</h4><p class="text-sm text-gray-600">${campaign.description.substring(0, 50)}...</p></div><span class="text-sm font-semibold text-green-600">${campaign.progress || 0}%</span>`;
+                        myCampaignsList.appendChild(card);
+                    });
+                }
+            });
+        }
+    </script>
+</body>
+</html>
