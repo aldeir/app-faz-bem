@@ -15,10 +15,13 @@
     
     <!-- IMask JS for input masking -->
     <script src="https://unpkg.com/imask"></script>
+
+    <!-- Cropper.js for image cropping -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
     
     <style>
         body { font-family: 'Inter', sans-serif; }
-        /* Style for file input button */
         .file-input-button {
             cursor: pointer;
             display: inline-block;
@@ -29,64 +32,76 @@
             font-weight: 600;
             transition: background-color 0.2s, color 0.2s;
         }
-        input[type="file"] {
-            display: none;
+        input[type="file"] { display: none; }
+        /* Cropper.js needs a max-height to function correctly inside a flex/grid container */
+        .cropper-container-modal {
+            max-height: 50vh;
         }
     </style>
 </head>
 <body class="bg-gray-100">
 
     <div id="app-container">
-        <div class="min-h-screen flex items-center justify-center py-12 px-4">
+        <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
             <div id="form-container" class="max-w-lg w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
+                <!-- FORM HEADER -->
                 <div>
                     <h1 class="text-center text-3xl font-bold text-green-600">Cadastre a sua Organização</h1>
-                    <p class="mt-2 text-center text-gray-600">Preencha os dados abaixo. A sua entidade passará por uma análise antes de ser aprovada na plataforma.</p>
+                    <p class="mt-2 text-center text-gray-600">Preencha os dados abaixo para análise.</p>
                 </div>
-                <form id="signup-form" class="mt-8 space-y-4">
-                    
-                    <h3 class="text-lg font-semibold text-gray-700 border-b pb-2">Dados da Entidade</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input id="entity-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Nome Oficial da Entidade*">
-                        <input id="entity-public-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Nome Público / Apelido*">
+
+                <!-- FORM -->
+                <form id="signup-form" class="mt-8 space-y-6">
+                    <!-- SEÇÃO: DADOS DA ENTIDADE -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-700 border-b pb-2">Dados da Entidade</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input id="entity-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Nome Oficial da Entidade*">
+                            <input id="entity-public-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Nome Público / Apelido*">
+                        </div>
+                        <input id="entity-cnpj" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="CNPJ*">
+                        
+                        <!-- CAMPO UPLOAD LOGO -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Logotipo da Entidade*</label>
+                            <div class="flex items-center space-x-4">
+                                <img id="logo-preview" src="https://placehold.co/100x100/e2e8f0/cbd5e0?text=Logo" class="h-24 w-24 rounded-full object-cover bg-gray-200 border">
+                                <label for="entity-logo-upload" id="file-input-label" class="file-input-button bg-green-50 text-green-800 hover:bg-green-100">
+                                    <span id="file-input-label-text">Escolher Imagem</span>
+                                </label>
+                                <input id="entity-logo-upload" type="file" accept="image/png, image/jpeg, image/webp">
+                            </div>
+                        </div>
+                        <textarea id="entity-description" rows="3" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Sobre a Entidade (missão, histórico, etc.)"></textarea>
                     </div>
-                    <input id="entity-cnpj" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="CNPJ*">
                     
-                    <!-- Campo de Upload de Logo -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Logotipo da Entidade*</label>
-                        <div class="flex items-center space-x-4">
-                            <img id="logo-preview" src="https://placehold.co/100x100/e2e8f0/cbd5e0?text=Logo" class="h-24 w-24 rounded-full object-cover bg-gray-200">
-                            <label for="entity-logo-upload" id="file-input-label" class="file-input-button bg-green-50 text-green-800 hover:bg-green-100">
-                                <span id="file-input-label-text">Escolher Imagem</span>
-                            </label>
-                            <input id="entity-logo-upload" type="file" accept="image/png, image/jpeg, image/webp" required>
+                    <!-- SEÇÃO: CONTATO E ENDEREÇO -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-700 border-b pb-2 pt-4">Dados de Contato e Endereço</h3>
+                        <input id="responsible-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Nome do Responsável*">
+                        <input id="signup-phone" type="tel" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Telefone de Contato">
+                        <input id="address-street" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Endereço (Rua, Av.)*">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input id="address-number" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Nº*">
+                            <input id="address-district" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Bairro*">
+                            <input id="address-city" type="text" value="Guaçuí" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Cidade*">
                         </div>
                     </div>
-
-                    <textarea id="entity-description" rows="3" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Sobre a Entidade (missão, histórico, etc.)"></textarea>
-
-                    <h3 class="text-lg font-semibold text-gray-700 border-b pb-2 pt-4">Dados de Contato e Endereço</h3>
-                    <input id="responsible-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Nome do Responsável*">
-                    <input id="signup-phone" type="tel" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Telefone de Contato">
-                    <input id="address-street" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Endereço (Rua, Av.)*">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input id="address-number" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Nº*">
-                        <input id="address-district" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Bairro*">
-                        <input id="address-city" type="text" value="Guaçuí" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Cidade*">
-                    </div>
-
-                    <h3 class="text-lg font-semibold text-gray-700 border-b pb-2 pt-4">Dados de Acesso</h3>
-                     <p class="text-sm text-gray-500 -mt-2 mb-3">Este será o seu login para aceder à plataforma.</p>
-                    <input id="signup-email" type="email" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="E-mail de Acesso*">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input id="signup-password" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Crie uma senha*">
-                        <input id="signup-password-confirm" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Confirme a senha*">
+                    
+                    <!-- SEÇÃO: DADOS DE ACESSO -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-700 border-b pb-2 pt-4">Dados de Acesso</h3>
+                        <p class="text-sm text-gray-500 -mt-2">Este será o seu login para aceder à plataforma.</p>
+                        <input id="signup-email" type="email" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="E-mail de Acesso*">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input id="signup-password" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Crie uma senha*">
+                            <input id="signup-password-confirm" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Confirme a senha*">
+                        </div>
                     </div>
                     
                     <div id="signup-error" class="text-red-500 text-sm hidden pt-2"></div>
                     
-                    <button type="submit" id="submit-btn" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    <button type="submit" id="submit-btn" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
                         <span id="submit-btn-text">Enviar para Análise</span>
                         <div id="submit-btn-spinner" class="hidden animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                     </button>
@@ -98,139 +113,178 @@
         </div>
     </div>
 
+    <!-- MODAL PARA RECORTE DA IMAGEM -->
+    <div id="cropper-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 space-y-4">
+            <h2 class="text-xl font-bold text-gray-800">Ajuste o seu Logotipo</h2>
+            <div class="cropper-container-modal">
+                <img id="image-to-crop">
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-crop-btn" type="button" class="px-4 py-2 rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300">Cancelar</button>
+                <button id="confirm-crop-btn" type="button" class="px-4 py-2 rounded-md text-white bg-green-600 hover:bg-green-700">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- SCRIPT ATUALIZADO -->
     <script type="module">
         // Assumimos que o seu ficheiro app-config.js exporta 'storage' e 'registerUser'
         import { registerUser, storage } from './app-config.js';
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-        // --- Elementos do DOM ---
-        const signupForm = document.getElementById('signup-form');
-        const errorDiv = document.getElementById('signup-error');
-        const submitBtn = document.getElementById('submit-btn');
-        const submitBtnText = document.getElementById('submit-btn-text');
-        const submitBtnSpinner = document.getElementById('submit-btn-spinner');
-        
-        const logoUploadInput = document.getElementById('entity-logo-upload');
-        const logoPreview = document.getElementById('logo-preview');
-        const fileInputLabel = document.getElementById('file-input-label');
-        const fileInputLabelText = document.getElementById('file-input-label-text');
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Elementos do DOM ---
+            const signupForm = document.getElementById('signup-form');
+            const errorDiv = document.getElementById('signup-error');
+            const submitBtn = document.getElementById('submit-btn');
+            const submitBtnText = document.getElementById('submit-btn-text');
+            const submitBtnSpinner = document.getElementById('submit-btn-spinner');
+            
+            const logoUploadInput = document.getElementById('entity-logo-upload');
+            const logoPreview = document.getElementById('logo-preview');
+            const fileInputLabel = document.getElementById('file-input-label');
+            const fileInputLabelText = document.getElementById('file-input-label-text');
 
-        const cnpjInput = document.getElementById('entity-cnpj');
-        const phoneInput = document.getElementById('signup-phone');
+            const cnpjInput = document.getElementById('entity-cnpj');
+            const phoneInput = document.getElementById('signup-phone');
 
-        // --- Aplicação das Máscaras ---
-        let cnpjMask, phoneMask;
-        if (window.IMask) {
-            // Máscara para CNPJ, que não permite inserir mais do que 14 dígitos.
-            cnpjMask = IMask(cnpjInput, { mask: '00.000.000/0000-00', lazy: false });
-            // Máscara para telefone, padrão brasileiro com 11 dígitos.
-            phoneMask = IMask(phoneInput, { mask: '(00) 00000-0000', lazy: false });
-        } else {
-            console.error('IMask library not loaded.');
-        }
+            // --- Modal e Cropper ---
+            const cropperModal = document.getElementById('cropper-modal');
+            const imageToCrop = document.getElementById('image-to-crop');
+            const cancelCropBtn = document.getElementById('cancel-crop-btn');
+            const confirmCropBtn = document.getElementById('confirm-crop-btn');
+            let cropper;
+            let croppedImageBlob = null;
 
-        // --- Event Listeners ---
+            // --- Aplicação das Máscaras ---
+            const cnpjMask = IMask(cnpjInput, { mask: '00.000.000/0000-00' });
+            const phoneMask = IMask(phoneInput, { mask: [
+                { mask: '(00) 0000-0000' },
+                { mask: '(00) 00000-0000' }
+            ]});
 
-        // Event listener para feedback visual do upload de imagem
-        logoUploadInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
+            // --- Lógica do Cropper ---
+            logoUploadInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
                 const reader = new FileReader();
                 reader.onload = (event) => {
-                    logoPreview.src = event.target.result;
+                    imageToCrop.src = event.target.result;
+                    cropperModal.classList.remove('hidden');
+                    if(cropper) cropper.destroy();
+                    cropper = new Cropper(imageToCrop, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        background: false,
+                        autoCropArea: 0.8,
+                    });
+                };
+                reader.readAsDataURL(file);
+                logoUploadInput.value = ''; // Limpa o input para permitir selecionar a mesma imagem novamente
+            });
+
+            cancelCropBtn.addEventListener('click', () => {
+                cropperModal.classList.add('hidden');
+                if(cropper) cropper.destroy();
+            });
+
+            confirmCropBtn.addEventListener('click', () => {
+                if (!cropper) return;
+                const canvas = cropper.getCroppedCanvas({
+                    width: 256,
+                    height: 256,
+                });
+
+                canvas.toBlob((blob) => {
+                    croppedImageBlob = blob;
+                    logoPreview.src = URL.createObjectURL(blob);
+                    
                     fileInputLabelText.textContent = 'Imagem Selecionada ✓';
                     fileInputLabel.classList.remove('bg-green-50', 'text-green-800', 'hover:bg-green-100');
                     fileInputLabel.classList.add('bg-blue-100', 'text-blue-800');
-                };
-                reader.readAsDataURL(file);
-            }
-        });
 
-        // Lógica de submissão do formulário
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            // --- Validação dos Campos ---
-            errorDiv.classList.add('hidden');
-            const password = document.getElementById('signup-password').value;
-            const passwordConfirm = document.getElementById('signup-password-confirm').value;
-            const logoFile = logoUploadInput.files[0];
+                    cropperModal.classList.add('hidden');
+                    if(cropper) cropper.destroy();
+                }, 'image/webp', 0.9);
+            });
 
-            if (password !== passwordConfirm) {
-                errorDiv.textContent = "As senhas não coincidem.";
-                errorDiv.classList.remove('hidden');
-                return;
-            }
-            if (!logoFile) {
-                errorDiv.textContent = "Por favor, selecione um ficheiro para o logotipo.";
-                errorDiv.classList.remove('hidden');
-                return;
-            }
-            // Validação do comprimento do CNPJ e Telefone
-            if (cnpjMask && cnpjMask.unmaskedValue.length !== 14) {
-                errorDiv.textContent = "O CNPJ está incompleto. Por favor, preencha os 14 dígitos.";
-                errorDiv.classList.remove('hidden');
-                return;
-            }
-            if (phoneMask && phoneMask.unmaskedValue.length > 0 && phoneMask.unmaskedValue.length < 10) {
-                 errorDiv.textContent = "O Telefone está incompleto.";
-                 errorDiv.classList.remove('hidden');
-                 return;
-            }
-
-            // Ativar estado de loading do botão
-            submitBtn.disabled = true;
-            submitBtnText.classList.add('hidden');
-            submitBtnSpinner.classList.remove('hidden');
-
-            try {
-                // 1. Fazer upload do logotipo para o Firebase Storage
-                const storageRef = ref(storage, `logos/${Date.now()}-${logoFile.name}`);
-                const uploadTask = await uploadBytes(storageRef, logoFile);
-                const logoUrl = await getDownloadURL(uploadTask.ref);
-
-                // 2. Preparar os dados de autenticação
-                const authData = {
-                    email: document.getElementById('signup-email').value,
-                    password: password,
-                    displayName: document.getElementById('entity-name').value
-                };
-
-                // 3. Preparar os dados do perfil para o Firestore (com valores limpos)
-                const profileData = {
-                    publicName: document.getElementById('entity-public-name').value,
-                    cnpj: cnpjMask ? cnpjMask.unmaskedValue : cnpjInput.value,
-                    phone: phoneMask ? phoneMask.unmaskedValue : phoneInput.value,
-                    logoUrl: logoUrl,
-                    description: document.getElementById('entity-description').value,
-                    responsibleName: document.getElementById('responsible-name').value,
-                    address: {
-                        street: document.getElementById('address-street').value,
-                        number: document.getElementById('address-number').value,
-                        district: document.getElementById('address-district').value,
-                        city: document.getElementById('address-city').value,
-                    },
-                    role: 'entidade',
-                    status: 'pendente_aprovacao'
-                };
-
-                // 4. Chamar a função centralizada para registar o utilizador e guardar os dados
-                await registerUser(authData, profileData);
+            // --- Lógica de Submissão do Formulário ---
+            signupForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
                 
-                // 5. Redirecionar em caso de sucesso
-                window.location.href = 'verificar-email.html';
+                // Validação dos Campos
+                errorDiv.classList.add('hidden');
+                const password = document.getElementById('signup-password').value;
+                const passwordConfirm = document.getElementById('signup-password-confirm').value;
 
-            } catch (error) {
-                console.error("Erro no registo:", error);
-                errorDiv.textContent = "Erro: " + error.message;
-                errorDiv.classList.remove('hidden');
-                
-                // Desativar estado de loading do botão
-                submitBtn.disabled = false;
-                submitBtnText.classList.remove('hidden');
-                submitBtnSpinner.classList.add('hidden');
-            }
+                if (password !== passwordConfirm) {
+                    errorDiv.textContent = "As senhas não coincidem.";
+                    errorDiv.classList.remove('hidden'); return;
+                }
+                if (!croppedImageBlob) {
+                    errorDiv.textContent = "Por favor, selecione e confirme um logotipo.";
+                    errorDiv.classList.remove('hidden'); return;
+                }
+                if (cnpjMask.unmaskedValue.length !== 14) {
+                    errorDiv.textContent = "O CNPJ está incompleto. Por favor, preencha os 14 dígitos.";
+                    errorDiv.classList.remove('hidden'); return;
+                }
+                if (phoneMask.unmaskedValue.length > 0 && phoneMask.unmaskedValue.length < 10) {
+                     errorDiv.textContent = "O Telefone está incompleto.";
+                     errorDiv.classList.remove('hidden'); return;
+                }
+
+                // UI de Loading
+                submitBtn.disabled = true;
+                submitBtnText.classList.add('hidden');
+                submitBtnSpinner.classList.remove('hidden');
+
+                try {
+                    // 1. Upload do logotipo recortado
+                    const fileName = `logo_${Date.now()}.webp`;
+                    const storageRef = ref(storage, `logos/${fileName}`);
+                    const uploadTask = await uploadBytes(storageRef, croppedImageBlob);
+                    const logoUrl = await getDownloadURL(uploadTask.ref);
+
+                    // 2. Preparar dados
+                    const authData = {
+                        email: document.getElementById('signup-email').value,
+                        password: password,
+                        displayName: document.getElementById('entity-name').value
+                    };
+                    const profileData = {
+                        publicName: document.getElementById('entity-public-name').value,
+                        cnpj: cnpjMask.unmaskedValue,
+                        phone: phoneMask.unmaskedValue,
+                        logoUrl: logoUrl,
+                        description: document.getElementById('entity-description').value,
+                        responsibleName: document.getElementById('responsible-name').value,
+                        address: {
+                            street: document.getElementById('address-street').value,
+                            number: document.getElementById('address-number').value,
+                            district: document.getElementById('address-district').value,
+                            city: document.getElementById('address-city').value,
+                        },
+                        role: 'entidade',
+                        status: 'pendente_aprovacao'
+                    };
+
+                    // 3. Registar utilizador
+                    await registerUser(authData, profileData);
+                    window.location.href = 'verificar-email.html';
+
+                } catch (error) {
+                    console.error("Erro no registo:", error);
+                    errorDiv.textContent = "Erro: " + error.message;
+                    errorDiv.classList.remove('hidden');
+                    
+                    submitBtn.disabled = false;
+                    submitBtnText.classList.remove('hidden');
+                    submitBtnSpinner.classList.add('hidden');
+                }
+            });
         });
     </script>
 </body>
