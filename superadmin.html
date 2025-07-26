@@ -79,7 +79,10 @@
 
                     <div id="entities-management-view" class="px-4 hidden">
                         <button class="back-to-dashboard-btn text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
-                        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Gestão de Entidades</h2>
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-semibold text-gray-800">Gestão de Entidades</h2>
+                            <input type="search" id="entity-search-input" placeholder="Buscar por nome, e-mail, CNPJ..." class="w-1/3 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                        </div>
                         <div id="all-entities-list" class="bg-white rounded-lg shadow">
                              <p id="entities-placeholder" class="text-gray-500 p-6">Nenhuma entidade encontrada.</p>
                         </div>
@@ -101,32 +104,30 @@
         import { auth, db, onAuthStateChanged, logout, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
         import { collection, query, onSnapshot, doc, updateDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Vistas principais
+        // Vistas principais e de gestão
         const accessDeniedView = document.getElementById('access-denied-view');
         const dashboardView = document.getElementById('dashboard-view');
         const userEmailDisplay = document.getElementById('user-email-display');
         const logoutBtn = document.getElementById('logout-btn');
-        
-        // Vistas de gestão
         const dashboardMetrics = document.getElementById('dashboard-metrics');
         const donorsManagementView = document.getElementById('donors-management-view');
         const entitiesManagementView = document.getElementById('entities-management-view');
         const campaignsManagementView = document.getElementById('campaigns-management-view');
-
-        // Listas e placeholders
         const allDonorsList = document.getElementById('all-donors-list');
         const donorsPlaceholder = document.getElementById('donors-placeholder');
         const allEntitiesList = document.getElementById('all-entities-list');
         const entitiesPlaceholder = document.getElementById('entities-placeholder');
         const allCampaignsList = document.getElementById('all-campaigns-list');
         const campaignsPlaceholder = document.getElementById('campaigns-placeholder');
-        
-        // Links do dashboard
         const manageDonorsLink = document.getElementById('manage-donors-link');
         const manageEntitiesLink = document.getElementById('manage-entities-link');
         const managePendingEntitiesLink = document.getElementById('manage-pending-entities-link');
         const manageCampaignsLink = document.getElementById('manage-campaigns-link');
         const backToDashboardBtns = document.querySelectorAll('.back-to-dashboard-btn');
+        
+        // LÓGICA DE BUSCA ADICIONADA
+        const entitySearchInput = document.getElementById('entity-search-input');
+        let allEntitiesData = []; // Armazena a lista completa de entidades para filtrar no cliente
 
         const showView = (viewToShow) => {
             [dashboardMetrics, donorsManagementView, entitiesManagementView, campaignsManagementView].forEach(view => view.classList.add('hidden'));
@@ -199,31 +200,58 @@
             });
         }
         
+        function renderEntitiesList(entities) {
+            allEntitiesList.innerHTML = ''; // Limpa a lista atual
+            if (entities.length === 0) {
+                allEntitiesList.appendChild(entitiesPlaceholder);
+                entitiesPlaceholder.textContent = "Nenhuma entidade encontrada com este critério.";
+                return;
+            }
+
+            const statusOrder = { 'pendente_aprovacao': 1, 'ativo': 2, 'bloqueado': 3 };
+            const sortedEntities = entities.sort((a, b) => (statusOrder[a.data().status] || 99) - (statusOrder[b.data().status] || 99));
+
+            sortedEntities.forEach(docSnapshot => {
+                const entity = docSnapshot.data();
+                const entityId = docSnapshot.id;
+                const card = document.createElement('div');
+                card.className = 'p-4 border-b';
+                const statusColors = { 'pendente_aprovacao': 'bg-yellow-100 text-yellow-800', 'ativo': 'bg-green-100 text-green-800', 'bloqueado': 'bg-red-100 text-red-800' };
+                const statusColor = statusColors[entity.status] || 'bg-gray-100 text-gray-800';
+                let actionButtons = '';
+                if (entity.status === 'pendente_aprovacao') {
+                    actionButtons = `<div class="flex space-x-2"><button data-action="approve" data-uid="${entityId}" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Aprovar</button><button data-action="reject" data-uid="${entityId}" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">Reprovar</button></div>`;
+                }
+                card.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center space-x-4"><img src="${entity.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border"><div><h4 class="font-bold">${entity.publicName || 'Nome não definido'}</h4><p class="text-sm text-gray-600">${entity.email} | CNPJ: ${entity.cnpj || 'N/A'}</p><p class="text-sm text-gray-500 mt-1">Responsável: ${entity.responsibleName || 'N/A'}</p></div></div><div class="flex items-center space-x-4"><a href="#" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a><span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColor}">${(entity.status || '').replace(/_/g, ' ')}</span>${actionButtons}</div></div>`;
+                allEntitiesList.appendChild(card);
+            });
+        }
+
         function loadAllEntities() {
             const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`;
             onSnapshot(query(collection(db, entitiesPath)), (snapshot) => {
-                allEntitiesList.innerHTML = '';
-                if (snapshot.empty) { allEntitiesList.appendChild(entitiesPlaceholder); } 
-                else {
-                    const statusOrder = { 'pendente_aprovacao': 1, 'ativo': 2, 'bloqueado': 3 };
-                    const sortedDocs = snapshot.docs.sort((a, b) => (statusOrder[a.data().status] || 99) - (statusOrder[b.data().status] || 99));
-                    sortedDocs.forEach(docSnapshot => {
-                        const entity = docSnapshot.data();
-                        const entityId = docSnapshot.id;
-                        const card = document.createElement('div');
-                        card.className = 'p-4 border-b';
-                        const statusColors = { 'pendente_aprovacao': 'bg-yellow-100 text-yellow-800', 'ativo': 'bg-green-100 text-green-800', 'bloqueado': 'bg-red-100 text-red-800' };
-                        const statusColor = statusColors[entity.status] || 'bg-gray-100 text-gray-800';
-                        let actionButtons = '';
-                        if (entity.status === 'pendente_aprovacao') {
-                            actionButtons = `<div class="flex space-x-2"><button data-action="approve" data-uid="${entityId}" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Aprovar</button><button data-action="reject" data-uid="${entityId}" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">Reprovar</button></div>`;
-                        }
-                        card.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center space-x-4"><img src="${entity.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border"><div><h4 class="font-bold">${entity.publicName || 'Nome não definido'}</h4><p class="text-sm text-gray-600">${entity.email} | Telefone: ${formatPhoneNumber(entity.phone)}</p><p class="text-sm text-gray-500 mt-1">Responsável: ${entity.responsibleName || 'N/A'}</p></div></div><div class="flex items-center space-x-4"><a href="#" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a><span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColor}">${(entity.status || '').replace(/_/g, ' ')}</span>${actionButtons}</div></div>`;
-                        allEntitiesList.appendChild(card);
-                    });
-                }
+                allEntitiesData = snapshot.docs; // Armazena a lista completa
+                renderEntitiesList(allEntitiesData); // Renderiza a lista inicial
             });
         }
+
+        entitySearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            if (!searchTerm) {
+                renderEntitiesList(allEntitiesData); // Se a busca estiver vazia, mostra todos
+                return;
+            }
+
+            const filteredEntities = allEntitiesData.filter(doc => {
+                const entity = doc.data();
+                const name = (entity.publicName || '').toLowerCase();
+                const email = (entity.email || '').toLowerCase();
+                const cnpj = (entity.cnpj || '').toString(); // CNPJ pode não ter `toLowerCase`
+                return name.includes(searchTerm) || email.includes(searchTerm) || cnpj.includes(searchTerm);
+            });
+
+            renderEntitiesList(filteredEntities);
+        });
 
         function loadAllCampaigns() {
             const campaignsPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
