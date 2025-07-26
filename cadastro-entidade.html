@@ -152,6 +152,7 @@
 
         // --- INICIALIZAÇÃO DOS COMPONENTES DA PÁGINA ---
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('✅ DOM Carregado. Iniciando script de cadastro.');
             
             // Seletores de Elementos do DOM
             const signupForm = document.getElementById('signup-form');
@@ -182,12 +183,13 @@
                 mask: [ { mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' } ],
                 lazy: false
             });
+            console.log('✅ Máscaras de CNPJ e Telefone aplicadas.');
 
             // Lógica do Editor de Imagem (Cropper.js)
             logoUploadInput.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (!file || !file.type.startsWith('image/')) return;
-
+                console.log('ℹ️ Imagem selecionada. Abrindo modal do Cropper.');
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     imageToCrop.src = event.target.result;
@@ -211,12 +213,14 @@
                     fileInputLabel.classList.replace('bg-green-50', 'bg-blue-100');
                     fileInputLabel.classList.replace('text-green-800', 'text-blue-800');
                     cropperModal.classList.add('hidden');
+                    console.log('✅ Imagem recortada e confirmada. Blob criado:', croppedImageBlob);
                 }, 'image/webp', 0.9);
             });
 
             // Lógica de Submissão do Formulário
             signupForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                console.log('--- 🚀 Início do Processo de Submissão ---');
                 
                 errorDiv.classList.add('hidden');
                 const password = document.getElementById('signup-password').value;
@@ -235,6 +239,7 @@
                     errorDiv.textContent = "O CNPJ está incompleto.";
                     errorDiv.classList.remove('hidden'); return;
                 }
+                console.log('✅ Validações iniciais passaram.');
 
                 // UI de Loading
                 submitBtn.disabled = true;
@@ -243,18 +248,25 @@
 
                 try {
                     // 1. Criar utilizador na Autenticação
+                    console.log('1. Tentando criar usuário na autenticação...');
                     const userCredential = await createUserWithEmailAndPassword(auth, document.getElementById('signup-email').value, password);
                     const user = userCredential.user;
+                    console.log('1a. ✅ Usuário criado com sucesso:', user.uid, user.email);
                     await updateProfile(user, { displayName: document.getElementById('entity-name').value });
+                    console.log('1b. ✅ Perfil na Autenticação atualizado.');
 
                     // 2. Fazer upload do logotipo para o Storage
                     const fileName = `logo_${user.uid}.webp`;
                     const storageRef = ref(storage, `logos/${fileName}`);
+                    console.log(`2. Tentando fazer upload do logotipo para: logos/${fileName}`);
                     await uploadBytes(storageRef, croppedImageBlob);
                     const logoUrl = await getDownloadURL(storageRef);
+                    console.log('2a. ✅ Upload do logotipo concluído. URL:', logoUrl);
 
                     // 3. Preparar e guardar os dados no Firestore (COM O CAMINHO CORRIGIDO)
                     const appId = 'app-faz-bem-guacui'; // ID da sua aplicação
+                    const docPath = `artifacts/${appId}/public/data/entidades/${user.uid}`;
+                    console.log(`3. Tentando salvar dados no Firestore no caminho: ${docPath}`);
                     const profileData = {
                         publicName: document.getElementById('entity-public-name').value,
                         cnpj: cnpjMask.unmaskedValue,
@@ -272,10 +284,11 @@
                         status: 'pendente_aprovacao',
                         email: user.email
                     };
-                    // CORREÇÃO: O caminho para salvar os dados agora corresponde às regras de segurança
                     await setDoc(doc(db, "artifacts", appId, "public", "data", "entidades", user.uid), profileData);
+                    console.log('3a. ✅ Documento salvo com sucesso no Firestore.');
 
                     // 4. Redirecionar em caso de sucesso
+                    console.log('4. Sucesso! Redirecionando em 2 segundos...');
                     submitBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
                     submitBtn.classList.add('bg-blue-500');
                     submitBtnText.textContent = 'Sucesso! Redirecionando...';
@@ -287,8 +300,8 @@
                     }, 2000);
 
                 } catch (error) {
-                    console.error("Erro no registo:", error);
-                    errorDiv.textContent = "Erro: " + (error.code || error.message);
+                    console.error("--- ❌ ERRO NO PROCESSO DE SUBMISSÃO ---", error);
+                    errorDiv.textContent = `Erro: ${error.code} - ${error.message}`;
                     
                     submitBtn.disabled = false;
                     submitBtnText.classList.remove('hidden');
