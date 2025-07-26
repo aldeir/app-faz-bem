@@ -1,7 +1,7 @@
 // Importa as funções necessárias do SDK do Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- CONFIGURAÇÃO CENTRAL DO FIREBASE ---
 const firebaseConfig = {
@@ -41,6 +41,40 @@ const getCurrentUser = () => {
 };
 
 /**
+ * **NOVA FUNÇÃO CENTRALIZADA**
+ * Regista um novo utilizador (Doador ou Entidade) no sistema.
+ * @param {object} userData - Os dados do utilizador a serem registados.
+ * @param {string} userData.email - O e-mail do utilizador.
+ * @param {string} userData.password - A senha do utilizador.
+ * @param {string} userData.displayName - O nome a ser exibido.
+ * @param {object} profileData - Os dados adicionais a serem guardados no perfil do Firestore.
+ * @returns {Promise<void>}
+ */
+const registerUser = async (userData, profileData) => {
+    const { email, password, displayName } = userData;
+    
+    // 1. Cria o utilizador no Firebase Authentication
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    // 2. Atualiza o perfil de autenticação com o nome
+    await updateProfile(user, { displayName });
+
+    // 3. Guarda os dados detalhados no Firestore
+    const userDocRef = doc(db, "users", user.uid);
+    await setDoc(userDocRef, {
+        uid: user.uid,
+        email: user.email,
+        displayName: displayName,
+        ...profileData // Adiciona todos os outros dados (role, status, cnpj, etc.)
+    });
+
+    // 4. Envia o e-mail de verificação
+    await sendEmailVerification(user);
+};
+
+
+/**
  * Função de logout.
  */
 const logout = () => {
@@ -49,4 +83,4 @@ const logout = () => {
 
 // --- EXPORTAÇÕES ---
 // Exporta as variáveis e funções que outras páginas irão precisar
-export { auth, db, ADMIN_EMAIL, getCurrentUser, logout, onAuthStateChanged, firebaseConfig };
+export { auth, db, ADMIN_EMAIL, getCurrentUser, logout, onAuthStateChanged, firebaseConfig, registerUser };
