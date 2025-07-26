@@ -101,7 +101,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT ATUALIZADO (VERSÃO 2.3) -->
+    <!-- SCRIPT ATUALIZADO (VERSÃO 2.4) -->
     <script type="module">
         import { auth, db, onAuthStateChanged, logout, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
         import { collection, query, onSnapshot, doc, updateDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -247,12 +247,16 @@
 
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
-                                <div>
-                                    <h4 class="font-bold">${entity.publicName || 'Nome não definido'}</h4>
-                                    <p class="text-sm text-gray-600">${entity.email} | CNPJ: ${entity.cnpj || 'N/A'}</p>
-                                    <p class="text-sm text-gray-500 mt-1">Responsável: ${entity.responsibleName || 'N/A'}</p>
+                                <div class="flex items-center space-x-4">
+                                    <img src="${entity.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border">
+                                    <div>
+                                        <h4 class="font-bold">${entity.publicName || 'Nome não definido'}</h4>
+                                        <p class="text-sm text-gray-600">${entity.email} | Telefone: ${entity.phone || 'N/A'}</p>
+                                        <p class="text-sm text-gray-500 mt-1">Responsável: ${entity.responsibleName || 'N/A'}</p>
+                                    </div>
                                 </div>
                                 <div class="flex items-center space-x-4">
+                                     <a href="#" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a>
                                      <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColor}">${entity.status.replace('_', ' ')}</span>
                                      ${actionButtons}
                                 </div>
