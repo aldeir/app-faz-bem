@@ -57,14 +57,13 @@
         
     </div>
 
-    <!-- SCRIPT REATORIZADO -->
+    <!-- SCRIPT CORRIGIDO E MODULARIZADO -->
     <script type="module">
-        // Importa o módulo central e as funções de autenticação específicas desta página
-        import { auth, db, onAuthStateChanged } from './app-config.js';
+        // Importa as funções necessárias do arquivo de configuração central
+        import { auth, db, onAuthStateChanged, firebaseConfig } from './app-config.js';
         import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Garante que o script só execute depois que a página estiver totalmente carregada.
         document.addEventListener('DOMContentLoaded', () => {
             const loginForm = document.getElementById('login-form');
             const googleLoginBtn = document.getElementById('google-login-btn');
@@ -76,7 +75,7 @@
                 isRedirecting = true;
 
                 // Tenta encontrar um perfil na coleção 'entidades'
-                const appId = 'app-faz-bem-guacui';
+                const appId = firebaseConfig.projectId;
                 let userDocRef = doc(db, "artifacts", appId, "public", "data", "entidades", user.uid);
                 let docSnap = await getDoc(userDocRef);
 
@@ -95,7 +94,7 @@
                         role: 'doador', // Padrão para novos logins via Google
                         status: 'ativo'
                     });
-                    docSnap = await getDoc(doc(db, "users", user.uid)); // Lê o documento recém-criado
+                    docSnap = await getDoc(doc(db, "users", user.uid));
                 }
                 
                 const userData = docSnap.data();
@@ -130,7 +129,6 @@
                 const provider = new GoogleAuthProvider();
                 try {
                     await signInWithPopup(auth, provider);
-                    // onAuthStateChanged irá lidar com o redirecionamento
                 } catch (error) {
                     console.error("Erro no login com Google:", error);
                     errorDiv.textContent = "Falha ao autenticar com o Google. Tente novamente.";
