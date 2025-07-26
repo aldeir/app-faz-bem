@@ -49,4 +49,4 @@ const logout = () => {
 
 // --- EXPORTAÇÕES ---
 // Exporta as variáveis e funções que outras páginas irão precisar
-export { auth, db, ADMIN_EMAIL, getCurrentUser, logout, onAuthStateChanged };
+export { auth, db, ADMIN_EMAIL, getCurrentUser, logout, onAuthStateChanged, firebaseConfig };
