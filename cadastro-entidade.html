@@ -129,7 +129,7 @@
     <script type="module">
         // --- INICIALIZAÇÃO DO FIREBASE ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
@@ -254,6 +254,10 @@
                     console.log('1a. ✅ Usuário criado com sucesso:', user.uid, user.email);
                     await updateProfile(user, { displayName: document.getElementById('entity-name').value });
                     console.log('1b. ✅ Perfil na Autenticação atualizado.');
+                    
+                    // 1c. Enviar e-mail de verificação
+                    await sendEmailVerification(user);
+                    console.log('1c. ✅ E-mail de verificação enviado.');
 
                     // 2. Fazer upload do logotipo para o Storage
                     const fileName = `logo_${user.uid}.webp`;
