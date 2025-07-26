@@ -68,6 +68,7 @@
                 <div id="management-container" class="mt-8">
                     <!-- Secção de Gestão de Utilizadores (Oculta por defeito) -->
                     <div id="users-management-view" class="px-4 hidden">
+                        <button class="back-to-dashboard-btn text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
                         <h2 class="text-2xl font-semibold text-gray-800 mb-6">Todos os Utilizadores</h2>
                         <div id="all-users-list" class="bg-white rounded-lg shadow">
                              <p id="users-placeholder" class="text-gray-500 p-6">Nenhum utilizador encontrado.</p>
@@ -76,6 +77,7 @@
 
                     <!-- Secção de Gestão de Entidades Pendentes (Oculta por defeito) -->
                     <div id="pending-entities-view" class="px-4 hidden">
+                        <button class="back-to-dashboard-btn text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
                         <h2 class="text-2xl font-semibold text-gray-800 mb-6">Entidades a Aguardar Aprovação</h2>
                         <div id="pending-entities-list" class="bg-white rounded-lg shadow">
                              <p id="pending-entities-placeholder" class="text-gray-500 p-6">Nenhuma entidade pendente.</p>
@@ -84,6 +86,7 @@
                     
                     <!-- Secção de Gestão de Campanhas (Oculta por defeito) -->
                     <div id="campaigns-management-view" class="px-4 hidden">
+                        <button class="back-to-dashboard-btn text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
                         <h2 class="text-2xl font-semibold text-gray-800 mb-6">Todas as Campanhas</h2>
                         <div id="all-campaigns-list" class="bg-white rounded-lg shadow">
                              <p id="campaigns-placeholder" class="text-gray-500 p-6">Nenhuma campanha encontrada.</p>
@@ -104,6 +107,7 @@
         const userEmailDisplay = document.getElementById('user-email-display');
         const logoutBtn = document.getElementById('logout-btn');
         
+        const dashboardMetrics = document.getElementById('dashboard-metrics');
         const usersManagementView = document.getElementById('users-management-view');
         const pendingEntitiesView = document.getElementById('pending-entities-view');
         const campaignsManagementView = document.getElementById('campaigns-management-view');
@@ -118,10 +122,19 @@
         const manageUsersLink = document.getElementById('manage-users-link');
         const managePendingEntitiesLink = document.getElementById('manage-pending-entities-link');
         const manageCampaignsLink = document.getElementById('manage-campaigns-link');
+        const backToDashboardBtns = document.querySelectorAll('.back-to-dashboard-btn');
 
-        const showManagementView = (viewToShow) => {
-            [usersManagementView, pendingEntitiesView, campaignsManagementView].forEach(view => view.classList.add('hidden'));
-            if(viewToShow) viewToShow.classList.remove('hidden');
+        const showView = (viewToShow) => {
+            dashboardMetrics.classList.add('hidden');
+            usersManagementView.classList.add('hidden');
+            pendingEntitiesView.classList.add('hidden');
+            campaignsManagementView.classList.add('hidden');
+            
+            if (viewToShow) {
+                viewToShow.classList.remove('hidden');
+            } else {
+                dashboardMetrics.classList.remove('hidden');
+            }
         };
 
         onAuthStateChanged(auth, (user) => {
@@ -143,9 +156,10 @@
 
         logoutBtn.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
 
-        manageUsersLink.addEventListener('click', () => showManagementView(usersManagementView));
-        managePendingEntitiesLink.addEventListener('click', () => showManagementView(pendingEntitiesView));
-        manageCampaignsLink.addEventListener('click', () => showManagementView(campaignsManagementView));
+        manageUsersLink.addEventListener('click', () => showView(usersManagementView));
+        managePendingEntitiesLink.addEventListener('click', () => showView(pendingEntitiesView));
+        manageCampaignsLink.addEventListener('click', () => showView(campaignsManagementView));
+        backToDashboardBtns.forEach(btn => btn.addEventListener('click', () => showView(null)));
 
         function loadDashboardMetrics() {
             const usersQuery = query(collection(db, "/users"));
