@@ -104,7 +104,7 @@
         import { auth, db, onAuthStateChanged, logout, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
         import { collection, query, onSnapshot, doc, updateDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Vistas principais e de gestão
+        // Vistas e elementos
         const accessDeniedView = document.getElementById('access-denied-view');
         const dashboardView = document.getElementById('dashboard-view');
         const userEmailDisplay = document.getElementById('user-email-display');
@@ -124,10 +124,8 @@
         const managePendingEntitiesLink = document.getElementById('manage-pending-entities-link');
         const manageCampaignsLink = document.getElementById('manage-campaigns-link');
         const backToDashboardBtns = document.querySelectorAll('.back-to-dashboard-btn');
-        
-        // LÓGICA DE BUSCA ADICIONADA
         const entitySearchInput = document.getElementById('entity-search-input');
-        let allEntitiesData = []; // Armazena a lista completa de entidades para filtrar no cliente
+        let allEntitiesData = [];
 
         const showView = (viewToShow) => {
             [dashboardMetrics, donorsManagementView, entitiesManagementView, campaignsManagementView].forEach(view => view.classList.add('hidden'));
@@ -162,136 +160,69 @@
             loadAllCampaigns();
         }
 
-        function formatPhoneNumber(phone) {
-            if (!phone || typeof phone !== 'string') return 'N/A';
-            const cleaned = phone.replace(/\D/g, '');
-            if (cleaned.length === 11) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
-            if (cleaned.length === 10) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
-            return phone;
-        }
-
         function loadDashboardMetrics() {
-            onSnapshot(query(collection(db, "users")), snap => { document.getElementById('total-donors').textContent = snap.size; });
+            const usersRef = collection(db, "users");
             const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`;
-            onSnapshot(query(collection(db, entitiesPath)), snap => {
+            const entitiesRef = collection(db, entitiesPath);
+            const campaignsPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
+            const campaignsRef = collection(db, campaignsPath);
+
+            onSnapshot(query(usersRef), snap => { document.getElementById('total-donors').textContent = snap.size; });
+            onSnapshot(query(entitiesRef), snap => {
                 document.getElementById('total-entities').textContent = snap.size;
                 const pending = snap.docs.filter(doc => doc.data().status === 'pendente_aprovacao').length;
                 document.getElementById('total-pending-entities').textContent = pending;
             });
-            const campaignsPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
-            onSnapshot(query(collection(db, campaignsPath)), snap => {
+            onSnapshot(query(campaignsRef), snap => {
                 document.getElementById('total-campaigns').textContent = snap.size;
             });
         }
         
-        function loadAllDonors() {
-            onSnapshot(query(collection(db, "users")), (snapshot) => {
-                allDonorsList.innerHTML = '';
-                if (snapshot.empty) { allDonorsList.appendChild(donorsPlaceholder); } 
-                else {
-                    snapshot.docs.sort((a, b) => (a.data().displayName || '').localeCompare(b.data().displayName || '')).forEach(doc => {
-                        const user = doc.data();
-                        const card = document.createElement('div');
-                        card.className = 'p-4 border-b flex justify-between items-center';
-                        card.innerHTML = `<div class="flex-1"><h4 class="font-bold">${user.displayName}</h4><p class="text-sm text-gray-600">${user.email}</p></div><div class="flex items-center space-x-4"><span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${user.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${user.status || 'N/A'}</span></div>`;
-                        allDonorsList.appendChild(card);
-                    });
-                }
-            });
-        }
+        function loadAllDonors() { /* ... (código inalterado) ... */ }
         
-        function renderEntitiesList(entities) {
-            allEntitiesList.innerHTML = ''; // Limpa a lista atual
-            if (entities.length === 0) {
-                allEntitiesList.appendChild(entitiesPlaceholder);
-                entitiesPlaceholder.textContent = "Nenhuma entidade encontrada com este critério.";
-                return;
-            }
+        function renderEntitiesList(entities) { /* ... (código inalterado) ... */ }
 
-            const statusOrder = { 'pendente_aprovacao': 1, 'ativo': 2, 'bloqueado': 3 };
-            const sortedEntities = entities.sort((a, b) => (statusOrder[a.data().status] || 99) - (statusOrder[b.data().status] || 99));
+        function loadAllEntities() { /* ... (código inalterado) ... */ }
 
-            sortedEntities.forEach(docSnapshot => {
-                const entity = docSnapshot.data();
-                const entityId = docSnapshot.id;
-                const card = document.createElement('div');
-                card.className = 'p-4 border-b';
-                const statusColors = { 'pendente_aprovacao': 'bg-yellow-100 text-yellow-800', 'ativo': 'bg-green-100 text-green-800', 'bloqueado': 'bg-red-100 text-red-800' };
-                const statusColor = statusColors[entity.status] || 'bg-gray-100 text-gray-800';
-                let actionButtons = '';
-                if (entity.status === 'pendente_aprovacao') {
-                    actionButtons = `<div class="flex space-x-2"><button data-action="approve" data-uid="${entityId}" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Aprovar</button><button data-action="reject" data-uid="${entityId}" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">Reprovar</button></div>`;
-                }
-                card.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center space-x-4"><img src="${entity.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border"><div><h4 class="font-bold">${entity.publicName || 'Nome não definido'}</h4><p class="text-sm text-gray-600">${entity.email} | CNPJ: ${entity.cnpj || 'N/A'}</p><p class="text-sm text-gray-500 mt-1">Responsável: ${entity.responsibleName || 'N/A'}</p></div></div><div class="flex items-center space-x-4"><a href="#" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a><span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColor}">${(entity.status || '').replace(/_/g, ' ')}</span>${actionButtons}</div></div>`;
-                allEntitiesList.appendChild(card);
-            });
-        }
-
-        function loadAllEntities() {
-            const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`;
-            onSnapshot(query(collection(db, entitiesPath)), (snapshot) => {
-                allEntitiesData = snapshot.docs; // Armazena a lista completa
-                renderEntitiesList(allEntitiesData); // Renderiza a lista inicial
-            });
-        }
-
-        entitySearchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase().trim();
-            if (!searchTerm) {
-                renderEntitiesList(allEntitiesData); // Se a busca estiver vazia, mostra todos
-                return;
-            }
-
-            const filteredEntities = allEntitiesData.filter(doc => {
-                const entity = doc.data();
-                const name = (entity.publicName || '').toLowerCase();
-                const email = (entity.email || '').toLowerCase();
-                const cnpj = (entity.cnpj || '').toString(); // CNPJ pode não ter `toLowerCase`
-                return name.includes(searchTerm) || email.includes(searchTerm) || cnpj.includes(searchTerm);
-            });
-
-            renderEntitiesList(filteredEntities);
-        });
+        entitySearchInput.addEventListener('input', (e) => { /* ... (código inalterado) ... */ });
 
         function loadAllCampaigns() {
             const campaignsPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
             onSnapshot(query(collection(db, campaignsPath)), (snapshot) => {
                 allCampaignsList.innerHTML = '';
-                if (snapshot.empty) { allCampaignsList.appendChild(campaignsPlaceholder); } 
-                else {
+                if (snapshot.empty) { 
+                    allCampaignsList.appendChild(campaignsPlaceholder); 
+                } else {
                     snapshot.docs.forEach(doc => {
                         const campaign = doc.data();
+                        const campaignId = doc.id;
                         const card = document.createElement('div');
                         card.className = 'p-4 border-b flex justify-between items-center';
-                        card.innerHTML = `<div><h4 class="font-bold">${campaign.title} <span class="text-sm font-normal text-gray-500">- por ${campaign.entityName}</span></h4><p class="text-sm text-gray-600">${campaign.description.substring(0, 70)}...</p></div><div class="flex space-x-2"><button class="text-blue-500 hover:underline text-sm">Editar</button><button class="text-red-500 hover:underline text-sm">Suspender</button></div>`;
+                        
+                        // BOTÃO DE AÇÃO ATUALIZADO
+                        card.innerHTML = `
+                            <div>
+                                <h4 class="font-bold">${campaign.title} <span class="text-sm font-normal text-gray-500">- por ${campaign.entityName}</span></h4>
+                                <p class="text-sm text-gray-600">${campaign.description.substring(0, 70)}...</p>
+                            </div>
+                            <div class="flex space-x-4">
+                                <a href="criar-campanha.html?editId=${campaignId}" class="text-blue-500 hover:underline text-sm font-medium">Editar</a>
+                                <button class="text-red-500 hover:underline text-sm font-medium">Suspender</button>
+                            </div>`;
                         allCampaignsList.appendChild(card);
                     });
                 }
             });
         }
 
-        allEntitiesList.addEventListener('click', async (e) => {
-            const button = e.target.closest('button[data-action]');
-            if (button) {
-                const uid = button.dataset.uid;
-                const action = button.dataset.action;
-                const appId = firebaseConfig.projectId;
-                const entityDocRef = doc(db, "artifacts", appId, "public", "data", "entidades", uid);
-                
-                if (action === 'approve') {
-                    if (confirm('Tem a certeza de que quer aprovar esta entidade?')) {
-                        try { await updateDoc(entityDocRef, { status: 'ativo' }); } 
-                        catch (error) { alert('Erro ao aprovar a entidade: ' + error.message); }
-                    }
-                }
-                if (action === 'reject') {
-                    if (confirm('Tem a certeza de que quer reprovar e bloquear esta entidade?')) {
-                        try { await updateDoc(entityDocRef, { status: 'bloqueado' }); } 
-                        catch (error) { alert('Erro ao reprovar a entidade: ' + error.message); }
-                    }
-                }
-            }
-        });
+        allEntitiesList.addEventListener('click', async (e) => { /* ... (código inalterado) ... */ });
+
+        // Funções omitidas por brevidade, pois não foram alteradas
+        loadAllDonors = () => { onSnapshot(query(collection(db, "users")), (snapshot) => { allDonorsList.innerHTML = ''; if (snapshot.empty) { allDonorsList.appendChild(donorsPlaceholder); } else { snapshot.docs.sort((a, b) => (a.data().displayName || '').localeCompare(b.data().displayName || '')).forEach(doc => { const user = doc.data(); const card = document.createElement('div'); card.className = 'p-4 border-b flex justify-between items-center'; card.innerHTML = `<div class="flex-1"><h4 class="font-bold">${user.displayName}</h4><p class="text-sm text-gray-600">${user.email}</p></div><div class="flex items-center space-x-4"><span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${user.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${user.status || 'N/A'}</span></div>`; allDonorsList.appendChild(card); }); } }); };
+        renderEntitiesList = (entities) => { allEntitiesList.innerHTML = ''; if (entities.length === 0) { allEntitiesList.appendChild(entitiesPlaceholder); entitiesPlaceholder.textContent = "Nenhuma entidade encontrada com este critério."; return; } const statusOrder = { 'pendente_aprovacao': 1, 'ativo': 2, 'bloqueado': 3 }; const sortedEntities = entities.sort((a, b) => (statusOrder[a.data().status] || 99) - (statusOrder[b.data().status] || 99)); sortedEntities.forEach(docSnapshot => { const entity = docSnapshot.data(); const entityId = docSnapshot.id; const card = document.createElement('div'); card.className = 'p-4 border-b'; const statusColors = { 'pendente_aprovacao': 'bg-yellow-100 text-yellow-800', 'ativo': 'bg-green-100 text-green-800', 'bloqueado': 'bg-red-100 text-red-800' }; const statusColor = statusColors[entity.status] || 'bg-gray-100 text-gray-800'; let actionButtons = ''; if (entity.status === 'pendente_aprovacao') { actionButtons = `<div class="flex space-x-2"><button data-action="approve" data-uid="${entityId}" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Aprovar</button><button data-action="reject" data-uid="${entityId}" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">Reprovar</button></div>`; } card.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center space-x-4"><img src="${entity.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border"><div><h4 class="font-bold">${entity.publicName || 'Nome não definido'}</h4><p class="text-sm text-gray-600">${entity.email} | CNPJ: ${entity.cnpj || 'N/A'}</p><p class="text-sm text-gray-500 mt-1">Responsável: ${entity.responsibleName || 'N/A'}</p></div></div><div class="flex items-center space-x-4"><a href="#" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a><span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColor}">${(entity.status || '').replace(/_/g, ' ')}</span>${actionButtons}</div></div>`; allEntitiesList.appendChild(card); }); };
+        loadAllEntities = () => { const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`; onSnapshot(query(collection(db, entitiesPath)), (snapshot) => { allEntitiesData = snapshot.docs; renderEntitiesList(allEntitiesData); }); };
+        entitySearchInput.addEventListener('input', (e) => { const searchTerm = e.target.value.toLowerCase().trim(); if (!searchTerm) { renderEntitiesList(allEntitiesData); return; } const filteredEntities = allEntitiesData.filter(doc => { const entity = doc.data(); const name = (entity.publicName || '').toLowerCase(); const email = (entity.email || '').toLowerCase(); const cnpj = (entity.cnpj || '').toString(); return name.includes(searchTerm) || email.includes(searchTerm) || cnpj.includes(searchTerm); }); renderEntitiesList(filteredEntities); });
+        allEntitiesList.addEventListener('click', async (e) => { const button = e.target.closest('button[data-action]'); if (button) { const uid = button.dataset.uid; const action = button.dataset.action; const appId = firebaseConfig.projectId; const entityDocRef = doc(db, "artifacts", appId, "public", "data", "entidades", uid); if (action === 'approve') { if (confirm('Tem a certeza de que quer aprovar esta entidade?')) { try { await updateDoc(entityDocRef, { status: 'ativo' }); } catch (error) { alert('Erro ao aprovar a entidade: ' + error.message); } } } if (action === 'reject') { if (confirm('Tem a certeza de que quer reprovar e bloquear esta entidade?')) { try { await updateDoc(entityDocRef, { status: 'bloqueado' }); } catch (error) { alert('Erro ao reprovar a entidade: ' + error.message); } } } } });
     </script>
 </body>
 </html>
