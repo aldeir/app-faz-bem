@@ -54,7 +54,7 @@
                         <a href="criar-campanha.html" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">+ Criar Nova Campanha</a>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                         <div class="bg-white p-6 rounded-lg shadow">
                             <h3 class="text-sm font-medium text-gray-500">Total de Campanhas</h3>
                             <p id="total-campaigns-count" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
@@ -62,6 +62,10 @@
                         <div class="bg-white p-6 rounded-lg shadow">
                             <h3 class="text-sm font-medium text-gray-500">Campanhas Ativas</h3>
                             <p id="active-campaigns-count" class="mt-1 text-3xl font-semibold text-green-600">0</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-sm font-medium text-gray-500">Próximas Campanhas</h3>
+                            <p id="upcoming-campaigns-count" class="mt-1 text-3xl font-semibold text-blue-600">0</p>
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow">
                             <h3 class="text-sm font-medium text-gray-500">Campanhas Concluídas</h3>
@@ -131,36 +135,49 @@
             const q = query(collection(db, campaignsColPath), where("creatorId", "==", userId));
 
             onSnapshot(q, (snapshot) => {
-                myCampaignsList.innerHTML = ''; 
+                myCampaignsList.innerHTML = '';
                 if (snapshot.empty) {
                     myCampaignsList.appendChild(myCampaignsPlaceholder);
                     document.getElementById('total-campaigns-count').textContent = 0;
                     document.getElementById('active-campaigns-count').textContent = 0;
+                    document.getElementById('upcoming-campaigns-count').textContent = 0;
                     document.getElementById('completed-campaigns-count').textContent = 0;
                     return;
                 }
 
                 let activeCount = 0;
                 let completedCount = 0;
+                let upcomingCount = 0; // Novo contador
                 const now = new Date();
 
                 snapshot.docs.sort((a, b) => b.data().createdAt.toMillis() - a.data().createdAt.toMillis()).forEach(docSnapshot => {
                     const campaign = docSnapshot.data();
                     const campaignId = docSnapshot.id;
+
+                    // Lógica de contagem atualizada
+                    if (campaign.status === 'upcoming' && campaign.startsAt.toDate() > now) {
+                        upcomingCount++;
+                    } else if (campaign.expiresAt.toDate() < now) {
+                        completedCount++;
+                    } else {
+                        activeCount++;
+                    }
+
                     const isCompleted = campaign.expiresAt.toDate() < now;
                     
-                    if (isCompleted) completedCount++;
-                    else activeCount++;
-
-                    const status = isCompleted 
-                        ? { text: 'Concluída', color: 'bg-gray-100 text-gray-800' }
-                        : { text: 'Ativa', color: 'bg-green-100 text-green-800' };
+                    let status;
+                    if (campaign.status === 'upcoming') {
+                        status = { text: 'Próxima', color: 'bg-blue-100 text-blue-800' };
+                    } else if (isCompleted) {
+                        status = { text: 'Concluída', color: 'bg-gray-100 text-gray-800' };
+                    } else {
+                        status = { text: 'Ativa', color: 'bg-green-100 text-green-800' };
+                    }
                     
-                    // BOTÕES DE AÇÃO ATUALIZADOS
-                    const actionButtons = !isCompleted ? `
+                    const actionButtons = !isCompleted && campaign.status !== 'upcoming' ? `
                         <button data-action="end" data-id="${campaignId}" class="text-sm font-medium text-red-600 hover:text-red-800">Concluir Agora</button>
                         <a href="criar-campanha.html?editId=${campaignId}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Editar</a>
-                    ` : '<span class="text-sm text-gray-500">Finalizada</span>';
+                    ` : `<a href="criar-campanha.html?editId=${campaignId}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Editar</a>`;
 
                     const card = document.createElement('div');
                     card.className = 'p-4 border-b last:border-b-0';
@@ -175,8 +192,10 @@
                             </div>
                             <div class="flex items-center space-x-4">
                                 <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${status.color}">${status.text}</span>
-                                <a href="detalhes.html?id=${campaignId}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Ver Detalhes</a>
-                                ${actionButtons}
+                                <div class="w-48 text-right flex justify-end space-x-4">
+                                    <a href="detalhes.html?id=${campaignId}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Ver</a>
+                                    ${actionButtons}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -185,6 +204,7 @@
 
                 document.getElementById('total-campaigns-count').textContent = snapshot.size;
                 document.getElementById('active-campaigns-count').textContent = activeCount;
+                document.getElementById('upcoming-campaigns-count').textContent = upcomingCount;
                 document.getElementById('completed-campaigns-count').textContent = completedCount;
             });
         }
@@ -193,6 +213,7 @@
             const button = e.target.closest('button[data-action="end"]');
             if (button) {
                 const campaignId = button.dataset.id;
+                // Usando o modal de confirmação que já temos!
                 if (confirm('Deseja realmente concluir esta campanha agora? Esta ação não pode ser desfeita.')) {
                     const campaignsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
                     const campaignRef = doc(db, campaignsColPath, campaignId);
