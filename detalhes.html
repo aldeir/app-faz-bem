@@ -55,7 +55,8 @@
 
     <!-- SCRIPT REATORIZADO -->
     <script type="module">
-        import { db, onAuthStateChanged } from './app-config.js';
+        // **CORREÇÃO APLICADA AQUI**
+        import { db, auth, onAuthStateChanged } from './app-config.js';
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const loadingContainer = document.getElementById('loading-container');
@@ -76,7 +77,6 @@
         });
 
         function updateCountdown(expiresAt) {
-            // ... (código sem alterações)
             if (countdownInterval) clearInterval(countdownInterval);
             const timerEl = document.getElementById('countdown-timer');
             countdownInterval = setInterval(() => {
