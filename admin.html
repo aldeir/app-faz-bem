@@ -20,9 +20,17 @@
 
     <div id="app-container">
         <!-- TELA DE CARREGAMENTO/VERIFICAÇÃO -->
-        <div id="loading-view">
-            <div class="min-h-screen flex items-center justify-center">
-                <p class="text-gray-600">A carregar...</p>
+        <div id="loading-view" class="min-h-screen flex items-center justify-center">
+            <p class="text-gray-600">A carregar...</p>
+        </div>
+
+        <!-- TELA DE APROVAÇÃO PENDENTE -->
+        <div id="pending-approval-view" class="hidden min-h-screen flex items-center justify-center text-center p-4">
+            <div class="max-w-md w-full bg-white p-10 rounded-xl shadow-lg">
+                <h1 class="text-2xl font-bold text-yellow-600">Registo em Análise</h1>
+                <p class="mt-4 text-gray-700">O seu registo foi concluído e o seu e-mail foi verificado com sucesso. A sua conta está agora a ser analisada pela nossa equipa.</p>
+                <p class="mt-2 text-gray-600">Receberá uma notificação por e-mail assim que a sua entidade for aprovada. Obrigado pela sua paciência!</p>
+                <button id="logout-btn-pending" class="mt-6 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium">Sair</button>
             </div>
         </div>
         
@@ -69,8 +77,10 @@
 
         const loadingView = document.getElementById('loading-view');
         const dashboardView = document.getElementById('dashboard-view');
+        const pendingApprovalView = document.getElementById('pending-approval-view');
         const userEmailDisplay = document.getElementById('user-email-display');
         const logoutBtn = document.getElementById('logout-btn');
+        const logoutBtnPending = document.getElementById('logout-btn-pending');
         const myCampaignsList = document.getElementById('my-campaigns-list');
         const myCampaignsPlaceholder = document.getElementById('my-campaigns-placeholder');
         const modal = document.getElementById('create-campaign-modal');
@@ -89,20 +99,35 @@
 
                 const userDocRef = doc(db, "users", user.uid);
                 const docSnap = await getDoc(userDocRef);
+
                 if (docSnap.exists() && docSnap.data().role === 'entidade') {
-                    loadingView.classList.add('hidden');
-                    dashboardView.classList.remove('hidden');
-                    userEmailDisplay.textContent = user.displayName || user.email;
-                    loadMyCampaigns(user.uid);
+                    const userData = docSnap.data();
+                    
+                    if (userData.status === 'ativo') {
+                        // Aprovado: mostra o painel
+                        loadingView.classList.add('hidden');
+                        pendingApprovalView.classList.add('hidden');
+                        dashboardView.classList.remove('hidden');
+                        userEmailDisplay.textContent = user.displayName || user.email;
+                        loadMyCampaigns(user.uid);
+                    } else {
+                        // Pendente ou bloqueado: mostra a tela de pendente
+                        loadingView.classList.add('hidden');
+                        dashboardView.classList.add('hidden');
+                        pendingApprovalView.classList.remove('hidden');
+                    }
                 } else {
+                    // Não é entidade, redireciona para a home
                     window.location.href = 'index.html';
                 }
             } else {
+                // Não está logado, redireciona para o login
                 window.location.href = 'login.html';
             }
         });
 
         logoutBtn.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
+        logoutBtnPending.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
         openModalBtn.addEventListener('click', () => modal.classList.remove('hidden'));
         closeModalBtn.addEventListener('click', () => { modal.classList.add('hidden'); modalError.classList.add('hidden'); });
 
