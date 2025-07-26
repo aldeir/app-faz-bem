@@ -97,7 +97,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT ATUALIZADO (VERSÃO 2.1) -->
+    <!-- SCRIPT ATUALIZADO (VERSÃO 2.2) -->
     <script type="module">
         import { auth, db, onAuthStateChanged, logout, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
         import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -211,23 +211,23 @@
             onSnapshot(q, (snapshot) => {
                 pendingEntitiesList.innerHTML = '';
                 if (snapshot.empty) {
-                    pendingEntitiesList.innerHTML = ''; // Limpa a lista
                     pendingEntitiesList.appendChild(pendingEntitiesPlaceholder);
                 } else {
-                    snapshot.docs.forEach(doc => {
-                        const entity = doc.data();
+                    snapshot.docs.forEach(docSnapshot => {
+                        const entity = docSnapshot.data();
+                        const entityId = docSnapshot.id; // <-- CORREÇÃO APLICADA AQUI
                         const card = document.createElement('div');
                         card.className = 'p-4 border-b';
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <h4 class="font-bold">${entity.publicName} <span class="text-sm font-normal text-gray-500">(${entity.displayName})</span></h4>
+                                    <h4 class="font-bold">${entity.publicName || 'Nome não definido'} <span class="text-sm font-normal text-gray-500">(${entity.displayName || 'N/A'})</span></h4>
                                     <p class="text-sm text-gray-600">${entity.email} | CNPJ: ${entity.cnpj || 'N/A'}</p>
                                     <p class="text-sm text-gray-500 mt-1">Responsável: ${entity.responsibleName || 'N/A'}</p>
                                 </div>
                                 <div class="flex space-x-2">
-                                    <button data-action="approve" data-uid="${entity.uid}" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Aprovar</button>
-                                    <button data-action="reject" data-uid="${entity.uid}" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">Reprovar</button>
+                                    <button data-action="approve" data-uid="${entityId}" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Aprovar</button>
+                                    <button data-action="reject" data-uid="${entityId}" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">Reprovar</button>
                                 </div>
                             </div>
                         `;
@@ -265,8 +265,7 @@
         }
 
         pendingEntitiesList.addEventListener('click', async (e) => {
-            // Verifica se o clique foi num botão com a propriedade 'data-action'
-            if (e.target.dataset.action) {
+            if (e.target.dataset.action && e.target.dataset.uid) {
                 const uid = e.target.dataset.uid;
                 const action = e.target.dataset.action;
                 const appId = firebaseConfig.projectId;
@@ -276,7 +275,6 @@
                     if (confirm('Tem a certeza de que quer aprovar esta entidade?')) {
                         try {
                             await updateDoc(entityDocRef, { status: 'ativo' });
-                            // A lista irá atualizar automaticamente graças ao onSnapshot.
                         } catch (error) {
                             alert('Erro ao aprovar a entidade: ' + error.message);
                         }
@@ -287,7 +285,6 @@
                     if (confirm('Tem a certeza de que quer reprovar e bloquear esta entidade?')) {
                         try {
                             await updateDoc(entityDocRef, { status: 'bloqueado' });
-                             // A lista irá atualizar automaticamente.
                         } catch (error) {
                             alert('Erro ao reprovar a entidade: ' + error.message);
                         }
