@@ -33,14 +33,8 @@
             transition: background-color 0.2s, color 0.2s;
         }
         input[type="file"] { display: none; }
-        .cropper-container-modal {
-            max-height: 60vh;
-        }
-        /* Garante que a imagem do cropper ocupe o espaço disponível */
-        #image-to-crop {
-            display: block;
-            max-width: 100%;
-        }
+        .cropper-container-modal { max-height: 60vh; }
+        #image-to-crop { display: block; max-width: 100%; }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -55,7 +49,7 @@
                 </div>
 
                 <!-- FORM -->
-                <form id="signup-form" class="mt-8 space-y-6">
+                <form id="signup-form" class="mt-8 space-y-6" novalidate>
                     <!-- SEÇÃO: DADOS DA ENTIDADE -->
                     <div class="space-y-4">
                         <h3 class="text-lg font-semibold text-gray-700 border-b pb-2">Dados da Entidade</h3>
@@ -131,17 +125,35 @@
         </div>
     </div>
 
-    <!-- SCRIPT ATUALIZADO E CORRIGIDO -->
+    <!-- SCRIPT ÚNICO E AUTOSSUFICIENTE -->
     <script type="module">
-        // Importações do Firebase (assumindo que app-config.js os exporta)
-        import { registerUser, storage } from './app-config.js';
-        import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+        // --- INICIALIZAÇÃO DO FIREBASE ---
+        // Adicione aqui a configuração do seu projeto Firebase
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_AUTH_DOMAIN",
+            projectId: "SEU_PROJECT_ID",
+            storageBucket: "SEU_STORAGE_BUCKET",
+            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+            appId: "SEU_APP_ID"
+        };
 
-        // Função principal que inicializa tudo.
-        function main() {
-            console.log("Script principal iniciado. Tentando inicializar componentes.");
+        // Importações e inicialização do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-            // --- Seletores de Elementos do DOM ---
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // --- INICIALIZAÇÃO DOS COMPONENTES DA PÁGINA ---
+        // Esta função garante que todo o código só rode depois que a página estiver pronta.
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // Seletores de Elementos do DOM
             const signupForm = document.getElementById('signup-form');
             const errorDiv = document.getElementById('signup-error');
             const submitBtn = document.getElementById('submit-btn');
@@ -164,28 +176,14 @@
             let cropper;
             let croppedImageBlob = null;
 
-            // Verificação para garantir que todos os elementos essenciais foram encontrados
-            if (!signupForm || !cnpjInput || !phoneInput || !logoUploadInput || !cropperModal) {
-                console.error("ERRO CRÍTICO: Um ou mais elementos essenciais do formulário não foram encontrados. Verifique os IDs no HTML.");
-                if (errorDiv) {
-                    errorDiv.textContent = "Erro ao carregar a página. Tente recarregar.";
-                    errorDiv.classList.remove('hidden');
-                }
-                return; // Interrompe a execução se algo estiver faltando
-            }
-
-            // --- INICIALIZAÇÃO DAS MÁSCARAS (IMask) ---
+            // Inicialização das Máscaras (IMask)
             const cnpjMask = IMask(cnpjInput, { mask: '00.000.000/0000-00', lazy: false });
             const phoneMask = IMask(phoneInput, { 
-                mask: [
-                    { mask: '(00) 0000-0000' },
-                    { mask: '(00) 00000-0000' }
-                ],
-                lazy: false // Mostra a máscara ao focar no campo
+                mask: [ { mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' } ],
+                lazy: false
             });
-            console.log("Máscaras para CNPJ e Telefone aplicadas.");
 
-            // --- LÓGICA DO EDITOR DE IMAGEM (Cropper.js) ---
+            // Lógica do Editor de Imagem (Cropper.js)
             logoUploadInput.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (!file || !file.type.startsWith('image/')) return;
@@ -194,25 +192,14 @@
                 reader.onload = (event) => {
                     imageToCrop.src = event.target.result;
                     cropperModal.classList.remove('hidden');
-                    
                     if (cropper) cropper.destroy();
-                    
-                    cropper = new Cropper(imageToCrop, {
-                        aspectRatio: 1,
-                        viewMode: 1,
-                        background: false,
-                        autoCropArea: 0.9,
-                    });
-                    console.log("Cropper.js inicializado e modal exibido.");
+                    cropper = new Cropper(imageToCrop, { aspectRatio: 1, viewMode: 1 });
                 };
                 reader.readAsDataURL(file);
                 logoUploadInput.value = '';
             });
 
-            cancelCropBtn.addEventListener('click', () => {
-                cropperModal.classList.add('hidden');
-                if (cropper) cropper.destroy();
-            });
+            cancelCropBtn.addEventListener('click', () => cropperModal.classList.add('hidden'));
 
             confirmCropBtn.addEventListener('click', () => {
                 if (!cropper) return;
@@ -220,17 +207,14 @@
                 canvas.toBlob((blob) => {
                     croppedImageBlob = blob;
                     logoPreview.src = URL.createObjectURL(blob);
-                    
                     fileInputLabelText.textContent = 'Imagem Confirmada ✓';
-                    fileInputLabel.classList.remove('bg-green-50', 'text-green-800', 'hover:bg-green-100');
-                    fileInputLabel.classList.add('bg-blue-100', 'text-blue-800');
-
+                    fileInputLabel.classList.replace('bg-green-50', 'bg-blue-100');
+                    fileInputLabel.classList.replace('text-green-800', 'text-blue-800');
                     cropperModal.classList.add('hidden');
-                    if (cropper) cropper.destroy();
                 }, 'image/webp', 0.9);
             });
 
-            // --- LÓGICA DE SUBMISSÃO DO FORMULÁRIO ---
+            // Lógica de Submissão do Formulário
             signupForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
@@ -238,6 +222,7 @@
                 const password = document.getElementById('signup-password').value;
                 const passwordConfirm = document.getElementById('signup-password-confirm').value;
 
+                // Validações
                 if (password !== passwordConfirm) {
                     errorDiv.textContent = "As senhas não coincidem.";
                     errorDiv.classList.remove('hidden'); return;
@@ -247,29 +232,28 @@
                     errorDiv.classList.remove('hidden'); return;
                 }
                 if (cnpjMask.unmaskedValue.length !== 14) {
-                    errorDiv.textContent = "O CNPJ está incompleto. Por favor, preencha os 14 dígitos.";
+                    errorDiv.textContent = "O CNPJ está incompleto.";
                     errorDiv.classList.remove('hidden'); return;
                 }
-                if (phoneMask.unmaskedValue.length > 0 && phoneMask.unmaskedValue.length < 10) {
-                     errorDiv.textContent = "O Telefone está incompleto.";
-                     errorDiv.classList.remove('hidden'); return;
-                }
 
+                // UI de Loading
                 submitBtn.disabled = true;
                 submitBtnText.classList.add('hidden');
                 submitBtnSpinner.classList.remove('hidden');
 
                 try {
-                    const fileName = `logo_${Date.now()}.webp`;
-                    const storageRef = ref(storage, `logos/${fileName}`);
-                    const uploadTask = await uploadBytes(storageRef, croppedImageBlob);
-                    const logoUrl = await getDownloadURL(uploadTask.ref);
+                    // 1. Criar utilizador na Autenticação
+                    const userCredential = await createUserWithEmailAndPassword(auth, document.getElementById('signup-email').value, password);
+                    const user = userCredential.user;
+                    await updateProfile(user, { displayName: document.getElementById('entity-name').value });
 
-                    const authData = {
-                        email: document.getElementById('signup-email').value,
-                        password: password,
-                        displayName: document.getElementById('entity-name').value
-                    };
+                    // 2. Fazer upload do logotipo para o Storage
+                    const fileName = `logo_${user.uid}.webp`;
+                    const storageRef = ref(storage, `logos/${fileName}`);
+                    await uploadBytes(storageRef, croppedImageBlob);
+                    const logoUrl = await getDownloadURL(storageRef);
+
+                    // 3. Preparar e guardar os dados no Firestore
                     const profileData = {
                         publicName: document.getElementById('entity-public-name').value,
                         cnpj: cnpjMask.unmaskedValue,
@@ -284,15 +268,17 @@
                             city: document.getElementById('address-city').value,
                         },
                         role: 'entidade',
-                        status: 'pendente_aprovacao'
+                        status: 'pendente_aprovacao',
+                        email: user.email
                     };
+                    await setDoc(doc(db, "entidades", user.uid), profileData);
 
-                    await registerUser(authData, profileData);
+                    // 4. Redirecionar em caso de sucesso
                     window.location.href = 'verificar-email.html';
 
                 } catch (error) {
                     console.error("Erro no registo:", error);
-                    errorDiv.textContent = "Erro: " + error.message;
+                    errorDiv.textContent = "Erro: " + (error.code || error.message);
                     
                     submitBtn.disabled = false;
                     submitBtnText.classList.remove('hidden');
@@ -300,16 +286,7 @@
                     errorDiv.classList.remove('hidden');
                 }
             });
-        }
-
-        // Garante que o script principal só rode depois que a página estiver completamente carregada.
-        // Isso resolve problemas de o script tentar manipular elementos que ainda não existem.
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', main);
-        } else {
-            main();
-        }
-
+        });
     </script>
 </body>
 </html>
