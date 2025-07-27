@@ -12,17 +12,20 @@
     
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-        .transition-all { transition: all 0.3s ease-in-out; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #22c55e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .campaign-section:not(:empty) { margin-top: 2.5rem; }
+        .filter-btn { transition: all 0.2s ease-in-out; }
+        .filter-btn.active { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+        .urgent-badge { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 50% { opacity: .7; } }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
     <div class="container mx-auto max-w-4xl p-4 sm:p-6 relative">
 
-        <div id="user-auth-container" class="absolute top-4 right-4 z-10"></div>
+        <div id="user-auth-container" class="absolute top-4 right-4 z-20"></div>
 
         <header class="text-center mb-8 pt-12">
             <h1 class="text-4xl sm:text-5xl font-bold text-green-600">Faz Bem</h1>
@@ -30,17 +33,25 @@
         </header>
 
         <main>
+            <!-- FILTROS DINÂMICOS -->
+            <div id="filter-container" class="flex flex-wrap justify-center gap-2 mb-8">
+                <!-- Botões de filtro serão inseridos aqui -->
+            </div>
+
+            <!-- SEÇÃO DE CAMPANHAS ATIVAS -->
             <div id="active-campaigns-section">
                 <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b-2 border-green-200 pb-2">Campanhas Ativas</h2>
                 <div id="active-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
                 <p id="active-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha ativa no momento.</p>
             </div>
 
+            <!-- SEÇÃO DE PRÓXIMAS CAMPANHAS -->
             <div id="upcoming-campaigns-section" class="campaign-section">
                 <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b-2 border-blue-200 pb-2">Próximas Campanhas</h2>
                 <div id="upcoming-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
             </div>
 
+            <!-- SEÇÃO DE CAMPANHAS RECENTES -->
             <div id="recent-campaigns-section" class="campaign-section">
                 <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b-2 border-gray-300 pb-2">Campanhas Recentes</h2>
                 <div id="recent-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
@@ -57,21 +68,29 @@
         </footer>
     </div>
 
+    <!-- SCRIPT 100% COMPLETO E REESCRITO -->
     <script type="module">
-        import { db, ADMIN_EMAIL, getCurrentUser, logout } from './app-config.js';
+        import { db, auth, onAuthStateChanged, ADMIN_EMAIL, getCurrentUser, logout, firebaseConfig } from './app-config.js';
         import { collection, onSnapshot, query, where, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Elementos do DOM
         const userAuthContainer = document.getElementById('user-auth-container');
         const loadingContainer = document.getElementById('loading-container');
-        
-        // --- FUNÇÕES DE RENDERIZAÇÃO E LÓGICA ---
-        // Funções definidas ANTES de serem chamadas para corrigir o bug
-        
-        const setupUserMenu = async () => {
-            const userSession = await getCurrentUser();
-            if (userSession?.auth) {
-                const { auth, profile } = userSession;
+        const filterContainer = document.getElementById('filter-container');
+
+        let allCampaigns = [];
+        let currentUserSession = null;
+
+        // Configurações de cores e labels (preparado para vir do Firestore no futuro)
+        const campaignTypeSettings = {
+            'agasalho': { label: 'Agasalho', color: 'blue' },
+            'alimento': { label: 'Alimento', color: 'orange' },
+            'sangue': { label: 'Sangue', color: 'red' },
+            'default': { label: 'Outro', color: 'gray' }
+        };
+
+        const setupUserMenu = () => {
+            if (currentUserSession?.auth) {
+                const { auth, profile } = currentUserSession;
                 let panelLink = '';
                 if (auth.email === ADMIN_EMAIL) {
                     panelLink = `<a href="superadmin.html" class="text-sm font-medium text-red-600 hover:underline">Painel Admin</a>`;
@@ -85,84 +104,148 @@
             }
         };
 
-        window.handleCampaignClick = async (campaignId) => {
-            // ... (lógica inalterada)
-        };
-        
-        function createCampaignCard(campaign, cardType = 'active') {
-            const colorMap = { 'agasalho': 'green', 'sangue': 'red', 'alimento': 'orange', 'default': 'blue' };
-            const themeColor = colorMap[campaign.type] || colorMap['default'];
-            
-            const descriptionSnippet = campaign.description ? campaign.description.substring(0, 100) + '...' : '';
-            const imageUrl = campaign.images && campaign.images.length > 0 ? campaign.images[0] : `https://placehold.co/600x400/e2e8f0/e2e8f0?text=Sem+Imagem`;
-            
-            let bottomInfo = '';
-            if (cardType === 'active') {
-                bottomInfo = `<div class="mt-4"><div class="flex justify-between text-sm font-medium text-gray-600"><span>Progresso</span><span>${campaign.progress || 0}%</span></div><div class="w-full bg-gray-200 rounded-full h-2.5 mt-1"><div class="bg-${themeColor}-500 h-2.5 rounded-full" style="width: ${campaign.progress || 0}%"></div></div></div>`;
-            } else if (cardType === 'upcoming') {
-                const startDate = campaign.startsAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-                bottomInfo = `<div class="mt-4 text-center bg-blue-50 text-blue-700 font-semibold p-2 rounded-lg">Começa em: ${startDate}</div>`;
-            } else if (cardType === 'recent') {
-                bottomInfo = `<div class="mt-4 text-center bg-gray-100 text-gray-600 font-semibold p-2 rounded-lg">Campanha Concluída</div>`;
+        window.handleCampaignClick = (campaignId) => {
+            const campaign = allCampaigns.find(c => c.id === campaignId);
+            if (!campaign) return;
+
+            if (!currentUserSession?.auth) {
+                const destination = `detalhes.html?id=${campaignId}`;
+                window.location.href = `login.html?redirect=${encodeURIComponent(destination)}`;
+                return;
             }
 
-            return `<div onclick="handleCampaignClick('${campaign.id}')" class="cursor-pointer block bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:-translate-y-1">
-                        <img class="h-48 w-full object-cover" src="${imageUrl}" alt="Imagem da ${campaign.title}" onerror="this.onerror=null;this.src='https://placehold.co/600x400/cccccc/ffffff?text=Imagem+Indisponível';">
-                        <div class="p-6">
-                            <div class="uppercase tracking-wide text-sm text-${themeColor}-600 font-semibold">${campaign.entityName}</div>
-                            <h3 class="block mt-1 text-xl leading-tight font-bold text-black truncate">${campaign.title}</h3>
-                            <p class="mt-2 text-gray-500 h-12">${descriptionSnippet}</p>
-                            ${bottomInfo}
+            if (campaign.status === 'upcoming') {
+                const isCreator = currentUserSession.auth.uid === campaign.creatorId;
+                const isSuperAdmin = currentUserSession.auth.email === ADMIN_EMAIL;
+                if (!isCreator && !isSuperAdmin) {
+                    alert('Esta campanha ainda não começou. Apenas o criador e o administrador podem ver os detalhes neste momento.');
+                    return;
+                }
+            }
+            window.location.href = `detalhes.html?id=${campaignId}`;
+        };
+        
+        function createCampaignCard(campaign) {
+            const settings = campaignTypeSettings[campaign.type] || campaignTypeSettings['default'];
+            const color = settings.color;
+            
+            const imageUrl = campaign.images && campaign.images.length > 0 ? campaign.images[0] : `https://placehold.co/600x400/e2e8f0/e2e8f0?text=Sem+Imagem`;
+            const now = new Date();
+            const endDate = campaign.expiresAt.toDate();
+            const startDate = campaign.startsAt.toDate();
+            const totalDuration = endDate.getTime() - startDate.getTime();
+            const elapsedTime = now.getTime() - startDate.getTime();
+            const timeProgress = Math.min(100, Math.max(0, (elapsedTime / totalDuration) * 100));
+
+            let statusTag = '';
+            if (campaign.status === 'upcoming') {
+                statusTag = `<div class="absolute top-2 left-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">PRÓXIMA</div>`;
+            } else if (campaign.priority === 'high') {
+                statusTag = `<div class="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full urgent-badge">URGENTE</div>`;
+            }
+
+            return `
+                <div onclick="handleCampaignClick('${campaign.id}')" class="cursor-pointer block bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-transform transform hover:-translate-y-1 border-b-4 border-${color}-500">
+                    <div class="relative">
+                        <img class="h-48 w-full object-cover" src="${imageUrl}" alt="Imagem da ${campaign.title}">
+                        ${statusTag}
+                    </div>
+                    <div class="p-6">
+                        <div class="uppercase tracking-wide text-sm text-${color}-600 font-semibold">${campaign.entityName}</div>
+                        <h3 class="block mt-1 text-xl leading-tight font-bold text-black truncate">${campaign.title}</h3>
+                        
+                        <div class="mt-4 space-y-3">
+                            <div>
+                                <div class="flex justify-between text-xs font-medium text-gray-500"><span>Tempo Restante</span></div>
+                                <div class="w-full bg-gray-200 rounded-full h-2 mt-1"><div class="bg-${color}-400 h-2 rounded-full" style="width: ${timeProgress}%"></div></div>
+                            </div>
+                            ${campaign.goal ? `
+                            <div>
+                                <div class="flex justify-between text-xs font-medium text-gray-500"><span>Meta Atingida</span><span>${campaign.currentAmount || 0} / ${campaign.goal}</span></div>
+                                <div class="w-full bg-gray-200 rounded-full h-2 mt-1"><div class="bg-green-500 h-2 rounded-full" style="width: ${campaign.progress || 0}%"></div></div>
+                            </div>` : ''}
                         </div>
-                    </div>`;
+                    </div>
+                </div>`;
+        }
+        
+        function renderFilters(campaigns) {
+            const counts = campaigns.reduce((acc, campaign) => {
+                acc[campaign.type] = (acc[campaign.type] || 0) + 1;
+                return acc;
+            }, {});
+
+            let buttonsHtml = `<button data-filter="all" class="filter-btn active bg-gray-700 text-white font-semibold py-2 px-4 rounded-full shadow-md">Todas (${campaigns.length})</button>`;
+            
+            for (const type in counts) {
+                const settings = campaignTypeSettings[type] || campaignTypeSettings['default'];
+                buttonsHtml += `<button data-filter="${type}" class="filter-btn bg-white text-gray-700 font-semibold py-2 px-4 rounded-full shadow-md">${settings.label} (${counts[type]})</button>`;
+            }
+            filterContainer.innerHTML = buttonsHtml;
         }
 
-        function renderCampaigns(campaigns, listElementId, emptyElementId, cardType) {
-            const listEl = document.getElementById(listElementId);
-            const emptyEl = document.getElementById(emptyElementId);
-            const sectionEl = listEl.closest('.campaign-section') || document.getElementById('active-campaigns-section');
+        function renderAllSections(filter = 'all') {
+            const now = new Date();
+            const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.startsAt.toDate() <= now && c.expiresAt.toDate() > now);
+            const upcomingCampaigns = allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt.toDate() > now);
+            const recentCampaigns = allCampaigns.filter(c => c.expiresAt.toDate() <= now).slice(0, 4);
+
+            const filteredActive = (filter === 'all') ? activeCampaigns : activeCampaigns.filter(c => c.type === filter);
             
+            renderCampaigns(filteredActive, 'active-campaigns-list', 'active-campaigns-empty');
+            renderCampaigns(upcomingCampaigns, 'upcoming-campaigns-list', null);
+            renderCampaigns(recentCampaigns, 'recent-campaigns-list', null);
+        }
+
+        function renderCampaigns(campaigns, listId, emptyId) {
+            const listEl = document.getElementById(listId);
+            const emptyEl = document.getElementById(emptyId);
+            const sectionEl = listEl.closest('div[id$="-section"]');
+
             listEl.innerHTML = '';
             if (campaigns.length === 0) {
                 if(emptyEl) emptyEl.classList.remove('hidden');
-                sectionEl.style.display = (cardType === 'active') ? 'block' : 'none'; // Mostra a seção ativa mesmo vazia, esconde as outras
+                sectionEl.style.display = (listId === 'active-campaigns-list') ? 'block' : 'none';
             } else {
                 if(emptyEl) emptyEl.classList.add('hidden');
                 sectionEl.style.display = 'block';
                 campaigns.forEach(campaign => {
-                    listEl.innerHTML += createCampaignCard(campaign, cardType);
+                    listEl.innerHTML += createCampaignCard(campaign);
                 });
             }
         }
 
         function fetchAllCampaigns() {
-            const campaignsRef = collection(db, `/artifacts/${db.app.options.projectId}/public/data/campaigns`);
-            const now = Timestamp.now();
-
-            // Ativas: status 'active' e que já começaram
-            const qActive = query(campaignsRef, where("status", "==", "active"), where("startsAt", "<=", now), orderBy("startsAt", "desc"));
-            onSnapshot(qActive, snap => renderCampaigns(snap.docs.map(d=>({id:d.id,...d.data()})), 'active-campaigns-list', 'active-campaigns-empty', 'active'));
+            const campaignsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`);
+            const q = query(campaignsRef, orderBy("priority", "desc"), orderBy("createdAt", "desc"));
             
-            // Próximas: status 'upcoming' e que ainda não começaram
-            const qUpcoming = query(campaignsRef, where("status", "==", "upcoming"), where("startsAt", ">", now), orderBy("startsAt", "asc"));
-            onSnapshot(qUpcoming, snap => renderCampaigns(snap.docs.map(d=>({id:d.id,...d.data()})), 'upcoming-campaigns-list', null, 'upcoming'));
-
-            // Recentes: status NÃO é 'upcoming' e data de expiração já passou, 5 mais recentes
-            const qRecent = query(campaignsRef, where("expiresAt", "<", now), orderBy("expiresAt", "desc"), limit(5));
-            onSnapshot(qRecent, snap => {
-                const docs = snap.docs.map(d=>({id:d.id,...d.data()})).filter(c => c.status !== 'upcoming');
-                renderCampaigns(docs, 'recent-campaigns-list', null, 'recent');
+            onSnapshot(q, (snapshot) => {
+                allCampaigns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.expiresAt.toDate() > new Date());
+                
+                renderFilters(activeCampaigns);
+                renderAllSections();
+                loadingContainer.style.display = 'none';
             });
-
-            loadingContainer.style.display = 'none';
         }
 
-        // --- INICIALIZAÇÃO DA PÁGINA ---
-        setupUserMenu();
-        fetchAllCampaigns();
+        filterContainer.addEventListener('click', (e) => {
+            const button = e.target.closest('button[data-filter]');
+            if (!button) return;
 
-        // Definição completa da função handleCampaignClick para evitar erros de escopo
-        window.handleCampaignClick = async (campaignId) => { const userSession = await getCurrentUser(); if (userSession?.auth) { if (!userSession.auth.emailVerified && userSession.auth.providerData.some(p => p.providerId === 'password')) { window.location.href = 'verificar-email.html'; return; } window.location.href = `detalhes.html?id=${campaignId}`; } else { const destination = `detalhes.html?id=${campaignId}`; window.location.href = `login.html?redirect=${encodeURIComponent(destination)}`; } };
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active', 'bg-gray-700', 'text-white'));
+            button.classList.add('active', 'bg-gray-700', 'text-white');
+            
+            const filter = button.dataset.filter;
+            renderAllSections(filter);
+        });
+
+        // --- INICIALIZAÇÃO DA PÁGINA ---
+        onAuthStateChanged(auth, async (user) => {
+            currentUserSession = await getCurrentUser();
+            setupUserMenu();
+            fetchAllCampaigns();
+        });
     </script>
 </body>
 </html>
