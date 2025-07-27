@@ -251,7 +251,7 @@
             }
         };
 
-        const loadSettings = async () => {
+        const loadSettings = () => {
             const configPath = `/artifacts/${firebaseConfig.projectId}/public/data/configs`;
             const typesDocRef = doc(db, configPath, 'campaignTypes');
             onSnapshot(typesDocRef, (docSnap) => {
@@ -264,7 +264,7 @@
                         'sangue': { label: 'Sangue', color: 'red' },
                         'default': { label: 'Outro', color: 'gray' }
                     };
-                    setDoc(typesDocRef, defaultSettings);
+                    setDoc(typesDocRef, defaultSettings); // Cria o documento se não existir
                     campaignTypeSettings = defaultSettings;
                 }
                 renderSettings();
@@ -511,7 +511,8 @@
 
             try {
                 const typesDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'campaignTypes');
-                await updateDoc(typesDocRef, { [id]: { label, color } });
+                // Use setDoc com merge: true para criar ou atualizar o documento de forma segura
+                await setDoc(typesDocRef, { [id]: { label, color } }, { merge: true });
                 await showAlertModal('Sucesso', `O tipo "${label}" foi adicionado!`);
                 addTypeForm.reset();
             } catch (error) {
