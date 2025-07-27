@@ -115,16 +115,25 @@
                             <h3 class="text-lg font-medium text-gray-900">Adicionar Novo Tipo</h3>
                             <form id="add-type-form" class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                                 <div>
-                                    <label for="new-type-id" class="block text-sm font-medium text-gray-700">ID (ex: agasalho)</label>
-                                    <input type="text" id="new-type-id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                                </div>
-                                <div>
-                                    <label for="new-type-label" class="block text-sm font-medium text-gray-700">Rótulo (ex: Agasalho)</label>
+                                    <label for="new-type-label" class="block text-sm font-medium text-gray-700">Rótulo (ex: Doação de Sangue)</label>
                                     <input type="text" id="new-type-label" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                                 </div>
                                 <div>
-                                    <label for="new-type-color" class="block text-sm font-medium text-gray-700">Cor (ex: blue)</label>
-                                    <input type="text" id="new-type-color" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                    <label for="new-type-id" class="block text-sm font-medium text-gray-700">ID (gerado automaticamente)</label>
+                                    <input type="text" id="new-type-id" readonly class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100">
+                                </div>
+                                <div>
+                                    <label for="new-type-color" class="block text-sm font-medium text-gray-700">Cor</label>
+                                    <select id="new-type-color" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                        <option value="red">Vermelho</option>
+                                        <option value="orange">Laranja</option>
+                                        <option value="yellow">Amarelo</option>
+                                        <option value="green">Verde</option>
+                                        <option value="blue">Azul</option>
+                                        <option value="purple">Roxo</option>
+                                        <option value="pink">Rosa</option>
+                                        <option value="gray">Cinza</option>
+                                    </select>
                                 </div>
                                 <button type="submit" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm hover:bg-green-700">Adicionar</button>
                             </form>
@@ -162,7 +171,7 @@
 
     <script type="module">
         import { auth, db, onAuthStateChanged, logout, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
-        import { collection, query, onSnapshot, doc, updateDoc, getDoc, setDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { collection, query, onSnapshot, doc, updateDoc, getDoc, setDoc, where, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { showConfirmationModal, showAlertModal, showDetailsModal } from './modal-handler.js';
 
         const accessDeniedView = document.getElementById('access-denied-view');
@@ -218,17 +227,24 @@
         
         const renderSettings = () => {
             campaignTypesList.innerHTML = '';
+            const colorOptions = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'gray'];
             for (const typeId in campaignTypeSettings) {
+                if (typeId === 'default') continue; // Não permite editar o tipo 'default'
                 const type = campaignTypeSettings[typeId];
+                const selectOptions = colorOptions.map(color => `<option value="${color}" ${type.color === color ? 'selected' : ''}>${color.charAt(0).toUpperCase() + color.slice(1)}</option>`).join('');
+
                 const itemHtml = `
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center p-2 rounded-md hover:bg-gray-50">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-center p-2 rounded-md hover:bg-gray-50">
                         <span class="font-semibold text-gray-800">${type.label}</span>
                         <span class="text-sm text-gray-500">ID: ${typeId}</span>
                         <div class="flex items-center space-x-2">
-                            <input type="text" id="color-input-${typeId}" value="${type.color}" class="block w-full border-gray-300 rounded-md shadow-sm">
-                            <div class="w-6 h-6 rounded-full border border-gray-300 bg-${type.color}-500"></div>
+                            <select id="color-input-${typeId}" class="block w-full border-gray-300 rounded-md shadow-sm">${selectOptions}</select>
+                            <div id="color-preview-${typeId}" class="w-6 h-6 rounded-full border border-gray-300 bg-${type.color}-500"></div>
                         </div>
-                        <button data-action="save-type" data-id="${typeId}" class="bg-blue-500 text-white font-semibold py-2 px-3 rounded-md shadow-sm hover:bg-blue-600 justify-self-start">Salvar</button>
+                        <div class="flex space-x-2">
+                            <button data-action="save-type" data-id="${typeId}" class="bg-blue-500 text-white font-semibold py-2 px-3 rounded-md shadow-sm hover:bg-blue-600">Salvar</button>
+                            <button data-action="delete-type" data-id="${typeId}" class="bg-red-500 text-white font-semibold py-2 px-3 rounded-md shadow-sm hover:bg-red-600">Remover</button>
+                        </div>
                     </div>
                 `;
                 campaignTypesList.innerHTML += itemHtml;
@@ -238,20 +254,21 @@
         const loadSettings = async () => {
             const configPath = `/artifacts/${firebaseConfig.projectId}/public/data/configs`;
             const typesDocRef = doc(db, configPath, 'campaignTypes');
-            const docSnap = await getDoc(typesDocRef);
-            if (docSnap.exists()) {
-                campaignTypeSettings = docSnap.data();
-            } else {
-                const defaultSettings = {
-                    'agasalho': { label: 'Agasalho', color: 'blue' },
-                    'alimento': { label: 'Alimento', color: 'orange' },
-                    'sangue': { label: 'Sangue', color: 'red' },
-                    'default': { label: 'Outro', color: 'gray' }
-                };
-                await setDoc(typesDocRef, defaultSettings);
-                campaignTypeSettings = defaultSettings;
-            }
-            renderSettings();
+            onSnapshot(typesDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    campaignTypeSettings = docSnap.data();
+                } else {
+                    const defaultSettings = {
+                        'agasalho': { label: 'Agasalho', color: 'blue' },
+                        'alimento': { label: 'Alimento', color: 'orange' },
+                        'sangue': { label: 'Sangue', color: 'red' },
+                        'default': { label: 'Outro', color: 'gray' }
+                    };
+                    setDoc(typesDocRef, defaultSettings);
+                    campaignTypeSettings = defaultSettings;
+                }
+                renderSettings();
+            });
         };
 
         onAuthStateChanged(auth, (user) => {
@@ -432,36 +449,71 @@
             }
         });
 
+        campaignTypesList.addEventListener('change', (e) => {
+            const select = e.target.closest('select');
+            if (!select) return;
+            const color = select.value;
+            const preview = document.getElementById(select.id.replace('color-input-', 'color-preview-'));
+            preview.className = `w-6 h-6 rounded-full border border-gray-300 bg-${color}-500`;
+        });
+
         campaignTypesList.addEventListener('click', async (e) => {
-            const button = e.target.closest('button[data-action="save-type"]');
+            const button = e.target.closest('button[data-action]');
             if (!button) return;
+
             const typeId = button.dataset.id;
-            const colorInput = document.getElementById(`color-input-${typeId}`);
-            const newColor = colorInput.value.trim();
-            if (!newColor) { showAlertModal('Erro', 'O campo de cor não pode estar vazio.'); return; }
-            try {
-                const typesDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'campaignTypes');
-                await updateDoc(typesDocRef, { [`${typeId}.color`]: newColor });
-                await showAlertModal('Sucesso', `A cor para "${campaignTypeSettings[typeId].label}" foi atualizada!`);
-                loadSettings();
-            } catch (error) {
-                console.error("Erro ao salvar cor:", error);
-                await showAlertModal('Erro', 'Não foi possível salvar a alteração.');
+            const typesDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'campaignTypes');
+
+            if (button.dataset.action === 'save-type') {
+                const colorInput = document.getElementById(`color-input-${typeId}`);
+                const newColor = colorInput.value.trim();
+                if (!newColor) { showAlertModal('Erro', 'O campo de cor não pode estar vazio.'); return; }
+                try {
+                    await updateDoc(typesDocRef, { [`${typeId}.color`]: newColor });
+                    await showAlertModal('Sucesso', `A cor para "${campaignTypeSettings[typeId].label}" foi atualizada!`);
+                } catch (error) {
+                    console.error("Erro ao salvar cor:", error);
+                    await showAlertModal('Erro', 'Não foi possível salvar a alteração.');
+                }
             }
+
+            if (button.dataset.action === 'delete-type') {
+                const confirmed = await showConfirmationModal('Remover Tipo', `Tem certeza que quer remover o tipo "${campaignTypeSettings[typeId].label}"? Esta ação não pode ser desfeita.`);
+                if (confirmed) {
+                    try {
+                        await updateDoc(typesDocRef, { [typeId]: deleteField() });
+                        await showAlertModal('Sucesso', 'O tipo de campanha foi removido.');
+                    } catch (error) {
+                        console.error("Erro ao remover tipo:", error);
+                        await showAlertModal('Erro', 'Não foi possível remover o tipo.');
+                    }
+                }
+            }
+        });
+
+        document.getElementById('new-type-label').addEventListener('input', (e) => {
+            const label = e.target.value;
+            const id = label.toLowerCase()
+                            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove acentos
+                            .replace(/[^a-z0-9\s-]/g, '') // Remove caracteres especiais
+                            .replace(/\s+/g, '_'); // Substitui espaços por underscore
+            document.getElementById('new-type-id').value = id;
         });
 
         addTypeForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const id = document.getElementById('new-type-id').value.toLowerCase().trim();
+            const id = document.getElementById('new-type-id').value.trim();
             const label = document.getElementById('new-type-label').value.trim();
-            const color = document.getElementById('new-type-color').value.toLowerCase().trim();
+            const color = document.getElementById('new-type-color').value.trim();
+
             if (!id || !label || !color) { showAlertModal('Erro', 'Todos os campos são obrigatórios.'); return; }
+            if (campaignTypeSettings[id]) { showAlertModal('Erro', `O ID "${id}" já existe. Escolha um Rótulo diferente.`); return; }
+
             try {
                 const typesDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'campaignTypes');
                 await updateDoc(typesDocRef, { [id]: { label, color } });
                 await showAlertModal('Sucesso', `O tipo "${label}" foi adicionado!`);
                 addTypeForm.reset();
-                loadSettings();
             } catch (error) {
                 console.error("Erro ao adicionar tipo:", error);
                 await showAlertModal('Erro', 'Não foi possível adicionar o novo tipo.');
