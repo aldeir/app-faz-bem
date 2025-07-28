@@ -131,6 +131,10 @@
 
             if (docSnap.exists()) {
                 userProfile = docSnap.data();
+                // CORREÇÃO: Se o perfil do Firestore não tiver foto, mas a autenticação do Google tiver, use a do Google.
+                if (!userProfile.photoURL && currentUser.photoURL) {
+                    userProfile.photoURL = currentUser.photoURL;
+                }
             } else {
                 // Se não houver perfil no Firestore (ex: primeiro login com Google)
                 // cria um objeto de perfil inicial com os dados do Google.
@@ -150,7 +154,6 @@
         }
 
         function populateForm() {
-            // CORREÇÃO: Garante que a foto do Google seja exibida
             document.getElementById('profile-picture-preview').src = userProfile.photoURL || 'https://placehold.co/128x128/e2e8f0/cbd5e0?text=Foto';
             document.getElementById('profile-name').value = userProfile.displayName || '';
             document.getElementById('profile-phone').value = userProfile.phone;
@@ -182,7 +185,6 @@
             feedbackDiv.textContent = '';
 
             try {
-                // CORREÇÃO PRINCIPAL: Garante que photoURL nunca seja 'undefined'
                 let finalPhotoURL = userProfile.photoURL || null;
 
                 if (profilePictureFile) {
@@ -196,7 +198,7 @@
                     ...userProfile,
                     displayName: document.getElementById('profile-name').value,
                     phone: document.getElementById('profile-phone').value,
-                    photoURL: finalPhotoURL, // Usa a variável corrigida
+                    photoURL: finalPhotoURL,
                     address: {
                         cep: document.getElementById('profile-cep').value,
                         street: document.getElementById('profile-street').value,
@@ -211,7 +213,6 @@
                 feedbackDiv.textContent = 'Perfil atualizado com sucesso!';
                 feedbackDiv.className = 'text-sm text-green-600';
 
-                // Verifica se há um redirecionamento pendente
                 const redirect = localStorage.getItem('postProfileUpdateRedirect');
                 if (redirect) {
                     localStorage.removeItem('postProfileUpdateRedirect');
