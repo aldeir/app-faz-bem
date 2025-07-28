@@ -28,16 +28,13 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        #help-button:disabled { background-color: #4ade80; cursor: not-allowed; }
     </style>
 </head>
 <body class="bg-gray-50">
 
-    <header class="bg-white shadow-sm sticky top-0 z-10">
-        <nav class="container mx-auto max-w-5xl p-4 flex justify-between items-center">
-            <a href="index.html" class="text-2xl font-bold text-green-600">Faz Bem</a>
-            <a href="index.html" class="text-sm font-medium text-gray-600 hover:text-green-600">&larr; Voltar para todas as campanhas</a>
-        </nav>
-    </header>
+    <!-- O cabeçalho agora é injetado dinamicamente -->
+    <div id="app-header"></div>
 
     <div id="loading-container" class="flex items-center justify-center h-screen">
         <div class="text-center">
@@ -56,7 +53,7 @@
                             <video id="main-video" class="hidden w-full h-full rounded-xl" controls></video>
                         </div>
                         <div id="thumbnail-container" class="flex space-x-2 overflow-x-auto p-1">
-                            </div>
+                        </div>
                     </div>
                     <h2 class="text-2xl font-bold text-gray-800 mb-2">Sobre a Campanha</h2>
                     <p id="campaign-description" class="text-gray-600 leading-relaxed"></p>
@@ -86,7 +83,6 @@
                                     <div>
                                         <h4 class="font-semibold">Local de Entrega</h4>
                                         <p id="campaign-address" class="text-gray-600"></p>
-                                        <a id="map-link" href="#" target="_blank" class="text-sm text-green-600 hover:underline">Ver no mapa</a>
                                     </div>
                                 </div>
                                 <div id="hours-block" class="flex items-start">
@@ -105,7 +101,12 @@
                                 </div>
                             </div>
                         </div>
-                        <button class="mt-8 w-full bg-green-600 text-white font-bold py-4 px-4 rounded-lg hover:bg-green-700 text-lg">Eu Quero Ajudar!</button>
+                        <div class="mt-8">
+                            <button id="help-button" class="w-full bg-green-600 text-white font-bold py-4 px-4 rounded-lg hover:bg-green-700 text-lg transition-colors">
+                                Eu Quero Ajudar!
+                            </button>
+                            <p id="helpers-count-text" class="text-center text-sm text-gray-500 mt-2"></p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -113,19 +114,27 @@
     </main>
 
     <script type="module">
-        import { db, auth, onAuthStateChanged, firebaseConfig } from './app-config.js';
-        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { db, auth, onAuthStateChanged, firebaseConfig, getCurrentUser } from './app-config.js';
+        import { doc, getDoc, collection, getDocs, setDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { injectHeader } from './app-header.js';
 
         const loadingContainer = document.getElementById('loading-container');
         const campaignContent = document.getElementById('campaign-content');
+        const helpButton = document.getElementById('help-button');
+        const helpersCountText = document.getElementById('helpers-count-text');
+        
+        let currentUserSession = null;
+        let campaignId = null;
         let countdownInterval;
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 if (!user.emailVerified && user.providerData.some(p => p.providerId === 'password')) {
                     window.location.href = 'verificar-email.html';
                     return;
                 }
+                currentUserSession = await getCurrentUser();
+                injectHeader();
                 loadCampaignDetails();
             } else {
                 const destination = window.location.href;
@@ -146,6 +155,8 @@
                     countdownContainer.innerHTML = '<h3 class="font-bold text-red-700">Campanha Encerrada</h3>';
                     countdownContainer.classList.replace('bg-yellow-100', 'bg-red-100');
                     countdownContainer.classList.replace('border-yellow-400', 'border-red-400');
+                    helpButton.disabled = true;
+                    helpButton.textContent = 'Campanha Encerrada';
                     return;
                 }
                 const days = Math.floor(distance / (1000 * 60 * 60 * 24));
@@ -158,7 +169,7 @@
 
         async function loadCampaignDetails() {
             const params = new URLSearchParams(window.location.search);
-            const campaignId = params.get('id');
+            campaignId = params.get('id');
 
             if (!campaignId) {
                 loadingContainer.innerHTML = '<p class="text-red-500 text-center">Erro: ID da campanha não encontrado.</p>';
@@ -182,16 +193,12 @@
                     thumbContainer.innerHTML = '';
 
                     const showImage = (url) => {
-                        mainVideo.classList.add('hidden');
-                        mainVideo.pause();
-                        mainImage.classList.remove('hidden');
-                        mainImage.src = url;
+                        mainVideo.classList.add('hidden'); mainVideo.pause();
+                        mainImage.classList.remove('hidden'); mainImage.src = url;
                     };
-
                     const showVideo = (url) => {
                         mainImage.classList.add('hidden');
-                        mainVideo.classList.remove('hidden');
-                        mainVideo.src = url;
+                        mainVideo.classList.remove('hidden'); mainVideo.src = url;
                     };
 
                     if (campaign.videoUrl) {
@@ -210,13 +217,9 @@
                         thumbContainer.appendChild(thumb);
                     });
 
-                    if (campaign.videoUrl) {
-                        showVideo(campaign.videoUrl);
-                    } else if (campaign.images && campaign.images.length > 0) {
-                        showImage(campaign.images[0]);
-                    } else {
-                        showImage('https://placehold.co/800x600/e2e8f0/e2e8f0?text=Sem+Mídia');
-                    }
+                    if (campaign.videoUrl) { showVideo(campaign.videoUrl); }
+                    else if (campaign.images && campaign.images.length > 0) { showImage(campaign.images[0]); }
+                    else { showImage('https://placehold.co/800x600/e2e8f0/e2e8f0?text=Sem+Mídia'); }
 
                     if(campaign.goal) {
                         const progress = campaign.progress || 0;
@@ -229,14 +232,23 @@
 
                     const address = campaign.address || {};
                     const operation = campaign.operation || {};
-
                     document.getElementById('campaign-address').textContent = `${address.street || ''}, ${address.number || ''} - ${address.district || ''}`;
-                    if(address.street) { document.getElementById('map-link').href = address.mapLink || '#'; } else { document.getElementById('address-block').style.display = 'none'; }
+                    if(!address.street) document.getElementById('address-block').style.display = 'none';
                     if(operation.hours) { document.getElementById('campaign-hours').textContent = operation.hours; } else { document.getElementById('hours-block').style.display = 'none'; }
                     if(operation.requiredDocs) { document.getElementById('campaign-docs').textContent = operation.requiredDocs; } else { document.getElementById('docs-block').style.display = 'none'; }
                     
-                    if (campaign.expiresAt) {
-                        updateCountdown(campaign.expiresAt.toDate());
+                    if (campaign.expiresAt) { updateCountdown(campaign.expiresAt.toDate()); }
+
+                    const interactionsColRef = collection(db, campaignRef.path, 'interactions');
+                    const interactionsSnapshot = await getDocs(interactionsColRef);
+                    const helpersCount = interactionsSnapshot.size;
+                    helpersCountText.textContent = helpersCount > 0 ? `Junte-se a ${helpersCount} pessoa(s) que já decidiram ajudar!` : 'Seja o primeiro a ajudar!';
+                    
+                    const userInteractionRef = doc(db, interactionsColRef.path, currentUserSession.auth.uid);
+                    const userInteractionSnap = await getDoc(userInteractionRef);
+                    if (userInteractionSnap.exists()) {
+                        helpButton.textContent = 'Obrigado por Ajudar!';
+                        helpButton.disabled = true;
                     }
 
                     loadingContainer.classList.add('hidden');
@@ -249,6 +261,21 @@
                 loadingContainer.innerHTML = '<p class="text-red-500 text-center">Ocorreu um erro ao carregar.</p>';
             }
         }
+
+        helpButton.addEventListener('click', async () => {
+            if (!currentUserSession?.auth || !campaignId) return;
+
+            const profile = currentUserSession.profile;
+            if (!profile || !profile.phone || !profile.address?.cep) {
+                alert("Para continuar, por favor, complete seu perfil de doador. Você será redirecionado agora.");
+                const destination = `registrar-doacao.html?id=${campaignId}`;
+                localStorage.setItem('postProfileUpdateRedirect', destination);
+                window.location.href = 'perfil-doador.html';
+                return;
+            }
+            
+            window.location.href = `registrar-doacao.html?id=${campaignId}`;
+        });
     </script>
 </body>
 </html>
