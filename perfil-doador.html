@@ -36,7 +36,7 @@
                     <div>
                         <label for="profile-picture-upload" class="cursor-pointer bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50">
                             <span>Alterar Foto</span>
-                            <input id="profile-picture-upload" name="profile-picture-upload" type="file" class="sr-only">
+                            <input id="profile-picture-upload" name="profile-picture-upload" type="file" class="sr-only" accept="image/png, image/jpeg, image/webp">
                         </label>
                         <p class="text-xs text-gray-500 mt-2">PNG, JPG, WEBP até 2MB.</p>
                     </div>
@@ -90,7 +90,6 @@
                 </div>
             </form>
 
-            <!-- Seção de Histórico (será implementada no futuro) -->
             <div id="history-section" class="mt-12">
                  <h2 class="text-2xl font-bold text-gray-800 border-b pb-4 mb-6">Meu Histórico de Doações</h2>
                  <p class="text-gray-500">Em breve, você poderá ver todas as suas contribuições aqui!</p>
@@ -127,34 +126,38 @@
         });
 
         async function loadUserProfile() {
-            // Doador sempre fica na coleção 'users'
             const userDocRef = doc(db, "users", currentUser.uid);
             const docSnap = await getDoc(userDocRef);
 
             if (docSnap.exists()) {
                 userProfile = docSnap.data();
-                populateForm();
             } else {
-                // Se não houver perfil, cria um com dados básicos
+                // Se não houver perfil no Firestore (ex: primeiro login com Google)
+                // cria um objeto de perfil inicial com os dados do Google.
                 userProfile = {
                     displayName: currentUser.displayName,
                     email: currentUser.email,
-                    photoURL: currentUser.photoURL,
+                    photoURL: currentUser.photoURL, // Pega a foto do Google
                     role: 'doador',
                     status: 'ativo'
                 };
-                populateForm();
             }
+            // Garante que o objeto userProfile sempre terá os campos necessários
+            // para evitar erros de 'undefined' mais tarde.
+            userProfile.phone = userProfile.phone || '';
+            userProfile.address = userProfile.address || {};
+            populateForm();
         }
 
         function populateForm() {
+            // CORREÇÃO: Garante que a foto do Google seja exibida
             document.getElementById('profile-picture-preview').src = userProfile.photoURL || 'https://placehold.co/128x128/e2e8f0/cbd5e0?text=Foto';
             document.getElementById('profile-name').value = userProfile.displayName || '';
-            document.getElementById('profile-phone').value = userProfile.phone || '';
-            document.getElementById('profile-cep').value = userProfile.address?.cep || '';
-            document.getElementById('profile-street').value = userProfile.address?.street || '';
-            document.getElementById('profile-number').value = userProfile.address?.number || '';
-            document.getElementById('profile-district').value = userProfile.address?.district || '';
+            document.getElementById('profile-phone').value = userProfile.phone;
+            document.getElementById('profile-cep').value = userProfile.address.cep || '';
+            document.getElementById('profile-street').value = userProfile.address.street || '';
+            document.getElementById('profile-number').value = userProfile.address.number || '';
+            document.getElementById('profile-district').value = userProfile.address.district || '';
             
             IMask(document.getElementById('profile-phone'), { mask: '(00) 00000-0000' });
             IMask(document.getElementById('profile-cep'), { mask: '00000-000' });
@@ -179,19 +182,21 @@
             feedbackDiv.textContent = '';
 
             try {
-                let photoURL = userProfile.photoURL;
+                // CORREÇÃO PRINCIPAL: Garante que photoURL nunca seja 'undefined'
+                let finalPhotoURL = userProfile.photoURL || null;
+
                 if (profilePictureFile) {
                     const filePath = `profile_pictures/${currentUser.uid}/${profilePictureFile.name}`;
                     const fileRef = ref(storage, filePath);
                     const snapshot = await uploadBytes(fileRef, profilePictureFile);
-                    photoURL = await getDownloadURL(snapshot.ref);
+                    finalPhotoURL = await getDownloadURL(snapshot.ref);
                 }
 
                 const updatedProfile = {
-                    ...userProfile, // Mantém dados existentes como role, status, etc.
+                    ...userProfile,
                     displayName: document.getElementById('profile-name').value,
                     phone: document.getElementById('profile-phone').value,
-                    photoURL: photoURL,
+                    photoURL: finalPhotoURL, // Usa a variável corrigida
                     address: {
                         cep: document.getElementById('profile-cep').value,
                         street: document.getElementById('profile-street').value,
@@ -205,6 +210,13 @@
 
                 feedbackDiv.textContent = 'Perfil atualizado com sucesso!';
                 feedbackDiv.className = 'text-sm text-green-600';
+
+                // Verifica se há um redirecionamento pendente
+                const redirect = localStorage.getItem('postProfileUpdateRedirect');
+                if (redirect) {
+                    localStorage.removeItem('postProfileUpdateRedirect');
+                    window.location.href = redirect;
+                }
 
             } catch (error) {
                 console.error("Erro ao atualizar perfil:", error);
