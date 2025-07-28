@@ -28,7 +28,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        #help-button:disabled { background-color: #4ade80; cursor: not-allowed; }
+        #help-button:disabled { background-color: #9ca3af; cursor: not-allowed; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -239,17 +239,9 @@
                     
                     if (campaign.expiresAt) { updateCountdown(campaign.expiresAt.toDate()); }
 
-                    const interactionsColRef = collection(db, campaignRef.path, 'interactions');
-                    const interactionsSnapshot = await getDocs(interactionsColRef);
-                    const helpersCount = interactionsSnapshot.size;
-                    helpersCountText.textContent = helpersCount > 0 ? `Junte-se a ${helpersCount} pessoa(s) que já decidiram ajudar!` : 'Seja o primeiro a ajudar!';
-                    
-                    const userInteractionRef = doc(db, interactionsColRef.path, currentUserSession.auth.uid);
-                    const userInteractionSnap = await getDoc(userInteractionRef);
-                    if (userInteractionSnap.exists()) {
-                        helpButton.textContent = 'Obrigado por Ajudar!';
-                        helpButton.disabled = true;
-                    }
+                    // A lógica de "interactions" foi removida daqui para simplificar o fluxo inicial
+                    // Ela será reintroduzida na página registrar-doacao.html
+                    helpersCountText.textContent = ''; // Limpa o texto por enquanto
 
                     loadingContainer.classList.add('hidden');
                     campaignContent.classList.remove('hidden');
@@ -266,7 +258,8 @@
             if (!currentUserSession?.auth || !campaignId) return;
 
             const profile = currentUserSession.profile;
-            if (!profile || !profile.phone || !profile.address?.cep) {
+            // Verificação simplificada para garantir que o perfil existe
+            if (!profile || profile.role !== 'doador') {
                 alert("Para continuar, por favor, complete seu perfil de doador. Você será redirecionado agora.");
                 const destination = `registrar-doacao.html?id=${campaignId}`;
                 localStorage.setItem('postProfileUpdateRedirect', destination);
@@ -274,6 +267,7 @@
                 return;
             }
             
+            // Se o perfil existir, vai direto para o registro da doação
             window.location.href = `registrar-doacao.html?id=${campaignId}`;
         });
     </script>
