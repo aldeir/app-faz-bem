@@ -61,18 +61,20 @@ const logout = () => signOut(auth);
 /**
  * Obtém a sessão do usuário atual (auth e perfil do Firestore).
  */
+
 const getCurrentUser = () => {
     return new Promise((resolve) => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             unsubscribe();
             if (user) {
-                // Verifica em ambas as coleções, 'entidades' e 'users'
-                const appId = firebaseConfig.projectId;
-                let userDocRef = doc(db, "artifacts", appId, "public", "data", "entidades", user.uid);
+                // ATUALIZADO: Prioriza a busca na coleção 'users' para doadores
+                let userDocRef = doc(db, "users", user.uid);
                 let docSnap = await getDoc(userDocRef);
 
+                // Se não encontrar em 'users', procura em 'entidades'
                 if (!docSnap.exists()) {
-                    userDocRef = doc(db, "users", user.uid);
+                    const appId = firebaseConfig.projectId;
+                    userDocRef = doc(db, "artifacts", appId, "public", "data", "entidades", user.uid);
                     docSnap = await getDoc(userDocRef);
                 }
                 
@@ -83,6 +85,8 @@ const getCurrentUser = () => {
         });
     });
 };
+
+
 
 // Exporta tudo para ser usado em outras páginas
 export { 
