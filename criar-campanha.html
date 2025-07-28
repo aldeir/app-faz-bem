@@ -103,7 +103,17 @@
                                         <input type="text" id="campaign-address-number" placeholder="Nº *" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
                                         <input type="text" id="campaign-address-district" placeholder="Bairro" class="block w-full col-span-2 border-gray-300 rounded-md shadow-sm py-2 px-3">
                                     </div>
-                                    <input type="text" id="campaign-hours" placeholder="Horário de funcionamento" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+                                    <!-- CAMPOS DE HORÁRIO ATUALIZADOS -->
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="campaign-hours-start" class="block text-sm font-medium text-gray-700">Início do Atendimento</label>
+                                            <select id="campaign-hours-start" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></select>
+                                        </div>
+                                        <div>
+                                            <label for="campaign-hours-end" class="block text-sm font-medium text-gray-700">Fim do Atendimento</label>
+                                            <select id="campaign-hours-end" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></select>
+                                        </div>
+                                    </div>
                                     <textarea id="campaign-docs" rows="2" placeholder="Documentos necessários ou outras instruções" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></textarea>
                                 </div>
                             </div>
@@ -145,6 +155,8 @@
         const districtInput = document.getElementById('campaign-address-district');
         const numberInput = document.getElementById('campaign-address-number');
         const campaignTypeSelect = document.getElementById('campaign-type');
+        const hoursStartSelect = document.getElementById('campaign-hours-start');
+        const hoursEndSelect = document.getElementById('campaign-hours-end');
 
         IMask(cepInput, { mask: '00000-000' });
 
@@ -207,7 +219,9 @@
             streetInput.value = data.address?.street || '';
             numberInput.value = data.address?.number || '';
             districtInput.value = data.address?.district || '';
-            document.getElementById('campaign-hours').value = data.operation?.hours || '';
+            hoursStartSelect.value = data.operation?.hoursStart || '08:00';
+            updateEndTimeOptions(hoursStartSelect.value);
+            hoursEndSelect.value = data.operation?.hoursEnd || '17:00';
             document.getElementById('campaign-docs').value = data.operation?.requiredDocs || '';
             if (data.images && data.images.length > 0) { renderMediaPreview(data.images); }
             if (data.videoUrl) {
@@ -230,7 +244,29 @@
             }
         };
 
+        const generateTimeOptions = () => {
+            let options = '';
+            for (let i = 7; i <= 18; i++) {
+                const hour = String(i).padStart(2, '0');
+                options += `<option value="${hour}:00">${hour}:00</option>`;
+            }
+            return options;
+        };
+
+        const updateEndTimeOptions = (startTime) => {
+            let options = '';
+            const startHour = parseInt(startTime.split(':')[0]);
+            for (let i = startHour + 1; i <= 18; i++) {
+                const hour = String(i).padStart(2, '0');
+                options += `<option value="${hour}:00">${hour}:00</option>`;
+            }
+            hoursEndSelect.innerHTML = options;
+        };
+
         const initializePage = async (user, userSession) => {
+            hoursStartSelect.innerHTML = generateTimeOptions();
+            updateEndTimeOptions(hoursStartSelect.value);
+            
             await loadCampaignTypes();
             let campaignDataForEdit = null;
             if (isEditMode) {
@@ -287,6 +323,10 @@
             videoPreviewContainer.classList.remove('hidden');
         });
 
+        hoursStartSelect.addEventListener('change', (e) => {
+            updateEndTimeOptions(e.target.value);
+        });
+
         createCampaignForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             formError.classList.add('hidden');
@@ -322,7 +362,8 @@
                         district: districtInput.value || null,
                     },
                     operation: {
-                        hours: document.getElementById('campaign-hours').value || null,
+                        hoursStart: hoursStartSelect.value,
+                        hoursEnd: hoursEndSelect.value,
                         requiredDocs: document.getElementById('campaign-docs').value || null,
                     },
                     ...(imageUrls && { images: imageUrls }),
