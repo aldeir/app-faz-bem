@@ -332,83 +332,87 @@
             showLoadingButton(true);
             const user = auth.currentUser;
             const campaignsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
-            try {
-                let imageUrls;
-                if (campaignMediaFiles.length > 0) {
-                    const uploadPromises = campaignMediaFiles.map(file => {
-                        const mediaRef = ref(storage, `campaigns/${user.uid}_${Date.now()}_${file.name}`);
-                        return uploadBytes(mediaRef, file).then(snapshot => getDownloadURL(snapshot.ref));
-                    });
-                    imageUrls = await Promise.all(uploadPromises);
-                }
-                let videoUrl;
-                if (campaignVideoFile) {
-                    const videoRef = ref(storage, `campaigns/${user.uid}_${Date.now()}_${campaignVideoFile.name}`);
-                    const uploadResult = await uploadBytes(videoRef, campaignVideoFile);
-                    videoUrl = await getDownloadURL(uploadResult.ref); 
-                }
-                const dataToSave = {
-                    title: document.getElementById('campaign-title').value,
-                    description: document.getElementById('campaign-description').value,
-                    type: document.getElementById('campaign-type').value,
-                    goal: document.getElementById('campaign-goal').value || null,
-                    priority: document.getElementById('campaign-priority').value,
-                    slots: parseInt(document.getElementById('campaign-slots').value, 10) || 1,
-                    address: {
-                        cep: cepInput.value,
-                        street: streetInput.value || null,
-                        number: numberInput.value || null,
-                        district: districtInput.value || null,
-                    },
-                    operation: {
-                        hoursStart: hoursStartSelect.value,
-                        hoursEnd: hoursEndSelect.value,
-                        requiredDocs: document.getElementById('campaign-docs').value || null,
-                    },
-                    ...(imageUrls && { images: imageUrls }),
-                    ...(videoUrl && { videoUrl: videoUrl }),
-                };
-                if (isEditMode) {
-                    if (videoUrl === undefined) delete dataToSave.videoUrl;
-                    const campaignRef = doc(db, campaignsColPath, campaignIdToEdit);
-                    await updateDoc(campaignRef, dataToSave);
-                    document.getElementById('submit-feedback').textContent = 'Campanha atualizada com sucesso!';
-                } else {
-                    let entityInfo;
-                    const entitySelector = document.getElementById('entity-selector');
-                    if (entitySelector) {
-                        const selectedId = entitySelector.value;
-                        entityInfo = (selectedId === 'app_faz_bem') ? 
-                            { name: "App Faz Bem", uid: "app_faz_bem" } :
-                            { name: allEntities.find(e => e.id === selectedId).publicName, uid: selectedId };
-                    } else {
-                        const userSession = await getCurrentUser();
-                        entityInfo = { name: userSession.profile.publicName, uid: user.uid };
-                    }
-                    const now = Timestamp.now();
-                    const startsAtInput = document.getElementById('campaign-starts-at').value;
-                    const startsAt = startsAtInput ? Timestamp.fromDate(new Date(startsAtInput)) : now;
-                    const durationInSeconds = parseInt(document.getElementById('campaign-duration').value, 10);
-                    const expiresAt = new Timestamp(startsAt.seconds + durationInSeconds, startsAt.nanoseconds);
-                    const status = startsAt.toMillis() > now.toMillis() ? 'upcoming' : 'active';
-                    const finalData = {
-                        ...dataToSave,
-                        entityName: entityInfo.name, creatorId: user.uid, entityId: entityInfo.uid,
-                        progress: 0, currentAmount: 0, createdAt: now,
-                        startsAt: startsAt, expiresAt: expiresAt, status: status,
-                        videoUrl: videoUrl || null,
-                    };
-                    await addDoc(collection(db, campaignsColPath), finalData);
-                    document.getElementById('submit-feedback').textContent = 'Campanha publicada com sucesso!';
-                }
-                setTimeout(() => { window.location.href = user.email === ADMIN_EMAIL ? 'superadmin.html' : 'admin.html'; }, 2000);
-            } catch (error) {
-                console.error("Erro ao salvar campanha: ", error);
-                formError.textContent = `Erro ao salvar: ${error.message}`;
-                formError.classList.remove('hidden');
-            } finally {
-                showLoadingButton(false);
-            }
+try {
+    let imageUrls;
+    if (campaignMediaFiles.length > 0) {
+        const uploadPromises = campaignMediaFiles.map(file => {
+            const mediaRef = ref(storage, `campaigns/${user.uid}_${Date.now()}_${file.name}`);
+            return uploadBytes(mediaRef, file).then(snapshot => getDownloadURL(snapshot.ref));
+        });
+        imageUrls = await Promise.all(uploadPromises);
+    }
+    let videoUrl;
+    if (campaignVideoFile) {
+        const videoRef = ref(storage, `campaigns/${user.uid}_${Date.now()}_${campaignVideoFile.name}`);
+        const uploadResult = await uploadBytes(videoRef, campaignVideoFile);
+        videoUrl = await getDownloadURL(uploadResult.ref);
+    }
+    const dataToSave = {
+        title: document.getElementById('campaign-title').value,
+        description: document.getElementById('campaign-description').value,
+        type: document.getElementById('campaign-type').value,
+        goal: parseInt(document.getElementById('campaign-goal').value, 10) || null,
+        priority: document.getElementById('campaign-priority').value,
+        slots: parseInt(document.getElementById('campaign-slots').value, 10) || 1,
+        address: {
+            cep: cepInput.value || null,
+            street: streetInput.value || null,
+            number: numberInput.value || null,
+            district: districtInput.value || null,
+        },
+        operation: {
+            hoursStart: hoursStartSelect.value || null,
+            hoursEnd: hoursEndSelect.value || null,
+            requiredDocs: document.getElementById('campaign-docs').value || null,
+        },
+        ...(imageUrls && { images: imageUrls }),
+        ...(videoUrl && { videoUrl: videoUrl }),
+    };
+
+    if (isEditMode) {
+        if (imageUrls === undefined) delete dataToSave.images;
+        if (videoUrl === undefined) delete dataToSave.videoUrl;
+        const campaignRef = doc(db, campaignsColPath, campaignIdToEdit);
+        await updateDoc(campaignRef, dataToSave);
+        await showAlertModal('Sucesso!', 'A campanha foi atualizada com sucesso.');
+    } else {
+        // Lógica de criação (código existente)
+        let entityInfo;
+        const entitySelector = document.getElementById('entity-selector');
+        if (entitySelector) {
+            const selectedId = entitySelector.value;
+            entityInfo = (selectedId === 'app_faz_bem') ? 
+                { name: "App Faz Bem", uid: "app_faz_bem" } :
+                { name: allEntities.find(e => e.id === selectedId).publicName, uid: selectedId };
+        } else {
+            const userSession = await getCurrentUser();
+            entityInfo = { name: userSession.profile.publicName, uid: user.uid };
+        }
+        const now = Timestamp.now();
+        const startsAtInput = document.getElementById('campaign-starts-at').value;
+        const startsAt = startsAtInput ? Timestamp.fromDate(new Date(startsAtInput)) : now;
+        const durationInSeconds = parseInt(document.getElementById('campaign-duration').value, 10);
+        const expiresAt = new Timestamp(startsAt.seconds + durationInSeconds, startsAt.nanoseconds);
+        const status = startsAt.toMillis() > now.toMillis() ? 'upcoming' : 'active';
+        const finalData = {
+            ...dataToSave,
+            entityName: entityInfo.name, creatorId: user.uid, entityId: entityInfo.uid,
+            progress: 0, currentAmount: 0, createdAt: now,
+            startsAt: startsAt, expiresAt: expiresAt, status: status,
+            images: imageUrls || [], videoUrl: videoUrl || null,
+        };
+        await addDoc(collection(db, campaignsColPath), finalData);
+        await showAlertModal('Sucesso!', 'Sua campanha foi publicada com sucesso.');
+    }
+    // Redirecionamento após o modal ser fechado
+    window.location.href = user.email === ADMIN_EMAIL ? 'superadmin.html' : 'admin.html';
+} catch (error) {
+    console.error("Erro ao salvar campanha: ", error);
+    // NOVA IMPLEMENTAÇÃO: Usando o modal para exibir o erro
+    showAlertModal('Erro ao Salvar', `Ocorreu um problema ao salvar a campanha. Por favor, tente novamente. Detalhes: ${error.message}`);
+} finally {
+    showLoadingButton(false);
+}
         });
     </script>
 </body>
