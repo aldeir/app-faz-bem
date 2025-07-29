@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entrar ou Cadastrar - Faz Bem</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -18,12 +16,12 @@
     </style>
 </head>
 <body class="bg-gray-100">
+    
+    <div id="app-header"></div>
 
     <div id="app-container">
-
-        <!-- TELA DE LOGIN / ESCOLHA DE CADASTRO -->
         <div id="login-view">
-            <div class="min-h-screen flex items-center justify-center py-12 px-4">
+            <div class="min-h-screen flex items-center justify-center px-4">
                 <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
                     <div>
                         <h1 class="text-center text-4xl font-bold text-green-600">Faz Bem</h1>
@@ -37,7 +35,10 @@
                         <div id="login-error" class="text-red-500 text-sm hidden mt-2"></div>
                         <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">Entrar</button>
                     </form>
-                    <div class="mt-6"><div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Ou</span></div></div><div class="mt-6"><button id="google-login-btn" class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"><img class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo">Entrar com Google</button></div></div>
+                    <div class="mt-6">
+                        <div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Ou</span></div></div>
+                        <div class="mt-6"><button id="google-login-btn" class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"><img class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo">Entrar com Google</button></div>
+                    </div>
                     
                     <div class="mt-8 pt-6 border-t border-gray-200 text-center">
                          <h3 class="text-lg font-medium text-gray-800">Ainda não faz parte?</h3>
@@ -54,90 +55,95 @@
                 </div>
             </div>
         </div>
-        
     </div>
 
-    <!-- SCRIPT CORRIGIDO E MODULARIZADO -->
     <script type="module">
-        // Importa as funções necessárias do arquivo de configuração central
-        import { auth, db, onAuthStateChanged, firebaseConfig } from './app-config.js';
-        import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { auth, onAuthStateChanged, getCurrentUser, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, setDoc, doc, db } from './app-config.js';
+        import { injectHeader } from './app-header.js';
 
-        document.addEventListener('DOMContentLoaded', () => {
+        // Função principal para encapsular a lógica da página
+        async function setupLoginPage() {
+            // Injeta o cabeçalho assim que a página carrega
+            await injectHeader();
+
             const loginForm = document.getElementById('login-form');
             const googleLoginBtn = document.getElementById('google-login-btn');
             const errorDiv = document.getElementById('login-error');
             let isRedirecting = false;
+            
+            // Verifica se há um parâmetro 'redirect' na URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectUrl = urlParams.get('redirect') || 'index.html';
 
             const handleRedirect = async (user) => {
                 if (isRedirecting) return;
                 isRedirecting = true;
-
-                // Tenta encontrar um perfil na coleção 'entidades'
-                const appId = firebaseConfig.projectId;
-                let userDocRef = doc(db, "artifacts", appId, "public", "data", "entidades", user.uid);
-                let docSnap = await getDoc(userDocRef);
-
-                // Se não encontrar, procura na coleção 'users'
-                if (!docSnap.exists()) {
-                    userDocRef = doc(db, "users", user.uid);
-                    docSnap = await getDoc(userDocRef);
-                }
-
-                // Se ainda não existir em nenhum lugar, cria um perfil de 'doador' na coleção 'users'
-                if (!docSnap.exists()) {
+                
+                const userSession = await getCurrentUser();
+                
+                // Se o usuário já tem um perfil definido (doador ou entidade)
+                if (userSession && userSession.profile) {
+                    // Redireciona para a página de admin se for entidade, senão para a URL de redirect (ou index).
+                    if (userSession.profile.role === 'entidade') {
+                        window.location.href = 'admin.html';
+                    } else {
+                        window.location.href = redirectUrl;
+                    }
+                } else {
+                    // Se é um novo usuário (ex: primeiro login com Google) e não tem perfil,
+                    // cria um perfil de doador padrão e redireciona.
                     await setDoc(doc(db, "users", user.uid), {
                         uid: user.uid,
                         displayName: user.displayName || 'Utilizador',
                         email: user.email,
-                        role: 'doador', // Padrão para novos logins via Google
+                        role: 'doador',
                         status: 'ativo'
                     });
-                    docSnap = await getDoc(doc(db, "users", user.uid));
-                }
-                
-                const userData = docSnap.data();
-
-                // Lógica de redirecionamento baseada no papel do usuário
-                if (userData && userData.role === 'entidade') {
-                    window.location.href = 'admin.html';
-                } else {
-                    window.location.href = 'index.html';
+                    window.location.href = redirectUrl;
                 }
             };
-
+            
+            // Listener que detecta mudanças no estado de autenticação
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     handleRedirect(user);
                 }
             });
 
+            // Listener para o formulário de login com e-mail/senha
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                errorDiv.textContent = '';
+                errorDiv.classList.add('hidden');
+                
                 const email = document.getElementById('login-email').value;
                 const password = document.getElementById('login-password').value;
+                
                 try {
                     await signInWithEmailAndPassword(auth, email, password);
+                    // O onAuthStateChanged vai cuidar do redirecionamento
                 } catch (error) {
                     errorDiv.textContent = "Email ou senha inválidos.";
                     errorDiv.classList.remove('hidden');
                 }
             });
             
-            const handleGoogleSignIn = async () => {
+            // Listener para o botão de login com Google
+            googleLoginBtn.addEventListener('click', async () => {
                 const provider = new GoogleAuthProvider();
                 try {
                     await signInWithPopup(auth, provider);
+                    // O onAuthStateChanged vai cuidar do redirecionamento
                 } catch (error) {
                     console.error("Erro no login com Google:", error);
                     errorDiv.textContent = "Falha ao autenticar com o Google. Tente novamente.";
                     errorDiv.classList.remove('hidden');
                 }
-            };
-
-            googleLoginBtn.addEventListener('click', handleGoogleSignIn);
-        });
+            });
+        }
+        
+        // Inicia a configuração da página
+        setupLoginPage();
     </script>
 </body>
 </html>
