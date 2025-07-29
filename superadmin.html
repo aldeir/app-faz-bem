@@ -366,7 +366,7 @@
 
         function renderItemSubtypes() {
             itemSubtypesList.innerHTML = '';
-            if (Object.keys(campaignTypeSettings).length === 0) {
+            if (Object.keys(campaignTypeSettings).length <= 1) { // Only 'default' exists
                 itemSubtypesList.innerHTML = '<p class="text-gray-500">Adicione Tipos de Campanha para começar.</p>';
                 return;
             }
@@ -490,7 +490,7 @@
                 }
             }
             if (button.dataset.action === 'delete-type') {
-                const confirmed = await showConfirmationModal('Remover Tipo', `Tem certeza que quer remover o tipo "${campaignTypeSettings[typeId].label}"? Esta ação não pode ser desfeita.`);
+                const confirmed = await showConfirmationModal('Remover Tipo', `Tem certeza que quer remover o tipo "${campaignTypeSettings[typeId].label}"? Esta ação não pode ser desfeita e removerá também os itens associados.`);
                 if (confirmed) {
                     try {
                         await updateDoc(typesDocRef, { [typeId]: deleteField() });
