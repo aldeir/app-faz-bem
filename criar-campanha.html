@@ -135,6 +135,7 @@
         import { auth, db, storage, onAuthStateChanged, getCurrentUser, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
         import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+        import { showAlertModal } from './modal-handler.js';
 
         const pageTitle = document.getElementById('page-title');
         const loadingView = document.getElementById('loading-view');
