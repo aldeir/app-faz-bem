@@ -29,11 +29,17 @@
             100% { transform: rotate(360deg); }
         }
         #help-button:disabled { background-color: #9ca3af; cursor: not-allowed; }
+        .donor-avatar {
+            transition: transform 0.2s ease-in-out;
+        }
+        .donor-avatar:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
 
-    <!-- O cabeçalho agora é injetado dinamicamente -->
     <div id="app-header"></div>
 
     <div id="loading-container" class="flex items-center justify-center h-screen">
@@ -101,45 +107,69 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div id="donors-section" class="mt-8 pt-6 border-t">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">Apoiadores desta Causa</h3>
+                            <div id="donors-list" class="flex flex-wrap items-center -space-x-2"></div>
+                            <p id="donors-placeholder" class="text-sm text-gray-500 mt-2 hidden">Seja o primeiro a ajudar!</p>
+                        </div>
+
                         <div class="mt-8">
                             <button id="help-button" class="w-full bg-green-600 text-white font-bold py-4 px-4 rounded-lg hover:bg-green-700 text-lg transition-colors">
                                 Eu Quero Ajudar!
                             </button>
-                            <p id="helpers-count-text" class="text-center text-sm text-gray-500 mt-2"></p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </main>
+    
+    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
+                            <div class="mt-2">
+                                <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import { db, auth, onAuthStateChanged, firebaseConfig, getCurrentUser } from './app-config.js';
-        import { doc, getDoc, collection, getDocs, setDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { doc, getDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { injectHeader } from './app-header.js';
+        import { showAlertModal } from './modal-handler.js';
 
         const loadingContainer = document.getElementById('loading-container');
         const campaignContent = document.getElementById('campaign-content');
         const helpButton = document.getElementById('help-button');
-        const helpersCountText = document.getElementById('helpers-count-text');
+        const donorsList = document.getElementById('donors-list');
+        const donorsPlaceholder = document.getElementById('donors-placeholder');
         
         let currentUserSession = null;
         let campaignId = null;
         let countdownInterval;
 
         onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                if (!user.emailVerified && user.providerData.some(p => p.providerId === 'password')) {
-                    window.location.href = 'verificar-email.html';
-                    return;
-                }
-                currentUserSession = await getCurrentUser();
-                injectHeader();
-                loadCampaignDetails();
-            } else {
-                const destination = window.location.href;
-                window.location.href = `login.html?redirect=${encodeURIComponent(destination)}`;
-            }
+            await injectHeader();
+            currentUserSession = await getCurrentUser();
+            loadCampaignDetails();
         });
 
         function updateCountdown(expiresAt) {
@@ -234,14 +264,13 @@
                     const operation = campaign.operation || {};
                     document.getElementById('campaign-address').textContent = `${address.street || ''}, ${address.number || ''} - ${address.district || ''}`;
                     if(!address.street) document.getElementById('address-block').style.display = 'none';
-                    if(operation.hours) { document.getElementById('campaign-hours').textContent = operation.hours; } else { document.getElementById('hours-block').style.display = 'none'; }
+                    document.getElementById('campaign-hours').textContent = `${operation.hoursStart || ''} - ${operation.hoursEnd || ''}`;
+                    if(!operation.hoursStart) document.getElementById('hours-block').style.display = 'none';
                     if(operation.requiredDocs) { document.getElementById('campaign-docs').textContent = operation.requiredDocs; } else { document.getElementById('docs-block').style.display = 'none'; }
                     
                     if (campaign.expiresAt) { updateCountdown(campaign.expiresAt.toDate()); }
 
-                    // A lógica de "interactions" foi removida daqui para simplificar o fluxo inicial
-                    // Ela será reintroduzida na página registrar-doacao.html
-                    helpersCountText.textContent = ''; // Limpa o texto por enquanto
+                    loadCampaignDonors(campaignId);
 
                     loadingContainer.classList.add('hidden');
                     campaignContent.classList.remove('hidden');
@@ -254,20 +283,59 @@
             }
         }
 
-        helpButton.addEventListener('click', async () => {
-            if (!currentUserSession?.auth || !campaignId) return;
+        function loadCampaignDonors(campaignId) {
+            const donationsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/donations`;
+            const q = query(collection(db, donationsColPath), where("campaignId", "==", campaignId));
 
+            onSnapshot(q, (snapshot) => {
+                if (snapshot.empty) {
+                    donorsList.innerHTML = '';
+                    donorsPlaceholder.classList.remove('hidden');
+                    return;
+                }
+
+                donorsPlaceholder.classList.add('hidden');
+                donorsList.innerHTML = '';
+                const uniqueDonors = {};
+
+                snapshot.docs.forEach(doc => {
+                    const donation = doc.data();
+                    if (!uniqueDonors[donation.donorId]) {
+                        uniqueDonors[donation.donorId] = donation;
+                    }
+                });
+
+                Object.values(uniqueDonors).forEach(donation => {
+                    const isAnonymous = donation.privacy === 'anonymous';
+                    const photoURL = isAnonymous ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A' : donation.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
+                    const displayName = isAnonymous ? 'Anônimo' : donation.donorName;
+
+                    const img = document.createElement('img');
+                    img.src = photoURL;
+                    img.alt = `Foto de ${displayName}`;
+                    img.title = displayName;
+                    img.className = "donor-avatar inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover";
+                    
+                    donorsList.appendChild(img);
+                });
+            });
+        }
+
+        helpButton.addEventListener('click', async () => {
+            if (!currentUserSession?.auth) {
+                const destination = window.location.href;
+                window.location.href = `login.html?redirect=${encodeURIComponent(destination)}`;
+                return;
+            }
+            
             const profile = currentUserSession.profile;
-            // Verificação simplificada para garantir que o perfil existe
-            if (!profile || profile.role !== 'doador') {
-                alert("Para continuar, por favor, complete seu perfil de doador. Você será redirecionado agora.");
-                const destination = `registrar-doacao.html?id=${campaignId}`;
-                localStorage.setItem('postProfileUpdateRedirect', destination);
+            if (!profile || !profile.phone || !profile.address?.street) {
+                await showAlertModal("Perfil Incompleto", "Para doar, seu perfil precisa estar completo (com telefone e endereço). Vamos te redirecionar para a página de perfil agora.");
+                localStorage.setItem('postProfileUpdateRedirect', `registrar-doacao.html?id=${campaignId}`);
                 window.location.href = 'perfil-doador.html';
                 return;
             }
             
-            // Se o perfil existir, vai direto para o registro da doação
             window.location.href = `registrar-doacao.html?id=${campaignId}`;
         });
     </script>
