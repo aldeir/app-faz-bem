@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minhas Entregas - Faz Bem</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator/qrcode.js"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #22c55e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <div id="app-header"></div>
+
+    <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
+        <div class="text-center">
+            <div class="loader mx-auto !w-10 !h-10 !border-4"></div>
+            <p class="mt-4 text-gray-600">A carregar suas entregas...</p>
+        </div>
+    </div>
+
+    <main id="deliveries-view" class="hidden container mx-auto max-w-4xl p-4 sm:p-6 my-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Minhas Entregas Agendadas</h1>
+        <div id="deliveries-list" class="space-y-8">
+            <!-- As doações serão inseridas aqui -->
+            <p id="no-deliveries-placeholder" class="text-center text-gray-500 py-10 bg-white rounded-lg shadow">Você não possui nenhuma entrega agendada no momento.</p>
+        </div>
+    </main>
+
+    <script type="module">
+        import { auth, db, onAuthStateChanged, firebaseConfig } from './app-config.js';
+        import { collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { injectHeader } from './app-header.js';
+
+        const loadingView = document.getElementById('loading-view');
+        const deliveriesView = document.getElementById('deliveries-view');
+        const deliveriesList = document.getElementById('deliveries-list');
+        const noDeliveriesPlaceholder = document.getElementById('no-deliveries-placeholder');
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                injectHeader();
+                loadUserDeliveries(user.uid);
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        function loadUserDeliveries(userId) {
+            const donationsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/donations`;
+            const q = query(collection(db, donationsColPath), where("donorId", "==", userId), where("status", "==", "scheduled"));
+
+            onSnapshot(q, (snapshot) => {
+                if (snapshot.empty) {
+                    noDeliveriesPlaceholder.classList.remove('hidden');
+                    deliveriesList.innerHTML = '';
+                    deliveriesList.appendChild(noDeliveriesPlaceholder);
+                } else {
+                    noDeliveriesPlaceholder.classList.add('hidden');
+                    deliveriesList.innerHTML = '';
+                    const donations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    // Ordena para mostrar os agendamentos mais próximos primeiro
+                    donations.sort((a, b) => a.scheduledAt.toMillis() - b.scheduledAt.toMillis());
+
+                    donations.forEach(donation => {
+                        const card = createDeliveryCard(donation);
+                        deliveriesList.appendChild(card);
+                    });
+                }
+                loadingView.classList.add('hidden');
+                deliveriesView.classList.remove('hidden');
+            }, (error) => {
+                console.error("Erro ao buscar doações:", error);
+                deliveriesList.innerHTML = `<p class="text-red-500 text-center">Ocorreu um erro ao carregar suas doações.</p>`;
+                loadingView.classList.add('hidden');
+                deliveriesView.classList.remove('hidden');
+            });
+        }
+
+        function createDeliveryCard(donation) {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-xl shadow-lg overflow-hidden';
+
+            const scheduledDate = donation.scheduledAt.toDate();
+            const formattedDate = scheduledDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+            const formattedTime = scheduledDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            let itemsHtml = '';
+            donation.items.forEach((item, index) => {
+                const qrId = `qr-${donation.id}-${index}`;
+                itemsHtml += `
+                    <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-md">
+                        <img src="${item.photoURL}" class="w-16 h-16 rounded-md object-cover">
+                        <div class="flex-grow">
+                            <p class="font-bold">${item.type}</p>
+                            <p class="text-sm text-gray-600">${item.details} (${item.condition})</p>
+                        </div>
+                        <div id="${qrId}" class="w-20 h-20"></div>
+                    </div>
+                `;
+                // Gera o QR Code após o elemento ser adicionado ao DOM
+                setTimeout(() => generateQRCode(qrId, `${donation.id}|${index}`), 0);
+            });
+
+            card.innerHTML = `
+                <div class="p-6 bg-green-600 text-white">
+                    <h2 class="text-2xl font-bold">${donation.campaignTitle}</h2>
+                    <p class="mt-1">Agendado para: <span class="font-semibold">${formattedDate} às ${formattedTime}</span></p>
+                </div>
+                <div class="p-6">
+                    <h3 class="font-bold text-lg text-gray-800 mb-4">Itens para Entregar</h3>
+                    <div class="space-y-3">
+                        ${itemsHtml}
+                    </div>
+                    <div class="mt-6 pt-4 border-t">
+                        <p class="text-sm text-gray-600">Leve esta tela no dia e horário agendados. O representante da entidade irá escanear o QR Code de cada item para confirmar o recebimento.</p>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function generateQRCode(elementId, text) {
+            const qr = qrcode(0, 'L');
+            qr.addData(text);
+            qr.make();
+            document.getElementById(elementId).innerHTML = qr.createImgTag(4, 4);
+        }
+
+    </script>
+</body>
+</html>
