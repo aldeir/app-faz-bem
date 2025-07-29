@@ -45,8 +45,9 @@
             <div class="mt-6 pt-6 border-t">
                 <h3 class="text-lg font-medium text-gray-900">Adicionar Novo Item</h3>
                 <form id="add-item-form" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                    <select id="item-type" class="border-gray-300 rounded-md shadow-sm w-full col-span-1 md:col-span-2"><option value="">Selecione o tipo de item...</option></select>
-                    <input type="text" id="item-other-type" placeholder="Descreva o item" class="hidden border-gray-300 rounded-md shadow-sm w-full col-span-1 md:col-span-2">
+                    <!-- O select agora é para SUB-ITENS -->
+                    <select id="item-subtype" class="border-gray-300 rounded-md shadow-sm w-full col-span-1 md:col-span-2"><option value="">Selecione o item...</option></select>
+                    <input type="text" id="item-other-subtype" placeholder="Descreva o item específico" class="hidden border-gray-300 rounded-md shadow-sm w-full col-span-1 md:col-span-2">
                     <input type="text" id="item-details" placeholder="Detalhes (ex: Tamanho G, azul)" class="border-gray-300 rounded-md shadow-sm">
                     <select id="item-condition" class="border-gray-300 rounded-md shadow-sm"><option value="novo">Novo</option><option value="usado">Usado</option></select>
                     <div class="col-span-1 md:col-span-2">
@@ -87,18 +88,16 @@
         </div>
     </main>
 
-    <!-- Modal placeholder -->
-    <div id="app-modal" class="hidden fixed z-50 ..."></div>
-
     <script type="module">
         import { auth, db, storage, onAuthStateChanged, getCurrentUser, firebaseConfig } from './app-config.js';
         import { doc, getDoc, collection, addDoc, Timestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
         import { injectHeader } from './app-header.js';
-        // Assuming modal-handler.js is available and showAlertModal is exported
-        // import { showAlertModal } from './modal-handler.js';
 
         // --- DOM Elements ---
+        const itemSubtypeSelect = document.getElementById('item-subtype');
+        const itemOtherSubtypeInput = document.getElementById('item-other-subtype');
+        // (Restante dos seletores de DOM)
         const loadingView = document.getElementById('loading-view');
         const donationView = document.getElementById('donation-view');
         const campaignHeader = document.getElementById('campaign-header');
@@ -106,8 +105,6 @@
         const noItemsPlaceholder = document.getElementById('no-items-placeholder');
         const addItemForm = document.getElementById('add-item-form');
         const addItemBtn = document.getElementById('add-item-btn');
-        const itemTypeSelect = document.getElementById('item-type');
-        const itemOtherTypeInput = document.getElementById('item-other-type');
         const scheduleContainer = document.getElementById('schedule-container');
         const submitDonationBtn = document.getElementById('submit-donation-btn');
         const formError = document.getElementById('form-error');
@@ -134,10 +131,8 @@
                     return;
                 }
 
-                // Profile check
                 const profile = currentUserSession.profile;
                 if (!profile || !profile.phone || !profile.address?.street) {
-                    // Using a simple alert for now, can be replaced with a custom modal
                     alert("Para doar, seu perfil precisa estar completo (com telefone e endereço). Vamos te redirecionar para a página de perfil agora.");
                     localStorage.setItem('postProfileUpdateRedirect', window.location.href);
                     window.location.href = 'perfil-doador.html';
@@ -145,7 +140,6 @@
                 }
                 
                 await loadInitialData();
-
             } else {
                 window.location.href = 'login.html';
             }
@@ -158,42 +152,59 @@
                 if (!campaignSnap.exists()) throw new Error("Campanha não encontrada.");
                 campaignData = campaignSnap.data();
 
-                const typesConfigRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'campaignTypes');
-                const typesConfigSnap = await getDoc(typesConfigRef);
-                const itemTypes = typesConfigSnap.exists() ? typesConfigSnap.data() : {};
+                // Busca a nova configuração de sub-itens
+                const subtypesConfigRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'itemSubtypes');
+                const subtypesConfigSnap = await getDoc(subtypesConfigRef);
+                const itemSubtypes = subtypesConfigSnap.exists() ? subtypesConfigSnap.data() : {};
 
                 populateCampaignHeader();
-                populateItemTypes(itemTypes);
+                // Popula o select com os sub-itens corretos
+                populateSubItemTypes(itemSubtypes[campaignData.type] || []);
                 await generateSchedule();
 
                 loadingView.classList.add('hidden');
                 donationView.classList.remove('hidden');
             } catch (error) {
                 console.error("Error loading initial data:", error);
-                loadingView.innerHTML = `<p class="text-red-500 text-center p-8">${error.message}. Verifique as regras de segurança do Firestore.</p>`;
+                loadingView.innerHTML = `<p class="text-red-500 text-center p-8">${error.message}. Verifique as regras de segurança do Firestore e Storage.</p>`;
             }
         }
 
-        // --- UI Population ---
-        function populateCampaignHeader() {
-            campaignHeader.innerHTML = `
-                <img src="${campaignData.images?.[0] || 'https://placehold.co/100x100/e2e8f0/e2e8f0'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
-                <div>
-                    <p class="text-sm text-gray-500">Você está doando para:</p>
-                    <h1 class="text-2xl font-bold text-gray-800">${campaignData.title}</h1>
-                    <p class="text-sm font-medium text-gray-600">Organizado por: ${campaignData.entityName}</p>
-                </div>`;
+        function populateSubItemTypes(subtypes) {
+            itemSubtypeSelect.innerHTML = '<option value="">Selecione o item...</option>';
+            subtypes.forEach(subtype => {
+                itemSubtypeSelect.innerHTML += `<option value="${subtype}">${subtype}</option>`;
+            });
+            itemSubtypeSelect.innerHTML += '<option value="outro">Outro</option>';
         }
+        
+        // --- (Restante do código JS sem alterações significativas, apenas a lógica de adicionar item) ---
 
-        function populateItemTypes(types) {
-            itemTypeSelect.innerHTML = '<option value="">Selecione o tipo de item...</option>';
-            for (const id in types) {
-                if (id === 'default') continue;
-                itemTypeSelect.innerHTML += `<option value="${types[id].label}">${types[id].label}</option>`;
+        itemSubtypeSelect.addEventListener('change', (e) => {
+            itemOtherSubtypeInput.classList.toggle('hidden', e.target.value !== 'outro');
+        });
+
+        addItemBtn.addEventListener('click', () => {
+            addItemError.textContent = '';
+            // A lógica agora pega o valor do select de sub-itens
+            const type = itemSubtypeSelect.value === 'outro' ? itemOtherSubtypeInput.value.trim() : itemSubtypeSelect.value;
+            const details = document.getElementById('item-details').value.trim();
+            const condition = document.getElementById('item-condition').value;
+            const photoFile = document.getElementById('item-photo').files[0];
+
+            if (!type || !photoFile) {
+                addItemError.textContent = 'Por favor, preencha o tipo do item e selecione uma foto.';
+                return;
             }
-            itemTypeSelect.innerHTML += '<option value="outro">Outro</option>';
-        }
 
+            donatedItems.push({ type, details, condition, photoFile });
+            renderDonatedItems();
+            addItemForm.reset();
+            itemOtherSubtypeInput.classList.add('hidden');
+        });
+
+        // O restante do JS (renderDonatedItems, generateSchedule, submitDonationBtn, etc.) permanece o mesmo.
+        // Assegure-se de que o código original dessas funções seja mantido aqui.
         function renderDonatedItems() {
             donatedItemsList.innerHTML = '';
             if (donatedItems.length === 0) {
@@ -214,8 +225,6 @@
                 donatedItemsList.appendChild(itemEl);
             });
         }
-
-        // --- Schedule Logic ---
         async function generateSchedule() {
             scheduleContainer.innerHTML = '<p class="text-center text-gray-500">Calculando horários disponíveis...</p>';
             const now = new Date();
@@ -284,30 +293,6 @@
                 scheduleContainer.innerHTML = '<p class="text-center text-yellow-600 bg-yellow-50 p-4 rounded-md">Não há horários de agendamento disponíveis para esta campanha no momento.</p>';
             }
         }
-
-        // --- Event Listeners ---
-        itemTypeSelect.addEventListener('change', (e) => {
-            itemOtherTypeInput.classList.toggle('hidden', e.target.value !== 'outro');
-        });
-
-        addItemBtn.addEventListener('click', () => {
-            addItemError.textContent = '';
-            const type = itemTypeSelect.value === 'outro' ? itemOtherTypeInput.value.trim() : itemTypeSelect.value;
-            const details = document.getElementById('item-details').value.trim();
-            const condition = document.getElementById('item-condition').value;
-            const photoFile = document.getElementById('item-photo').files[0];
-
-            if (!type || !photoFile) {
-                addItemError.textContent = 'Por favor, preencha o tipo do item e selecione uma foto.';
-                return;
-            }
-
-            donatedItems.push({ type, details, condition, photoFile });
-            renderDonatedItems();
-            addItemForm.reset();
-            itemOtherTypeInput.classList.add('hidden');
-        });
-
         donatedItemsList.addEventListener('click', (e) => {
             if (e.target.classList.contains('remove-item-btn')) {
                 const index = e.target.dataset.index;
@@ -315,7 +300,6 @@
                 renderDonatedItems();
             }
         });
-
         submitDonationBtn.addEventListener('click', async () => {
             formError.textContent = '';
             if (donatedItems.length === 0) {
@@ -364,8 +348,7 @@
 
                 const donationsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/donations`;
                 await addDoc(collection(db, donationsColPath), donationData);
-
-                // This can be replaced with a custom success modal
+                
                 alert('Doação registrada com sucesso! Obrigado por fazer o bem!');
                 window.location.href = 'minhas-entregas.html';
 
@@ -378,6 +361,15 @@
                 submitBtnSpinner.classList.add('hidden');
             }
         });
+        function populateCampaignHeader() {
+            campaignHeader.innerHTML = `
+                <img src="${campaignData.images?.[0] || 'https://placehold.co/100x100/e2e8f0/e2e8f0'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
+                <div>
+                    <p class="text-sm text-gray-500">Você está doando para:</p>
+                    <h1 class="text-2xl font-bold text-gray-800">${campaignData.title}</h1>
+                    <p class="text-sm font-medium text-gray-600">Organizado por: ${campaignData.entityName}</p>
+                </div>`;
+        }
 
     </script>
 </body>
