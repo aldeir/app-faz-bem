@@ -154,7 +154,8 @@
 
     <script type="module">
         import { db, auth, onAuthStateChanged, firebaseConfig, getCurrentUser } from './app-config.js';
-        import { doc, getDoc, collection, query, where, onSnapshot, runTransaction, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // CORREÇÃO: Adicionando setDoc à lista de importações do Firestore
+        import { doc, getDoc, collection, query, where, onSnapshot, runTransaction, serverTimestamp, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { injectHeader } from './app-header.js';
         import { showAlertModal } from './modal-handler.js';
 
