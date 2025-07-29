@@ -1,4 +1,4 @@
-// app-config.js (Versão 2.3 - Final)
+// app-config.js (v2.4 - Corrigido e Centralizado)
 
 // Importa as funções que você precisa dos SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -13,17 +13,17 @@ import {
     GoogleAuthProvider,
     signInWithPopup
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-// Adicionadas as funções necessárias para as novas funcionalidades
+// CORREÇÃO: Adicionando 'doc' à lista de importação do Firestore
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
 
-// A sua configuração do Firebase com o storageBucket original e correto
+// A sua configuração do Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
   authDomain: "app-faz-bem-guacui.firebaseapp.com",
   projectId: "app-faz-bem-guacui",
-  storageBucket: "app-faz-bem-guacui.firebasestorage.app", 
+  storageBucket: "app-faz-bem-guacui.appspot.com",
   messagingSenderId: "218995880923",
   appId: "1:218995880923:web:ce8a371bc402904c0dedfe",
   measurementId: "G-R5W1F2NXH4"
@@ -40,6 +40,7 @@ const ADMIN_EMAIL = 'aldeir@gmail.com'; // Email do administrador
 
 /**
  * Função centralizada para registrar uma nova entidade.
+ * (Esta função pode ser removida se não estiver sendo usada, ou mantida para referência)
  */
 async function registerUser(authData, profileData) {
   const userCredential = await createUserWithEmailAndPassword(auth, authData.email, authData.password);
@@ -103,7 +104,8 @@ export {
     signInWithEmailAndPassword,
     GoogleAuthProvider,
     signInWithPopup,
-    // Novas exportações
+    // Novas exportações centralizadas
+    doc, // CORREÇÃO: Exportando 'doc'
     setDoc,
     deleteDoc,
     serverTimestamp
