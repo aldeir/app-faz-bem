@@ -50,15 +50,11 @@
             <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 <div class="px-4 py-6 sm:px-0">
                     <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-semibold text-gray-800">Gestão de Campanhas</h2>
+                        <h2 class="text-2xl font-semibold text-gray-800">Resumo da Entidade</h2>
                         <a href="criar-campanha.html" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">+ Criar Nova Campanha</a>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <div class="bg-white p-6 rounded-lg shadow">
-                            <h3 class="text-sm font-medium text-gray-500">Total de Campanhas</h3>
-                            <p id="total-campaigns-count" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
-                        </div>
                         <div class="bg-white p-6 rounded-lg shadow">
                             <h3 class="text-sm font-medium text-gray-500">Campanhas Ativas</h3>
                             <p id="active-campaigns-count" class="mt-1 text-3xl font-semibold text-green-600">0</p>
@@ -67,13 +63,24 @@
                             <h3 class="text-sm font-medium text-gray-500">Próximas Campanhas</h3>
                             <p id="upcoming-campaigns-count" class="mt-1 text-3xl font-semibold text-blue-600">0</p>
                         </div>
+                        <a href="gerenciar-agendamentos.html" class="block bg-yellow-50 p-6 rounded-lg shadow border border-yellow-200 hover:shadow-md">
+                            <h3 class="text-sm font-medium text-yellow-700">Doações Agendadas</h3>
+                            <p id="scheduled-donations-count" class="mt-1 text-3xl font-semibold text-yellow-800">0</p>
+                        </a>
                         <div class="bg-white p-6 rounded-lg shadow">
                             <h3 class="text-sm font-medium text-gray-500">Campanhas Concluídas</h3>
                             <p id="completed-campaigns-count" class="mt-1 text-3xl font-semibold text-gray-500">0</p>
                         </div>
                     </div>
 
-                    <div id="my-campaigns-list" class="bg-white rounded-lg shadow">
+                    <div class="border-b border-gray-200">
+                        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                            <a href="#" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-green-500 text-green-600">Minhas Campanhas</a>
+                            <a href="gerenciar-agendamentos.html" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Gerenciar Agendamentos</a>
+                        </nav>
+                    </div>
+
+                    <div id="my-campaigns-list" class="bg-white rounded-b-lg shadow-sm mt-4">
                         <p id="my-campaigns-placeholder" class="text-gray-500 p-6">Ainda não criou nenhuma campanha.</p>
                     </div>
                 </div>
@@ -81,9 +88,14 @@
         </div>
     </div>
 
+    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto">
+        <!-- ... (código do modal padrão) ... -->
+    </div>
+
     <script type="module">
         import { auth, db, onAuthStateChanged, logout, firebaseConfig } from './app-config.js';
         import { collection, query, where, onSnapshot, getDoc, doc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { showConfirmationModal, showAlertModal } from './modal-handler.js';
 
         const loadingView = document.getElementById('loading-view');
         const dashboardView = document.getElementById('dashboard-view');
@@ -93,6 +105,7 @@
         const logoutBtnPending = document.getElementById('logout-btn-pending');
         const myCampaignsList = document.getElementById('my-campaigns-list');
         const myCampaignsPlaceholder = document.getElementById('my-campaigns-placeholder');
+        const scheduledDonationsCount = document.getElementById('scheduled-donations-count');
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -114,6 +127,7 @@
                         dashboardView.classList.remove('hidden');
                         userNameDisplay.textContent = entityData.publicName || user.displayName;
                         loadMyCampaigns(user.uid);
+                        loadScheduledDonations(user.uid);
                     } else {
                         loadingView.classList.add('hidden');
                         dashboardView.classList.add('hidden');
@@ -130,6 +144,14 @@
         logoutBtn.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
         logoutBtnPending.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
 
+        function loadScheduledDonations(entityId) {
+            const donationsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/donations`;
+            const q = query(collection(db, donationsColPath), where("entityId", "==", entityId), where("status", "==", "scheduled"));
+            onSnapshot(q, (snapshot) => {
+                scheduledDonationsCount.textContent = snapshot.size;
+            });
+        }
+
         function loadMyCampaigns(userId) {
             const campaignsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
             const q = query(collection(db, campaignsColPath), where("creatorId", "==", userId));
@@ -138,7 +160,6 @@
                 myCampaignsList.innerHTML = '';
                 if (snapshot.empty) {
                     myCampaignsList.appendChild(myCampaignsPlaceholder);
-                    document.getElementById('total-campaigns-count').textContent = 0;
                     document.getElementById('active-campaigns-count').textContent = 0;
                     document.getElementById('upcoming-campaigns-count').textContent = 0;
                     document.getElementById('completed-campaigns-count').textContent = 0;
@@ -147,14 +168,13 @@
 
                 let activeCount = 0;
                 let completedCount = 0;
-                let upcomingCount = 0; // Novo contador
+                let upcomingCount = 0;
                 const now = new Date();
 
                 snapshot.docs.sort((a, b) => b.data().createdAt.toMillis() - a.data().createdAt.toMillis()).forEach(docSnapshot => {
                     const campaign = docSnapshot.data();
                     const campaignId = docSnapshot.id;
 
-                    // Lógica de contagem atualizada
                     if (campaign.status === 'upcoming' && campaign.startsAt.toDate() > now) {
                         upcomingCount++;
                     } else if (campaign.expiresAt.toDate() < now) {
@@ -202,7 +222,6 @@
                     myCampaignsList.appendChild(card);
                 });
 
-                document.getElementById('total-campaigns-count').textContent = snapshot.size;
                 document.getElementById('active-campaigns-count').textContent = activeCount;
                 document.getElementById('upcoming-campaigns-count').textContent = upcomingCount;
                 document.getElementById('completed-campaigns-count').textContent = completedCount;
@@ -213,14 +232,14 @@
             const button = e.target.closest('button[data-action="end"]');
             if (button) {
                 const campaignId = button.dataset.id;
-                // Usando o modal de confirmação que já temos!
-                if (confirm('Deseja realmente concluir esta campanha agora? Esta ação não pode ser desfeita.')) {
+                const confirmed = await showConfirmationModal('Concluir Campanha', 'Deseja realmente concluir esta campanha agora? Esta ação não pode ser desfeita.');
+                if (confirmed) {
                     const campaignsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
                     const campaignRef = doc(db, campaignsColPath, campaignId);
                     try {
                         await updateDoc(campaignRef, { expiresAt: Timestamp.now() });
                     } catch (error) {
-                        alert('Erro ao concluir a campanha: ' + error.message);
+                        await showAlertModal('Erro', 'Erro ao concluir a campanha: ' + error.message);
                     }
                 }
             }
