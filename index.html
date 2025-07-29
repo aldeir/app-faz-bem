@@ -57,13 +57,11 @@
             <div id="upcoming-campaigns-section" class="campaign-section">
                 <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b-2 border-blue-200 pb-2">Próximas Campanhas</h2>
                 <div id="upcoming-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-                <p id="upcoming-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha futura agendada.</p>
             </div>
 
             <div id="recent-campaigns-section" class="campaign-section">
                 <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b-2 border-gray-300 pb-2">Campanhas Recentes</h2>
                 <div id="recent-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-                <p id="recent-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha recente encontrada.</p>
             </div>
 
             <div id="loading-container" class="text-center py-10">
@@ -77,13 +75,14 @@
         </footer>
     </div>
     
+    <div id="app-modal"></div>
+
     <script type="module">
-        import { db, auth, onAuthStateChanged, getCurrentUser, firebaseConfig, setDoc, deleteDoc, serverTimestamp, doc } from './app-config.js';
+        import { db, auth, onAuthStateChanged, ADMIN_EMAIL, getCurrentUser, firebaseConfig, setDoc, deleteDoc, serverTimestamp } from './app-config.js';
         import { injectHeader } from './app-header.js';
-        import { collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { collection, onSnapshot, query, orderBy, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { showAlertModal } from './modal-handler.js';
 
-        // --- ELEMENTOS DO DOM ---
         const loadingContainer = document.getElementById('loading-container');
         const filterContainer = document.getElementById('filter-container');
         const campaignLists = {
@@ -91,32 +90,20 @@
             upcoming: document.getElementById('upcoming-campaigns-list'),
             recent: document.getElementById('recent-campaigns-list')
         };
-        
-        // --- ESTADO DA APLICAÇÃO ---
+
         let allCampaigns = [];
         let allDonations = [];
         let allLikes = [];
         let currentUserSession = null;
 
-        // --- PONTO DE ENTRADA PRINCIPAL ---
-        // Usamos onAuthStateChanged como o controlador central da página.
-        // Ele garante que nada aconteça antes de sabermos se o usuário está logado ou não.
+        injectHeader();
+        fetchAllData();
         onAuthStateChanged(auth, async (user) => {
-            // 1. Obter a sessão completa do usuário (auth + perfil do banco de dados)
-            // A função getCurrentUser agora é robusta e não trava a aplicação
+            await injectHeader();
             currentUserSession = await getCurrentUser();
-            
-            // 2. Injetar o cabeçalho com a informação da sessão (corrigido)
-            // Passamos a sessão para que o cabeçalho saiba o que renderizar
-            injectHeader(currentUserSession);
-            
-            // 3. Agora que a UI principal está correta, carregue os dados das campanhas
-            fetchAllData();
+            renderAllSections(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
         });
 
-
-        // --- FUNÇÕES DE RENDERIZAÇÃO E LÓGICA ---
-        
         function createCampaignCard(campaign, donors, likes) {
             const campaignTypeSettings = {
                 'agasalho': { label: 'Agasalho', color: 'blue' }, 'alimento': { label: 'Alimento', color: 'orange' },
@@ -170,12 +157,12 @@
             return `
                 <div data-id="${campaign.id}" class="campaign-card flex flex-col bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow border-b-4 border-${color}-500">
                     <div class="relative">
-                        <a href="detalhes.html?id=${campaign.id}"><img class="h-48 w-full object-cover" src="${imageUrl}" alt="Imagem da ${campaign.title}"></a>
+                        <img class="h-48 w-full object-cover" src="${imageUrl}" alt="Imagem da ${campaign.title}">
                         ${statusTag}
                     </div>
                     <div class="p-6 flex-grow">
                         <div class="uppercase tracking-wide text-sm text-${color}-600 font-semibold">${campaign.entityName}</div>
-                        <a href="detalhes.html?id=${campaign.id}" class="block mt-1 text-xl leading-tight font-bold text-black hover:underline truncate" title="${campaign.title}">${campaign.title}</a>
+                        <h3 class="block mt-1 text-xl leading-tight font-bold text-black truncate" title="${campaign.title}">${campaign.title}</h3>
                         <div class="mt-4 space-y-3">
                             <div>
                                 <div class="flex justify-between text-xs font-medium text-gray-500"><span>Tempo Restante</span></div>
@@ -206,35 +193,29 @@
 
         function renderAllSections(filter = 'all') {
             const now = new Date();
-            const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.expiresAt.toDate() > now);
+            const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.startsAt.toDate() <= now && c.expiresAt.toDate() > now);
             const upcomingCampaigns = allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt.toDate() > now);
-            const recentCampaigns = allCampaigns.filter(c => c.status !== 'active' && c.status !== 'upcoming').slice(0, 4);
-            
+            const recentCampaigns = allCampaigns.filter(c => c.expiresAt.toDate() <= now).slice(0, 4);
             const filteredActive = (filter === 'all') ? activeCampaigns : activeCampaigns.filter(c => c.type === filter);
             
             renderCampaigns(filteredActive, campaignLists.active, 'active-campaigns-empty');
-            renderCampaigns(upcomingCampaigns, campaignLists.upcoming, 'upcoming-campaigns-empty');
-            renderCampaigns(recentCampaigns, campaignLists.recent, 'recent-campaigns-empty');
-
-            renderFilters(activeCampaigns);
+            renderCampaigns(upcomingCampaigns, campaignLists.upcoming, null);
+            renderCampaigns(recentCampaigns, campaignLists.recent, null);
         }
 
         function renderCampaigns(campaigns, listEl, emptyId) {
             const sectionEl = listEl.parentElement;
             listEl.innerHTML = '';
             if (campaigns.length === 0) {
-                document.getElementById(emptyId)?.classList.remove('hidden');
-                sectionEl.style.display = 'none';
-                if(listEl.id === 'active-campaigns-list') {
-                    sectionEl.style.display = 'block'; // Garante que a seção de ativas sempre apareça
-                }
+                if (emptyId) document.getElementById(emptyId).classList.remove('hidden');
+                if (listId !== 'active-campaigns-list') sectionEl.style.display = 'none';
             } else {
-                document.getElementById(emptyId)?.classList.add('hidden');
+                if (emptyId) document.getElementById(emptyId).classList.add('hidden');
                 sectionEl.style.display = 'block';
                 campaigns.forEach(campaign => {
                     const campaignDonors = allDonations.filter(d => d.campaignId === campaign.id);
                     const campaignLikes = allLikes.filter(l => l.campaignId === campaign.id);
-                    listEl.insertAdjacentHTML('beforeend', createCampaignCard(campaign, campaignDonors, campaignLikes));
+                    listEl.innerHTML += createCampaignCard(campaign, campaignDonors, campaignLikes);
                 });
             }
         }
@@ -262,60 +243,66 @@
                 renderAllSections(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
             });
             
-            onSnapshot(query(campaignsRef, orderBy("createdAt", "desc")), (snapshot) => {
+            onSnapshot(query(campaignsRef, orderBy("priority", "desc"), orderBy("createdAt", "desc")), (snapshot) => {
                 allCampaigns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.expiresAt.toDate() > new Date());
+                renderFilters(activeCampaigns);
                 renderAllSections();
                 loadingContainer.style.display = 'none';
             });
         }
 
-        // --- LISTENERS DE EVENTOS ---
-        function handleCampaignClick(e) {
-            const card = e.target.closest('.campaign-card');
-            if (card) {
-                const likeButton = e.target.closest('.like-button');
-                if (likeButton) {
-                    e.preventDefault();
-                    handleLike(likeButton);
-                } else if (!e.target.closest('a')) { // Se não clicou num link explícito, vai para detalhes
-                     window.location.href = `detalhes.html?id=${card.dataset.id}`;
-                }
-            }
-        }
-
-        async function handleLike(likeButton) {
+        function handleCampaignClick(campaignId) {
+            const campaign = allCampaigns.find(c => c.id === campaignId);
+            if (!campaign) return;
             if (!currentUserSession?.auth) {
-                return showAlertModal("Ação necessária", "Você precisa estar logado para curtir.");
+                const destination = `detalhes.html?id=${campaignId}`;
+                window.location.href = `login.html?redirect=${encodeURIComponent(destination)}`;
+                return;
             }
-            const { campaignId, donorId } = likeButton.dataset;
-            const likerId = currentUserSession.auth.uid;
-            const likeId = `${campaignId}_${donorId}_${likerId}`;
-            const likeDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`, likeId);
-            
-            try {
-                if (likeButton.classList.contains('liked')) {
-                    await deleteDoc(likeDocRef);
-                } else {
-                    await setDoc(likeDocRef, { campaignId, donorId, likerId, createdAt: serverTimestamp() });
-                }
-            } catch (error) {
-                showAlertModal("Erro", "Não foi possível registrar sua curtida.");
-            }
+            window.location.href = `detalhes.html?id=${campaignId}`;
         }
 
         filterContainer.addEventListener('click', (e) => {
             const button = e.target.closest('button[data-filter]');
-            if (button) {
-                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active', 'bg-gray-700', 'text-white'));
-                button.classList.add('active', 'bg-gray-700', 'text-white');
-                renderAllSections(button.dataset.filter);
-            }
+            if (!button) return;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active', 'bg-gray-700', 'text-white'));
+            button.classList.add('active', 'bg-gray-700', 'text-white');
+            renderAllSections(button.dataset.filter);
         });
 
         Object.values(campaignLists).forEach(list => {
-            list.addEventListener('click', handleCampaignClick);
+            list.addEventListener('click', async (e) => {
+                const likeButton = e.target.closest('.like-button');
+                if (likeButton) {
+                    e.stopPropagation();
+                    if (!currentUserSession?.auth) {
+                        showAlertModal("Ação necessária", "Você precisa estar logado para curtir.");
+                        return;
+                    }
+                    const campaignId = likeButton.dataset.campaignId;
+                    const donorId = likeButton.dataset.donorId;
+                    const likerId = currentUserSession.auth.uid;
+                    const likeId = `${campaignId}_${donorId}_${likerId}`;
+                    const likeDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`, likeId);
+                    try {
+                        if (likeButton.classList.contains('liked')) {
+                            await deleteDoc(likeDocRef);
+                        } else {
+                            await setDoc(likeDocRef, { campaignId, donorId, likerId, createdAt: serverTimestamp() });
+                        }
+                    } catch (error) {
+                        console.error("Erro ao curtir:", error);
+                        showAlertModal("Erro", "Não foi possível registrar sua curtida.");
+                    }
+                } else {
+                    const card = e.target.closest('.campaign-card');
+                    if (card) {
+                        handleCampaignClick(card.dataset.id);
+                    }
+                }
+            });
         });
-
     </script>
 </body>
 </html>
