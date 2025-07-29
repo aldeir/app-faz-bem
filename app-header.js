@@ -24,10 +24,12 @@ export async function injectHeader() {
         const { auth, profile } = userSession;
         const photoURL = profile?.photoURL || auth.photoURL || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
         
+        // AJUSTE: Adicionado o link "Minhas Entregas" e reorganizado o menu
         userMenu.innerHTML = `
-            <a href="perfil-doador.html" class="flex items-center space-x-2">
+            <a href="minhas-entregas.html" class="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors hidden sm:block">Minhas Entregas</a>
+            <a href="perfil-doador.html" class="flex items-center space-x-2" title="Acessar meu perfil">
                 <span class="text-sm font-medium text-gray-700 hidden sm:block">${profile?.displayName || auth.displayName}</span>
-                <img src="${photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200">
+                <img src="${photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200 hover:border-green-500 transition-colors">
             </a>
             <button id="header-logout-btn" class="text-sm text-gray-500 hover:text-red-600">Sair</button>
         `;
