@@ -26,20 +26,20 @@
                         <h1 class="text-center text-4xl font-bold text-green-600">Faz Bem</h1>
                         <h2 class="mt-4 text-center text-2xl font-semibold text-gray-900">Bem-vindo(a) de volta!</h2>
                     </div>
-                    <form id="login-form" class="mt-8 space-y-6">
+                    <form id="login-form" class="mt-8 space-y-6" novalidate>
                         <div class="rounded-md shadow-sm -space-y-px">
                             <input id="login-email" type="email" autocomplete="email" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 rounded-t-md focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Seu e-mail">
                             <input id="login-password" type="password" autocomplete="current-password" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 rounded-b-md focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Sua senha">
                         </div>
                         <div id="login-error" class="text-red-500 text-sm hidden mt-2"></div>
-                        <button id="login-submit-btn" type="submit" class="group relative w-full flex justify-center items-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                        <button id="login-submit-btn" type="submit" class="group relative w-full flex justify-center items-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
                            <span id="login-btn-text">Entrar</span>
                            <div id="login-btn-spinner" class="hidden loader !w-5 !h-5 !border-2"></div>
                         </button>
                     </form>
                     <div class="mt-6">
                         <div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Ou</span></div></div>
-                        <div class="mt-6"><button id="google-login-btn" class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"><img class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo">Entrar com Google</button></div>
+                        <div class="mt-6"><button id="google-login-btn" class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"><img class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo">Entrar com Google</button></div>
                     </div>
                     <div class="mt-8 pt-6 border-t border-gray-200 text-center">
                          <h3 class="text-lg font-medium text-gray-800">Ainda não faz parte?</h3>
@@ -55,7 +55,6 @@
     </div>
 
     <script type="module">
-        // CORREÇÃO: A importação agora é mais limpa e pega tudo de 'app-config.js'
         import {
             auth, db, onAuthStateChanged, getCurrentUser,
             signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup,
@@ -64,8 +63,13 @@
         import { injectHeader } from './app-header.js';
         import { showAlertModal } from './modal-handler.js';
 
-        (async function setupLoginPage() {
-            await injectHeader();
+        // IIFE (Immediately Invoked Function Expression) para encapsular o escopo
+        (async function() {
+            try {
+                await injectHeader();
+            } catch (e) {
+                console.error("Falha ao injetar o cabeçalho:", e);
+            }
 
             const loginForm = document.getElementById('login-form');
             const googleLoginBtn = document.getElementById('google-login-btn');
@@ -74,23 +78,19 @@
             const btnText = document.getElementById('login-btn-text');
             const btnSpinner = document.getElementById('login-btn-spinner');
             
-            let isRedirecting = false;
+            let isProcessing = false;
 
             const urlParams = new URLSearchParams(window.location.search);
             const redirectUrl = urlParams.get('redirect') || 'index.html';
 
-            const handleRedirect = async (user) => {
-                if (isRedirecting) return;
-                isRedirecting = true;
+            const handleLoginSuccess = async (user) => {
+                if (isProcessing) return;
+                isProcessing = true;
                 
                 const userSession = await getCurrentUser();
 
                 if (userSession && userSession.profile) {
-                    if (userSession.profile.role === 'entidade') {
-                        window.location.href = 'admin.html';
-                    } else {
-                        window.location.href = redirectUrl;
-                    }
+                    window.location.href = userSession.profile.role === 'entidade' ? 'admin.html' : redirectUrl;
                 } else if (userSession) {
                     try {
                         await setDoc(doc(db, "users", user.uid), {
@@ -100,16 +100,17 @@
                         window.location.href = redirectUrl;
                     } catch (e) {
                         showAlertModal('Erro Crítico', `Não foi possível criar seu perfil. Erro: ${e.message}`);
-                        showLoadingButton(false);
+                        toggleLoading(false);
                     }
                 }
             };
             
             onAuthStateChanged(auth, (user) => {
-                if (user) handleRedirect(user);
+                if (user) handleLoginSuccess(user);
             });
 
-            const showLoadingButton = (isLoading) => {
+            const toggleLoading = (isLoading) => {
+                isProcessing = isLoading;
                 btnText.classList.toggle('hidden', isLoading);
                 btnSpinner.classList.toggle('hidden', !isLoading);
                 submitBtn.disabled = isLoading;
@@ -118,7 +119,7 @@
 
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                showLoadingButton(true);
+                toggleLoading(true);
                 errorDiv.classList.add('hidden');
                 
                 const email = document.getElementById('login-email').value;
@@ -126,24 +127,22 @@
                 
                 try {
                     await signInWithEmailAndPassword(auth, email, password);
-                    // O onAuthStateChanged cuidará do redirecionamento
                 } catch (error) {
                     errorDiv.textContent = "Email ou senha inválidos.";
                     errorDiv.classList.remove('hidden');
-                    showLoadingButton(false);
+                    toggleLoading(false);
                 }
             });
             
             googleLoginBtn.addEventListener('click', async () => {
+                toggleLoading(true);
                 const provider = new GoogleAuthProvider();
-                showLoadingButton(true);
                 try {
                     await signInWithPopup(auth, provider);
-                     // O onAuthStateChanged cuidará do redirecionamento
                 } catch (error) {
                     errorDiv.textContent = "Falha ao autenticar com o Google.";
                     errorDiv.classList.remove('hidden');
-                    showLoadingButton(false);
+                    toggleLoading(false);
                 }
             });
         })();
