@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receber Doação - Faz Bem</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Biblioteca para o leitor de QR Code -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #qr-reader { border: 2px solid #16a34a; border-radius: 0.5rem; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="app-header"></div>
+
+    <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
+        <p class="text-gray-600">A carregar detalhes da doação...</p>
+    </div>
+
+    <main id="receive-view" class="hidden container mx-auto max-w-2xl p-4 sm:p-6 my-8">
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <a href="gerenciar-agendamentos.html" class="text-sm font-medium text-gray-600 hover:text-green-600 mb-4 inline-block">← Voltar para Agendamentos</a>
+            
+            <!-- Informações do Doador -->
+            <div id="donor-info" class="flex items-center space-x-4 pb-4 border-b"></div>
+
+            <!-- Leitor de QR Code -->
+            <div class="my-6 text-center">
+                <div id="qr-reader" class="w-full max-w-sm mx-auto my-4"></div>
+                <div id="qr-reader-results" class="text-sm font-medium h-6"></div>
+                <button id="start-scan-btn" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700">
+                    Ativar Leitor de QR Code
+                </button>
+            </div>
+
+            <!-- Lista de Itens -->
+            <div>
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Itens da Doação</h2>
+                <div id="items-list" class="space-y-3"></div>
+            </div>
+        </div>
+    </main>
+    
+    <div id="app-modal"></div>
+
+    <script type="module">
+        import { auth, db, onAuthStateChanged, firebaseConfig } from './app-config.js';
+        import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { injectHeader } from './app-header.js';
+        import { showAlertModal } from './modal-handler.js';
+
+        const loadingView = document.getElementById('loading-view');
+        const receiveView = document.getElementById('receive-view');
+        const donorInfo = document.getElementById('donor-info');
+        const itemsList = document.getElementById('items-list');
+        const startScanBtn = document.getElementById('start-scan-btn');
+        const qrReaderResults = document.getElementById('qr-reader-results');
+
+        let donationId = null;
+        let donationData = null;
+        let html5QrCode = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                injectHeader();
+                const params = new URLSearchParams(window.location.search);
+                donationId = params.get('id');
+                if (!donationId) {
+                    loadingView.textContent = "Erro: ID da doação não encontrado.";
+                    return;
+                }
+                loadDonationDetails();
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        async function loadDonationDetails() {
+            const donationRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`, donationId);
+            const docSnap = await getDoc(donationRef);
+
+            if (docSnap.exists()) {
+                donationData = { id: docSnap.id, ...docSnap.data() };
+                renderPage();
+                loadingView.classList.add('hidden');
+                receiveView.classList.remove('hidden');
+            } else {
+                loadingView.textContent = "Doação não encontrada.";
+            }
+        }
+
+        function renderPage() {
+            donorInfo.innerHTML = `
+                <img src="${donationData.donorPhoto || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Foto'}" class="w-16 h-16 rounded-full object-cover border">
+                <div>
+                    <p class="text-sm text-gray-500">Recebendo doação de:</p>
+                    <p class="font-bold text-xl text-gray-800">${donationData.donorName}</p>
+                </div>
+            `;
+            renderItemsList();
+        }
+
+        function renderItemsList() {
+            itemsList.innerHTML = '';
+            donationData.items.forEach((item, index) => {
+                const isReceived = item.status === 'received';
+                const itemEl = document.createElement('div');
+                itemEl.className = `flex items-center space-x-4 p-3 rounded-md border transition-colors ${isReceived ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`;
+                itemEl.innerHTML = `
+                    <img src="${item.photoURL}" class="w-16 h-16 rounded-md object-cover">
+                    <div class="flex-grow">
+                        <p class="font-bold">${item.type}</p>
+                        <p class="text-sm text-gray-600">${item.details} (${item.condition})</p>
+                    </div>
+                    <div class="text-right">
+                        ${isReceived ? 
+                            `<span class="font-bold text-green-600">✓ Recebido</span>` : 
+                            `<button data-index="${index}" class="manual-receive-btn bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-semibold py-1 px-3 rounded-md">Receber Manualmente</button>`
+                        }
+                    </div>
+                `;
+                itemsList.appendChild(itemEl);
+            });
+        }
+        
+        async function updateItemStatus(itemIndex) {
+            if (donationData.items[itemIndex].status === 'received') {
+                qrReaderResults.textContent = "Este item já foi recebido.";
+                qrReaderResults.className = "text-sm font-medium h-6 text-yellow-600";
+                return;
+            }
+
+            const newItems = [...donationData.items];
+            newItems[itemIndex].status = 'received';
+            
+            const donationRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`, donationId);
+            await updateDoc(donationRef, { items: newItems });
+
+            donationData.items = newItems;
+            renderItemsList();
+            qrReaderResults.textContent = `Item "${newItems[itemIndex].type}" confirmado!`;
+            qrReaderResults.className = "text-sm font-medium h-6 text-green-600";
+            
+            // Checa se todos os itens foram recebidos
+            if (newItems.every(item => item.status === 'received')) {
+                await updateDoc(donationRef, { status: 'completed' });
+                await showAlertModal("Doação Concluída!", "Todos os itens foram recebidos. Esta doação foi marcada como concluída.");
+                html5QrCode.stop();
+                window.location.href = 'gerenciar-agendamentos.html';
+            }
+        }
+
+        itemsList.addEventListener('click', (e) => {
+            const button = e.target.closest('.manual-receive-btn');
+            if (button) {
+                const index = parseInt(button.dataset.index, 10);
+                updateItemStatus(index);
+            }
+        });
+
+        startScanBtn.addEventListener('click', () => {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("qr-reader");
+            }
+            startScanBtn.textContent = "Aguardando câmera...";
+            startScanBtn.disabled = true;
+
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText, decodedResult) => {
+                    qrReaderResults.textContent = `Código lido: ${decodedText}`;
+                    const [scannedDonationId, scannedItemIndex] = decodedText.split('|');
+                    
+                    if (scannedDonationId === donationId) {
+                        const itemIndex = parseInt(scannedItemIndex, 10);
+                        if (!isNaN(itemIndex) && itemIndex < donationData.items.length) {
+                            updateItemStatus(itemIndex);
+                        } else {
+                            qrReaderResults.textContent = "QR Code inválido (item não encontrado).";
+                            qrReaderResults.className = "text-sm font-medium h-6 text-red-600";
+                        }
+                    } else {
+                        qrReaderResults.textContent = "Este QR Code não pertence a esta doação.";
+                        qrReaderResults.className = "text-sm font-medium h-6 text-red-600";
+                    }
+                },
+                (errorMessage) => { /* ignora erros de "QR code not found" */ }
+            ).then(() => {
+                startScanBtn.textContent = "Leitor Ativo";
+            }).catch((err) => {
+                qrReaderResults.textContent = "Erro ao iniciar a câmera.";
+                qrReaderResults.className = "text-sm font-medium h-6 text-red-600";
+                startScanBtn.textContent = "Ativar Leitor de QR Code";
+                startScanBtn.disabled = false;
+            });
+        });
+
+    </script>
+</body>
+</html>
