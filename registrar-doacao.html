@@ -83,7 +83,31 @@
         </div>
     </main>
 
-    <div id="app-modal" class="hidden fixed z-50 ..."></div>
+    <!-- CÓDIGO DO MODAL ADICIONADO AQUI -->
+    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
+                            <div class="mt-2">
+                                <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import { auth, db, storage, onAuthStateChanged, getCurrentUser, firebaseConfig } from './app-config.js';
@@ -92,7 +116,6 @@
         import { injectHeader } from './app-header.js';
         import { showAlertModal } from './modal-handler.js';
 
-        // --- DOM Elements ---
         const loadingView = document.getElementById('loading-view');
         const donationView = document.getElementById('donation-view');
         const campaignHeader = document.getElementById('campaign-header');
@@ -107,25 +130,16 @@
         const formError = document.getElementById('form-error');
         const addItemError = document.getElementById('add-item-error');
 
-        // --- State ---
         let currentUserSession = null;
         let campaignId = null;
         let campaignData = null;
         let donatedItems = [];
         let selectedScheduleSlot = null;
 
-        // --- Initialization ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 await injectHeader();
                 currentUserSession = await getCurrentUser();
-                
-                // --- DEBUGGER ---
-                console.log("Sessão do Usuário Carregada:", currentUserSession);
-                if (!currentUserSession || !currentUserSession.auth) {
-                    console.error("ERRO CRÍTICO: Objeto de autenticação não encontrado na sessão!");
-                }
-                // --- FIM DEBUGGER ---
                 
                 const params = new URLSearchParams(window.location.search);
                 campaignId = params.get('id');
@@ -172,7 +186,6 @@
             }
         }
 
-        // --- UI Population ---
         function populateCampaignHeader() {
             campaignHeader.innerHTML = `
                 <img src="${campaignData.images?.[0] || 'https://placehold.co/100x100/e2e8f0/e2e8f0'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
@@ -212,7 +225,6 @@
             });
         }
 
-        // --- Schedule Logic ---
         async function generateSchedule() {
             scheduleContainer.innerHTML = '<p class="text-center text-gray-500">Calculando horários disponíveis...</p>';
             const now = new Date();
@@ -275,7 +287,6 @@
             }
         }
 
-        // --- Event Listeners ---
         itemSubtypeSelect.addEventListener('change', (e) => {
             itemOtherSubtypeInput.classList.toggle('hidden', e.target.value !== 'outro');
         });
@@ -322,21 +333,13 @@
             submitBtnSpinner.classList.remove('hidden');
 
             try {
-                // --- DEBUGGER ---
                 const userId = currentUserSession?.auth?.uid;
                 if (!userId) {
                     throw new Error("ID do usuário não encontrado. A autenticação pode ter falhado.");
                 }
-                console.log(`Iniciando upload para o usuário com ID: ${userId}`);
-                // --- FIM DEBUGGER ---
 
                 const uploadedItems = await Promise.all(donatedItems.map(async (item) => {
                     const filePath = `donated_items/${userId}/${Date.now()}_${item.photoFile.name}`;
-                    
-                    // --- DEBUGGER ---
-                    console.log(`Tentando fazer upload para o caminho: ${filePath}`);
-                    // --- FIM DEBUGGER ---
-
                     const fileRef = ref(storage, filePath);
                     const snapshot = await uploadBytes(fileRef, item.photoFile);
                     const photoURL = await getDownloadURL(snapshot.ref);
@@ -364,9 +367,7 @@
                 window.location.href = 'index.html';
 
             } catch (error) {
-                // --- DEBUGGER ---
                 console.error("ERRO DETALHADO AO REGISTRAR DOAÇÃO:", error);
-                // --- FIM DEBUGGER ---
                 formError.textContent = `Erro ao registrar doação: ${error.message}`;
             } finally {
                 submitDonationBtn.disabled = false;
