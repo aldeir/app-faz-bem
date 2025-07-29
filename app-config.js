@@ -1,4 +1,4 @@
-// app-config.js (Versão 2.0)
+// app-config.js (Versão 2.2 - Final)
 
 // Importa as funções que você precisa dos SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -8,18 +8,21 @@ import {
     signOut,
     createUserWithEmailAndPassword, 
     updateProfile,
-    sendEmailVerification
+    sendEmailVerification,
+    signInWithEmailAndPassword,
+    GoogleAuthProvider,
+    signInWithPopup
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
 
-// A sua configuração do Firebase (corrigida)
+// A sua configuração do Firebase com o storageBucket original e correto
 const firebaseConfig = {
   apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
   authDomain: "app-faz-bem-guacui.firebaseapp.com",
   projectId: "app-faz-bem-guacui",
-  storageBucket: "app-faz-bem-guacui.firebasestorage.app", // CORRIGIDO
+  storageBucket: "app-faz-bem-guacui.firebasestorage.app", 
   messagingSenderId: "218995880923",
   appId: "1:218995880923:web:ce8a371bc402904c0dedfe",
   measurementId: "G-R5W1F2NXH4"
@@ -61,17 +64,14 @@ const logout = () => signOut(auth);
 /**
  * Obtém a sessão do usuário atual (auth e perfil do Firestore).
  */
-
 const getCurrentUser = () => {
     return new Promise((resolve) => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             unsubscribe();
             if (user) {
-                // ATUALIZADO: Prioriza a busca na coleção 'users' para doadores
                 let userDocRef = doc(db, "users", user.uid);
                 let docSnap = await getDoc(userDocRef);
 
-                // Se não encontrar em 'users', procura em 'entidades'
                 if (!docSnap.exists()) {
                     const appId = firebaseConfig.projectId;
                     userDocRef = doc(db, "artifacts", appId, "public", "data", "entidades", user.uid);
@@ -86,8 +86,6 @@ const getCurrentUser = () => {
     });
 };
 
-
-
 // Exporta tudo para ser usado em outras páginas
 export { 
     app, 
@@ -100,5 +98,8 @@ export {
     onAuthStateChanged,
     getCurrentUser,
     ADMIN_EMAIL,
-    firebaseConfig 
+    firebaseConfig,
+    signInWithEmailAndPassword,
+    GoogleAuthProvider,
+    signInWithPopup
 };
