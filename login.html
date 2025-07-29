@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entrar ou Cadastrar - Faz Bem</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
     <style>
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 3px solid #f3f3f3; border-top: 3px solid #16a34a; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
@@ -19,36 +17,34 @@
     <div id="app-header"></div>
 
     <div id="app-container" class="pt-10 pb-10">
-        <div id="login-view">
-            <div class="min-h-full flex items-center justify-center px-4">
-                <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
-                    <div>
-                        <h1 class="text-center text-4xl font-bold text-green-600">Faz Bem</h1>
-                        <h2 class="mt-4 text-center text-2xl font-semibold text-gray-900">Bem-vindo(a) de volta!</h2>
+        <div id="login-view" class="min-h-full flex items-center justify-center px-4">
+            <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
+                <div>
+                    <h1 class="text-center text-4xl font-bold text-green-600">Faz Bem</h1>
+                    <h2 class="mt-4 text-center text-2xl font-semibold text-gray-900">Bem-vindo(a) de volta!</h2>
+                </div>
+                <form id="login-form" class="mt-8 space-y-6" novalidate>
+                    <div class="rounded-md shadow-sm -space-y-px">
+                        <input id="login-email" type="email" autocomplete="email" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 rounded-t-md" placeholder="Seu e-mail">
+                        <input id="login-password" type="password" autocomplete="current-password" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 rounded-b-md" placeholder="Sua senha">
                     </div>
-                    <form id="login-form" class="mt-8 space-y-6" novalidate>
-                        <div class="rounded-md shadow-sm -space-y-px">
-                            <input id="login-email" type="email" autocomplete="email" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 rounded-t-md focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Seu e-mail">
-                            <input id="login-password" type="password" autocomplete="current-password" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 rounded-b-md focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Sua senha">
-                        </div>
-                        <div id="login-error" class="text-red-500 text-sm hidden mt-2"></div>
-                        <button id="login-submit-btn" type="submit" class="group relative w-full flex justify-center items-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                           <span id="login-btn-text">Entrar</span>
-                           <div id="login-btn-spinner" class="hidden loader !w-5 !h-5 !border-2"></div>
-                        </button>
-                    </form>
-                    <div class="mt-6">
-                        <div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Ou</span></div></div>
-                        <div class="mt-6"><button id="google-login-btn" class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"><img class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo">Entrar com Google</button></div>
-                    </div>
-                    <div class="mt-8 pt-6 border-t border-gray-200 text-center">
-                         <h3 class="text-lg font-medium text-gray-800">Ainda não faz parte?</h3>
-                         <p class="text-sm text-gray-500 mt-1">Escolha como quer ajudar:</p>
-                         <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                             <a href="cadastro-doador.html" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-500 hover:bg-green-600">Quero ser Doador</a>
-                             <a href="cadastro-entidade.html" class="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Cadastrar Entidade</a>
-                         </div>
-                    </div>
+                    <div id="login-error" class="text-red-500 text-sm hidden mt-2"></div>
+                    <button id="login-submit-btn" type="submit" class="group relative w-full flex justify-center items-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50">
+                       <span id="login-btn-text">Entrar</span>
+                       <div id="login-btn-spinner" class="hidden loader !w-5 !h-5 !border-2"></div>
+                    </button>
+                </form>
+                <div class="mt-6">
+                    <div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Ou</span></div></div>
+                    <div class="mt-6"><button id="google-login-btn" class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"><img class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo">Entrar com Google</button></div>
+                </div>
+                <div class="mt-8 pt-6 border-t border-gray-200 text-center">
+                     <h3 class="text-lg font-medium text-gray-800">Ainda não faz parte?</h3>
+                     <p class="text-sm text-gray-500 mt-1">Escolha como quer ajudar:</p>
+                     <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                         <a href="cadastro-doador.html" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-500 hover:bg-green-600">Quero ser Doador</a>
+                         <a href="cadastro-entidade.html" class="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Cadastrar Entidade</a>
+                     </div>
                 </div>
             </div>
         </div>
@@ -61,15 +57,9 @@
             doc, setDoc
         } from './app-config.js';
         import { injectHeader } from './app-header.js';
-        import { showAlertModal } from './modal-handler.js';
 
-        // IIFE (Immediately Invoked Function Expression) para encapsular o escopo
         (async function() {
-            try {
-                await injectHeader();
-            } catch (e) {
-                console.error("Falha ao injetar o cabeçalho:", e);
-            }
+            await injectHeader();
 
             const loginForm = document.getElementById('login-form');
             const googleLoginBtn = document.getElementById('google-login-btn');
@@ -92,21 +82,23 @@
                 if (userSession && userSession.profile) {
                     window.location.href = userSession.profile.role === 'entidade' ? 'admin.html' : redirectUrl;
                 } else if (userSession) {
-                    try {
-                        await setDoc(doc(db, "users", user.uid), {
-                            uid: user.uid, displayName: user.displayName || 'Utilizador',
-                            email: user.email, role: 'doador', status: 'ativo'
-                        });
-                        window.location.href = redirectUrl;
-                    } catch (e) {
-                        showAlertModal('Erro Crítico', `Não foi possível criar seu perfil. Erro: ${e.message}`);
-                        toggleLoading(false);
-                    }
+                    await setDoc(doc(db, "users", user.uid), {
+                        uid: user.uid, displayName: user.displayName || 'Utilizador',
+                        email: user.email, role: 'doador', status: 'ativo'
+                    });
+                    window.location.href = redirectUrl;
+                } else {
+                     // Caso raro: autenticado mas não conseguiu ler o perfil
+                     toggleLoading(false);
+                     errorDiv.textContent = "Não foi possível carregar seu perfil. Tente novamente.";
+                     errorDiv.classList.remove('hidden');
                 }
             };
             
             onAuthStateChanged(auth, (user) => {
-                if (user) handleLoginSuccess(user);
+                if (user && !isProcessing) {
+                    handleLoginSuccess(user);
+                }
             });
 
             const toggleLoading = (isLoading) => {
@@ -117,33 +109,29 @@
                 googleLoginBtn.disabled = isLoading;
             };
 
-            loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
+            const performLogin = async (loginFunction) => {
                 toggleLoading(true);
                 errorDiv.classList.add('hidden');
-                
+                try {
+                    await loginFunction();
+                    // O onAuthStateChanged cuidará do resto
+                } catch (error) {
+                    errorDiv.textContent = "Falha na autenticação. Verifique suas credenciais.";
+                    errorDiv.classList.remove('hidden');
+                    toggleLoading(false);
+                }
+            };
+
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
                 const email = document.getElementById('login-email').value;
                 const password = document.getElementById('login-password').value;
-                
-                try {
-                    await signInWithEmailAndPassword(auth, email, password);
-                } catch (error) {
-                    errorDiv.textContent = "Email ou senha inválidos.";
-                    errorDiv.classList.remove('hidden');
-                    toggleLoading(false);
-                }
-            });
+                performLogin(() => signInWithEmailAndPassword(auth, email, password));
+});
             
-            googleLoginBtn.addEventListener('click', async () => {
-                toggleLoading(true);
+            googleLoginBtn.addEventListener('click', () => {
                 const provider = new GoogleAuthProvider();
-                try {
-                    await signInWithPopup(auth, provider);
-                } catch (error) {
-                    errorDiv.textContent = "Falha ao autenticar com o Google.";
-                    errorDiv.classList.remove('hidden');
-                    toggleLoading(false);
-                }
+                performLogin(() => signInWithPopup(auth, provider));
             });
         })();
     </script>
