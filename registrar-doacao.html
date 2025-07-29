@@ -32,9 +32,7 @@
 
     <main id="donation-view" class="hidden container mx-auto max-w-4xl p-4 sm:p-6 my-8">
         <!-- Campaign Header -->
-        <div id="campaign-header" class="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex items-center space-x-4 mb-8 border-l-4 border-green-500">
-            <!-- Content injected via JS -->
-        </div>
+        <div id="campaign-header" class="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex items-center space-x-4 mb-8 border-l-4 border-green-500"></div>
 
         <!-- Items Section -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
@@ -63,9 +61,7 @@
         <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
             <h2 class="text-xl font-bold text-gray-800">2. Agendar Entrega</h2>
             <p class="text-sm text-gray-600 mt-1">Selecione um dia e horário disponíveis para levar sua doação.</p>
-            <div id="schedule-container" class="mt-4">
-                <p class="text-center text-gray-500">Carregando horários...</p>
-            </div>
+            <div id="schedule-container" class="mt-4"></div>
         </div>
 
         <!-- Privacy Section -->
@@ -123,6 +119,13 @@
             if (user) {
                 await injectHeader();
                 currentUserSession = await getCurrentUser();
+                
+                // --- DEBUGGER ---
+                console.log("Sessão do Usuário Carregada:", currentUserSession);
+                if (!currentUserSession || !currentUserSession.auth) {
+                    console.error("ERRO CRÍTICO: Objeto de autenticação não encontrado na sessão!");
+                }
+                // --- FIM DEBUGGER ---
                 
                 const params = new URLSearchParams(window.location.search);
                 campaignId = params.get('id');
@@ -319,8 +322,21 @@
             submitBtnSpinner.classList.remove('hidden');
 
             try {
+                // --- DEBUGGER ---
+                const userId = currentUserSession?.auth?.uid;
+                if (!userId) {
+                    throw new Error("ID do usuário não encontrado. A autenticação pode ter falhado.");
+                }
+                console.log(`Iniciando upload para o usuário com ID: ${userId}`);
+                // --- FIM DEBUGGER ---
+
                 const uploadedItems = await Promise.all(donatedItems.map(async (item) => {
-                    const filePath = `donated_items/${currentUserSession.auth.uid}/${Date.now()}_${item.photoFile.name}`;
+                    const filePath = `donated_items/${userId}/${Date.now()}_${item.photoFile.name}`;
+                    
+                    // --- DEBUGGER ---
+                    console.log(`Tentando fazer upload para o caminho: ${filePath}`);
+                    // --- FIM DEBUGGER ---
+
                     const fileRef = ref(storage, filePath);
                     const snapshot = await uploadBytes(fileRef, item.photoFile);
                     const photoURL = await getDownloadURL(snapshot.ref);
@@ -328,7 +344,7 @@
                 }));
 
                 const donationData = {
-                    donorId: currentUserSession.auth.uid,
+                    donorId: userId,
                     donorName: currentUserSession.profile.displayName,
                     donorPhoto: currentUserSession.profile.photoURL || null,
                     campaignId: campaignId,
@@ -348,7 +364,9 @@
                 window.location.href = 'index.html';
 
             } catch (error) {
-                console.error("Erro detalhado ao registrar doação:", error);
+                // --- DEBUGGER ---
+                console.error("ERRO DETALHADO AO REGISTRAR DOAÇÃO:", error);
+                // --- FIM DEBUGGER ---
                 formError.textContent = `Erro ao registrar doação: ${error.message}`;
             } finally {
                 submitDonationBtn.disabled = false;
