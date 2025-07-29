@@ -53,7 +53,8 @@
 
     <script type="module">
         import { auth, db, onAuthStateChanged, firebaseConfig } from './app-config.js';
-        import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // Importa runTransaction para a nova lógica
+        import { doc, getDoc, updateDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { injectHeader } from './app-header.js';
         import { showAlertModal } from './modal-handler.js';
 
@@ -138,23 +139,53 @@
                 return;
             }
 
-            const newItems = [...donationData.items];
-            newItems[itemIndex].status = 'received';
-            
             const donationRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`, donationId);
-            await updateDoc(donationRef, { items: newItems });
+            const campaignRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`, donationData.campaignId);
 
-            donationData.items = newItems;
-            renderItemsList();
-            qrReaderResults.textContent = `Item "${newItems[itemIndex].type}" confirmado!`;
-            qrReaderResults.className = "text-sm font-medium h-6 text-green-600";
-            
-            // Checa se todos os itens foram recebidos
-            if (newItems.every(item => item.status === 'received')) {
-                await updateDoc(donationRef, { status: 'completed' });
-                await showAlertModal("Doação Concluída!", "Todos os itens foram recebidos. Esta doação foi marcada como concluída.");
-                html5QrCode.stop();
-                window.location.href = 'gerenciar-agendamentos.html';
+            try {
+                // Usa uma transação para garantir que ambas as atualizações aconteçam ou nenhuma aconteça.
+                await runTransaction(db, async (transaction) => {
+                    const campaignDoc = await transaction.get(campaignRef);
+                    if (!campaignDoc.exists()) {
+                        throw "Campanha não encontrada!";
+                    }
+
+                    // 1. Incrementa a contagem de itens recebidos na campanha
+                    const newAmount = (campaignDoc.data().currentAmount || 0) + 1;
+                    transaction.update(campaignRef, { currentAmount: newAmount });
+
+                    // 2. Atualiza o status do item na doação
+                    const newItems = [...donationData.items];
+                    newItems[itemIndex].status = 'received';
+                    
+                    // 3. Verifica se todos os itens foram recebidos para concluir a doação
+                    const allItemsReceived = newItems.every(item => item.status === 'received');
+                    if (allItemsReceived) {
+                        transaction.update(donationRef, { items: newItems, status: 'completed' });
+                    } else {
+                        transaction.update(donationRef, { items: newItems });
+                    }
+                });
+
+                // Atualiza o estado local para refletir a mudança na UI
+                donationData.items[itemIndex].status = 'received';
+                renderItemsList();
+                qrReaderResults.textContent = `Item "${donationData.items[itemIndex].type}" confirmado!`;
+                qrReaderResults.className = "text-sm font-medium h-6 text-green-600";
+                
+                // Checa se a doação foi concluída no estado local
+                if (donationData.items.every(item => item.status === 'received')) {
+                    donationData.status = 'completed';
+                    await showAlertModal("Doação Concluída!", "Todos os itens foram recebidos. Esta doação foi marcada como concluída.");
+                    if (html5QrCode) {
+                        html5QrCode.stop().catch(err => console.error("Erro ao parar o scanner.", err));
+                    }
+                    window.location.href = 'gerenciar-agendamentos.html';
+                }
+
+            } catch (error) {
+                console.error("Erro na transação: ", error);
+                await showAlertModal("Erro", "Não foi possível confirmar o recebimento. Tente novamente.");
             }
         }
 
