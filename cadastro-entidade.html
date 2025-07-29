@@ -246,72 +246,73 @@
                 submitBtnText.classList.add('hidden');
                 submitBtnSpinner.classList.remove('hidden');
 
-                try {
-                    // 1. Criar utilizador na Autenticação
-                    console.log('1. Tentando criar usuário na autenticação...');
-                    const userCredential = await createUserWithEmailAndPassword(auth, document.getElementById('signup-email').value, password);
-                    const user = userCredential.user;
-                    console.log('1a. ✅ Usuário criado com sucesso:', user.uid, user.email);
-                    await updateProfile(user, { displayName: document.getElementById('entity-name').value });
-                    console.log('1b. ✅ Perfil na Autenticação atualizado.');
-                    
-                    // 1c. Enviar e-mail de verificação
-                    await sendEmailVerification(user);
-                    console.log('1c. ✅ E-mail de verificação enviado.');
+try {
+    // 1. Criar utilizador na Autenticação
+    console.log('1. Tentando criar usuário na autenticação...');
+    const userCredential = await createUserWithEmailAndPassword(auth, document.getElementById('signup-email').value, password);
+    const user = userCredential.user;
+    console.log('1a. ✅ Usuário criado com sucesso:', user.uid, user.email);
+    await updateProfile(user, { displayName: document.getElementById('entity-public-name').value }); // Usando nome público para o display name
+    console.log('1b. ✅ Perfil na Autenticação atualizado.');
+    
+    // 1c. Enviar e-mail de verificação
+    await sendEmailVerification(user);
+    console.log('1c. ✅ E-mail de verificação enviado.');
 
-                    // 2. Fazer upload do logotipo para o Storage
-                    const fileName = `logo_${user.uid}.webp`;
-                    const storageRef = ref(storage, `logos/${fileName}`);
-                    console.log(`2. Tentando fazer upload do logotipo para: logos/${fileName}`);
-                    await uploadBytes(storageRef, croppedImageBlob);
-                    const logoUrl = await getDownloadURL(storageRef);
-                    console.log('2a. ✅ Upload do logotipo concluído. URL:', logoUrl);
+    // 2. Fazer upload do logotipo para o Storage
+    const fileName = `logo_${user.uid}.webp`;
+    const storageRef = ref(storage, `logos/${fileName}`);
+    console.log(`2. Tentando fazer upload do logotipo para: logos/${fileName}`);
+    await uploadBytes(storageRef, croppedImageBlob);
+    const logoUrl = await getDownloadURL(storageRef);
+    console.log('2a. ✅ Upload do logotipo concluído. URL:', logoUrl);
 
-                    // 3. Preparar e guardar os dados no Firestore (COM O CAMINHO CORRIGIDO)
-                    const appId = 'app-faz-bem-guacui'; // ID da sua aplicação
-                    const docPath = `artifacts/${appId}/public/data/entidades/${user.uid}`;
-                    console.log(`3. Tentando salvar dados no Firestore no caminho: ${docPath}`);
-                    const profileData = {
-                        publicName: document.getElementById('entity-public-name').value,
-                        cnpj: cnpjMask.unmaskedValue,
-                        phone: phoneMask.unmaskedValue,
-                        logoUrl: logoUrl,
-                        description: document.getElementById('entity-description').value,
-                        responsibleName: document.getElementById('responsible-name').value,
-                        address: {
-                            street: document.getElementById('address-street').value,
-                            number: document.getElementById('address-number').value,
-                            district: document.getElementById('address-district').value,
-                            city: document.getElementById('address-city').value,
-                        },
-                        role: 'entidade',
-                        status: 'pendente_aprovacao',
-                        email: user.email
-                    };
-                    await setDoc(doc(db, "artifacts", appId, "public", "data", "entidades", user.uid), profileData);
-                    console.log('3a. ✅ Documento salvo com sucesso no Firestore.');
+    // 3. Preparar e guardar os dados no Firestore
+    const appId = firebaseConfig.projectId;
+    console.log(`3. Tentando salvar dados no Firestore no caminho: artifacts/${appId}/public/data/entidades/${user.uid}`);
+    const profileData = {
+        publicName: document.getElementById('entity-public-name').value,
+        officialName: document.getElementById('entity-name').value, // Adicionando nome oficial
+        cnpj: cnpjMask.unmaskedValue,
+        phone: phoneMask.unmaskedValue,
+        logoUrl: logoUrl,
+        description: document.getElementById('entity-description').value,
+        responsibleName: document.getElementById('responsible-name').value,
+        address: {
+            street: document.getElementById('address-street').value,
+            number: document.getElementById('address-number').value,
+            district: document.getElementById('address-district').value,
+            city: document.getElementById('address-city').value,
+        },
+        role: 'entidade',
+        status: 'pendente_aprovacao', // Status inicial
+        email: user.email,
+        createdAt: serverTimestamp() // Adicionando timestamp
+    };
+    await setDoc(doc(db, "artifacts", appId, "public", "data", "entidades", user.uid), profileData);
+    console.log('3a. ✅ Documento salvo com sucesso no Firestore.');
 
-                    // 4. Redirecionar em caso de sucesso
-                    console.log('4. Sucesso! Redirecionando em 2 segundos...');
-                    submitBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
-                    submitBtn.classList.add('bg-blue-500');
-                    submitBtnText.textContent = 'Sucesso! Redirecionando...';
-                    submitBtnSpinner.classList.add('hidden');
-                    submitBtnText.classList.remove('hidden');
-                    
-                    setTimeout(() => {
-                        window.location.href = 'verificar-email.html';
-                    }, 2000);
+    // 4. Redirecionar em caso de sucesso
+    submitBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+    submitBtn.classList.add('bg-blue-500');
+    submitBtnText.textContent = 'Sucesso! Redirecionando...';
+    submitBtnSpinner.classList.add('hidden');
+    submitBtnText.classList.remove('hidden');
+    
+    setTimeout(() => {
+        window.location.href = 'verificar-email.html';
+    }, 2000);
 
-                } catch (error) {
-                    console.error("--- ❌ ERRO NO PROCESSO DE SUBMISSÃO ---", error);
-                    errorDiv.textContent = `Erro: ${error.code} - ${error.message}`;
-                    
-                    submitBtn.disabled = false;
-                    submitBtnText.classList.remove('hidden');
-                    submitBtnSpinner.classList.add('hidden');
-                    errorDiv.classList.remove('hidden');
-                }
+} catch (error) {
+    console.error("--- ❌ ERRO NO PROCESSO DE SUBMISSÃO ---", error);
+    // NOVA IMPLEMENTAÇÃO: Usando o modal para exibir o erro
+    showAlertModal('Erro no Cadastro', `Ocorreu um problema ao registrar a entidade. Por favor, verifique os dados e tente novamente. Detalhes: ${error.message}`);
+    
+    // Resetando o botão
+    submitBtn.disabled = false;
+    submitBtnText.classList.remove('hidden');
+    submitBtnSpinner.classList.add('hidden');
+}
             });
         });
     </script>
