@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrar Doação - App Faz Bem</title>
+    <title>Registrar Doação - Faz Bem</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,66 +14,364 @@
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #22c55e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .schedule-slot { transition: all 0.2s ease-in-out; }
+        .schedule-slot.selected { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(34, 197, 94, 0.4); }
+        .schedule-slot:disabled { background-color: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-50">
 
     <div id="app-header"></div>
 
-    <div id="loading-view" class="min-h-screen flex items-center justify-center">
-        <div class="loader"></div>
+    <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
+        <div class="text-center">
+            <div class="loader mx-auto !w-10 !h-10 !border-4"></div>
+            <p class="mt-4 text-gray-600">A carregar informações...</p>
+        </div>
     </div>
 
     <main id="donation-view" class="hidden container mx-auto max-w-4xl p-4 sm:p-6 my-8">
-        <!-- Cabeçalho da Campanha -->
-        <div id="campaign-header" class="bg-white rounded-lg shadow p-4 flex items-center space-x-4 mb-8">
-            <!-- Conteúdo injetado via JS -->
+        <!-- Campaign Header -->
+        <div id="campaign-header" class="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex items-center space-x-4 mb-8 border-l-4 border-green-500">
+            <!-- Content injected via JS -->
         </div>
 
-        <!-- Seção de Itens -->
-        <div class="bg-white rounded-lg shadow p-6 mb-8">
-            <h2 class="text-xl font-bold text-gray-800">Itens para Doar</h2>
-            <div id="donated-items-list" class="mt-4 space-y-3">
-                <!-- Itens adicionados aparecerão aqui -->
+        <!-- Items Section -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800">1. Itens para Doar</h2>
+            <div id="donated-items-list" class="mt-4 space-y-4">
+                <p id="no-items-placeholder" class="text-center text-gray-500 py-4 bg-gray-50 rounded-md">Nenhum item adicionado ainda.</p>
             </div>
-            <div id="add-item-form-container" class="mt-6 pt-6 border-t">
+            <div class="mt-6 pt-6 border-t">
                 <h3 class="text-lg font-medium text-gray-900">Adicionar Novo Item</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                    <select id="item-type" class="border-gray-300 rounded-md shadow-sm"><option value="">Selecione o tipo...</option></select>
-                    <input type="text" id="item-other-type" placeholder="Descreva o item" class="hidden border-gray-300 rounded-md shadow-sm">
-                    <input type="text" id="item-details" placeholder="Detalhes (tamanho, cor, etc.)" class="border-gray-300 rounded-md shadow-sm">
+                <form id="add-item-form" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                    <select id="item-type" class="border-gray-300 rounded-md shadow-sm w-full col-span-1 md:col-span-2"><option value="">Selecione o tipo de item...</option></select>
+                    <input type="text" id="item-other-type" placeholder="Descreva o item" class="hidden border-gray-300 rounded-md shadow-sm w-full col-span-1 md:col-span-2">
+                    <input type="text" id="item-details" placeholder="Detalhes (ex: Tamanho G, azul)" class="border-gray-300 rounded-md shadow-sm">
                     <select id="item-condition" class="border-gray-300 rounded-md shadow-sm"><option value="novo">Novo</option><option value="usado">Usado</option></select>
-                    <input type="file" id="item-photo" accept="image/*" required class="border-gray-300 rounded-md shadow-sm p-2">
-                </div>
-                <button id="add-item-btn" class="mt-4 bg-blue-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-600">Adicionar Item à Lista</button>
+                    <div class="col-span-1 md:col-span-2">
+                        <label for="item-photo" class="text-sm font-medium text-gray-700">Foto do Item (obrigatório)</label>
+                        <input type="file" id="item-photo" accept="image/*" required class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                    </div>
+                </form>
+                <button id="add-item-btn" class="mt-4 bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">Adicionar Item à Lista</button>
             </div>
         </div>
 
-        <!-- Seção de Agendamento -->
-        <div class="bg-white rounded-lg shadow p-6 mb-8">
-            <h2 class="text-xl font-bold text-gray-800">Agendar Entrega</h2>
-            <p class="text-sm text-gray-600">Selecione um dia e horário disponíveis para levar sua doação.</p>
+        <!-- Schedule Section -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800">2. Agendar Entrega</h2>
+            <p class="text-sm text-gray-600 mt-1">Selecione um dia e horário disponíveis para levar sua doação.</p>
             <div id="schedule-container" class="mt-4">
-                <!-- Horários serão inseridos aqui -->
+                <p class="text-center text-gray-500">Carregando horários...</p>
             </div>
         </div>
 
-        <!-- Seção de Privacidade -->
-        <div class="bg-white rounded-lg shadow p-6 mb-8">
-            <h2 class="text-xl font-bold text-gray-800">Privacidade da Doação</h2>
+        <!-- Privacy Section -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800">3. Privacidade</h2>
             <div class="mt-2 flex items-center space-x-8">
-                <label class="flex items-center"><input type="radio" name="privacy" value="public" checked class="h-4 w-4 text-green-600 border-gray-300"><span class="ml-2 text-gray-700">Pública (mostrar minha foto)</span></label>
-                <label class="flex items-center"><input type="radio" name="privacy" value="anonymous" class="h-4 w-4 text-green-600 border-gray-300"><span class="ml-2 text-gray-700">Anônima</span></label>
+                <label class="flex items-center cursor-pointer"><input type="radio" name="privacy" value="public" checked class="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500"><span class="ml-2 text-gray-700">Pública (mostrar minha foto de perfil na campanha)</span></label>
+                <label class="flex items-center cursor-pointer"><input type="radio" name="privacy" value="anonymous" class="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500"><span class="ml-2 text-gray-700">Anônima</span></label>
             </div>
         </div>
         
+        <div id="form-error" class="text-red-600 text-center font-semibold mb-4"></div>
+
         <div class="flex justify-end">
-            <button id="submit-donation-btn" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg text-lg hover:bg-green-700">Confirmar Minha Doação</button>
+            <button id="submit-donation-btn" class="bg-green-600 text-white font-bold py-4 px-10 rounded-lg text-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed inline-flex items-center">
+                <span id="submit-btn-text">Confirmar Minha Doação</span>
+                <div id="submit-btn-spinner" class="hidden loader !w-6 !h-6 !border-2 ml-3"></div>
+            </button>
         </div>
     </main>
 
+    <!-- Modal placeholder (assuming it's in the main HTML or injected) -->
+    <div id="app-modal" class="hidden fixed z-50 ..."></div>
+
     <script type="module">
-        // Imports e lógica completa do Sprint 2
+        import { auth, db, storage, onAuthStateChanged, getCurrentUser, firebaseConfig } from './app-config.js';
+        import { doc, getDoc, collection, addDoc, Timestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+        import { injectHeader } from './app-header.js';
+
+        // --- DOM Elements ---
+        const loadingView = document.getElementById('loading-view');
+        const donationView = document.getElementById('donation-view');
+        const campaignHeader = document.getElementById('campaign-header');
+        const donatedItemsList = document.getElementById('donated-items-list');
+        const noItemsPlaceholder = document.getElementById('no-items-placeholder');
+        const addItemForm = document.getElementById('add-item-form');
+        const addItemBtn = document.getElementById('add-item-btn');
+        const itemTypeSelect = document.getElementById('item-type');
+        const itemOtherTypeInput = document.getElementById('item-other-type');
+        const scheduleContainer = document.getElementById('schedule-container');
+        const submitDonationBtn = document.getElementById('submit-donation-btn');
+        const formError = document.getElementById('form-error');
+
+        // --- State ---
+        let currentUserSession = null;
+        let campaignId = null;
+        let campaignData = null;
+        let donatedItems = [];
+        let selectedScheduleSlot = null;
+
+        // --- Initialization ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                await injectHeader();
+                currentUserSession = await getCurrentUser();
+                
+                const params = new URLSearchParams(window.location.search);
+                campaignId = params.get('id');
+
+                if (!campaignId) {
+                    loadingView.innerHTML = '<p class="text-red-500">Erro: ID da campanha não encontrado.</p>';
+                    return;
+                }
+
+                // Profile check
+                const profile = currentUserSession.profile;
+                if (!profile || !profile.phone || !profile.address?.street) {
+                    alert("Para doar, seu perfil precisa estar completo (com telefone e endereço). Vamos te redirecionar para a página de perfil agora.");
+                    localStorage.setItem('postProfileUpdateRedirect', window.location.href);
+                    window.location.href = 'perfil-doador.html';
+                    return;
+                }
+                
+                await loadInitialData();
+
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        async function loadInitialData() {
+            try {
+                // Fetch campaign data
+                const campaignRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`, campaignId);
+                const campaignSnap = await getDoc(campaignRef);
+                if (!campaignSnap.exists()) throw new Error("Campanha não encontrada.");
+                campaignData = campaignSnap.data();
+
+                // Fetch campaign item types from configs
+                const typesConfigRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'campaignTypes');
+                const typesConfigSnap = await getDoc(typesConfigRef);
+                const itemTypes = typesConfigSnap.exists() ? typesConfigSnap.data() : {};
+
+                populateCampaignHeader();
+                populateItemTypes(itemTypes);
+                await generateSchedule();
+
+                loadingView.classList.add('hidden');
+                donationView.classList.remove('hidden');
+            } catch (error) {
+                console.error("Error loading initial data:", error);
+                loadingView.innerHTML = `<p class="text-red-500 text-center p-8">${error.message}</p>`;
+            }
+        }
+
+        // --- UI Population ---
+        function populateCampaignHeader() {
+            campaignHeader.innerHTML = `
+                <img src="${campaignData.images?.[0] || 'https://placehold.co/100x100/e2e8f0/e2e8f0'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
+                <div>
+                    <p class="text-sm text-gray-500">Você está doando para:</p>
+                    <h1 class="text-2xl font-bold text-gray-800">${campaignData.title}</h1>
+                    <p class="text-sm font-medium text-gray-600">Organizado por: ${campaignData.entityName}</p>
+                </div>`;
+        }
+
+        function populateItemTypes(types) {
+            itemTypeSelect.innerHTML = '<option value="">Selecione o tipo de item...</option>';
+            for (const id in types) {
+                if (id === 'default') continue;
+                itemTypeSelect.innerHTML += `<option value="${types[id].label}">${types[id].label}</option>`;
+            }
+            itemTypeSelect.innerHTML += '<option value="outro">Outro</option>';
+        }
+
+        function renderDonatedItems() {
+            donatedItemsList.innerHTML = '';
+            if (donatedItems.length === 0) {
+                donatedItemsList.appendChild(noItemsPlaceholder);
+                return;
+            }
+            donatedItems.forEach((item, index) => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'flex items-center space-x-4 bg-gray-50 p-3 rounded-lg border';
+                itemEl.innerHTML = `
+                    <img src="${URL.createObjectURL(item.photoFile)}" class="w-16 h-16 rounded-md object-cover">
+                    <div class="flex-grow">
+                        <p class="font-bold">${item.type}</p>
+                        <p class="text-sm text-gray-600">${item.details} (${item.condition})</p>
+                    </div>
+                    <button data-index="${index}" class="remove-item-btn text-red-500 hover:text-red-700 font-semibold">Remover</button>
+                `;
+                donatedItemsList.appendChild(itemEl);
+            });
+        }
+
+        // --- Schedule Logic ---
+        async function generateSchedule() {
+            const now = new Date();
+            const campaignStart = campaignData.startsAt.toDate();
+            const campaignEnd = campaignData.expiresAt.toDate();
+            const slotsPerHour = 2; // 30-minute intervals
+            const maxDonorsPerSlot = campaignData.slots || 1;
+
+            // Fetch existing donations for this campaign
+            const donationsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`);
+            const q = query(donationsRef, where("campaignId", "==", campaignId));
+            const querySnapshot = await getDocs(q);
+            const existingAppointments = {};
+            querySnapshot.forEach(doc => {
+                const scheduleTime = doc.data().scheduledAt.toDate().getTime();
+                existingAppointments[scheduleTime] = (existingAppointments[scheduleTime] || 0) + 1;
+            });
+
+            scheduleContainer.innerHTML = '';
+            let currentDate = now > campaignStart ? now : campaignStart;
+            
+            for (let d = 0; d < 7; d++) { // Show schedule for the next 7 days or until campaign ends
+                if (currentDate > campaignEnd) break;
+
+                const dayEl = document.createElement('div');
+                dayEl.className = 'mb-4';
+                dayEl.innerHTML = `<h4 class="font-semibold text-gray-700 border-b pb-1 mb-2">${currentDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</h4>`;
+                
+                const slotsGrid = document.createElement('div');
+                slotsGrid.className = 'grid grid-cols-4 sm:grid-cols-6 gap-2';
+                
+                let hasAvailableSlots = false;
+                for (let hour = 8; hour < 18; hour++) {
+                    for (let minute = 0; minute < 60; minute += (60 / slotsPerHour)) {
+                        const slotTime = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), hour, minute);
+                        if (slotTime < now || slotTime > campaignEnd) continue;
+
+                        const occupiedSlots = existingAppointments[slotTime.getTime()] || 0;
+                        const isFull = occupiedSlots >= maxDonorsPerSlot;
+
+                        const slotBtn = document.createElement('button');
+                        slotBtn.className = `schedule-slot p-2 border rounded-md text-sm ${isFull ? 'bg-gray-200 text-gray-400' : 'bg-green-50 text-green-800 hover:bg-green-100'}`;
+                        slotBtn.textContent = slotTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        slotBtn.disabled = isFull;
+                        if (!isFull) {
+                            hasAvailableSlots = true;
+                            slotBtn.onclick = () => {
+                                document.querySelectorAll('.schedule-slot.selected').forEach(s => s.classList.remove('selected', 'bg-green-600', 'text-white'));
+                                slotBtn.classList.add('selected', 'bg-green-600', 'text-white');
+                                selectedScheduleSlot = slotTime;
+                            };
+                        }
+                        slotsGrid.appendChild(slotBtn);
+                    }
+                }
+                
+                if (hasAvailableSlots) {
+                    dayEl.appendChild(slotsGrid);
+                    scheduleContainer.appendChild(dayEl);
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+        }
+
+        // --- Event Listeners ---
+        itemTypeSelect.addEventListener('change', (e) => {
+            itemOtherTypeInput.classList.toggle('hidden', e.target.value !== 'outro');
+        });
+
+        addItemBtn.addEventListener('click', () => {
+            const type = itemTypeSelect.value === 'outro' ? itemOtherTypeInput.value.trim() : itemTypeSelect.value;
+            const details = document.getElementById('item-details').value.trim();
+            const condition = document.getElementById('item-condition').value;
+            const photoFile = document.getElementById('item-photo').files[0];
+
+            if (!type || !photoFile) {
+                alert('Por favor, preencha o tipo do item e selecione uma foto.');
+                return;
+            }
+
+            donatedItems.push({ type, details, condition, photoFile });
+            renderDonatedItems();
+            addItemForm.reset();
+            itemOtherTypeInput.classList.add('hidden');
+        });
+
+        donatedItemsList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-item-btn')) {
+                const index = e.target.dataset.index;
+                donatedItems.splice(index, 1);
+                renderDonatedItems();
+            }
+        });
+
+        submitDonationBtn.addEventListener('click', async () => {
+            formError.textContent = '';
+            if (donatedItems.length === 0) {
+                formError.textContent = 'Você precisa adicionar pelo menos um item para doar.';
+                return;
+            }
+            if (!selectedScheduleSlot) {
+                formError.textContent = 'Por favor, selecione um horário para a entrega.';
+                return;
+            }
+
+            const submitBtnText = document.getElementById('submit-btn-text');
+            const submitBtnSpinner = document.getElementById('submit-btn-spinner');
+            submitDonationBtn.disabled = true;
+            submitBtnText.classList.add('hidden');
+            submitBtnSpinner.classList.remove('hidden');
+
+            try {
+                // 1. Upload all item photos to Storage
+                const uploadedItems = await Promise.all(donatedItems.map(async (item) => {
+                    const filePath = `donated_items/${currentUserSession.auth.uid}/${Date.now()}_${item.photoFile.name}`;
+                    const fileRef = ref(storage, filePath);
+                    const snapshot = await uploadBytes(fileRef, item.photoFile);
+                    const photoURL = await getDownloadURL(snapshot.ref);
+                    return {
+                        type: item.type,
+                        details: item.details,
+                        condition: item.condition,
+                        photoURL: photoURL,
+                        status: 'pending' // pending -> received
+                    };
+                }));
+
+                // 2. Prepare donation document
+                const donationData = {
+                    donorId: currentUserSession.auth.uid,
+                    donorName: currentUserSession.profile.displayName,
+                    donorPhoto: currentUserSession.profile.photoURL || null,
+                    campaignId: campaignId,
+                    campaignTitle: campaignData.title,
+                    entityId: campaignData.entityId,
+                    items: uploadedItems,
+                    status: 'scheduled', // scheduled -> completed / cancelled
+                    privacy: document.querySelector('input[name="privacy"]:checked').value,
+                    createdAt: Timestamp.now(),
+                    scheduledAt: Timestamp.fromDate(selectedScheduleSlot)
+                };
+
+                // 3. Save donation to Firestore
+                const donationsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/donations`;
+                await addDoc(collection(db, donationsColPath), donationData);
+
+                // 4. Redirect to a success/confirmation page
+                alert('Doação registrada com sucesso! Obrigado por fazer o bem!');
+                window.location.href = 'minhas-entregas.html'; // This page will be created in Sprint 3
+
+            } catch (error) {
+                console.error("Error submitting donation:", error);
+                formError.textContent = `Erro ao registrar doação: ${error.message}`;
+            } finally {
+                submitDonationBtn.disabled = false;
+                submitBtnText.classList.remove('hidden');
+                submitBtnSpinner.classList.add('hidden');
+            }
+        });
+
     </script>
 </body>
 </html>
