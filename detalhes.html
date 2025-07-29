@@ -50,6 +50,7 @@
 <body class="bg-gray-50">
 
     <div id="app-header"></div>
+
     <div id="loading-container" class="flex items-center justify-center h-screen">
         <div class="text-center">
             <div class="loader mx-auto"></div>
@@ -61,8 +62,13 @@
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
             <div class="grid grid-cols-1 lg:grid-cols-5">
                 <div class="lg:col-span-3 p-6">
-                    <!-- Media Gallery -->
-                    <div id="media-gallery" class="mb-6"></div>
+                    <div id="media-gallery" class="mb-6">
+                        <div class="w-full h-96 bg-black rounded-xl shadow-md mb-4 flex items-center justify-center">
+                            <img id="main-image" src="https://placehold.co/800x600/e2e8f0/e2e8f0" class="w-full h-full object-cover rounded-xl" alt="Imagem principal">
+                            <video id="main-video" class="hidden w-full h-full rounded-xl" controls></video>
+                        </div>
+                        <div id="thumbnail-container" class="flex space-x-2 overflow-x-auto p-1"></div>
+                    </div>
                     <h2 class="text-2xl font-bold text-gray-800 mb-2">Sobre a Campanha</h2>
                     <p id="campaign-description" class="text-gray-600 leading-relaxed"></p>
                 </div>
@@ -70,7 +76,10 @@
                     <div class="sticky top-24">
                         <h1 id="campaign-title" class="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight"></h1>
                         <p class="mt-2 text-md text-gray-500">por <span id="entity-name" class="font-semibold text-gray-700"></span></p>
-                        <div id="countdown-container" class="mt-6"></div>
+                        <div id="countdown-container" class="mt-6 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 p-4 rounded-r-lg">
+                            <h3 class="font-bold">Esta campanha termina em:</h3>
+                            <div id="countdown-timer" class="text-2xl font-mono font-bold"></div>
+                        </div>
                         <div id="goal-container" class="mt-6">
                             <div class="flex justify-between items-end">
                                 <span class="text-lg font-bold text-green-600">Meta: <span id="goal-progress-text"></span></span>
@@ -82,7 +91,29 @@
                         </div>
                         <div class="mt-8 pt-6 border-t">
                             <h3 class="text-xl font-bold text-gray-800 mb-4">Como Ajudar</h3>
-                            <div id="how-to-help-section" class="space-y-4"></div>
+                            <div class="space-y-4">
+                                <div id="address-block" class="flex items-start">
+                                    <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    <div>
+                                        <h4 class="font-semibold">Local de Entrega</h4>
+                                        <p id="campaign-address" class="text-gray-600"></p>
+                                    </div>
+                                </div>
+                                <div id="hours-block" class="flex items-start">
+                                    <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <div>
+                                        <h4 class="font-semibold">Horário</h4>
+                                        <p id="campaign-hours" class="text-gray-600"></p>
+                                    </div>
+                                </div>
+                                <div id="docs-block" class="flex items-start">
+                                    <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    <div>
+                                        <h4 class="font-semibold">Documentos Necessários</h4>
+                                        <p id="campaign-docs" class="text-gray-600"></p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div id="donors-section" class="mt-8 pt-6 border-t">
@@ -92,7 +123,7 @@
                         </div>
 
                         <div class="mt-8">
-                            <button id="help-button" class="w-full bg-green-600 text-white font-bold py-4 px-4 rounded-lg hover:bg-green-700 text-lg transition-colors"></button>
+                            <button id="help-button" class="w-full bg-green-600 text-white font-bold py-4 px-4 rounded-lg hover:bg-green-700 text-lg transition-colors">Eu Quero Ajudar!</button>
                         </div>
                     </div>
                 </div>
@@ -100,7 +131,26 @@
         </div>
     </main>
     
-    <div id="app-modal"></div>
+    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
+                            <div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import { db, auth, onAuthStateChanged, firebaseConfig, getCurrentUser } from './app-config.js';
@@ -108,7 +158,6 @@
         import { injectHeader } from './app-header.js';
         import { showAlertModal } from './modal-handler.js';
 
-        // --- (DOM selectors e variáveis de estado) ---
         const loadingContainer = document.getElementById('loading-container');
         const campaignContent = document.getElementById('campaign-content');
         const helpButton = document.getElementById('help-button');
@@ -120,9 +169,10 @@
         
         let currentUserSession = null;
         let campaignId = null;
-        let campaignUnsubscribe = null; // Para o listener da campanha
-        let donationsUnsubscribe = null; // Para o listener das doações
-        let likesUnsubscribe = null; // Para o listener dos likes
+        let campaignUnsubscribe = null;
+        let donationsUnsubscribe = null;
+        let likesUnsubscribe = null;
+        let countdownInterval;
 
         onAuthStateChanged(auth, async (user) => {
             await injectHeader();
@@ -136,16 +186,85 @@
             loadCampaignDetails();
         });
 
+        function renderCampaignInfo(campaign) {
+            document.getElementById('campaign-title').textContent = campaign.title;
+            document.getElementById('entity-name').textContent = campaign.entityName;
+            document.getElementById('campaign-description').textContent = campaign.description;
+            
+            const mainImage = document.getElementById('main-image');
+            const mainVideo = document.getElementById('main-video');
+            const thumbContainer = document.getElementById('thumbnail-container');
+            thumbContainer.innerHTML = '';
+
+            const showImage = (url) => { mainVideo.classList.add('hidden'); mainVideo.pause(); mainImage.classList.remove('hidden'); mainImage.src = url; };
+            const showVideo = (url) => { mainImage.classList.add('hidden'); mainVideo.classList.remove('hidden'); mainVideo.src = url; };
+
+            if (campaign.videoUrl) {
+                const thumb = document.createElement('div');
+                thumb.className = 'w-20 h-16 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-blue-500 flex-shrink-0 bg-black flex items-center justify-center';
+                thumb.innerHTML = `<svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>`;
+                thumb.onclick = () => showVideo(campaign.videoUrl);
+                thumbContainer.appendChild(thumb);
+            }
+            (campaign.images || []).forEach(imgUrl => {
+                const thumb = document.createElement('img');
+                thumb.src = imgUrl;
+                thumb.className = 'w-20 h-16 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-green-500 flex-shrink-0';
+                thumb.onclick = () => showImage(imgUrl);
+                thumbContainer.appendChild(thumb);
+            });
+
+            if (campaign.videoUrl) { showVideo(campaign.videoUrl); }
+            else if (campaign.images && campaign.images.length > 0) { showImage(campaign.images[0]); }
+            else { showImage('https://placehold.co/800x600/e2e8f0/e2e8f0?text=Sem+Mídia'); }
+
+            const address = campaign.address || {};
+            const operation = campaign.operation || {};
+            document.getElementById('campaign-address').textContent = `${address.street || ''}, ${address.number || ''} - ${address.district || ''}`;
+            document.getElementById('address-block').style.display = address.street ? 'flex' : 'none';
+            document.getElementById('campaign-hours').textContent = `${operation.hoursStart || ''} - ${operation.hoursEnd || ''}`;
+            document.getElementById('hours-block').style.display = operation.hoursStart ? 'flex' : 'none';
+            document.getElementById('campaign-docs').textContent = operation.requiredDocs || '';
+            document.getElementById('docs-block').style.display = operation.requiredDocs ? 'flex' : 'none';
+
+            if (campaign.expiresAt) { updateCountdown(campaign.expiresAt.toDate()); }
+        }
+
+        function updateCountdown(expiresAt) {
+            if (countdownInterval) clearInterval(countdownInterval);
+            const timerEl = document.getElementById('countdown-timer');
+            const countdownContainer = document.getElementById('countdown-container');
+            
+            countdownInterval = setInterval(() => {
+                const now = new Date().getTime();
+                const distance = expiresAt.getTime() - now;
+                if (distance < 0) {
+                    clearInterval(countdownInterval);
+                    countdownContainer.innerHTML = '<h3 class="font-bold text-red-700">Campanha Encerrada</h3>';
+                    countdownContainer.classList.replace('bg-yellow-100', 'bg-red-100');
+                    countdownContainer.classList.replace('border-yellow-400', 'border-red-400');
+                    helpButton.disabled = true;
+                    helpButton.textContent = 'Campanha Encerrada';
+                    return;
+                }
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                timerEl.innerHTML = `${String(days).padStart(2, '0')}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+            }, 1000);
+        }
+
         function loadCampaignDetails() {
-            if (campaignUnsubscribe) campaignUnsubscribe(); // Cancela listener anterior
+            if (campaignUnsubscribe) campaignUnsubscribe();
             const campaignRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`, campaignId);
             
             campaignUnsubscribe = onSnapshot(campaignRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const campaign = docSnap.data();
-                    renderCampaignInfo(campaign); // Renderiza as infos
-                    updateGoalProgress(campaign); // Atualiza a barra de progresso
-                    loadCampaignDonors(campaignId); // Carrega os doadores
+                    renderCampaignInfo(campaign);
+                    updateGoalProgress(campaign);
+                    loadCampaignDonors(campaignId);
                     loadingContainer.classList.add('hidden');
                     campaignContent.classList.remove('hidden');
                 } else {
@@ -165,6 +284,7 @@
                 goalProgressText.textContent = `${current} / ${goal} itens`;
                 progressPercentage.textContent = `${Math.round(percentage)}%`;
                 progressBar.style.width = `${percentage}%`;
+                document.getElementById('goal-container').style.display = 'block';
             } else {
                 document.getElementById('goal-container').style.display = 'none';
             }
@@ -237,9 +357,7 @@
                 const newLikesData = {};
                 snapshot.docs.forEach(doc => {
                     const like = {id: doc.id, ...doc.data()};
-                    if (!newLikesData[like.donorId]) {
-                        newLikesData[like.donorId] = [];
-                    }
+                    if (!newLikesData[like.donorId]) { newLikesData[like.donorId] = []; }
                     newLikesData[like.donorId].push(like);
                 });
                 likesData = newLikesData;
@@ -249,7 +367,12 @@
 
         donorsList.addEventListener('click', async (e) => {
             const likeButton = e.target.closest('.like-button');
-            if (!likeButton || !currentUserSession?.auth) return;
+            if (!likeButton || !currentUserSession?.auth) {
+                if (!currentUserSession?.auth) {
+                    showAlertModal("Ação necessária", "Você precisa estar logado para curtir.");
+                }
+                return;
+            }
 
             const donorId = likeButton.dataset.donorId;
             const likerId = currentUserSession.auth.uid;
@@ -260,10 +383,8 @@
 
             try {
                 if (likeButton.classList.contains('liked')) {
-                    // Unlike
                     await deleteDoc(likeDocRef);
                 } else {
-                    // Like
                     await setDoc(likeDocRef, {
                         campaignId: campaignId,
                         donorId: donorId,
@@ -277,7 +398,23 @@
             }
         });
 
-        // --- (restante do script, helpButton, etc, sem alterações) ---
+        helpButton.addEventListener('click', async () => {
+            if (!currentUserSession?.auth) {
+                const destination = window.location.href;
+                window.location.href = `login.html?redirect=${encodeURIComponent(destination)}`;
+                return;
+            }
+            
+            const profile = currentUserSession.profile;
+            if (!profile || !profile.phone || !profile.address?.street) {
+                await showAlertModal("Perfil Incompleto", "Para doar, seu perfil precisa estar completo (com telefone e endereço). Vamos te redirecionar para a página de perfil agora.");
+                localStorage.setItem('postProfileUpdateRedirect', `registrar-doacao.html?id=${campaignId}`);
+                window.location.href = 'perfil-doador.html';
+                return;
+            }
+            
+            window.location.href = `registrar-doacao.html?id=${campaignId}`;
+        });
     </script>
 </body>
 </html>
