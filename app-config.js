@@ -1,4 +1,4 @@
-// app-config.js (v3.0 - Versão Definitiva e Estável)
+// app-config.js (v4.0 - Versão Estável e Definitiva)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { 
@@ -31,7 +31,7 @@ const ADMIN_EMAIL = 'aldeir@gmail.com';
 
 const logout = () => signOut(auth);
 
-// Versão robusta que lida com erros de permissão
+// Função robusta que busca o perfil do usuário sem quebrar a aplicação.
 const getCurrentUser = () => {
     return new Promise((resolve) => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -40,20 +40,23 @@ const getCurrentUser = () => {
                 try {
                     let userProfile = null;
                     // Tenta ler o perfil de Doador
-                    let docSnap = await getDoc(doc(db, "users", user.uid));
+                    let docRef = doc(db, "users", user.uid);
+                    let docSnap = await getDoc(docRef);
+
                     if (docSnap.exists()) {
                         userProfile = docSnap.data();
                     } else {
                         // Se não for doador, tenta ler o perfil de Entidade
-                        docSnap = await getDoc(doc(db, `artifacts/${firebaseConfig.projectId}/public/data/entidades`, user.uid));
+                        docRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/entidades`, user.uid);
+                        docSnap = await getDoc(docRef);
                         if (docSnap.exists()) {
                             userProfile = docSnap.data();
                         }
                     }
                     resolve({ auth: user, profile: userProfile });
                 } catch (error) {
-                    console.error("Erro ao buscar perfil do usuário em getCurrentUser:", error);
-                    resolve({ auth: user, profile: null }); // Retorna o usuário autenticado mesmo se a leitura do perfil falhar
+                    console.error("Falha ao buscar perfil do usuário em getCurrentUser:", error);
+                    resolve({ auth: user, profile: null });
                 }
             } else {
                 resolve(null);
