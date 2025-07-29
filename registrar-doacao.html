@@ -54,6 +54,7 @@
                         <input type="file" id="item-photo" accept="image/*" required class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
                     </div>
                 </form>
+                <div id="add-item-error" class="text-red-600 text-sm font-semibold mt-3"></div>
                 <button id="add-item-btn" class="mt-4 bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">Adicionar Item à Lista</button>
             </div>
         </div>
@@ -86,7 +87,7 @@
         </div>
     </main>
 
-    <!-- Modal placeholder (assuming it's in the main HTML or injected) -->
+    <!-- Modal placeholder -->
     <div id="app-modal" class="hidden fixed z-50 ..."></div>
 
     <script type="module">
@@ -94,6 +95,8 @@
         import { doc, getDoc, collection, addDoc, Timestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
         import { injectHeader } from './app-header.js';
+        // Assuming modal-handler.js is available and showAlertModal is exported
+        // import { showAlertModal } from './modal-handler.js';
 
         // --- DOM Elements ---
         const loadingView = document.getElementById('loading-view');
@@ -108,6 +111,7 @@
         const scheduleContainer = document.getElementById('schedule-container');
         const submitDonationBtn = document.getElementById('submit-donation-btn');
         const formError = document.getElementById('form-error');
+        const addItemError = document.getElementById('add-item-error');
 
         // --- State ---
         let currentUserSession = null;
@@ -133,6 +137,7 @@
                 // Profile check
                 const profile = currentUserSession.profile;
                 if (!profile || !profile.phone || !profile.address?.street) {
+                    // Using a simple alert for now, can be replaced with a custom modal
                     alert("Para doar, seu perfil precisa estar completo (com telefone e endereço). Vamos te redirecionar para a página de perfil agora.");
                     localStorage.setItem('postProfileUpdateRedirect', window.location.href);
                     window.location.href = 'perfil-doador.html';
@@ -148,13 +153,11 @@
 
         async function loadInitialData() {
             try {
-                // Fetch campaign data
                 const campaignRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`, campaignId);
                 const campaignSnap = await getDoc(campaignRef);
                 if (!campaignSnap.exists()) throw new Error("Campanha não encontrada.");
                 campaignData = campaignSnap.data();
 
-                // Fetch campaign item types from configs
                 const typesConfigRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'campaignTypes');
                 const typesConfigSnap = await getDoc(typesConfigRef);
                 const itemTypes = typesConfigSnap.exists() ? typesConfigSnap.data() : {};
@@ -167,7 +170,7 @@
                 donationView.classList.remove('hidden');
             } catch (error) {
                 console.error("Error loading initial data:", error);
-                loadingView.innerHTML = `<p class="text-red-500 text-center p-8">${error.message}</p>`;
+                loadingView.innerHTML = `<p class="text-red-500 text-center p-8">${error.message}. Verifique as regras de segurança do Firestore.</p>`;
             }
         }
 
@@ -214,13 +217,13 @@
 
         // --- Schedule Logic ---
         async function generateSchedule() {
+            scheduleContainer.innerHTML = '<p class="text-center text-gray-500">Calculando horários disponíveis...</p>';
             const now = new Date();
             const campaignStart = campaignData.startsAt.toDate();
             const campaignEnd = campaignData.expiresAt.toDate();
             const slotsPerHour = 2; // 30-minute intervals
             const maxDonorsPerSlot = campaignData.slots || 1;
 
-            // Fetch existing donations for this campaign
             const donationsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`);
             const q = query(donationsRef, where("campaignId", "==", campaignId));
             const querySnapshot = await getDocs(q);
@@ -231,9 +234,10 @@
             });
 
             scheduleContainer.innerHTML = '';
-            let currentDate = now > campaignStart ? now : campaignStart;
+            let currentDate = now > campaignStart ? new Date(now) : new Date(campaignStart);
+            let daysWithSlots = 0;
             
-            for (let d = 0; d < 7; d++) { // Show schedule for the next 7 days or until campaign ends
+            for (let d = 0; d < 7 && daysWithSlots < 7; d++) {
                 if (currentDate > campaignEnd) break;
 
                 const dayEl = document.createElement('div');
@@ -271,8 +275,13 @@
                 if (hasAvailableSlots) {
                     dayEl.appendChild(slotsGrid);
                     scheduleContainer.appendChild(dayEl);
+                    daysWithSlots++;
                 }
                 currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            if (daysWithSlots === 0) {
+                scheduleContainer.innerHTML = '<p class="text-center text-yellow-600 bg-yellow-50 p-4 rounded-md">Não há horários de agendamento disponíveis para esta campanha no momento.</p>';
             }
         }
 
@@ -282,13 +291,14 @@
         });
 
         addItemBtn.addEventListener('click', () => {
+            addItemError.textContent = '';
             const type = itemTypeSelect.value === 'outro' ? itemOtherTypeInput.value.trim() : itemTypeSelect.value;
             const details = document.getElementById('item-details').value.trim();
             const condition = document.getElementById('item-condition').value;
             const photoFile = document.getElementById('item-photo').files[0];
 
             if (!type || !photoFile) {
-                alert('Por favor, preencha o tipo do item e selecione uma foto.');
+                addItemError.textContent = 'Por favor, preencha o tipo do item e selecione uma foto.';
                 return;
             }
 
@@ -324,7 +334,6 @@
             submitBtnSpinner.classList.remove('hidden');
 
             try {
-                // 1. Upload all item photos to Storage
                 const uploadedItems = await Promise.all(donatedItems.map(async (item) => {
                     const filePath = `donated_items/${currentUserSession.auth.uid}/${Date.now()}_${item.photoFile.name}`;
                     const fileRef = ref(storage, filePath);
@@ -335,11 +344,10 @@
                         details: item.details,
                         condition: item.condition,
                         photoURL: photoURL,
-                        status: 'pending' // pending -> received
+                        status: 'pending'
                     };
                 }));
 
-                // 2. Prepare donation document
                 const donationData = {
                     donorId: currentUserSession.auth.uid,
                     donorName: currentUserSession.profile.displayName,
@@ -348,19 +356,18 @@
                     campaignTitle: campaignData.title,
                     entityId: campaignData.entityId,
                     items: uploadedItems,
-                    status: 'scheduled', // scheduled -> completed / cancelled
+                    status: 'scheduled',
                     privacy: document.querySelector('input[name="privacy"]:checked').value,
                     createdAt: Timestamp.now(),
                     scheduledAt: Timestamp.fromDate(selectedScheduleSlot)
                 };
 
-                // 3. Save donation to Firestore
                 const donationsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/donations`;
                 await addDoc(collection(db, donationsColPath), donationData);
 
-                // 4. Redirect to a success/confirmation page
+                // This can be replaced with a custom success modal
                 alert('Doação registrada com sucesso! Obrigado por fazer o bem!');
-                window.location.href = 'minhas-entregas.html'; // This page will be created in Sprint 3
+                window.location.href = 'minhas-entregas.html';
 
             } catch (error) {
                 console.error("Error submitting donation:", error);
