@@ -233,23 +233,18 @@
             
             for (let d = 0; d < 7 && daysWithSlots < 7; d++) {
                 if (currentDate > campaignEnd) break;
-
                 const dayEl = document.createElement('div');
                 dayEl.className = 'mb-4';
                 dayEl.innerHTML = `<h4 class="font-semibold text-gray-700 border-b pb-1 mb-2">${currentDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</h4>`;
-                
                 const slotsGrid = document.createElement('div');
                 slotsGrid.className = 'grid grid-cols-4 sm:grid-cols-6 gap-2';
-                
                 let hasAvailableSlots = false;
                 for (let hour = 8; hour < 18; hour++) {
                     for (let minute = 0; minute < 60; minute += (60 / slotsPerHour)) {
                         const slotTime = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), hour, minute);
                         if (slotTime < now || slotTime > campaignEnd) continue;
-
                         const occupiedSlots = existingAppointments[slotTime.getTime()] || 0;
                         const isFull = occupiedSlots >= maxDonorsPerSlot;
-
                         const slotBtn = document.createElement('button');
                         slotBtn.className = `schedule-slot p-2 border rounded-md text-sm ${isFull ? 'bg-gray-200 text-gray-400' : 'bg-green-50 text-green-800 hover:bg-green-100'}`;
                         slotBtn.textContent = slotTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -265,7 +260,6 @@
                         slotsGrid.appendChild(slotBtn);
                     }
                 }
-                
                 if (hasAvailableSlots) {
                     dayEl.appendChild(slotsGrid);
                     scheduleContainer.appendChild(dayEl);
@@ -273,7 +267,6 @@
                 }
                 currentDate.setDate(currentDate.getDate() + 1);
             }
-
             if (daysWithSlots === 0) {
                 scheduleContainer.innerHTML = '<p class="text-center text-yellow-600 bg-yellow-50 p-4 rounded-md">Não há horários de agendamento disponíveis para esta campanha no momento.</p>';
             }
@@ -290,12 +283,10 @@
             const details = document.getElementById('item-details').value.trim();
             const condition = document.getElementById('item-condition').value;
             const photoFile = document.getElementById('item-photo').files[0];
-
             if (!type || !photoFile) {
                 addItemError.textContent = 'Por favor, selecione um item e uma foto.';
                 return;
             }
-
             donatedItems.push({ type, details, condition, photoFile });
             renderDonatedItems();
             addItemForm.reset();
@@ -333,13 +324,7 @@
                     const fileRef = ref(storage, filePath);
                     const snapshot = await uploadBytes(fileRef, item.photoFile);
                     const photoURL = await getDownloadURL(snapshot.ref);
-                    return {
-                        type: item.type,
-                        details: item.details,
-                        condition: item.condition,
-                        photoURL: photoURL,
-                        status: 'pending'
-                    };
+                    return { type: item.type, details: item.details, condition: item.condition, photoURL: photoURL, status: 'pending' };
                 }));
 
                 const donationData = {
@@ -360,10 +345,10 @@
                 await addDoc(collection(db, donationsColPath), donationData);
 
                 await showAlertModal('Sucesso!', 'Sua doação foi registrada com sucesso! Obrigado por fazer o bem!');
-                window.location.href = 'index.html'; // Or 'minhas-entregas.html' when it's ready
+                window.location.href = 'index.html';
 
             } catch (error) {
-                console.error("Error submitting donation:", error);
+                console.error("Erro detalhado ao registrar doação:", error);
                 formError.textContent = `Erro ao registrar doação: ${error.message}`;
             } finally {
                 submitDonationBtn.disabled = false;
@@ -371,7 +356,6 @@
                 submitBtnSpinner.classList.add('hidden');
             }
         });
-
     </script>
 </body>
 </html>
