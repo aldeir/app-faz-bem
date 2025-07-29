@@ -23,11 +23,12 @@
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-    <div class="container mx-auto max-w-4xl p-4 sm:p-6 relative">
+    <!-- O cabeçalho padrão é injetado dinamicamente aqui -->
+    <div id="app-header"></div>
 
-        <div id="user-auth-container" class="absolute top-4 right-4 z-20"></div>
+    <div class="container mx-auto max-w-4xl p-4 sm:p-6">
 
-        <header class="text-center mb-8 pt-12">
+        <header class="text-center my-8">
             <h1 class="text-4xl sm:text-5xl font-bold text-green-600">Faz Bem</h1>
             <p class="text-lg text-gray-600 mt-2">Conectando corações e transformando vidas em Guaçuí-ES.</p>
         </header>
@@ -68,19 +69,17 @@
         </footer>
     </div>
 
-    <!-- SCRIPT 100% COMPLETO E REESCRITO -->
     <script type="module">
-        import { db, auth, onAuthStateChanged, ADMIN_EMAIL, getCurrentUser, logout, firebaseConfig } from './app-config.js';
+        import { db, auth, onAuthStateChanged, ADMIN_EMAIL, getCurrentUser, firebaseConfig } from './app-config.js';
+        import { injectHeader } from './app-header.js';
         import { collection, onSnapshot, query, where, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const userAuthContainer = document.getElementById('user-auth-container');
         const loadingContainer = document.getElementById('loading-container');
         const filterContainer = document.getElementById('filter-container');
 
         let allCampaigns = [];
         let currentUserSession = null;
 
-        // Configurações de cores e labels (preparado para vir do Firestore no futuro)
         const campaignTypeSettings = {
             'agasalho': { label: 'Agasalho', color: 'blue' },
             'alimento': { label: 'Alimento', color: 'orange' },
@@ -88,21 +87,12 @@
             'default': { label: 'Outro', color: 'gray' }
         };
 
-        const setupUserMenu = () => {
-            if (currentUserSession?.auth) {
-                const { auth, profile } = currentUserSession;
-                let panelLink = '';
-                if (auth.email === ADMIN_EMAIL) {
-                    panelLink = `<a href="superadmin.html" class="text-sm font-medium text-red-600 hover:underline">Painel Admin</a>`;
-                } else if (profile?.role === 'entidade') {
-                    panelLink = `<a href="admin.html" class="text-sm font-medium text-blue-600 hover:underline">Painel da Entidade</a>`;
-                }
-                userAuthContainer.innerHTML = `<div class="flex items-center space-x-3 bg-white p-2 rounded-lg shadow"><span class="text-sm font-medium text-gray-700">Olá, ${auth.displayName || 'Utilizador'}</span> ${panelLink} <button id="logout-btn" class="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium">Sair</button></div>`;
-                document.getElementById('logout-btn').addEventListener('click', () => logout().then(() => window.location.reload()));
-            } else {
-                userAuthContainer.innerHTML = `<a href="login.html" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 shadow">Entrar / Registar</a>`;
-            }
-        };
+        // --- INICIALIZAÇÃO DA PÁGINA ---
+        onAuthStateChanged(auth, async (user) => {
+            await injectHeader(); // Injeta o cabeçalho padrão
+            currentUserSession = await getCurrentUser();
+            fetchAllCampaigns();
+        });
 
         window.handleCampaignClick = (campaignId) => {
             const campaign = allCampaigns.find(c => c.id === campaignId);
@@ -240,12 +230,6 @@
             renderAllSections(filter);
         });
 
-        // --- INICIALIZAÇÃO DA PÁGINA ---
-        onAuthStateChanged(auth, async (user) => {
-            currentUserSession = await getCurrentUser();
-            setupUserMenu();
-            fetchAllCampaigns();
-        });
     </script>
 </body>
 </html>
