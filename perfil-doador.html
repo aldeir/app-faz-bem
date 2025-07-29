@@ -5,17 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meu Perfil - Faz Bem</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Cropper.js for image cropping -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -24,86 +23,100 @@
         .cropper-container-modal { max-height: 60vh; }
         #image-to-crop { display: block; max-width: 100%; }
         input[type="file"] { display: none; }
+        /* Adicionado para esconder elementos antes do Vue montar */
+        [v-cloak] { display: none; }
     </style>
 </head>
 <body class="bg-gray-50">
 
-    <!-- O cabeçalho é injetado dinamicamente -->
     <div id="app-header"></div>
 
-    <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
-        <div class="text-center">
-            <div class="loader mx-auto !w-10 !h-10 !border-4"></div>
-            <p class="mt-4 text-gray-600">A carregar perfil...</p>
+    <div id="app" v-cloak>
+
+        <div v-if="isLoading" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
+            <div class="text-center">
+                <div class="loader mx-auto !w-10 !h-10 !border-4"></div>
+                <p class="mt-4 text-gray-600">{{ loadingMessage }}</p>
+            </div>
         </div>
-    </div>
 
-    <main id="profile-view" class="hidden container mx-auto max-w-3xl p-4 sm:p-6 my-8">
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div class="p-6 sm:p-8">
-                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Meu Perfil de Doador</h1>
+        <main v-else class="container mx-auto max-w-3xl p-4 sm:p-6 my-8">
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="p-6 sm:p-8">
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Meu Perfil de Doador</h1>
 
-                <!-- Profile Photo Section -->
-                <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 mb-8 pb-8 border-b">
-                    <img id="profile-photo-preview" src="https://placehold.co/128x128/e2e8f0/cbd5e0?text=Foto" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover bg-gray-200 border-4 border-white shadow-md">
-                    <div>
-                        <h2 id="profile-display-name" class="text-xl font-bold text-gray-700"></h2>
-                        <p id="profile-email" class="text-sm text-gray-500"></p>
-                        <label for="photo-upload-input" class="mt-3 inline-block bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg cursor-pointer text-sm transition-colors">
-                            Alterar Foto
-                        </label>
-                        <input id="photo-upload-input" type="file" accept="image/png, image/jpeg, image/webp">
+                    <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 mb-8 pb-8 border-b">
+                        <img :src="profile.photoURL || 'https://placehold.co/128x128/e2e8f0/cbd5e0?text=Foto'" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover bg-gray-200 border-4 border-white shadow-md">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-700">{{ profile.displayName || 'Nome não definido' }}</h2>
+                            <p class="text-sm text-gray-500">{{ profile.email }}</p>
+                            <label for="photo-upload-input" class="mt-3 inline-block bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg cursor-pointer text-sm transition-colors">
+                                Alterar Foto
+                            </label>
+                            <input id="photo-upload-input" type="file" accept="image/png, image/jpeg, image/webp" @change="handleFileChange">
+                        </div>
                     </div>
+
+                    <form @submit.prevent="saveProfile" class="space-y-6">
+                        <div>
+                            <label for="displayName" class="block text-sm font-medium text-gray-700">Nome Completo</label>
+                            <input type="text" id="displayName" v-model="profile.displayName" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label for="phone" class="block text-sm font-medium text-gray-700">Telefone</label>
+                                <input type="tel" id="phone" v-model="profile.phone" placeholder="(00) 00000-0000" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+                            </div>
+                            <div>
+                                <label for="addressCep" class="block text-sm font-medium text-gray-700">CEP</label>
+                                <input type="text" id="addressCep" v-model="profile.address.cep" placeholder="00000-000" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="addressStreet" class="block text-sm font-medium text-gray-700">Endereço (Rua, Av.)</label>
+                            <input type="text" id="addressStreet" v-model="profile.address.street" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+                        </div>
+
+                        <div class="pt-4 flex justify-end items-center">
+                            <span :class="feedback.isError ? 'text-red-600' : 'text-green-600'" class="text-sm mr-4">{{ feedback.message }}</span>
+                            <button type="submit" :disabled="isSaving" class="inline-flex items-center justify-center rounded-md border border-transparent shadow-sm px-6 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 disabled:bg-gray-400">
+                               <span v-if="!isSaving">Salvar Alterações</span>
+                               <div v-else class="loader"></div>
+                            </button>
+                        </div>
+                    </form>
                 </div>
+            </div>
+            
+            <div class="mt-10 bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">Minhas Doações</h2>
+                    <a href="minhas-entregas.html" class="bg-green-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-green-700 transition-colors text-center">
+                        Ver Entregas Agendadas
+                    </a>
+                </div>
+                <p class="text-gray-500 text-sm">Acompanhe suas doações agendadas, veja os itens que você se comprometeu a entregar e acesse os QR Codes para a confirmação no dia da entrega.</p>
+            </div>
+        </main>
 
-                <!-- Profile Form -->
-                <form id="profile-form" class="space-y-6">
-                    <div>
-                        <label for="displayName" class="block text-sm font-medium text-gray-700">Nome Completo</label>
-                        <input type="text" id="displayName" name="displayName" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+        <div v-if="isCropperVisible" class="fixed z-50 inset-0 overflow-y-auto">
+             <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="fixed inset-0 bg-gray-900 bg-opacity-75"></div>
+                <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md p-6 space-y-4">
+                    <h2 class="text-xl font-bold text-gray-800">Ajuste sua Foto</h2>
+                    <div class="cropper-container-modal bg-gray-100">
+                        <img id="image-to-crop" :src="cropperImageSrc">
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div>
-                            <label for="phone" class="block text-sm font-medium text-gray-700">Telefone</label>
-                            <input type="tel" id="phone" name="phone" placeholder="(00) 00000-0000" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
-                        </div>
-                        <div>
-                            <label for="addressCep" class="block text-sm font-medium text-gray-700">CEP</label>
-                            <input type="text" id="addressCep" name="addressCep" placeholder="00000-000" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
-                        </div>
-                    </div>
-                    <div>
-                        <label for="addressStreet" class="block text-sm font-medium text-gray-700">Endereço (Rua, Av.)</label>
-                        <input type="text" id="addressStreet" name="addressStreet" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
-                    </div>
-
-                    <!-- Save Button -->
-                    <div class="pt-4 flex justify-end items-center">
-                         <span id="save-feedback" class="text-sm text-green-600 mr-4"></span>
-                        <button type="submit" id="save-profile-btn" class="inline-flex items-center justify-center rounded-md border border-transparent shadow-sm px-6 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 disabled:bg-gray-400">
-                           <span id="save-btn-text">Salvar Alterações</span>
-                           <div id="save-btn-spinner" class="hidden loader"></div>
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button @click="cancelCrop" class="px-4 py-2 rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300">Cancelar</button>
+                        <button @click="confirmAndUploadCrop" :disabled="isUploading" class="inline-flex items-center px-4 py-2 rounded-md text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400">
+                            <span v-if="!isUploading">Confirmar e Salvar</span>
+                            <div v-else class="loader"></div>
                         </button>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
-        
-        <!-- AJUSTE: Seção de Histórico agora é funcional -->
-        <div class="mt-10 bg-white rounded-2xl shadow-lg p-6 sm:p-8">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                <h2 class="text-xl font-bold text-gray-800">Minhas Doações</h2>
-                <a href="minhas-entregas.html" class="bg-green-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-green-700 transition-colors text-center">
-                    Ver Entregas Agendadas
-                </a>
-            </div>
-            <p class="text-gray-500 text-sm">Acompanhe suas doações agendadas, veja os itens que você se comprometeu a entregar e acesse os QR Codes para a confirmação no dia da entrega.</p>
-        </div>
-    </main>
-
-    <!-- MODAL PARA RECORTE DA IMAGEM -->
-    <div id="cropper-modal" class="hidden fixed z-50 inset-0 overflow-y-auto">
-        <!-- ... (código do modal sem alterações) ... -->
     </div>
 
     <script type="module">
@@ -112,146 +125,182 @@
         import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-        // --- (O código JS permanece o mesmo da v1.0) ---
-        const loadingView = document.getElementById('loading-view');
-        const profileView = document.getElementById('profile-view');
-        const profileForm = document.getElementById('profile-form');
-        const saveProfileBtn = document.getElementById('save-profile-btn');
-        const saveBtnText = document.getElementById('save-btn-text');
-        const saveBtnSpinner = document.getElementById('save-btn-spinner');
-        const saveFeedback = document.getElementById('save-feedback');
-        
-        const photoPreview = document.getElementById('profile-photo-preview');
-        const photoUploadInput = document.getElementById('photo-upload-input');
-        const cropperModal = document.getElementById('cropper-modal');
-        const imageToCrop = document.getElementById('image-to-crop');
-        const cancelCropBtn = document.getElementById('cancel-crop-btn');
-        const confirmCropBtn = document.getElementById('confirm-crop-btn');
+        const { createApp } = Vue
 
-        let currentUser = null;
-        let cropper;
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                await injectHeader();
-                await loadProfileData();
-                loadingView.classList.add('hidden');
-                profileView.classList.remove('hidden');
-            } else {
-                window.location.href = 'login.html';
-            }
-        });
-
-        async function loadProfileData() {
-            const userSession = await getCurrentUser();
-            if (userSession && userSession.profile) {
-                const profile = userSession.profile;
-                document.getElementById('displayName').value = profile.displayName || '';
-                document.getElementById('profile-display-name').textContent = profile.displayName || 'Nome não definido';
-                document.getElementById('profile-email').textContent = profile.email || '';
-                document.getElementById('phone').value = profile.phone || '';
-                document.getElementById('addressCep').value = profile.address?.cep || '';
-                document.getElementById('addressStreet').value = profile.address?.street || '';
-                photoPreview.src = profile.photoURL || 'https://placehold.co/128x128/e2e8f0/cbd5e0?text=Foto';
-            }
-        }
-
-        profileForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            showLoadingButton(true, 'Salvando...');
-            saveFeedback.textContent = '';
-
-            const dataToUpdate = {
-                displayName: document.getElementById('displayName').value,
-                phone: document.getElementById('phone').value,
-                address: {
-                    cep: document.getElementById('addressCep').value,
-                    street: document.getElementById('addressStreet').value,
+        createApp({
+            // 1. ESTADO DA APLICAÇÃO (DATA)
+            // Todos os dados que a página precisa agora vivem aqui.
+            data() {
+                return {
+                    isLoading: true,
+                    loadingMessage: 'A carregar...',
+                    isSaving: false,
+                    isUploading: false,
+                    isCropperVisible: false,
+                    cropperImageSrc: null,
+                    cropper: null,
+                    currentUser: null,
+                    profile: {
+                        displayName: '',
+                        email: '',
+                        phone: '',
+                        photoURL: '',
+                        address: {
+                            cep: '',
+                            street: '',
+                        },
+                    },
+                    feedback: {
+                        message: '',
+                        isError: false
+                    }
                 }
-            };
+            },
 
-            try {
-                const userDocRef = doc(db, "users", currentUser.uid);
-                await updateDoc(userDocRef, dataToUpdate);
+            // 2. MÉTODOS (LOGIC)
+            // Todas as funções que a página executa.
+            methods: {
+                async initializePage(user) {
+                    this.currentUser = user;
+                    this.loadingMessage = 'A carregar perfil...';
+                    await injectHeader();
+                    await this.loadProfileData();
+                    this.isLoading = false;
+                },
+
+                async loadProfileData() {
+                    const userSession = await getCurrentUser();
+                    if (userSession?.profile) {
+                        const p = userSession.profile;
+                        this.profile.displayName = p.displayName || '';
+                        this.profile.email = p.email || '';
+                        this.profile.photoURL = p.photoURL || '';
+                        this.profile.phone = p.phone || '';
+                        this.profile.address.cep = p.address?.cep || '';
+                        this.profile.address.street = p.address?.street || '';
+                    } else {
+                        // Fallback para o perfil do Auth se não houver no Firestore
+                        this.profile.displayName = userSession.auth.displayName;
+                        this.profile.email = userSession.auth.email;
+                        this.profile.photoURL = userSession.auth.photoURL;
+                    }
+                },
+
+                async saveProfile() {
+                    this.isSaving = true;
+                    this.showFeedback('');
+
+                    const dataToUpdate = {
+                        displayName: this.profile.displayName,
+                        phone: this.profile.phone,
+                        address: {
+                            cep: this.profile.address.cep,
+                            street: this.profile.address.street,
+                        }
+                    };
+
+                    try {
+                        const userDocRef = doc(db, "users", this.currentUser.uid);
+                        await updateDoc(userDocRef, dataToUpdate);
+                        await auth.currentUser.updateProfile({ displayName: dataToUpdate.displayName });
+                        this.showFeedback('Perfil atualizado com sucesso!');
+                    } catch (error) {
+                        console.error("Erro ao atualizar perfil:", error);
+                        this.showFeedback('Erro ao salvar. Tente novamente.', true);
+                    } finally {
+                        this.isSaving = false;
+                    }
+                },
                 
-                await auth.currentUser.updateProfile({ displayName: dataToUpdate.displayName });
+                handleFileChange(e) {
+                    const file = e.target.files[0];
+                    if (!file || !file.type.startsWith('image/')) return;
 
-                showSaveFeedback('Perfil atualizado com sucesso!', 'success');
-            } catch (error) {
-                console.error("Erro ao atualizar perfil:", error);
-                showSaveFeedback('Erro ao salvar. Tente novamente.', 'error');
-            } finally {
-                showLoadingButton(false);
-            }
-        });
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        this.cropperImageSrc = event.target.result;
+                        this.isCropperVisible = true;
+                        // O Cropper é inicializado quando o modal se torna visível (ver 'updated' hook)
+                    };
+                    reader.readAsDataURL(file);
+                    e.target.value = '';
+                },
+                
+                initCropper() {
+                    if (this.cropper) this.cropper.destroy();
+                    const imageElement = document.getElementById('image-to-crop');
+                    if(imageElement){
+                        this.cropper = new Cropper(imageElement, {
+                            aspectRatio: 1,
+                            viewMode: 1,
+                            background: false,
+                            autoCropArea: 0.8
+                        });
+                    }
+                },
 
-        photoUploadInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file || !file.type.startsWith('image/')) return;
+                cancelCrop() {
+                    this.isCropperVisible = false;
+                    this.cropper.destroy();
+                    this.cropper = null;
+                },
+                
+                confirmAndUploadCrop() {
+                    if (!this.cropper) return;
+                    this.isUploading = true;
+                    this.showFeedback('');
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                imageToCrop.src = event.target.result;
-                cropperModal.classList.remove('hidden');
-                if (cropper) cropper.destroy();
-                cropper = new Cropper(imageToCrop, {
-                    aspectRatio: 1,
-                    viewMode: 1,
-                    background: false,
-                    autoCropArea: 0.8
-                });
-            };
-            reader.readAsDataURL(file);
-            photoUploadInput.value = '';
-        });
+                    const canvas = this.cropper.getCroppedCanvas({ width: 256, height: 256, imageSmoothingQuality: 'high' });
+                    canvas.toBlob(async (blob) => {
+                        try {
+                            const storageRef = ref(storage, `profile_photos/${this.currentUser.uid}.webp`);
+                            await uploadBytes(storageRef, blob);
+                            const photoURL = await getDownloadURL(storageRef);
 
-        cancelCropBtn.addEventListener('click', () => cropperModal.classList.add('hidden'));
+                            const userDocRef = doc(db, "users", this.currentUser.uid);
+                            await updateDoc(userDocRef, { photoURL });
+                            await auth.currentUser.updateProfile({ photoURL });
 
-        confirmCropBtn.addEventListener('click', () => {
-            if (!cropper) return;
-            
-            confirmCropBtn.disabled = true;
-            confirmCropBtn.textContent = 'A processar...';
+                            this.profile.photoURL = photoURL; // Atualiza a foto reativamente
+                            this.showFeedback('Foto atualizada!', false);
+                            this.cancelCrop();
+                        } catch (error) {
+                            console.error("Erro ao atualizar foto:", error);
+                            this.showFeedback('Falha no upload da foto.', true);
+                        } finally {
+                            this.isUploading = false;
+                        }
+                    }, 'image/webp', 0.9);
+                },
 
-            const canvas = cropper.getCroppedCanvas({ width: 256, height: 256, imageSmoothingQuality: 'high' });
-            canvas.toBlob(async (blob) => {
-                try {
-                    const storageRef = ref(storage, `profile_photos/${currentUser.uid}.webp`);
-                    await uploadBytes(storageRef, blob);
-                    const photoURL = await getDownloadURL(storageRef);
-
-                    const userDocRef = doc(db, "users", currentUser.uid);
-                    await updateDoc(userDocRef, { photoURL: photoURL });
-
-                    await auth.currentUser.updateProfile({ photoURL: photoURL });
-
-                    photoPreview.src = photoURL;
-                    showSaveFeedback('Foto atualizada!', 'success');
-                    cropperModal.classList.add('hidden');
-
-                } catch (error) {
-                    console.error("Erro ao atualizar foto:", error);
-                    showSaveFeedback('Falha no upload da foto.', 'error');
-                } finally {
-                    confirmCropBtn.disabled = false;
-                    confirmCropBtn.textContent = 'Confirmar e Salvar';
+                showFeedback(message, isError = false) {
+                    this.feedback.message = message;
+                    this.feedback.isError = isError;
+                    setTimeout(() => { this.feedback.message = ''; }, 4000);
                 }
-            }, 'image/webp', 0.9);
-        });
+            },
 
-        function showLoadingButton(isLoading, text = 'Salvar Alterações') {
-            saveBtnText.textContent = text;
-            saveBtnText.classList.toggle('hidden', isLoading);
-            saveBtnSpinner.classList.toggle('hidden', !isLoading);
-            saveProfileBtn.disabled = isLoading;
-        }
-
-        function showSaveFeedback(message, type = 'success') {
-            saveFeedback.textContent = message;
-            saveFeedback.className = `text-sm mr-4 ${type === 'success' ? 'text-green-600' : 'text-red-600'}`;
-            setTimeout(() => { saveFeedback.textContent = ''; }, 4000);
-        }
+            // 3. LIFECYCLE HOOKS
+            // Código que roda em momentos específicos, como quando a app é criada.
+            created() {
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        this.initializePage(user);
+                    } else {
+                        window.location.href = 'login.html';
+                    }
+                });
+            },
+            
+            updated() {
+                // Este hook é chamado depois que o DOM é atualizado.
+                // Perfeito para inicializar uma biblioteca como o Cropper.js
+                // depois que seu elemento alvo (a imagem) se torna visível.
+                if (this.isCropperVisible && !this.cropper) {
+                    this.initCropper();
+                }
+            }
+        }).mount('#app')
 
     </script>
 </body>
