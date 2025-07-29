@@ -1,4 +1,4 @@
-// app-config.js (v2.6 - Robusto e Corrigido)
+// app-config.js (v3.0 - Versão Definitiva e Estável)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { 
@@ -12,7 +12,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Configuração do Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
   authDomain: "app-faz-bem-guacui.firebaseapp.com",
@@ -23,7 +22,6 @@ const firebaseConfig = {
   measurementId: "G-R5W1F2NXH4"
 };
 
-// Inicialização dos serviços
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -33,43 +31,37 @@ const ADMIN_EMAIL = 'aldeir@gmail.com';
 
 const logout = () => signOut(auth);
 
-// --- CORREÇÃO PRINCIPAL ---
-// A função agora tem um bloco try...catch para lidar com erros de permissão.
+// Versão robusta que lida com erros de permissão
 const getCurrentUser = () => {
     return new Promise((resolve) => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             unsubscribe();
             if (user) {
                 try {
+                    let userProfile = null;
                     // Tenta ler o perfil de Doador
-                    let userDocRef = doc(db, "users", user.uid);
-                    let docSnap = await getDoc(userDocRef);
-
-                    // Se não for doador, tenta ler o perfil de Entidade
-                    if (!docSnap.exists()) {
-                        userDocRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/entidades`, user.uid);
-                        docSnap = await getDoc(userDocRef);
+                    let docSnap = await getDoc(doc(db, "users", user.uid));
+                    if (docSnap.exists()) {
+                        userProfile = docSnap.data();
+                    } else {
+                        // Se não for doador, tenta ler o perfil de Entidade
+                        docSnap = await getDoc(doc(db, `artifacts/${firebaseConfig.projectId}/public/data/entidades`, user.uid));
+                        if (docSnap.exists()) {
+                            userProfile = docSnap.data();
+                        }
                     }
-                    
-                    // Retorna o usuário autenticado e o perfil encontrado (ou null)
-                    resolve({ auth: user, profile: docSnap.exists() ? docSnap.data() : null });
-
+                    resolve({ auth: user, profile: userProfile });
                 } catch (error) {
-                    // Se houver um erro de permissão durante a leitura:
-                    console.error("ERRO DE PERMISSÃO em getCurrentUser:", error.message);
-                    // Resolve a Promise retornando o usuário autenticado, mas sem perfil.
-                    // Isso permite que a app continue funcionando, mesmo sem os dados do perfil.
-                    resolve({ auth: user, profile: null });
+                    console.error("Erro ao buscar perfil do usuário em getCurrentUser:", error);
+                    resolve({ auth: user, profile: null }); // Retorna o usuário autenticado mesmo se a leitura do perfil falhar
                 }
             } else {
-                // Se não há usuário, resolve como nulo.
                 resolve(null);
             }
         });
     });
 };
 
-// Exporta tudo que a aplicação precisa
 export { 
     app, auth, db, storage, logout, onAuthStateChanged, getCurrentUser, ADMIN_EMAIL, firebaseConfig,
     createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup,
