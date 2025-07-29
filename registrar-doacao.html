@@ -45,7 +45,6 @@
             <div class="mt-6 pt-6 border-t">
                 <h3 class="text-lg font-medium text-gray-900">Adicionar Novo Item</h3>
                 <form id="add-item-form" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                    <!-- O select agora é para SUB-ITENS -->
                     <select id="item-subtype" class="border-gray-300 rounded-md shadow-sm w-full col-span-1 md:col-span-2"><option value="">Selecione o item...</option></select>
                     <input type="text" id="item-other-subtype" placeholder="Descreva o item específico" class="hidden border-gray-300 rounded-md shadow-sm w-full col-span-1 md:col-span-2">
                     <input type="text" id="item-details" placeholder="Detalhes (ex: Tamanho G, azul)" class="border-gray-300 rounded-md shadow-sm">
@@ -88,16 +87,16 @@
         </div>
     </main>
 
+    <div id="app-modal" class="hidden fixed z-50 ..."></div>
+
     <script type="module">
         import { auth, db, storage, onAuthStateChanged, getCurrentUser, firebaseConfig } from './app-config.js';
         import { doc, getDoc, collection, addDoc, Timestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
         import { injectHeader } from './app-header.js';
+        import { showAlertModal } from './modal-handler.js';
 
         // --- DOM Elements ---
-        const itemSubtypeSelect = document.getElementById('item-subtype');
-        const itemOtherSubtypeInput = document.getElementById('item-other-subtype');
-        // (Restante dos seletores de DOM)
         const loadingView = document.getElementById('loading-view');
         const donationView = document.getElementById('donation-view');
         const campaignHeader = document.getElementById('campaign-header');
@@ -105,6 +104,8 @@
         const noItemsPlaceholder = document.getElementById('no-items-placeholder');
         const addItemForm = document.getElementById('add-item-form');
         const addItemBtn = document.getElementById('add-item-btn');
+        const itemSubtypeSelect = document.getElementById('item-subtype');
+        const itemOtherSubtypeInput = document.getElementById('item-other-subtype');
         const scheduleContainer = document.getElementById('schedule-container');
         const submitDonationBtn = document.getElementById('submit-donation-btn');
         const formError = document.getElementById('form-error');
@@ -133,7 +134,7 @@
 
                 const profile = currentUserSession.profile;
                 if (!profile || !profile.phone || !profile.address?.street) {
-                    alert("Para doar, seu perfil precisa estar completo (com telefone e endereço). Vamos te redirecionar para a página de perfil agora.");
+                    await showAlertModal("Perfil Incompleto", "Para doar, seu perfil precisa estar completo (com telefone e endereço). Vamos te redirecionar para a página de perfil agora.");
                     localStorage.setItem('postProfileUpdateRedirect', window.location.href);
                     window.location.href = 'perfil-doador.html';
                     return;
@@ -152,13 +153,11 @@
                 if (!campaignSnap.exists()) throw new Error("Campanha não encontrada.");
                 campaignData = campaignSnap.data();
 
-                // Busca a nova configuração de sub-itens
                 const subtypesConfigRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'itemSubtypes');
                 const subtypesConfigSnap = await getDoc(subtypesConfigRef);
                 const itemSubtypes = subtypesConfigSnap.exists() ? subtypesConfigSnap.data() : {};
 
                 populateCampaignHeader();
-                // Popula o select com os sub-itens corretos
                 populateSubItemTypes(itemSubtypes[campaignData.type] || []);
                 await generateSchedule();
 
@@ -170,6 +169,17 @@
             }
         }
 
+        // --- UI Population ---
+        function populateCampaignHeader() {
+            campaignHeader.innerHTML = `
+                <img src="${campaignData.images?.[0] || 'https://placehold.co/100x100/e2e8f0/e2e8f0'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
+                <div>
+                    <p class="text-sm text-gray-500">Você está doando para:</p>
+                    <h1 class="text-2xl font-bold text-gray-800">${campaignData.title}</h1>
+                    <p class="text-sm font-medium text-gray-600">Organizado por: ${campaignData.entityName}</p>
+                </div>`;
+        }
+
         function populateSubItemTypes(subtypes) {
             itemSubtypeSelect.innerHTML = '<option value="">Selecione o item...</option>';
             subtypes.forEach(subtype => {
@@ -177,34 +187,7 @@
             });
             itemSubtypeSelect.innerHTML += '<option value="outro">Outro</option>';
         }
-        
-        // --- (Restante do código JS sem alterações significativas, apenas a lógica de adicionar item) ---
 
-        itemSubtypeSelect.addEventListener('change', (e) => {
-            itemOtherSubtypeInput.classList.toggle('hidden', e.target.value !== 'outro');
-        });
-
-        addItemBtn.addEventListener('click', () => {
-            addItemError.textContent = '';
-            // A lógica agora pega o valor do select de sub-itens
-            const type = itemSubtypeSelect.value === 'outro' ? itemOtherSubtypeInput.value.trim() : itemSubtypeSelect.value;
-            const details = document.getElementById('item-details').value.trim();
-            const condition = document.getElementById('item-condition').value;
-            const photoFile = document.getElementById('item-photo').files[0];
-
-            if (!type || !photoFile) {
-                addItemError.textContent = 'Por favor, preencha o tipo do item e selecione uma foto.';
-                return;
-            }
-
-            donatedItems.push({ type, details, condition, photoFile });
-            renderDonatedItems();
-            addItemForm.reset();
-            itemOtherSubtypeInput.classList.add('hidden');
-        });
-
-        // O restante do JS (renderDonatedItems, generateSchedule, submitDonationBtn, etc.) permanece o mesmo.
-        // Assegure-se de que o código original dessas funções seja mantido aqui.
         function renderDonatedItems() {
             donatedItemsList.innerHTML = '';
             if (donatedItems.length === 0) {
@@ -225,12 +208,14 @@
                 donatedItemsList.appendChild(itemEl);
             });
         }
+
+        // --- Schedule Logic ---
         async function generateSchedule() {
             scheduleContainer.innerHTML = '<p class="text-center text-gray-500">Calculando horários disponíveis...</p>';
             const now = new Date();
             const campaignStart = campaignData.startsAt.toDate();
             const campaignEnd = campaignData.expiresAt.toDate();
-            const slotsPerHour = 2; // 30-minute intervals
+            const slotsPerHour = 2;
             const maxDonorsPerSlot = campaignData.slots || 1;
 
             const donationsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`);
@@ -293,6 +278,30 @@
                 scheduleContainer.innerHTML = '<p class="text-center text-yellow-600 bg-yellow-50 p-4 rounded-md">Não há horários de agendamento disponíveis para esta campanha no momento.</p>';
             }
         }
+
+        // --- Event Listeners ---
+        itemSubtypeSelect.addEventListener('change', (e) => {
+            itemOtherSubtypeInput.classList.toggle('hidden', e.target.value !== 'outro');
+        });
+
+        addItemBtn.addEventListener('click', () => {
+            addItemError.textContent = '';
+            const type = itemSubtypeSelect.value === 'outro' ? itemOtherSubtypeInput.value.trim() : itemSubtypeSelect.value;
+            const details = document.getElementById('item-details').value.trim();
+            const condition = document.getElementById('item-condition').value;
+            const photoFile = document.getElementById('item-photo').files[0];
+
+            if (!type || !photoFile) {
+                addItemError.textContent = 'Por favor, selecione um item e uma foto.';
+                return;
+            }
+
+            donatedItems.push({ type, details, condition, photoFile });
+            renderDonatedItems();
+            addItemForm.reset();
+            itemOtherSubtypeInput.classList.add('hidden');
+        });
+
         donatedItemsList.addEventListener('click', (e) => {
             if (e.target.classList.contains('remove-item-btn')) {
                 const index = e.target.dataset.index;
@@ -300,6 +309,7 @@
                 renderDonatedItems();
             }
         });
+
         submitDonationBtn.addEventListener('click', async () => {
             formError.textContent = '';
             if (donatedItems.length === 0) {
@@ -348,9 +358,9 @@
 
                 const donationsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/donations`;
                 await addDoc(collection(db, donationsColPath), donationData);
-                
-                alert('Doação registrada com sucesso! Obrigado por fazer o bem!');
-                window.location.href = 'minhas-entregas.html';
+
+                await showAlertModal('Sucesso!', 'Sua doação foi registrada com sucesso! Obrigado por fazer o bem!');
+                window.location.href = 'index.html'; // Or 'minhas-entregas.html' when it's ready
 
             } catch (error) {
                 console.error("Error submitting donation:", error);
@@ -361,15 +371,6 @@
                 submitBtnSpinner.classList.add('hidden');
             }
         });
-        function populateCampaignHeader() {
-            campaignHeader.innerHTML = `
-                <img src="${campaignData.images?.[0] || 'https://placehold.co/100x100/e2e8f0/e2e8f0'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
-                <div>
-                    <p class="text-sm text-gray-500">Você está doando para:</p>
-                    <h1 class="text-2xl font-bold text-gray-800">${campaignData.title}</h1>
-                    <p class="text-sm font-medium text-gray-600">Organizado por: ${campaignData.entityName}</p>
-                </div>`;
-        }
 
     </script>
 </body>
