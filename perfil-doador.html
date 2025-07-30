@@ -170,36 +170,46 @@
         }
 
         async function loadDonationHistory(userId) {
-            const donationsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`);
-            const q = query(donationsRef, where("donorId", "==", userId), where("status", "==", "completed"));
-            const donationsSnapshot = await getDocs(q);
+            try {
+                const donationsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`);
+                // CORREÇÃO: Busca apenas pelo donorId para evitar a necessidade de um índice composto.
+                const q = query(donationsRef, where("donorId", "==", userId));
+                const donationsSnapshot = await getDocs(q);
 
-            if (donationsSnapshot.empty) {
-                historyList.innerHTML = '';
-                historyList.appendChild(noHistoryPlaceholder);
-                return;
+                // CORREÇÃO: Filtra as doações concluídas no lado do cliente.
+                const completedDonationsDocs = donationsSnapshot.docs.filter(doc => doc.data().status === 'completed');
+
+                if (completedDonationsDocs.length === 0) {
+                    historyList.innerHTML = '';
+                    historyList.appendChild(noHistoryPlaceholder);
+                    return;
+                }
+
+                const donations = completedDonationsDocs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                const likesRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`);
+                const likesQuery = query(likesRef, where("donorId", "==", userId));
+                const likesSnapshot = await getDocs(likesQuery);
+                const allLikes = likesSnapshot.docs.map(doc => doc.data());
+
+                const likerIds = [...new Set(allLikes.map(like => like.likerId))].filter(id => id);
+                let likersMap = {};
+
+                if (likerIds.length > 0) {
+                    const usersRef = collection(db, "users");
+                    // Limita a consulta 'in' a 30 UIDs para evitar erros do Firestore
+                    const likersQuery = query(usersRef, where("uid", "in", likerIds.slice(0, 30)));
+                    const likersSnapshot = await getDocs(likersQuery);
+                    likersSnapshot.forEach(doc => {
+                        likersMap[doc.id] = doc.data();
+                    });
+                }
+
+                renderHistory(donations, allLikes, likersMap);
+            } catch (error) {
+                console.error("Erro ao carregar histórico de doações:", error);
+                historyList.innerHTML = '<p class="text-center text-red-500 py-6">Ocorreu um erro ao carregar seu histórico.</p>';
             }
-
-            const donations = donationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            const likesRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`);
-            const likesQuery = query(likesRef, where("donorId", "==", userId));
-            const likesSnapshot = await getDocs(likesQuery);
-            const allLikes = likesSnapshot.docs.map(doc => doc.data());
-
-            const likerIds = [...new Set(allLikes.map(like => like.likerId))].filter(id => id);
-            let likersMap = {};
-
-            if (likerIds.length > 0) {
-                const usersRef = collection(db, "users");
-                const likersQuery = query(usersRef, where("uid", "in", likerIds));
-                const likersSnapshot = await getDocs(likersQuery);
-                likersSnapshot.forEach(doc => {
-                    likersMap[doc.id] = doc.data();
-                });
-            }
-
-            renderHistory(donations, allLikes, likersMap);
         }
 
         function renderHistory(donations, allLikes, likersMap) {
