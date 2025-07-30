@@ -5,15 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meu Perfil - Faz Bem</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Cropper.js for image cropping -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
 
@@ -28,7 +25,6 @@
 </head>
 <body class="bg-gray-50">
 
-    <!-- O cabeçalho é injetado dinamicamente -->
     <div id="app-header"></div>
 
     <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
@@ -43,7 +39,6 @@
             <div class="p-6 sm:p-8">
                 <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Meu Perfil de Doador</h1>
 
-                <!-- Profile Photo Section -->
                 <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 mb-8 pb-8 border-b">
                     <img id="profile-photo-preview" src="https://placehold.co/128x128/e2e8f0/cbd5e0?text=Foto" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover bg-gray-200 border-4 border-white shadow-md">
                     <div>
@@ -56,7 +51,6 @@
                     </div>
                 </div>
 
-                <!-- Profile Form -->
                 <form id="profile-form" class="space-y-6">
                     <div>
                         <label for="displayName" class="block text-sm font-medium text-gray-700">Nome Completo</label>
@@ -77,7 +71,6 @@
                         <input type="text" id="addressStreet" name="addressStreet" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
                     </div>
 
-                    <!-- Save Button -->
                     <div class="pt-4 flex justify-end items-center">
                          <span id="save-feedback" class="text-sm text-green-600 mr-4"></span>
                         <button type="submit" id="save-profile-btn" class="inline-flex items-center justify-center rounded-md border border-transparent shadow-sm px-6 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 disabled:bg-gray-400">
@@ -89,7 +82,6 @@
             </div>
         </div>
         
-        <!-- Scheduled Deliveries Section -->
         <div class="mt-10 bg-white rounded-2xl shadow-lg p-6 sm:p-8">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                 <h2 class="text-xl font-bold text-gray-800">Minhas Entregas Agendadas</h2>
@@ -100,17 +92,14 @@
             <p class="text-gray-500 text-sm">Acompanhe suas doações agendadas, veja os itens que você se comprometeu a entregar e acesse os QR Codes para a confirmação no dia da entrega.</p>
         </div>
 
-        <!-- Donation History Section -->
         <div id="donation-history-section" class="mt-10 bg-white rounded-2xl shadow-lg p-6 sm:p-8">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">Histórico de Doações Concluídas</h2>
+            <h2 id="history-title" class="text-xl font-bold text-gray-800 mb-4">Histórico de Doações Concluídas</h2>
             <div id="donation-history-list" class="space-y-6">
-                <!-- O histórico será inserido aqui -->
                 <p id="no-history-placeholder" class="text-center text-gray-500 py-6">Nenhuma doação concluída ainda. Faça o bem!</p>
             </div>
         </div>
     </main>
 
-    <!-- MODAL PARA RECORTE DA IMAGEM -->
     <div id="cropper-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 space-y-4">
             <h2 class="text-xl font-bold text-gray-800">Ajuste a sua Foto</h2>
@@ -127,11 +116,10 @@
     <script type="module">
         import { auth, db, storage, onAuthStateChanged, getCurrentUser, firebaseConfig } from './app-config.js';
         import { injectHeader } from './app-header.js';
-        import { doc, getDoc, updateDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { doc, getDoc, updateDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
         import { updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // --- Elementos do DOM ---
         const loadingView = document.getElementById('loading-view');
         const profileView = document.getElementById('profile-view');
         const profileForm = document.getElementById('profile-form');
@@ -147,19 +135,19 @@
         const cancelCropBtn = document.getElementById('cancel-crop-btn');
         const confirmCropBtn = document.getElementById('confirm-crop-btn');
 
+        const historyTitle = document.getElementById('history-title');
         const historyList = document.getElementById('donation-history-list');
         const noHistoryPlaceholder = document.getElementById('no-history-placeholder');
 
         let currentUser = null;
         let cropper;
 
-        // --- Inicialização ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
                 await injectHeader();
                 await loadProfileData();
-                loadDonationHistory(user.uid); // Carrega o histórico
+                loadDonationHistory(user.uid);
                 loadingView.classList.add('hidden');
                 profileView.classList.remove('hidden');
             } else {
@@ -167,7 +155,6 @@
             }
         });
 
-        // --- Carregamento de Dados ---
         async function loadProfileData() {
             const userSession = await getCurrentUser();
             if (userSession && userSession.profile) {
@@ -182,31 +169,43 @@
             }
         }
 
-        function loadDonationHistory(userId) {
+        async function loadDonationHistory(userId) {
             const donationsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`);
-            const likesRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`);
-
             const q = query(donationsRef, where("donorId", "==", userId), where("status", "==", "completed"));
+            const donationsSnapshot = await getDocs(q);
 
-            onSnapshot(q, (donationsSnapshot) => {
-                if (donationsSnapshot.empty) {
-                    historyList.innerHTML = '';
-                    historyList.appendChild(noHistoryPlaceholder);
-                    return;
-                }
+            if (donationsSnapshot.empty) {
+                historyList.innerHTML = '';
+                historyList.appendChild(noHistoryPlaceholder);
+                return;
+            }
 
-                const donations = donationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const donations = donationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            const likesRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`);
+            const likesQuery = query(likesRef, where("donorId", "==", userId));
+            const likesSnapshot = await getDocs(likesQuery);
+            const allLikes = likesSnapshot.docs.map(doc => doc.data());
 
-                onSnapshot(query(likesRef, where("donorId", "==", userId)), (likesSnapshot) => {
-                    const allLikes = likesSnapshot.docs.map(doc => doc.data());
-                    renderHistory(donations, allLikes);
+            const likerIds = [...new Set(allLikes.map(like => like.likerId))].filter(id => id);
+            let likersMap = {};
+
+            if (likerIds.length > 0) {
+                const usersRef = collection(db, "users");
+                const likersQuery = query(usersRef, where("uid", "in", likerIds));
+                const likersSnapshot = await getDocs(likersQuery);
+                likersSnapshot.forEach(doc => {
+                    likersMap[doc.id] = doc.data();
                 });
-            });
+            }
+
+            renderHistory(donations, allLikes, likersMap);
         }
 
-        function renderHistory(donations, allLikes) {
+        function renderHistory(donations, allLikes, likersMap) {
             historyList.innerHTML = '';
             noHistoryPlaceholder.classList.add('hidden');
+            historyTitle.textContent = `Histórico de Doações Concluídas (${donations.length})`;
 
             donations.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
 
@@ -216,8 +215,26 @@
                 
                 let likesHtml = '<p class="text-xs text-gray-500">Nenhuma curtida ainda.</p>';
                 if (donationLikes.length > 0) {
-                    likesHtml = `<div class="flex items-center -space-x-2">${donationLikes.map(like => `<img src="https://placehold.co/24x24/e2e8f0/cbd5e0?text=L" class="w-6 h-6 rounded-full border-2 border-white" title="Curtida">`).join('')}</div>`;
+                    likesHtml = `<div class="flex items-center -space-x-2">${donationLikes.slice(0, 5).map(like => {
+                        const likerProfile = likersMap[like.likerId];
+                        if (!likerProfile) return '';
+                        const photoURL = likerProfile.photoURL || `https://placehold.co/24x24/e2e8f0/cbd5e0?text=${likerProfile.displayName.charAt(0)}`;
+                        return `<img src="${photoURL}" class="w-7 h-7 rounded-full border-2 border-white" title="${likerProfile.displayName}">`;
+                    }).join('')}</div>`;
+                    if(donationLikes.length > 5) {
+                        likesHtml += `<span class="text-xs text-gray-500 ml-3">+${donationLikes.length - 5}</span>`;
+                    }
                 }
+
+                let itemsHtml = donation.items.map(item => `
+                    <li class="flex items-center space-x-3">
+                        <img src="${item.photoURL}" class="w-10 h-10 rounded-md object-cover bg-gray-200">
+                        <div>
+                            <p class="font-medium text-gray-700">${item.type}</p>
+                            <p class="text-xs text-gray-500">${item.details} (${item.condition})</p>
+                        </div>
+                    </li>
+                `).join('');
 
                 const card = document.createElement('div');
                 card.className = 'p-4 border rounded-lg bg-gray-50';
@@ -232,6 +249,10 @@
                         </div>
                     </div>
                     <div class="mt-4 pt-3 border-t">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-2">Itens doados:</h4>
+                        <ul class="space-y-2">${itemsHtml}</ul>
+                    </div>
+                    <div class="mt-4 pt-3 border-t">
                         <h4 class="text-sm font-semibold text-gray-700 mb-2">Pessoas que apoiaram sua atitude:</h4>
                         ${likesHtml}
                     </div>
@@ -240,28 +261,21 @@
             });
         }
         
-        // --- Lógica de Eventos (sem alterações) ---
         profileForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             showLoadingButton(true, 'Salvando...');
             saveFeedback.textContent = '';
-
             const newDisplayName = document.getElementById('displayName').value.trim();
             if (!newDisplayName) {
                 showSaveFeedback('O Nome Completo não pode ficar em branco.', 'error');
                 showLoadingButton(false);
                 return;
             }
-
             const dataToUpdate = {
                 displayName: newDisplayName,
                 phone: document.getElementById('phone').value,
-                address: {
-                    cep: document.getElementById('addressCep').value,
-                    street: document.getElementById('addressStreet').value,
-                }
+                address: { cep: document.getElementById('addressCep').value, street: document.getElementById('addressStreet').value }
             };
-
             try {
                 const userDocRef = doc(db, "users", currentUser.uid);
                 await updateDoc(userDocRef, dataToUpdate);
