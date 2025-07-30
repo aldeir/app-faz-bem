@@ -23,13 +23,14 @@ export async function injectHeader() {
     if (userSession?.auth) {
         const { auth, profile } = userSession;
         const photoURL = profile?.photoURL || auth.photoURL || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
-        const displayName = profile?.displayName || auth.displayName;
+        const displayName = profile?.displayName;
 
         let userSpecificContent = '';
 
         // Lógica para determinar o menu com base no papel do usuário
         if (auth.email === ADMIN_EMAIL) {
             // Menu do Superadmin
+            // CORREÇÃO: O link da imagem agora aponta para superadmin.html
             userSpecificContent = `
                 <a href="superadmin.html" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Painel Super Admin</a>
                 <a href="superadmin.html" class="flex items-center space-x-2 pl-2 border-l" title="Acessar painel">
