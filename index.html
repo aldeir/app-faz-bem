@@ -202,11 +202,18 @@
             const now = new Date();
             const endDate = campaign.expiresAt.toDate();
             const startDate = campaign.startsAt.toDate();
-            const timeProgress = Math.min(100, Math.max(0, ((now - startDate) / (endDate - startDate)) * 100));
+            
+            // MELHORIA: Verifica se a campanha está encerrada
+            const isClosed = endDate < now;
 
             let statusTag = '';
-            if (campaign.status === 'upcoming') { statusTag = `<div class="absolute top-2 left-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">PRÓXIMA</div>`; }
-            else if (campaign.priority === 'high' && campaign.status !== 'upcoming') { statusTag = `<div class="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full urgent-badge">URGENTE</div>`; }
+            if (isClosed) {
+                // Não mostra outras tags se estiver encerrada
+            } else if (campaign.status === 'upcoming') { 
+                statusTag = `<div class="absolute top-2 left-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">PRÓXIMA</div>`; 
+            } else if (campaign.priority === 'high') { 
+                statusTag = `<div class="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full urgent-badge">URGENTE</div>`; 
+            }
 
             let goalHtml = '';
             if (campaign.goal) {
@@ -216,8 +223,10 @@
                 goalHtml = `<div><div class="flex justify-between text-xs font-medium text-gray-500"><span>Meta Atingida</span><span>${current} / ${goal}</span></div><div class="w-full bg-gray-200 rounded-full h-2 mt-1"><div class="bg-green-500 h-2 rounded-full" style="width: ${progress}%"></div></div></div>`;
             }
 
-            let donorsHtml = '<p class="text-sm text-gray-500">Seja o primeiro a apoiar!</p>';
-            if (donors.length > 0) {
+            let donorsHtml = '<p class="text-sm text-gray-500">Nenhum apoiador ainda.</p>';
+            if (isClosed) {
+                donorsHtml = `<p class="text-sm font-medium text-gray-600">Campanha encerrada com ${donors.length} apoiador(es)!</p>`;
+            } else if (donors.length > 0) {
                 donorsHtml = donors.slice(0, 5).map(donation => {
                     const donorLikes = likes.filter(l => l.donorId === donation.donorId);
                     const userHasLiked = currentUserSession?.auth && donorLikes.some(like => like.likerId === currentUserSession.auth.uid);
@@ -240,16 +249,23 @@
                 if (donors.length > 5) donorsHtml += `<div class="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 text-gray-600 text-xs font-bold ring-2 ring-white">+${donors.length - 5}</div>`;
             }
 
-            // CORREÇÃO: Removido o <a> e adicionado o data-id ao div principal
+            // MELHORIA: Borda completa e indicação de campanha encerrada
             return `
-                <div data-id="${campaign.id}" class="campaign-card flex flex-col bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow border-b-4 border-${color}-500">
+                <div data-id="${campaign.id}" class="campaign-card flex flex-col bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow border-2 border-${color}-500">
                     <div class="relative">
-                        <img class="h-48 w-full object-cover" src="${imageUrl}" alt="Imagem da ${campaign.title}">
-                        ${statusTag}
+                        <img class="h-48 w-full object-cover ${isClosed ? 'filter grayscale' : ''}" src="${imageUrl}" alt="Imagem da ${campaign.title}">
+                        ${isClosed ? `
+                            <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                                <span class="text-white text-xl font-bold uppercase tracking-wider">Encerrada</span>
+                            </div>
+                        ` : statusTag}
                     </div>
                     <div class="p-6 flex-grow">
-                        <div class="uppercase tracking-wide text-sm text-${color}-600 font-semibold">${campaign.entityName}</div>
-                        <h3 class="block mt-1 text-xl leading-tight font-bold text-black truncate" title="${campaign.title}">${campaign.title}</h3>
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="uppercase tracking-wide text-sm text-gray-600 font-semibold">${campaign.entityName}</p>
+                            <span class="text-xs font-semibold px-2 py-1 rounded-full bg-${color}-100 text-${color}-800">${settings.label}</span>
+                        </div>
+                        <h3 class="block text-xl leading-tight font-bold text-black truncate" title="${campaign.title}">${campaign.title}</h3>
                         <div class="mt-4 space-y-3">
                             ${goalHtml}
                         </div>
@@ -288,7 +304,6 @@
                 renderAllSections(button.dataset.filter);
             });
 
-            // CORREÇÃO: Um único gestor de eventos para todos os cliques nas listas
             const allLists = document.querySelectorAll('#active-campaigns-list, #upcoming-campaigns-list, #recent-campaigns-list');
             allLists.forEach(list => {
                 list.addEventListener('click', handleListClick);
@@ -298,12 +313,10 @@
         async function handleListClick(e) {
             const likeButton = e.target.closest('.like-button');
             if (likeButton) {
-                // Se o clique foi no botão de curtir, executa a ação de curtir
                 if (!currentUserSession?.auth) {
                     showAlertModal("Ação necessária", "Você precisa estar logado para curtir.");
                     return;
                 }
-
                 const campaignId = likeButton.dataset.campaignId;
                 const donorId = likeButton.dataset.donorId;
                 const likerId = currentUserSession.auth.uid;
@@ -320,20 +333,17 @@
                     console.error("Erro ao curtir:", error);
                     showAlertModal("Erro", "Não foi possível registrar sua curtida.");
                 }
-                return; // Impede que o clique no card seja acionado
+                return;
             }
             
             const card = e.target.closest('.campaign-card');
             if (card) {
-                // Se o clique foi no card, executa a ação de redirecionamento
                 const campaignId = card.dataset.id;
                 if (!campaignId) return;
 
                 if (currentUserSession?.auth) {
-                    // Usuário logado: vai direto para os detalhes
                     window.location.href = `detalhes.html?id=${campaignId}`;
                 } else {
-                    // Usuário não logado: redireciona para o login, guardando o destino
                     const destination = `detalhes.html?id=${campaignId}`;
                     window.location.href = `login.html?redirect=${encodeURIComponent(destination)}`;
                 }
