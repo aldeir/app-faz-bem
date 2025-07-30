@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Doadores - Faz Bem</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="app-header"></div>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="px-4">
+            <a href="superadmin.html" class="text-sm font-medium text-gray-600 hover:text-green-600 mb-6 inline-block">← Voltar ao Painel</a>
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Gestão de Doadores</h1>
+                <input type="search" id="donor-search-input" placeholder="Buscar por nome ou e-mail..." class="w-1/3 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+            </div>
+            <div id="all-donors-list" class="bg-white rounded-lg shadow">
+                <p class="p-6 text-center text-gray-500">A carregar doadores...</p>
+            </div>
+        </div>
+    </main>
+    
+    <div id="app-modal"></div>
+
+    <script type="module">
+        import { auth, db, onAuthStateChanged, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
+        import { injectHeader } from './app-header.js';
+        import { collection, query, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { showConfirmationModal, showAlertModal, showDetailsModal } from './modal-handler.js';
+
+        let allDonorsData = [];
+
+        onAuthStateChanged(auth, async (user) => {
+            await injectHeader();
+            if (!user || user.email !== ADMIN_EMAIL) {
+                window.location.href = 'index.html';
+                return;
+            }
+            loadAllDonors();
+        });
+
+        const allDonorsList = document.getElementById('all-donors-list');
+        const donorSearchInput = document.getElementById('donor-search-input');
+
+        const formatPhoneNumber = (phone) => {
+            if (!phone || typeof phone !== 'string') return 'N/A';
+            const cleaned = phone.replace(/\D/g, '');
+            if (cleaned.length === 11) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
+            if (cleaned.length === 10) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
+            return phone;
+        };
+
+        function loadAllDonors() {
+            onSnapshot(query(collection(db, "users")), (snapshot) => {
+                allDonorsData = snapshot.docs;
+                renderDonorsList(allDonorsData);
+            });
+        }
+
+        function renderDonorsList(donors) {
+            allDonorsList.innerHTML = '';
+            if (donors.length === 0) {
+                allDonorsList.innerHTML = `<p class="p-6 text-center text-gray-500">Nenhum doador encontrado.</p>`;
+                return;
+            }
+            
+            const statusOrder = { 'ativo': 1, 'bloqueado': 2 };
+            donors.sort((a, b) => (statusOrder[a.data().status] || 99) - (statusOrder[b.data().status] || 99));
+
+            donors.forEach(docSnapshot => {
+                const user = docSnapshot.data();
+                const userId = docSnapshot.id;
+                const card = document.createElement('div');
+                card.className = 'p-4 border-b last:border-b-0';
+                const statusColors = { 'ativo': 'bg-green-100 text-green-800', 'bloqueado': 'bg-red-100 text-red-800' };
+                const status = user.status || 'ativo';
+                const actionButton = (status === 'ativo')
+                    ? `<button data-action="block-user" data-uid="${userId}" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600">Bloquear</button>`
+                    : `<button data-action="unblock-user" data-uid="${userId}" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">Desbloquear</button>`;
+
+                card.innerHTML = `<div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-4">
+                        <img src="${user.photoURL || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Foto'}" class="w-16 h-16 rounded-full object-cover border">
+                        <div>
+                            <h4 class="font-bold">${user.displayName}</h4>
+                            <p class="text-sm text-gray-600">${user.email}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="#" data-action="view-user-details" data-uid="${userId}" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a>
+                        <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColors[status]}">${status}</span>
+                        <div class="w-28 text-right">${actionButton}</div>
+                    </div>
+                </div>`;
+                allDonorsList.appendChild(card);
+            });
+        }
+
+        donorSearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            const filtered = !searchTerm ? allDonorsData : allDonorsData.filter(doc => {
+                const user = doc.data();
+                return (user.displayName || '').toLowerCase().includes(searchTerm) || (user.email || '').toLowerCase().includes(searchTerm);
+            });
+            renderDonorsList(filtered);
+        });
+
+        allDonorsList.addEventListener('click', async (e) => {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+            const uid = target.dataset.uid;
+            const action = target.dataset.action;
+            const userDocRef = doc(db, "users", uid);
+
+            if (action === 'view-user-details') {
+                const userDoc = allDonorsData.find(doc => doc.id === uid);
+                if (!userDoc) return showAlertModal('Erro', 'Dados do doador não encontrados.');
+                const user = userDoc.data();
+                const address = user.address || {};
+                const detailsHtml = \`<p><strong>Nome:</strong> \${user.displayName||'N/A'}</p><p><strong>E-mail:</strong> \${user.email||'N/A'}</p><p><strong>Telefone:</strong> \${formatPhoneNumber(user.phone)}</p><p class="pt-2 border-t mt-2"><strong>Endereço:</strong> \${address.street||'Não informado'}, CEP: \${address.cep||'N/A'}</p>\`;
+                await showDetailsModal(\`Detalhes de \${user.displayName}\`, detailsHtml);
+                return;
+            }
+
+            const userName = target.closest('.flex.justify-between.items-center').querySelector('h4').textContent;
+            const actions = {
+                'block-user': { title: 'Bloquear Doador', message: \`Bloquear "\${userName}"?\`, status: 'bloqueado' },
+                'unblock-user': { title: 'Desbloquear Doador', message: \`Desbloquear "\${userName}"?\`, status: 'ativo' }
+            };
+            const currentAction = actions[action];
+            if (currentAction) {
+                const confirmed = await showConfirmationModal(currentAction.title, currentAction.message);
+                if (confirmed) {
+                    try { await updateDoc(userDocRef, { status: currentAction.status }); }
+                    catch (error) { await showAlertModal('Erro', \`Ocorreu um erro: \${error.message}\`); }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
