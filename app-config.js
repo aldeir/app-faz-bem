@@ -1,3 +1,6 @@
+// app-config.js (Versão 2.3 - Final)
+
+// Importa as funções que você precisa dos SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { 
     getAuth, 
@@ -10,10 +13,12 @@ import {
     GoogleAuthProvider,
     signInWithPopup
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+// Adicionadas as funções necessárias para as novas funcionalidades
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
 
+// A sua configuração do Firebase com o storageBucket original e correto
 const firebaseConfig = {
   apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
   authDomain: "app-faz-bem-guacui.firebaseapp.com",
@@ -24,14 +29,18 @@ const firebaseConfig = {
   measurementId: "G-R5W1F2NXH4"
 };
 
+// Inicializa os serviços do Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 const analytics = getAnalytics(app);
 
-const ADMIN_EMAIL = 'aldeir@gmail.com';
+const ADMIN_EMAIL = 'aldeir@gmail.com'; // Email do administrador
 
+/**
+ * Função centralizada para registrar uma nova entidade.
+ */
 async function registerUser(authData, profileData) {
   const userCredential = await createUserWithEmailAndPassword(auth, authData.email, authData.password);
   const user = userCredential.user;
@@ -48,8 +57,14 @@ async function registerUser(authData, profileData) {
   return userCredential;
 }
 
+/**
+ * Função para fazer logout do usuário.
+ */
 const logout = () => signOut(auth);
 
+/**
+ * Obtém a sessão do usuário atual (auth e perfil do Firestore).
+ */
 const getCurrentUser = () => {
     return new Promise((resolve) => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -72,6 +87,7 @@ const getCurrentUser = () => {
     });
 };
 
+// Exporta tudo para ser usado em outras páginas
 export { 
     app, 
     auth, 
@@ -87,6 +103,7 @@ export {
     signInWithEmailAndPassword,
     GoogleAuthProvider,
     signInWithPopup,
+    // Novas exportações
     setDoc,
     deleteDoc,
     serverTimestamp
