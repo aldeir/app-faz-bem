@@ -23,8 +23,7 @@ export async function injectHeader() {
     if (userSession?.auth) {
         const { auth, profile } = userSession;
         const photoURL = profile?.photoURL || auth.photoURL || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
-        // CORREÇÃO: Prioriza o publicName da entidade, depois o displayName do perfil/auth
-        const displayName = profile?.publicName || profile?.displayName || auth.displayName;
+        const displayName = profile?.displayName || auth.displayName;
 
         let userSpecificContent = '';
 
@@ -63,12 +62,9 @@ export async function injectHeader() {
             <button id="header-logout-btn" class="text-sm text-gray-500 hover:text-red-600">Sair</button>
         `;
 
-        const logoutBtn = document.getElementById('header-logout-btn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                logout().then(() => window.location.href = 'index.html');
-            });
-        }
+        document.getElementById('header-logout-btn').addEventListener('click', () => {
+            logout().then(() => window.location.href = 'index.html');
+        });
 
     } else {
         userMenu.innerHTML = `<a href="login.html" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 shadow">Entrar / Registar</a>`;
