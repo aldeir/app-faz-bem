@@ -70,6 +70,22 @@ const getCurrentUser = () => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             unsubscribe();
             if (user) {
+                // MELHORIA: Lógica específica para o Superadmin
+                if (user.email === ADMIN_EMAIL) {
+                    // Cria um objeto de perfil "virtual" para o superadmin,
+                    // já que ele não tem um documento no Firestore.
+                    resolve({ 
+                        auth: user, 
+                        profile: { 
+                            displayName: user.displayName, 
+                            photoURL: user.photoURL, 
+                            email: user.email, 
+                            role: 'superadmin' 
+                        } 
+                    });
+                    return;
+                }
+
                 let userDocRef = doc(db, "users", user.uid);
                 let docSnap = await getDoc(userDocRef);
 
@@ -103,8 +119,8 @@ export {
     signInWithEmailAndPassword,
     GoogleAuthProvider,
     signInWithPopup,
-    // Novas exportações
     setDoc,
     deleteDoc,
-    serverTimestamp
+    serverTimestamp,
+    updateProfile // Exporta a função para ser usada em outras páginas
 };
