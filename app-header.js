@@ -62,9 +62,12 @@ export async function injectHeader() {
             <button id="header-logout-btn" class="text-sm text-gray-500 hover:text-red-600">Sair</button>
         `;
 
-        document.getElementById('header-logout-btn').addEventListener('click', () => {
-            logout().then(() => window.location.href = 'index.html');
-        });
+        const logoutBtn = document.getElementById('header-logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                logout().then(() => window.location.href = 'index.html');
+            });
+        }
 
     } else {
         userMenu.innerHTML = `<a href="login.html" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 shadow">Entrar / Registar</a>`;
