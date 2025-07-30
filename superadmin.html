@@ -119,7 +119,603 @@
         </div>
     </div>
     
-    <div id="app-modal"></div>
+    <!-- CORREÇÃO: Adicionada a estrutura HTML completa do modal -->
+    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
+                            <div class="mt-2">
+                                <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, db, onAuthStateChanged, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
+        import { injectHeader } from './app-header.js';
+        import { collection, query, onSnapshot, doc, updateDoc, setDoc, where, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { showConfirmationModal, showAlertModal, showDetailsModal } from './modal-handler.js';
+
+        const accessDeniedView = document.getElementById('access-denied-view');
+        const dashboardView = document.getElementById('dashboard-view');
+        const mainDashboardView = document.getElementById('main-dashboard-view');
+        const managementContainer = document.getElementById('management-container');
+        const donorsManagementView = document.getElementById('donors-management-view');
+        const entitiesManagementView = document.getElementById('entities-management-view');
+        const campaignsManagementView = document.getElementById('campaigns-management-view');
+        const allDonorsList = document.getElementById('all-donors-list');
+        const allEntitiesList = document.getElementById('all-entities-list');
+        const allCampaignsList = document.getElementById('all-campaigns-list');
+        const manageDonorsLink = document.getElementById('manage-donors-link');
+        const manageEntitiesLink = document.getElementById('manage-entities-link');
+        const managePendingEntitiesLink = document.getElementById('manage-pending-entities-link');
+        const manageCampaignsLink = document.getElementById('manage-campaigns-link');
+        const backToDashboardBtns = document.querySelectorAll('.back-to-dashboard-btn');
+        const donorSearchInput = document.getElementById('donor-search-input');
+        const entitySearchInput = document.getElementById('entity-search-input');
+        const settingsView = document.getElementById('settings-view');
+        const settingsBtn = document.getElementById('settings-btn');
+        const campaignTypesList = document.getElementById('campaign-types-list');
+        const addTypeForm = document.getElementById('add-type-form');
+        const itemSubtypesList = document.getElementById('item-subtypes-list');
+
+        let allDonorsData = [];
+        let allEntitiesData = [];
+        let campaignTypeSettings = {};
+        let itemSubtypesSettings = {};
+
+        onAuthStateChanged(auth, async (user) => {
+            await injectHeader();
+            if (user && user.email === ADMIN_EMAIL) {
+                dashboardView.classList.remove('hidden');
+                accessDeniedView.classList.add('hidden');
+                loadAllData();
+            } else {
+                accessDeniedView.classList.remove('hidden');
+                dashboardView.classList.add('hidden');
+            }
+        });
+
+        function loadAllData() {
+            loadDashboardMetrics();
+            loadAllDonors();
+            loadAllEntities();
+            loadAllCampaigns();
+            loadSettings();
+            loadItemSubtypes();
+        }
+
+        const showMainView = (viewToShow) => {
+            [mainDashboardView, managementContainer, settingsView].forEach(v => v.classList.add('hidden'));
+            viewToShow.classList.remove('hidden');
+        };
+
+        const showManagementView = (viewToShow) => {
+            [mainDashboardView, settingsView].forEach(v => v.classList.add('hidden'));
+            managementContainer.classList.remove('hidden');
+            [donorsManagementView, entitiesManagementView, campaignsManagementView].forEach(v => v.classList.add('hidden'));
+            viewToShow.classList.remove('hidden');
+        };
+
+        const formatPhoneNumber = (phone) => {
+            if (!phone || typeof phone !== 'string') return 'N/A';
+            const cleaned = phone.replace(/\D/g, '');
+            if (cleaned.length === 11) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
+            if (cleaned.length === 10) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
+            return phone;
+        };
+
+        function loadDashboardMetrics() {
+            onSnapshot(query(collection(db, "users")), snap => { document.getElementById('total-donors').textContent = snap.size; });
+            const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`;
+            onSnapshot(query(collection(db, entitiesPath)), snap => {
+                const active = snap.docs.filter(doc => doc.data().status === 'ativo').length;
+                const pending = snap.docs.filter(doc => doc.data().status === 'pendente_aprovacao').length;
+                document.getElementById('total-entities').textContent = active;
+                document.getElementById('total-pending-entities').textContent = pending;
+            });
+            const campaignsPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
+            onSnapshot(query(collection(db, campaignsPath)), snap => { document.getElementById('total-campaigns').textContent = snap.size; });
+        }
+        
+        function renderDonorsList(donors) {
+            allDonorsList.innerHTML = '';
+            if (donors.length === 0) { allDonorsList.innerHTML = `<p class="text-gray-500 p-6">Nenhum doador encontrado.</p>`; return; }
+            
+            const statusOrder = { 'ativo': 1, 'bloqueado': 2 };
+            donors.sort((a, b) => (statusOrder[a.data().status] || 99) - (statusOrder[b.data().status] || 99));
+
+            donors.forEach(docSnapshot => {
+                const user = docSnapshot.data();
+                const userId = docSnapshot.id;
+                const card = document.createElement('div');
+                card.className = 'p-4 border-b';
+                const statusColors = { 'ativo': 'bg-green-100 text-green-800', 'bloqueado': 'bg-red-100 text-red-800' };
+                const status = user.status || 'ativo';
+                const statusColor = statusColors[status];
+                let actionButton = '';
+                if (status === 'ativo') {
+                    actionButton = `<button data-action="block-user" data-uid="${userId}" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600">Bloquear</button>`;
+                } else {
+                    actionButton = `<button data-action="unblock-user" data-uid="${userId}" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">Desbloquear</button>`;
+                }
+
+                card.innerHTML = `<div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-4">
+                        <img src="${user.photoURL || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Foto'}" class="w-16 h-16 rounded-full object-cover border">
+                        <div>
+                            <h4 class="font-bold">${user.displayName}</h4>
+                            <p class="text-sm text-gray-600">${user.email}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="#" data-action="view-user-details" data-uid="${userId}" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a>
+                        <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColor}">${status}</span>
+                        <div class="w-28 text-right">${actionButton}</div>
+                    </div>
+                </div>`;
+                allDonorsList.appendChild(card);
+            });
+        }
+
+        function renderEntitiesList(entities) {
+            allEntitiesList.innerHTML = '';
+            if (entities.length === 0) { allEntitiesList.innerHTML = `<p class="text-gray-500 p-6">Nenhuma entidade encontrada.</p>`; return; }
+            const statusOrder = { 'pendente_aprovacao': 1, 'ativo': 2, 'bloqueado': 3 };
+            entities.sort((a, b) => (statusOrder[a.data().status] || 99) - (statusOrder[b.data().status] || 99));
+            entities.forEach(docSnapshot => {
+                const entity = docSnapshot.data();
+                const entityId = docSnapshot.id;
+                const card = document.createElement('div');
+                card.className = 'p-4 border-b';
+                const statusColors = { 'pendente_aprovacao': 'bg-yellow-100 text-yellow-800', 'ativo': 'bg-green-100 text-green-800', 'bloqueado': 'bg-red-100 text-red-800' };
+                const statusColor = statusColors[entity.status] || 'bg-gray-100 text-gray-800';
+                let actionButtons = '';
+                switch(entity.status) {
+                    case 'pendente_aprovacao': actionButtons = `<div class="flex space-x-2"><button data-action="approve" data-uid="${entityId}" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Aprovar</button><button data-action="reject" data-uid="${entityId}" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">Reprovar</button></div>`; break;
+                    case 'ativo': actionButtons = `<button data-action="block" data-uid="${entityId}" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600">Bloquear</button>`; break;
+                    case 'bloqueado': actionButtons = `<button data-action="unblock" data-uid="${entityId}" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">Desbloquear</button>`; break;
+                }
+                card.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center space-x-4"><img src="${entity.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border"><div><h4 class="font-bold">${entity.publicName || 'Nome não definido'}</h4><p class="text-sm text-gray-600">${entity.email} | CNPJ: ${entity.cnpj || 'N/A'}</p><p class="text-sm text-gray-500 mt-1">Responsável: ${entity.responsibleName || 'N/A'}</p></div></div><div class="flex items-center space-x-4"><a href="#" data-action="view-details" data-uid="${entityId}" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a><span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColor}">${(entity.status || '').replace(/_/g, ' ')}</span><div class="w-28 text-right">${actionButtons}</div></div></div>`;
+                allEntitiesList.appendChild(card);
+            });
+        }
+        
+        function renderCampaignsList(campaigns) {
+            allCampaignsList.innerHTML = '';
+            if (campaigns.length === 0) { allCampaignsList.innerHTML = `<p class="text-gray-500 p-6">Nenhuma campanha encontrada.</p>`; return; }
+            campaigns.sort((a, b) => b.data().createdAt.toMillis() - a.data().createdAt.toMillis());
+            campaigns.forEach(doc => {
+                const campaign = doc.data();
+                const campaignId = doc.id;
+                const card = document.createElement('div');
+                card.className = 'p-4 border-b flex justify-between items-center';
+                const status = campaign.status || 'active';
+                const statusColors = { 'active': 'bg-green-100 text-green-800', 'suspended': 'bg-yellow-100 text-yellow-800', 'upcoming': 'bg-blue-100 text-blue-800' };
+                const statusTexts = { 'active': 'Ativa', 'suspended': 'Suspensa', 'upcoming': 'Próxima' };
+                let actionButton;
+                if(status === 'active') { actionButton = `<button data-action="suspend" data-uid="${campaignId}" class="text-red-500 hover:underline text-sm font-medium">Suspender</button>`; }
+                else if (status === 'suspended') { actionButton = `<button data-action="reactivate" data-uid="${campaignId}" class="text-green-500 hover:underline text-sm font-medium">Reativar</button>`; }
+                else { actionButton = ''; }
+                card.innerHTML = `<div class="flex-grow"><h4 class="font-bold">${campaign.title} <span class="text-sm font-normal text-gray-500">- por ${campaign.entityName}</span></h4><p class="text-sm text-gray-600">${campaign.description.substring(0, 70)}...</p></div><div class="flex items-center space-x-4 ml-4"><span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColors[status] || 'bg-gray-100'}">${statusTexts[status] || status}</span><a href="criar-campanha.html?editId=${campaignId}" class="text-blue-500 hover:underline text-sm font-medium">Editar</a><div class="w-20 text-center">${actionButton}</div></div>`;
+                allCampaignsList.appendChild(card);
+            });
+        }
+
+        function loadAllDonors() {
+            onSnapshot(query(collection(db, "users")), (snapshot) => { allDonorsData = snapshot.docs; renderDonorsList(allDonorsData); });
+        }
+
+        function loadAllEntities() {
+            const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`;
+            onSnapshot(query(collection(db, entitiesPath)), (snapshot) => { allEntitiesData = snapshot.docs; renderEntitiesList(allEntitiesData); });
+        }
+        
+        function loadAllCampaigns() {
+            const campaignsPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
+            onSnapshot(query(collection(db, campaignsPath)), (snapshot) => { renderCampaignsList(snapshot.docs); });
+        }
+
+        function loadSettings() {
+            const typesDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'campaignTypes');
+            onSnapshot(typesDocRef, (docSnap) => {
+                campaignTypeSettings = docSnap.exists() ? docSnap.data() : {};
+                if (!docSnap.exists()) {
+                    setDoc(typesDocRef, { 'default': { label: 'Outro', color: 'gray' } });
+                }
+                renderSettings();
+            });
+        }
+
+        function renderSettings() {
+            campaignTypesList.innerHTML = '';
+            const colorOptions = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'gray'];
+            for (const typeId in campaignTypeSettings) {
+                if (typeId === 'default') continue;
+                const type = campaignTypeSettings[typeId];
+                const selectOptions = colorOptions.map(color => `<option value="${color}" ${type.color === color ? 'selected' : ''}>${color.charAt(0).toUpperCase() + color.slice(1)}</option>`).join('');
+                const itemHtml = `<div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-center p-2 rounded-md hover:bg-gray-50">
+                        <span class="font-semibold text-gray-800">${type.label}</span>
+                        <span class="text-sm text-gray-500">ID: ${typeId}</span>
+                        <div class="flex items-center space-x-2"><select data-id="${typeId}" class="color-input block w-full border-gray-300 rounded-md shadow-sm">${selectOptions}</select><div id="color-preview-${typeId}" class="w-6 h-6 rounded-full border border-gray-300 bg-${type.color}-500"></div></div>
+                        <div class="flex space-x-2"><button data-action="save-type" data-id="${typeId}" class="bg-blue-500 text-white font-semibold py-2 px-3 rounded-md shadow-sm hover:bg-blue-600">Salvar</button><button data-action="delete-type" data-id="${typeId}" class="bg-red-500 text-white font-semibold py-2 px-3 rounded-md shadow-sm hover:bg-red-600">Remover</button></div>
+                    </div>`;
+                campaignTypesList.innerHTML += itemHtml;
+            }
+        }
+
+        function loadItemSubtypes() {
+            const subtypesDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'itemSubtypes');
+            onSnapshot(subtypesDocRef, (docSnap) => {
+                itemSubtypesSettings = docSnap.exists() ? docSnap.data() : {};
+                renderItemSubtypes();
+            });
+        }
+
+        function renderItemSubtypes() {
+            itemSubtypesList.innerHTML = '';
+            if (Object.keys(campaignTypeSettings).length <= 1) { itemSubtypesList.innerHTML = '<p class="text-gray-500">Adicione Tipos de Campanha para começar.</p>'; return; }
+            for (const typeId in campaignTypeSettings) {
+                if (typeId === 'default') continue;
+                const type = campaignTypeSettings[typeId];
+                const subtypes = itemSubtypesSettings[typeId] || [];
+                const subtypePills = subtypes.map(sub => `<span class="inline-flex items-center bg-gray-200 text-gray-800 text-sm font-medium mr-2 mb-2 px-2.5 py-0.5 rounded-full">${sub}<button data-action="delete-subtype" data-type-id="${typeId}" data-subtype="${sub}" class="ml-2 text-red-500 hover:text-red-700">&times;</button></span>`).join('');
+                const sectionHtml = `<div class="p-4 border rounded-lg"><h4 class="font-bold text-md text-gray-800">${type.label}</h4><div class="mt-3 mb-3">${subtypes.length > 0 ? subtypePills : '<p class="text-sm text-gray-500">Nenhum item específico cadastrado.</p>'}</div><form data-action="add-subtype" class="flex items-center gap-2"><input type="text" name="subtypeName" placeholder="Novo item (ex: Calça Jeans)" required class="flex-grow border-gray-300 rounded-md shadow-sm text-sm"><input type="hidden" name="typeId" value="${typeId}"><button type="submit" class="bg-blue-500 text-white font-semibold py-1 px-3 rounded-md text-sm hover:bg-blue-600">Adicionar</button></form></div>`;
+                itemSubtypesList.innerHTML += sectionHtml;
+            }
+        }
+
+        manageDonorsLink.addEventListener('click', () => showManagementView(donorsManagementView));
+        manageEntitiesLink.addEventListener('click', () => showManagementView(entitiesManagementView));
+        managePendingEntitiesLink.addEventListener('click', () => showManagementView(entitiesManagementView));
+        manageCampaignsLink.addEventListener('click', () => showManagementView(campaignsManagementView));
+        backToDashboardBtns.forEach(btn => btn.addEventListener('click', () => showMainView(mainDashboardView)));
+        settingsBtn.addEventListener('click', () => showMainView(settingsView));
+
+        donorSearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            const filtered = !searchTerm ? allDonorsData : allDonorsData.filter(doc => {
+                const user = doc.data();
+                return (user.displayName || '').toLowerCase().includes(searchTerm) || (user.email || '').toLowerCase().includes(searchTerm);
+            });
+            renderDonorsList(filtered);
+        });
+
+        entitySearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            const filtered = !searchTerm ? allEntitiesData : allEntitiesData.filter(doc => {
+                const entity = doc.data();
+                return (entity.publicName || '').toLowerCase().includes(searchTerm) || (entity.email || '').toLowerCase().includes(searchTerm) || (entity.cnpj || '').includes(searchTerm);
+            });
+            renderEntitiesList(filtered);
+        });
+
+        allDonorsList.addEventListener('click', async (e) => {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+            const uid = target.dataset.uid;
+            const action = target.dataset.action;
+            const userDocRef = doc(db, "users", uid);
+
+            if (action === 'view-user-details') {
+                const userDoc = allDonorsData.find(doc => doc.id === uid);
+                if (!userDoc) return showAlertModal('Erro', 'Dados do doador não encontrados.');
+                const user = userDoc.data();
+                const address = user.address || {};
+                const detailsHtml = `<p><strong>Nome:</strong> ${user.displayName||'N/A'}</p><p><strong>E-mail:</strong> ${user.email||'N/A'}</p><p><strong>Telefone:</strong> ${formatPhoneNumber(user.phone)}</p><p class="pt-2 border-t mt-2"><strong>Endereço:</strong> ${address.street||'Não informado'}, CEP: ${address.cep||'N/A'}</p>`;
+                await showDetailsModal(`Detalhes de ${user.displayName}`, detailsHtml);
+                return;
+            }
+
+            const userName = target.closest('.flex.justify-between.items-center').querySelector('h4').textContent;
+            const actions = {
+                'block-user': { title: 'Bloquear Doador', message: `Bloquear "${userName}"? Este usuário não poderá mais fazer login.`, status: 'bloqueado' },
+                'unblock-user': { title: 'Desbloquear Doador', message: `Desbloquear "${userName}"?`, status: 'ativo' }
+            };
+            const currentAction = actions[action];
+            if (currentAction) {
+                const confirmed = await showConfirmationModal(currentAction.title, currentAction.message);
+                if (confirmed) {
+                    try { await updateDoc(userDocRef, { status: currentAction.status }); }
+                    catch (error) { await showAlertModal('Erro', `Ocorreu um erro: ${error.message}`); }
+                }
+            }
+        });
+
+        allEntitiesList.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+            const uid = target.dataset.uid;
+            const action = target.dataset.action;
+            const entityDocRef = doc(db, "artifacts", firebaseConfig.projectId, "public", "data", "entidades", uid);
+            if (action === 'view-details') {
+                const entityDoc = allEntitiesData.find(doc => doc.id === uid);
+                if (!entityDoc) return showAlertModal('Erro', 'Dados da entidade não encontrados.');
+                const entity = entityDoc.data();
+                const address = entity.address || {};
+                const detailsHtml = `<p><strong>Nome Público:</strong> ${entity.publicName||'N/A'}</p><p><strong>CNPJ:</strong> ${entity.cnpj||'N/A'}</p><p><strong>E-mail:</strong> ${entity.email||'N/A'}</p><p><strong>Telefone:</strong> ${formatPhoneNumber(entity.phone)}</p><p><strong>Responsável:</strong> ${entity.responsibleName||'N/A'}</p><p class="pt-2 border-t mt-2"><strong>Endereço:</strong> ${address.street||''}, ${address.number||''} - ${address.district||''}, ${address.city||''}</p><p class="pt-2 border-t mt-2"><strong>Sobre:</strong> ${entity.description||'Nenhuma descrição.'}</p>`;
+                await showDetailsModal(`Detalhes de ${entity.publicName}`, detailsHtml);
+                return;
+            }
+            const entityName = target.closest('.flex.justify-between.items-center').querySelector('h4').textContent;
+            const actions = {
+                'approve': { title: 'Aprovar Entidade', message: `Aprovar "${entityName}"?`, status: 'ativo' },
+                'reject': { title: 'Reprovar Entidade', message: `Reprovar e bloquear "${entityName}"?`, status: 'bloqueado' },
+                'block': { title: 'Bloquear Entidade', message: `Bloquear "${entityName}"?`, status: 'bloqueado' },
+                'unblock': { title: 'Desbloquear Entidade', message: `Desbloquear "${entityName}"?`, status: 'ativo' }
+            };
+            const currentAction = actions[action];
+            if (currentAction) {
+                const confirmed = await showConfirmationModal(currentAction.title, currentAction.message);
+                if (confirmed) {
+                    try { await updateDoc(entityDocRef, { status: currentAction.status }); }
+                    catch (error) { await showAlertModal('Erro', `Ocorreu um erro: ${error.message}`); }
+                }
+            }
+        });
+
+        allCampaignsList.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const target = e.target.closest('button[data-action]');
+            if (!target) return;
+            const uid = target.dataset.uid;
+            const action = target.dataset.action;
+            const campaignDocRef = doc(db, "artifacts", firebaseConfig.projectId, "public", "data", "campaigns", uid);
+            const actions = {
+                'suspend': { title: 'Suspender Campanha', message: 'Suspender esta campanha? Ela não será visível para os doadores.', status: 'suspended' },
+                'reactivate': { title: 'Reativar Campanha', message: 'Reativar esta campanha? Ela voltará a ser visível para os doadores.', status: 'active' }
+            };
+            const currentAction = actions[action];
+            if (currentAction) {
+                const confirmed = await showConfirmationModal(currentAction.title, currentAction.message);
+                if (confirmed) {
+                    try { await updateDoc(campaignDocRef, { status: currentAction.status }); }
+                    catch (error) { await showAlertModal('Erro', `Ocorreu um erro: ${error.message}`); }
+                }
+            }
+        });
+
+        campaignTypesList.addEventListener('change', (e) => {
+            const select = e.target.closest('select.color-input');
+            if (!select) return;
+            const color = select.value;
+            const typeId = select.dataset.id;
+            const preview = document.getElementById(`color-preview-${typeId}`);
+            if(preview) preview.className = `w-6 h-6 rounded-full border border-gray-300 bg-${color}-500`;
+        });
+
+        campaignTypesList.addEventListener('click', async (e) => {
+            const button = e.target.closest('button[data-action]');
+            if (!button) return;
+            const typeId = button.dataset.id;
+            const typesDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'campaignTypes');
+            if (button.dataset.action === 'save-type') {
+                const colorInput = document.querySelector(`select.color-input[data-id="${typeId}"]`);
+                try { await updateDoc(typesDocRef, { [`${typeId}.color`]: colorInput.value.trim() }); await showAlertModal('Sucesso', `A cor foi atualizada!`); } catch (error) { await showAlertModal('Erro', 'Não foi possível salvar.'); }
+            }
+            if (button.dataset.action === 'delete-type') {
+                const confirmed = await showConfirmationModal('Remover Tipo', `Tem certeza que quer remover o tipo "${campaignTypeSettings[typeId].label}"?`);
+                if (confirmed) {
+                    try {
+                        await updateDoc(typesDocRef, { [typeId]: deleteField() });
+                        const subtypesDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'itemSubtypes');
+                        await updateDoc(subtypesDocRef, { [typeId]: deleteField() });
+                        await showAlertModal('Sucesso', 'O tipo de campanha foi removido.');
+                    } catch (error) { await showAlertModal('Erro', 'Não foi possível remover.'); }
+                }
+            }
+        });
+
+        document.getElementById('new-type-label').addEventListener('input', (e) => {
+            const label = e.target.value;
+            const id = label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '_');
+            document.getElementById('new-type-id').value = id;
+        });
+
+        addTypeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('new-type-id').value.trim();
+            const label = document.getElementById('new-type-label').value.trim();
+            const color = document.getElementById('new-type-color').value.trim();
+            if (!id || !label || !color) { showAlertModal('Erro', 'Todos os campos são obrigatórios.'); return; }
+            if (campaignTypeSettings[id]) { showAlertModal('Erro', `O ID "${id}" já existe.`); return; }
+            try {
+                const typesDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'campaignTypes');
+                await setDoc(typesDocRef, { [id]: { label, color } }, { merge: true });
+                await showAlertModal('Sucesso', `O tipo "${label}" foi adicionado!`);
+                addTypeForm.reset();
+            } catch (error) { await showAlertModal('Erro', 'Não foi possível adicionar.'); }
+        });
+
+        itemSubtypesList.addEventListener('click', async (e) => {
+            const button = e.target.closest('button[data-action="delete-subtype"]');
+            if (!button) return;
+            const typeId = button.dataset.typeId;
+            const subtypeToDelete = button.dataset.subtype;
+            const newSubtypes = (itemSubtypesSettings[typeId] || []).filter(s => s !== subtypeToDelete);
+            const subtypesDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'itemSubtypes');
+            try { await updateDoc(subtypesDocRef, { [typeId]: newSubtypes }); await showAlertModal('Sucesso', `O item foi removido.`); } catch (error) { await showAlertModal('Erro', 'Não foi possível remover.'); }
+        });
+
+        itemSubtypesList.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target.closest('form[data-action="add-subtype"]');
+            if (!form) return;
+            const subtypeName = form.subtypeName.value.trim();
+            const typeId = form.typeId.value;
+            if (!subtypeName) return;
+            const currentSubtypes = itemSubtypesSettings[typeId] || [];
+            if (currentSubtypes.map(s => s.toLowerCase()).includes(subtypeName.toLowerCase())) { await showAlertModal('Atenção', 'Este item já existe.'); return; }
+            const newSubtypes = [...currentSubtypes, subtypeName];
+            const subtypesDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'itemSubtypes');
+            try { await setDoc(subtypesDocRef, { [typeId]: newSubtypes }, { merge: true }); form.reset(); } catch (error) { await showAlertModal('Erro', 'Não foi possível adicionar.'); }
+        });
+
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faz Bem - Painel do Administrador</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="app-header"></div>
+
+    <div id="app-container">
+        <div id="access-denied-view" class="hidden min-h-screen flex items-center justify-center">
+            <div class="text-center p-4">
+                <h1 class="text-4xl font-bold text-red-600">Acesso Negado</h1>
+                <p class="text-lg text-gray-700 mt-4">Você não tem permissão para acessar esta página.</p>
+                <a href="index.html" class="mt-6 inline-block bg-green-600 text-white px-6 py-2 rounded-lg">Voltar à página inicial</a>
+            </div>
+        </div>
+
+        <div id="dashboard-view" class="hidden">
+            <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                <div id="main-dashboard-view" class="px-4">
+                    <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+                        <h2 class="text-2xl font-semibold text-gray-800">Resumo Geral</h2>
+                        <div>
+                            <button id="settings-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow-md mr-2">Configurações</button>
+                            <a href="criar-campanha.html" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">+ Criar Nova Campanha</a>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <a href="javascript:void(0);" id="manage-donors-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+                            <h3 class="text-sm font-medium text-gray-500">Doadores</h3>
+                            <p id="total-donors" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
+                        </a>
+                        <a href="javascript:void(0);" id="manage-entities-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+                            <h3 class="text-sm font-medium text-gray-500">Entidades Ativas</h3>
+                            <p id="total-entities" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
+                        </a>
+                        <a href="javascript:void(0);" id="manage-pending-entities-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+                            <h3 class="text-sm font-medium text-gray-500">Pendentes</h3>
+                            <p id="total-pending-entities" class="mt-1 text-3xl font-semibold text-yellow-600">0</p>
+                        </a>
+                        <a href="javascript:void(0);" id="manage-campaigns-link" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+                            <h3 class="text-sm font-medium text-gray-500">Campanhas</h3>
+                            <p id="total-campaigns" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="management-container" class="mt-8 hidden">
+                    <div id="donors-management-view" class="px-4 hidden">
+                         <button class="back-to-dashboard-btn text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-semibold text-gray-800">Gestão de Doadores</h2>
+                            <input type="search" id="donor-search-input" placeholder="Buscar por nome ou e-mail..." class="w-1/3 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div id="all-donors-list" class="bg-white rounded-lg shadow"></div>
+                    </div>
+
+                    <div id="entities-management-view" class="px-4 hidden">
+                         <button class="back-to-dashboard-btn text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-semibold text-gray-800">Gestão de Entidades</h2>
+                            <input type="search" id="entity-search-input" placeholder="Buscar por nome, e-mail, CNPJ..." class="w-1/3 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div id="all-entities-list" class="bg-white rounded-lg shadow"></div>
+                    </div>
+                    
+                    <div id="campaigns-management-view" class="px-4 hidden">
+                         <button class="back-to-dashboard-btn text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Todas as Campanhas</h2>
+                        <div id="all-campaigns-list" class="bg-white rounded-lg shadow"></div>
+                    </div>
+                </div>
+
+                <div id="settings-view" class="px-4 hidden">
+                    <button class="back-to-dashboard-btn text-sm font-medium text-gray-600 hover:text-green-600 mb-6">← Voltar ao Resumo</button>
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Configurações Gerais</h2>
+                    <div class="bg-white p-6 rounded-lg shadow mb-8">
+                        <h3 class="text-lg font-medium text-gray-900 border-b pb-4">Tipos de Campanha</h3>
+                        <div id="campaign-types-list" class="mt-4 space-y-4"></div>
+                        <div class="mt-6 pt-6 border-t">
+                            <h3 class="text-lg font-medium text-gray-900">Adicionar Novo Tipo</h3>
+                            <form id="add-type-form" class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                <div>
+                                    <label for="new-type-label" class="block text-sm font-medium text-gray-700">Rótulo (ex: Doação de Sangue)</label>
+                                    <input type="text" id="new-type-label" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                </div>
+                                <div>
+                                    <label for="new-type-id" class="block text-sm font-medium text-gray-700">ID (gerado automaticamente)</label>
+                                    <input type="text" id="new-type-id" readonly class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100">
+                                </div>
+                                <div>
+                                    <label for="new-type-color" class="block text-sm font-medium text-gray-700">Cor</label>
+                                    <select id="new-type-color" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                        <option value="red">Vermelho</option> <option value="orange">Laranja</option> <option value="yellow">Amarelo</option> <option value="green">Verde</option> <option value="blue">Azul</option> <option value="purple">Roxo</option> <option value="pink">Rosa</option> <option value="gray">Cinza</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm hover:bg-green-700">Adicionar</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-lg font-medium text-gray-900 border-b pb-4">Itens por Tipo de Campanha</h3>
+                        <div id="item-subtypes-list" class="mt-4 space-y-6"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- CORREÇÃO: Adicionada a estrutura HTML completa do modal -->
+    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
+                            <div class="mt-2">
+                                <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import { auth, db, onAuthStateChanged, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
