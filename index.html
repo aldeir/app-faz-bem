@@ -33,6 +33,7 @@
             font-size: 12px; color: #6b7280; transition: color 0.2s;
         }
         .like-button:hover, .like-button.liked { color: #ef4444; }
+        .campaign-card { cursor: pointer; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -115,12 +116,10 @@
             const donationsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`);
             const likesRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`);
 
-            // Limpa ouvintes antigos para evitar duplicação
             if (campaignsUnsubscribe) campaignsUnsubscribe();
             if (donationsUnsubscribe) donationsUnsubscribe();
             if (likesUnsubscribe) likesUnsubscribe();
 
-            // Ouve todas as coleções em paralelo
             campaignsUnsubscribe = onSnapshot(query(campaignsRef, orderBy("priority", "desc"), orderBy("createdAt", "desc")), (snapshot) => {
                 allCampaigns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderUI();
@@ -146,7 +145,7 @@
         }
 
         function renderUI() {
-            if (allCampaigns.length === 0 && loadingContainer.style.display !== 'none') return; // Espera as campanhas carregarem
+            if (allCampaigns.length === 0 && loadingContainer.style.display !== 'none') return;
             
             loadingContainer.style.display = 'none';
             const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.expiresAt.toDate() > new Date());
@@ -241,21 +240,20 @@
                 if (donors.length > 5) donorsHtml += `<div class="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 text-gray-600 text-xs font-bold ring-2 ring-white">+${donors.length - 5}</div>`;
             }
 
+            // CORREÇÃO: Removido o <a> e adicionado o data-id ao div principal
             return `
                 <div data-id="${campaign.id}" class="campaign-card flex flex-col bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow border-b-4 border-${color}-500">
-                    <a href="detalhes.html?id=${campaign.id}" class="block">
-                        <div class="relative">
-                            <img class="h-48 w-full object-cover" src="${imageUrl}" alt="Imagem da ${campaign.title}">
-                            ${statusTag}
+                    <div class="relative">
+                        <img class="h-48 w-full object-cover" src="${imageUrl}" alt="Imagem da ${campaign.title}">
+                        ${statusTag}
+                    </div>
+                    <div class="p-6 flex-grow">
+                        <div class="uppercase tracking-wide text-sm text-${color}-600 font-semibold">${campaign.entityName}</div>
+                        <h3 class="block mt-1 text-xl leading-tight font-bold text-black truncate" title="${campaign.title}">${campaign.title}</h3>
+                        <div class="mt-4 space-y-3">
+                            ${goalHtml}
                         </div>
-                        <div class="p-6 flex-grow">
-                            <div class="uppercase tracking-wide text-sm text-${color}-600 font-semibold">${campaign.entityName}</div>
-                            <h3 class="block mt-1 text-xl leading-tight font-bold text-black truncate" title="${campaign.title}">${campaign.title}</h3>
-                            <div class="mt-4 space-y-3">
-                                ${goalHtml}
-                            </div>
-                        </div>
-                    </a>
+                    </div>
                     <div class="px-6 pb-4 border-t mt-auto pt-4">
                         <h4 class="text-sm font-semibold text-gray-700 mb-3">Apoiadores</h4>
                         <div class="flex flex-wrap items-end gap-x-2 gap-y-4">
@@ -290,38 +288,55 @@
                 renderAllSections(button.dataset.filter);
             });
 
-            document.getElementById('active-campaigns-list').addEventListener('click', handleLikeButtonClick);
-            document.getElementById('upcoming-campaigns-list').addEventListener('click', handleLikeButtonClick);
-            document.getElementById('recent-campaigns-list').addEventListener('click', handleLikeButtonClick);
+            // CORREÇÃO: Um único gestor de eventos para todos os cliques nas listas
+            const allLists = document.querySelectorAll('#active-campaigns-list, #upcoming-campaigns-list, #recent-campaigns-list');
+            allLists.forEach(list => {
+                list.addEventListener('click', handleListClick);
+            });
         }
 
-        async function handleLikeButtonClick(e) {
+        async function handleListClick(e) {
             const likeButton = e.target.closest('.like-button');
-            if (!likeButton) return;
-            
-            e.preventDefault();
-            e.stopPropagation();
-
-            if (!currentUserSession?.auth) {
-                showAlertModal("Ação necessária", "Você precisa estar logado para curtir.");
-                return;
-            }
-
-            const campaignId = likeButton.dataset.campaignId;
-            const donorId = likeButton.dataset.donorId;
-            const likerId = currentUserSession.auth.uid;
-            const likeId = `${campaignId}_${donorId}_${likerId}`;
-            const likeDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`, likeId);
-            
-            try {
-                if (likeButton.classList.contains('liked')) {
-                    await deleteDoc(likeDocRef);
-                } else {
-                    await setDoc(likeDocRef, { campaignId, donorId, likerId, createdAt: serverTimestamp() });
+            if (likeButton) {
+                // Se o clique foi no botão de curtir, executa a ação de curtir
+                if (!currentUserSession?.auth) {
+                    showAlertModal("Ação necessária", "Você precisa estar logado para curtir.");
+                    return;
                 }
-            } catch (error) {
-                console.error("Erro ao curtir:", error);
-                showAlertModal("Erro", "Não foi possível registrar sua curtida.");
+
+                const campaignId = likeButton.dataset.campaignId;
+                const donorId = likeButton.dataset.donorId;
+                const likerId = currentUserSession.auth.uid;
+                const likeId = `${campaignId}_${donorId}_${likerId}`;
+                const likeDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`, likeId);
+                
+                try {
+                    if (likeButton.classList.contains('liked')) {
+                        await deleteDoc(likeDocRef);
+                    } else {
+                        await setDoc(likeDocRef, { campaignId, donorId, likerId, createdAt: serverTimestamp() });
+                    }
+                } catch (error) {
+                    console.error("Erro ao curtir:", error);
+                    showAlertModal("Erro", "Não foi possível registrar sua curtida.");
+                }
+                return; // Impede que o clique no card seja acionado
+            }
+            
+            const card = e.target.closest('.campaign-card');
+            if (card) {
+                // Se o clique foi no card, executa a ação de redirecionamento
+                const campaignId = card.dataset.id;
+                if (!campaignId) return;
+
+                if (currentUserSession?.auth) {
+                    // Usuário logado: vai direto para os detalhes
+                    window.location.href = `detalhes.html?id=${campaignId}`;
+                } else {
+                    // Usuário não logado: redireciona para o login, guardando o destino
+                    const destination = `detalhes.html?id=${campaignId}`;
+                    window.location.href = `login.html?redirect=${encodeURIComponent(destination)}`;
+                }
             }
         }
 
