@@ -89,7 +89,6 @@
             </div>
         </div>
         
-        <!-- AJUSTE: Seção de Histórico agora é funcional -->
         <div class="mt-10 bg-white rounded-2xl shadow-lg p-6 sm:p-8">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                 <h2 class="text-xl font-bold text-gray-800">Minhas Doações</h2>
@@ -101,9 +100,18 @@
         </div>
     </main>
 
-    <!-- MODAL PARA RECORTE DA IMAGEM -->
-    <div id="cropper-modal" class="hidden fixed z-50 inset-0 overflow-y-auto">
-        <!-- ... (código do modal sem alterações) ... -->
+    <!-- MODAL PARA RECORTE DA IMAGEM (CÓDIGO COMPLETO ADICIONADO) -->
+    <div id="cropper-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 space-y-4">
+            <h2 class="text-xl font-bold text-gray-800">Ajuste a sua Foto</h2>
+            <div class="cropper-container-modal bg-gray-100">
+                <img id="image-to-crop">
+            </div>
+            <div class="flex justify-end space-x-3 pt-4">
+                <button id="cancel-crop-btn" type="button" class="px-4 py-2 rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300">Cancelar</button>
+                <button id="confirm-crop-btn" type="button" class="px-4 py-2 rounded-md text-white bg-green-600 hover:bg-green-700">Confirmar e Salvar</button>
+            </div>
+        </div>
     </div>
 
     <script type="module">
@@ -112,7 +120,6 @@
         import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-        // --- (O código JS permanece o mesmo da v1.0) ---
         const loadingView = document.getElementById('loading-view');
         const profileView = document.getElementById('profile-view');
         const profileForm = document.getElementById('profile-form');
@@ -217,6 +224,7 @@
             const canvas = cropper.getCroppedCanvas({ width: 256, height: 256, imageSmoothingQuality: 'high' });
             canvas.toBlob(async (blob) => {
                 try {
+                    // O nome do arquivo agora é apenas o UID com a extensão, para bater com a nova regra do Storage
                     const storageRef = ref(storage, `profile_photos/${currentUser.uid}.webp`);
                     await uploadBytes(storageRef, blob);
                     const photoURL = await getDownloadURL(storageRef);
