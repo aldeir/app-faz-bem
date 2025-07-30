@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entrar ou Cadastrar - Faz Bem</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -20,8 +17,6 @@
 <body class="bg-gray-100">
 
     <div id="app-container">
-
-        <!-- TELA DE LOGIN / ESCOLHA DE CADASTRO -->
         <div id="login-view">
             <div class="min-h-screen flex items-center justify-center py-12 px-4">
                 <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
@@ -54,13 +49,10 @@
                 </div>
             </div>
         </div>
-        
     </div>
 
-    <!-- SCRIPT CORRIGIDO E MODULARIZADO -->
     <script type="module">
-        // Importa as funções necessárias do arquivo de configuração central
-        import { auth, db, onAuthStateChanged, firebaseConfig } from './app-config.js';
+        import { auth, db, onAuthStateChanged, firebaseConfig, ADMIN_EMAIL } from './app-config.js';
         import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -70,40 +62,51 @@
             const errorDiv = document.getElementById('login-error');
             let isRedirecting = false;
 
+            const getRedirectUrl = () => {
+                const params = new URLSearchParams(window.location.search);
+                return params.get('redirect') || 'index.html';
+            };
+
             const handleRedirect = async (user) => {
                 if (isRedirecting) return;
                 isRedirecting = true;
 
-                // Tenta encontrar um perfil na coleção 'entidades'
+                const finalRedirectUrl = getRedirectUrl();
+
+                if (user.email === ADMIN_EMAIL) {
+                    window.location.href = 'superadmin.html';
+                    return;
+                }
+
+                // CORREÇÃO: Prioriza a verificação do perfil de Entidade
                 const appId = firebaseConfig.projectId;
                 let userDocRef = doc(db, "artifacts", appId, "public", "data", "entidades", user.uid);
                 let docSnap = await getDoc(userDocRef);
+                let userData = docSnap.exists() ? docSnap.data() : null;
 
-                // Se não encontrar, procura na coleção 'users'
-                if (!docSnap.exists()) {
+                // Se não for uma entidade, verifica se é um doador
+                if (!userData) {
                     userDocRef = doc(db, "users", user.uid);
                     docSnap = await getDoc(userDocRef);
+                    userData = docSnap.exists() ? docSnap.data() : null;
                 }
 
-                // Se ainda não existir em nenhum lugar, cria um perfil de 'doador' na coleção 'users'
-                if (!docSnap.exists()) {
+                // Se for um novo login com Google, cria um perfil de doador
+                if (!userData && user.providerData.some(p => p.providerId === 'google.com')) {
                     await setDoc(doc(db, "users", user.uid), {
                         uid: user.uid,
                         displayName: user.displayName || 'Utilizador',
                         email: user.email,
-                        role: 'doador', // Padrão para novos logins via Google
+                        role: 'doador',
                         status: 'ativo'
                     });
-                    docSnap = await getDoc(doc(db, "users", user.uid));
+                    userData = { role: 'doador' };
                 }
                 
-                const userData = docSnap.data();
-
-                // Lógica de redirecionamento baseada no papel do usuário
                 if (userData && userData.role === 'entidade') {
                     window.location.href = 'admin.html';
                 } else {
-                    window.location.href = 'index.html';
+                    window.location.href = finalRedirectUrl;
                 }
             };
 
@@ -125,7 +128,7 @@
                 }
             });
             
-            const handleGoogleSignIn = async () => {
+            googleLoginBtn.addEventListener('click', async () => {
                 const provider = new GoogleAuthProvider();
                 try {
                     await signInWithPopup(auth, provider);
@@ -134,9 +137,7 @@
                     errorDiv.textContent = "Falha ao autenticar com o Google. Tente novamente.";
                     errorDiv.classList.remove('hidden');
                 }
-            };
-
-            googleLoginBtn.addEventListener('click', handleGoogleSignIn);
+            });
         });
     </script>
 </body>
