@@ -89,14 +89,24 @@
             </div>
         </div>
         
+        <!-- Scheduled Deliveries Section -->
         <div class="mt-10 bg-white rounded-2xl shadow-lg p-6 sm:p-8">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                <h2 class="text-xl font-bold text-gray-800">Minhas Doações</h2>
+                <h2 class="text-xl font-bold text-gray-800">Minhas Entregas Agendadas</h2>
                 <a href="minhas-entregas.html" class="bg-green-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-green-700 transition-colors text-center">
-                    Ver Entregas Agendadas
+                    Ver Todas as Entregas
                 </a>
             </div>
             <p class="text-gray-500 text-sm">Acompanhe suas doações agendadas, veja os itens que você se comprometeu a entregar e acesse os QR Codes para a confirmação no dia da entrega.</p>
+        </div>
+
+        <!-- Donation History Section -->
+        <div id="donation-history-section" class="mt-10 bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Histórico de Doações Concluídas</h2>
+            <div id="donation-history-list" class="space-y-6">
+                <!-- O histórico será inserido aqui -->
+                <p id="no-history-placeholder" class="text-center text-gray-500 py-6">Nenhuma doação concluída ainda. Faça o bem!</p>
+            </div>
         </div>
     </main>
 
@@ -115,13 +125,13 @@
     </div>
 
     <script type="module">
-        import { auth, db, storage, onAuthStateChanged, getCurrentUser } from './app-config.js';
+        import { auth, db, storage, onAuthStateChanged, getCurrentUser, firebaseConfig } from './app-config.js';
         import { injectHeader } from './app-header.js';
-        import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { doc, getDoc, updateDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-        // CORREÇÃO: Importa a função 'updateProfile'
         import { updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
+        // --- Elementos do DOM ---
         const loadingView = document.getElementById('loading-view');
         const profileView = document.getElementById('profile-view');
         const profileForm = document.getElementById('profile-form');
@@ -137,14 +147,19 @@
         const cancelCropBtn = document.getElementById('cancel-crop-btn');
         const confirmCropBtn = document.getElementById('confirm-crop-btn');
 
+        const historyList = document.getElementById('donation-history-list');
+        const noHistoryPlaceholder = document.getElementById('no-history-placeholder');
+
         let currentUser = null;
         let cropper;
 
+        // --- Inicialização ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
                 await injectHeader();
                 await loadProfileData();
+                loadDonationHistory(user.uid); // Carrega o histórico
                 loadingView.classList.add('hidden');
                 profileView.classList.remove('hidden');
             } else {
@@ -152,6 +167,7 @@
             }
         });
 
+        // --- Carregamento de Dados ---
         async function loadProfileData() {
             const userSession = await getCurrentUser();
             if (userSession && userSession.profile) {
@@ -166,6 +182,65 @@
             }
         }
 
+        function loadDonationHistory(userId) {
+            const donationsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`);
+            const likesRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`);
+
+            const q = query(donationsRef, where("donorId", "==", userId), where("status", "==", "completed"));
+
+            onSnapshot(q, (donationsSnapshot) => {
+                if (donationsSnapshot.empty) {
+                    historyList.innerHTML = '';
+                    historyList.appendChild(noHistoryPlaceholder);
+                    return;
+                }
+
+                const donations = donationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                onSnapshot(query(likesRef, where("donorId", "==", userId)), (likesSnapshot) => {
+                    const allLikes = likesSnapshot.docs.map(doc => doc.data());
+                    renderHistory(donations, allLikes);
+                });
+            });
+        }
+
+        function renderHistory(donations, allLikes) {
+            historyList.innerHTML = '';
+            noHistoryPlaceholder.classList.add('hidden');
+
+            donations.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+
+            donations.forEach(donation => {
+                const donationLikes = allLikes.filter(like => like.campaignId === donation.campaignId);
+                const date = donation.createdAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+                
+                let likesHtml = '<p class="text-xs text-gray-500">Nenhuma curtida ainda.</p>';
+                if (donationLikes.length > 0) {
+                    likesHtml = `<div class="flex items-center -space-x-2">${donationLikes.map(like => `<img src="https://placehold.co/24x24/e2e8f0/cbd5e0?text=L" class="w-6 h-6 rounded-full border-2 border-white" title="Curtida">`).join('')}</div>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'p-4 border rounded-lg bg-gray-50';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold text-gray-800">${donation.campaignTitle}</p>
+                            <p class="text-sm text-gray-500">Doado em ${date}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-semibold text-green-600">${donation.items.length} item(ns) entregue(s)</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-2">Pessoas que apoiaram sua atitude:</h4>
+                        ${likesHtml}
+                    </div>
+                `;
+                historyList.appendChild(card);
+            });
+        }
+        
+        // --- Lógica de Eventos (sem alterações) ---
         profileForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             showLoadingButton(true, 'Salvando...');
@@ -190,13 +265,10 @@
             try {
                 const userDocRef = doc(db, "users", currentUser.uid);
                 await updateDoc(userDocRef, dataToUpdate);
-                
-                // CORREÇÃO: Usa a sintaxe correta da v9
                 await updateProfile(auth.currentUser, { displayName: dataToUpdate.displayName });
-
                 showSaveFeedback('Perfil atualizado com sucesso!', 'success');
                 document.getElementById('profile-display-name').textContent = newDisplayName;
-                await injectHeader(); // Recarrega o cabeçalho para exibir o novo nome
+                await injectHeader();
             } catch (error) {
                 console.error("Erro ao atualizar perfil:", error);
                 showSaveFeedback('Erro ao salvar. Tente novamente.', 'error');
@@ -208,18 +280,12 @@
         photoUploadInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file || !file.type.startsWith('image/')) return;
-
             const reader = new FileReader();
             reader.onload = (event) => {
                 imageToCrop.src = event.target.result;
                 cropperModal.classList.remove('hidden');
                 if (cropper) cropper.destroy();
-                cropper = new Cropper(imageToCrop, {
-                    aspectRatio: 1,
-                    viewMode: 1,
-                    background: false,
-                    autoCropArea: 0.8
-                });
+                cropper = new Cropper(imageToCrop, { aspectRatio: 1, viewMode: 1, background: false, autoCropArea: 0.8 });
             };
             reader.readAsDataURL(file);
             photoUploadInput.value = '';
@@ -229,28 +295,21 @@
 
         confirmCropBtn.addEventListener('click', () => {
             if (!cropper) return;
-            
             confirmCropBtn.disabled = true;
             confirmCropBtn.textContent = 'A processar...';
-
             const canvas = cropper.getCroppedCanvas({ width: 256, height: 256, imageSmoothingQuality: 'high' });
             canvas.toBlob(async (blob) => {
                 try {
                     const storageRef = ref(storage, `profile_photos/${currentUser.uid}.webp`);
                     await uploadBytes(storageRef, blob);
                     const photoURL = await getDownloadURL(storageRef);
-
                     const userDocRef = doc(db, "users", currentUser.uid);
                     await updateDoc(userDocRef, { photoURL: photoURL });
-
-                    // CORREÇÃO: Usa a sintaxe correta da v9
                     await updateProfile(auth.currentUser, { photoURL: photoURL });
-
                     photoPreview.src = photoURL;
                     await injectHeader();
                     showSaveFeedback('Foto atualizada!', 'success');
                     cropperModal.classList.add('hidden');
-
                 } catch (error) {
                     console.error("Erro ao atualizar foto:", error);
                     showSaveFeedback('Falha no upload da foto.', 'error');
@@ -273,7 +332,6 @@
             saveFeedback.className = `text-sm mr-4 ${type === 'success' ? 'text-green-600' : 'text-red-600'}`;
             setTimeout(() => { saveFeedback.textContent = ''; }, 4000);
         }
-
     </script>
 </body>
 </html>
