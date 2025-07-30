@@ -199,7 +199,11 @@
             } else {
                 views.mainDashboard.classList.remove('hidden');
             }
-            window.location.hash = viewKey;
+            if(history.pushState) {
+                history.pushState(null, null, `#${viewKey}`);
+            } else {
+                location.hash = `#${viewKey}`;
+            }
         };
 
         function handleHashChange() {
@@ -213,14 +217,130 @@
                 currentUser = user;
                 loadAllData();
                 setupEventListeners();
-                handleHashChange(); // Handle initial page load with hash
+                handleHashChange();
+                window.addEventListener('hashchange', handleHashChange);
             } else {
                 showView('accessDenied');
             }
         });
 
-        // (Resto do script JS da versão anterior, com as funções de renderização e listeners)
-        // ...
+        function loadAllData() {
+            loadDashboardMetrics();
+            loadAllDonors();
+            loadAllEntities();
+            loadAllCampaigns();
+            loadSettings();
+            loadItemSubtypes();
+        }
+
+        const formatPhoneNumber = (phone) => {
+            if (!phone || typeof phone !== 'string') return 'N/A';
+            const cleaned = phone.replace(/\D/g, '');
+            if (cleaned.length === 11) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
+            if (cleaned.length === 10) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
+            return phone;
+        };
+
+        function loadDashboardMetrics() {
+            onSnapshot(query(collection(db, "users")), snap => { document.getElementById('total-donors').textContent = snap.size; });
+            const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`;
+            onSnapshot(query(collection(db, entitiesPath)), snap => {
+                document.getElementById('total-entities').textContent = snap.docs.filter(doc => doc.data().status === 'ativo').length;
+                document.getElementById('total-pending-entities').textContent = snap.docs.filter(doc => doc.data().status === 'pendente_aprovacao').length;
+            });
+            const campaignsPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
+            onSnapshot(query(collection(db, campaignsPath)), snap => { document.getElementById('total-campaigns').textContent = snap.size; });
+        }
+        
+        function renderDonorsList(donors) {
+            lists.donors.innerHTML = '';
+            if (donors.length === 0) { lists.donors.innerHTML = `<p class="p-6 text-gray-500">Nenhum doador encontrado.</p>`; return; }
+            const statusOrder = { 'ativo': 1, 'bloqueado': 2 };
+            donors.sort((a, b) => (statusOrder[a.data().status] || 99) - (statusOrder[b.data().status] || 99));
+            donors.forEach(docSnapshot => {
+                const user = docSnapshot.data();
+                const userId = docSnapshot.id;
+                const card = document.createElement('div');
+                card.className = 'p-4 border-b';
+                const statusColors = { 'ativo': 'bg-green-100 text-green-800', 'bloqueado': 'bg-red-100 text-red-800' };
+                const status = user.status || 'ativo';
+                const statusColor = statusColors[status];
+                let actionButton = (status === 'ativo')
+                    ? `<button data-action="block-user" data-uid="${userId}" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600">Bloquear</button>`
+                    : `<button data-action="unblock-user" data-uid="${userId}" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">Desbloquear</button>`;
+                card.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center space-x-4"><img src="${user.photoURL || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Foto'}" class="w-16 h-16 rounded-full object-cover border"><div><h4 class="font-bold">${user.displayName}</h4><p class="text-sm text-gray-600">${user.email}</p></div></div><div class="flex items-center space-x-4"><a href="#" data-action="view-user-details" data-uid="${userId}" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a><span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColor}">${status}</span><div class="w-28 text-right">${actionButton}</div></div></div>`;
+                lists.donors.appendChild(card);
+            });
+        }
+
+        function renderEntitiesList(entities) {
+            lists.entities.innerHTML = '';
+            if (entities.length === 0) { lists.entities.innerHTML = `<p class="p-6 text-gray-500">Nenhuma entidade encontrada.</p>`; return; }
+            const statusOrder = { 'pendente_aprovacao': 1, 'ativo': 2, 'bloqueado': 3 };
+            entities.sort((a, b) => (statusOrder[a.data().status] || 99) - (statusOrder[b.data().status] || 99));
+            entities.forEach(docSnapshot => {
+                const entity = docSnapshot.data();
+                const entityId = docSnapshot.id;
+                const card = document.createElement('div');
+                card.className = 'p-4 border-b';
+                const statusColors = { 'pendente_aprovacao': 'bg-yellow-100 text-yellow-800', 'ativo': 'bg-green-100 text-green-800', 'bloqueado': 'bg-red-100 text-red-800' };
+                let actionButtons = '';
+                switch(entity.status) {
+                    case 'pendente_aprovacao': actionButtons = `<div class="flex space-x-2"><button data-action="approve" data-uid="${entityId}" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Aprovar</button><button data-action="reject" data-uid="${entityId}" class="bg-red-500 text-white px-3 py-1 rounded text-sm">Reprovar</button></div>`; break;
+                    case 'ativo': actionButtons = `<button data-action="block" data-uid="${entityId}" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm">Bloquear</button>`; break;
+                    case 'bloqueado': actionButtons = `<button data-action="unblock" data-uid="${entityId}" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Desbloquear</button>`; break;
+                }
+                card.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center space-x-4"><img src="${entity.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border"><div><h4 class="font-bold">${entity.publicName}</h4><p class="text-sm text-gray-600">${entity.email}</p></div></div><div class="flex items-center space-x-4"><a href="#" data-action="view-details" data-uid="${entityId}" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a><span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColors[entity.status]}">${(entity.status || '').replace(/_/g, ' ')}</span><div class="w-28 text-right">${actionButtons}</div></div></div>`;
+                lists.entities.appendChild(card);
+            });
+        }
+        
+        function renderCampaignsList(campaigns) {
+            lists.campaigns.innerHTML = '';
+            if (campaigns.length === 0) { lists.campaigns.innerHTML = `<p class="p-6 text-gray-500">Nenhuma campanha encontrada.</p>`; return; }
+            campaigns.sort((a, b) => b.data().createdAt.toMillis() - a.data().createdAt.toMillis());
+            campaigns.forEach(doc => {
+                const campaign = doc.data();
+                const campaignId = doc.id;
+                const card = document.createElement('div');
+                card.className = 'p-4 border-b';
+                const status = campaign.status || 'active';
+                const statusColors = { 'active': 'bg-green-100 text-green-800', 'suspended': 'bg-yellow-100 text-yellow-800', 'upcoming': 'bg-blue-100 text-blue-800' };
+                let actionButton = '';
+                if(status === 'active') { actionButton = `<button data-action="suspend" data-uid="${campaignId}" class="text-red-500 hover:underline text-sm font-medium">Suspender</button>`; }
+                else if (status === 'suspended') { actionButton = `<button data-action="reactivate" data-uid="${campaignId}" class="text-green-500 hover:underline text-sm font-medium">Reativar</button>`; }
+                card.innerHTML = `<div class="flex justify-between items-center"><div class="flex-grow"><h4 class="font-bold">${campaign.title}</h4><p class="text-sm text-gray-500">por ${campaign.entityName}</p></div><div class="flex items-center space-x-4 ml-4"><a href="#" data-action="view-campaign-details" data-id="${campaignId}" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a><span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColors[status]}">${status}</span><a href="criar-campanha.html?editId=${campaignId}" class="text-blue-500 hover:underline text-sm font-medium">Editar</a><div class="w-20 text-center">${actionButton}</div></div></div>`;
+                lists.campaigns.appendChild(card);
+            });
+        }
+
+        function loadAllDonors() { onSnapshot(query(collection(db, "users")), (snapshot) => { allDonorsData = snapshot.docs; renderDonorsList(allDonorsData); }); }
+        function loadAllEntities() { onSnapshot(query(collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/entidades`)), (snapshot) => { allEntitiesData = snapshot.docs; renderEntitiesList(allEntitiesData); }); }
+        function loadAllCampaigns() { onSnapshot(query(collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`)), (snapshot) => { allCampaignsData = snapshot.docs; renderCampaignsList(allCampaignsData); }); }
+        
+        function loadSettings() {
+            const typesDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'campaignTypes');
+            onSnapshot(typesDocRef, (docSnap) => {
+                campaignTypeSettings = docSnap.exists() ? docSnap.data() : {};
+                if (!docSnap.exists()) setDoc(typesDocRef, { 'default': { label: 'Outro', color: 'gray' } });
+                renderSettings();
+            });
+        }
+        function renderSettings() { /* ... */ }
+        function loadItemSubtypes() { /* ... */ }
+        function renderItemSubtypes() { /* ... */ }
+
+        function setupEventListeners() {
+            document.querySelectorAll('.back-to-dashboard-btn').forEach(btn => btn.addEventListener('click', () => showView('mainDashboard')));
+            document.getElementById('manage-donors-link').addEventListener('click', () => showView('donors'));
+            document.getElementById('manage-entities-link').addEventListener('click', () => showView('entities'));
+            document.getElementById('manage-pending-entities-link').addEventListener('click', () => showView('entities'));
+            document.getElementById('manage-campaigns-link').addEventListener('click', () => showView('campaigns'));
+            document.getElementById('profile-btn').addEventListener('click', () => { loadProfileData(); showView('profile'); });
+            document.getElementById('settings-btn').addEventListener('click', () => showView('settings'));
+
+            // (Resto dos event listeners)
+        }
     </script>
 </body>
 </html>
