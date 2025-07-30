@@ -78,11 +78,12 @@
     <div id="app-modal"></div>
 
     <script type="module">
-        import { db, auth, onAuthStateChanged, ADMIN_EMAIL, getCurrentUser, firebaseConfig, setDoc, deleteDoc, serverTimestamp } from './app-config.js';
+        import { db, auth, onAuthStateChanged, getCurrentUser, firebaseConfig, setDoc, deleteDoc, serverTimestamp } from './app-config.js';
         import { injectHeader } from './app-header.js';
         import { collection, onSnapshot, query, orderBy, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { showAlertModal } from './modal-handler.js';
 
+        // --- Elementos do DOM ---
         const loadingContainer = document.getElementById('loading-container');
         const filterContainer = document.getElementById('filter-container');
         const campaignLists = {
@@ -90,19 +91,105 @@
             upcoming: document.getElementById('upcoming-campaigns-list'),
             recent: document.getElementById('recent-campaigns-list')
         };
+        const emptyPlaceholders = {
+            active: document.getElementById('active-campaigns-empty'),
+        };
 
+        // --- Estado da Aplicação ---
         let allCampaigns = [];
         let allDonations = [];
         let allLikes = [];
         let currentUserSession = null;
+        let campaignsUnsubscribe, donationsUnsubscribe, likesUnsubscribe;
 
-        injectHeader();
-        fetchAllData();
-        onAuthStateChanged(auth, async (user) => {
+        // --- Lógica Principal ---
+        async function initializeApp() {
             await injectHeader();
             currentUserSession = await getCurrentUser();
+            setupDataListeners();
+            setupEventListeners();
+        }
+
+        function setupDataListeners() {
+            const campaignsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`);
+            const donationsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`);
+            const likesRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`);
+
+            // Limpa ouvintes antigos para evitar duplicação
+            if (campaignsUnsubscribe) campaignsUnsubscribe();
+            if (donationsUnsubscribe) donationsUnsubscribe();
+            if (likesUnsubscribe) likesUnsubscribe();
+
+            // Ouve todas as coleções em paralelo
+            campaignsUnsubscribe = onSnapshot(query(campaignsRef, orderBy("priority", "desc"), orderBy("createdAt", "desc")), (snapshot) => {
+                allCampaigns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderUI();
+            });
+
+            donationsUnsubscribe = onSnapshot(query(donationsRef), (snapshot) => {
+                const uniqueDonorsPerCampaign = {};
+                snapshot.docs.forEach(doc => {
+                    const donation = doc.data();
+                    if (!uniqueDonorsPerCampaign[donation.campaignId]) uniqueDonorsPerCampaign[donation.campaignId] = {};
+                    if (!uniqueDonorsPerCampaign[donation.campaignId][donation.donorId] || donation.status === 'completed') {
+                        uniqueDonorsPerCampaign[donation.campaignId][donation.donorId] = donation;
+                    }
+                });
+                allDonations = Object.values(uniqueDonorsPerCampaign).flatMap(obj => Object.values(obj));
+                renderUI();
+            });
+
+            likesUnsubscribe = onSnapshot(query(likesRef), (snapshot) => {
+                allLikes = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                renderUI();
+            });
+        }
+
+        function renderUI() {
+            if (allCampaigns.length === 0 && loadingContainer.style.display !== 'none') return; // Espera as campanhas carregarem
+            
+            loadingContainer.style.display = 'none';
+            const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.expiresAt.toDate() > new Date());
+            
+            renderFilters(activeCampaigns);
             renderAllSections(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
-        });
+        }
+
+        function renderAllSections(filter = 'all') {
+            const now = new Date();
+            const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.startsAt.toDate() <= now && c.expiresAt.toDate() > now);
+            const upcomingCampaigns = allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt.toDate() > now);
+            const recentCampaigns = allCampaigns.filter(c => c.expiresAt.toDate() <= now).slice(0, 4);
+            
+            const filteredActive = (filter === 'all') ? activeCampaigns : activeCampaigns.filter(c => c.type === filter);
+            
+            renderCampaigns(filteredActive, 'active');
+            renderCampaigns(upcomingCampaigns, 'upcoming');
+            renderCampaigns(recentCampaigns, 'recent');
+        }
+
+        function renderCampaigns(campaigns, listKey) {
+            const listEl = campaignLists[listKey];
+            if (!listEl) return;
+
+            const sectionEl = listEl.parentElement;
+            const emptyEl = emptyPlaceholders[listKey];
+            
+            listEl.innerHTML = '';
+            
+            if (campaigns.length === 0) {
+                if (emptyEl) emptyEl.classList.remove('hidden');
+                if (listKey !== 'active') sectionEl.style.display = 'none';
+            } else {
+                if (emptyEl) emptyEl.classList.add('hidden');
+                sectionEl.style.display = 'block';
+                campaigns.forEach(campaign => {
+                    const campaignDonors = allDonations.filter(d => d.campaignId === campaign.id);
+                    const campaignLikes = allLikes.filter(l => l.campaignId === campaign.id);
+                    listEl.innerHTML += createCampaignCard(campaign, campaignDonors, campaignLikes);
+                });
+            }
+        }
 
         function createCampaignCard(campaign, donors, likes) {
             const campaignTypeSettings = {
@@ -120,7 +207,7 @@
 
             let statusTag = '';
             if (campaign.status === 'upcoming') { statusTag = `<div class="absolute top-2 left-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">PRÓXIMA</div>`; }
-            else if (campaign.priority === 'high') { statusTag = `<div class="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full urgent-badge">URGENTE</div>`; }
+            else if (campaign.priority === 'high' && campaign.status !== 'upcoming') { statusTag = `<div class="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full urgent-badge">URGENTE</div>`; }
 
             let goalHtml = '';
             if (campaign.goal) {
@@ -156,22 +243,20 @@
 
             return `
                 <div data-id="${campaign.id}" class="campaign-card flex flex-col bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow border-b-4 border-${color}-500">
-                    <div class="relative">
-                        <img class="h-48 w-full object-cover" src="${imageUrl}" alt="Imagem da ${campaign.title}">
-                        ${statusTag}
-                    </div>
-                    <div class="p-6 flex-grow">
-                        <div class="uppercase tracking-wide text-sm text-${color}-600 font-semibold">${campaign.entityName}</div>
-                        <h3 class="block mt-1 text-xl leading-tight font-bold text-black truncate" title="${campaign.title}">${campaign.title}</h3>
-                        <div class="mt-4 space-y-3">
-                            <div>
-                                <div class="flex justify-between text-xs font-medium text-gray-500"><span>Tempo Restante</span></div>
-                                <div class="w-full bg-gray-200 rounded-full h-2 mt-1"><div class="bg-${color}-400 h-2 rounded-full" style="width: ${timeProgress}%"></div></div>
-                            </div>
-                            ${goalHtml}
+                    <a href="detalhes.html?id=${campaign.id}" class="block">
+                        <div class="relative">
+                            <img class="h-48 w-full object-cover" src="${imageUrl}" alt="Imagem da ${campaign.title}">
+                            ${statusTag}
                         </div>
-                    </div>
-                    <div class="px-6 pb-4 border-t mt-4 pt-4">
+                        <div class="p-6 flex-grow">
+                            <div class="uppercase tracking-wide text-sm text-${color}-600 font-semibold">${campaign.entityName}</div>
+                            <h3 class="block mt-1 text-xl leading-tight font-bold text-black truncate" title="${campaign.title}">${campaign.title}</h3>
+                            <div class="mt-4 space-y-3">
+                                ${goalHtml}
+                            </div>
+                        </div>
+                    </a>
+                    <div class="px-6 pb-4 border-t mt-auto pt-4">
                         <h4 class="text-sm font-semibold text-gray-700 mb-3">Apoiadores</h4>
                         <div class="flex flex-wrap items-end gap-x-2 gap-y-4">
                             ${donorsHtml}
@@ -179,7 +264,7 @@
                     </div>
                 </div>`;
         }
-        
+
         function renderFilters(campaigns) {
             const counts = campaigns.reduce((acc, campaign) => { acc[campaign.type] = (acc[campaign.type] || 0) + 1; return acc; }, {});
             let buttonsHtml = `<button data-filter="all" class="filter-btn active bg-gray-700 text-white font-semibold py-2 px-4 rounded-full shadow-md">Todas (${campaigns.length})</button>`;
@@ -191,118 +276,57 @@
             filterContainer.innerHTML = buttonsHtml;
         }
 
-        function renderAllSections(filter = 'all') {
-            const now = new Date();
-            const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.startsAt.toDate() <= now && c.expiresAt.toDate() > now);
-            const upcomingCampaigns = allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt.toDate() > now);
-            const recentCampaigns = allCampaigns.filter(c => c.expiresAt.toDate() <= now).slice(0, 4);
-            const filteredActive = (filter === 'all') ? activeCampaigns : activeCampaigns.filter(c => c.type === filter);
-            
-            renderCampaigns(filteredActive, campaignLists.active, 'active-campaigns-empty');
-            renderCampaigns(upcomingCampaigns, campaignLists.upcoming, null);
-            renderCampaigns(recentCampaigns, campaignLists.recent, null);
-        }
-
-        function renderCampaigns(campaigns, listEl, emptyId) {
-            const sectionEl = listEl.parentElement;
-            listEl.innerHTML = '';
-            if (campaigns.length === 0) {
-                if (emptyId) document.getElementById(emptyId).classList.remove('hidden');
-                if (listId !== 'active-campaigns-list') sectionEl.style.display = 'none';
-            } else {
-                if (emptyId) document.getElementById(emptyId).classList.add('hidden');
-                sectionEl.style.display = 'block';
-                campaigns.forEach(campaign => {
-                    const campaignDonors = allDonations.filter(d => d.campaignId === campaign.id);
-                    const campaignLikes = allLikes.filter(l => l.campaignId === campaign.id);
-                    listEl.innerHTML += createCampaignCard(campaign, campaignDonors, campaignLikes);
+        // --- Gestão de Eventos ---
+        function setupEventListeners() {
+            filterContainer.addEventListener('click', (e) => {
+                const button = e.target.closest('button[data-filter]');
+                if (!button) return;
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('active', 'bg-gray-700', 'text-white');
+                    btn.classList.add('bg-white', 'text-gray-700');
                 });
-            }
+                button.classList.add('active', 'bg-gray-700', 'text-white');
+                button.classList.remove('bg-white', 'text-gray-700');
+                renderAllSections(button.dataset.filter);
+            });
+
+            document.getElementById('active-campaigns-list').addEventListener('click', handleLikeButtonClick);
+            document.getElementById('upcoming-campaigns-list').addEventListener('click', handleLikeButtonClick);
+            document.getElementById('recent-campaigns-list').addEventListener('click', handleLikeButtonClick);
         }
 
-        function fetchAllData() {
-            const campaignsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`);
-            const donationsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`);
-            const likesRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`);
+        async function handleLikeButtonClick(e) {
+            const likeButton = e.target.closest('.like-button');
+            if (!likeButton) return;
             
-            onSnapshot(query(donationsRef), (snapshot) => {
-                const uniqueDonorsPerCampaign = {};
-                snapshot.docs.forEach(doc => {
-                    const donation = doc.data();
-                    if (!uniqueDonorsPerCampaign[donation.campaignId]) uniqueDonorsPerCampaign[donation.campaignId] = {};
-                    if (!uniqueDonorsPerCampaign[donation.campaignId][donation.donorId] || donation.status === 'completed') {
-                        uniqueDonorsPerCampaign[donation.campaignId][donation.donorId] = donation;
-                    }
-                });
-                allDonations = Object.values(uniqueDonorsPerCampaign).flatMap(obj => Object.values(obj));
-                renderAllSections(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
-            });
+            e.preventDefault();
+            e.stopPropagation();
 
-            onSnapshot(query(likesRef), (snapshot) => {
-                allLikes = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                renderAllSections(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
-            });
-            
-            onSnapshot(query(campaignsRef, orderBy("priority", "desc"), orderBy("createdAt", "desc")), (snapshot) => {
-                allCampaigns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.expiresAt.toDate() > new Date());
-                renderFilters(activeCampaigns);
-                renderAllSections();
-                loadingContainer.style.display = 'none';
-            });
-        }
-
-        function handleCampaignClick(campaignId) {
-            const campaign = allCampaigns.find(c => c.id === campaignId);
-            if (!campaign) return;
             if (!currentUserSession?.auth) {
-                const destination = `detalhes.html?id=${campaignId}`;
-                window.location.href = `login.html?redirect=${encodeURIComponent(destination)}`;
+                showAlertModal("Ação necessária", "Você precisa estar logado para curtir.");
                 return;
             }
-            window.location.href = `detalhes.html?id=${campaignId}`;
+
+            const campaignId = likeButton.dataset.campaignId;
+            const donorId = likeButton.dataset.donorId;
+            const likerId = currentUserSession.auth.uid;
+            const likeId = `${campaignId}_${donorId}_${likerId}`;
+            const likeDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`, likeId);
+            
+            try {
+                if (likeButton.classList.contains('liked')) {
+                    await deleteDoc(likeDocRef);
+                } else {
+                    await setDoc(likeDocRef, { campaignId, donorId, likerId, createdAt: serverTimestamp() });
+                }
+            } catch (error) {
+                console.error("Erro ao curtir:", error);
+                showAlertModal("Erro", "Não foi possível registrar sua curtida.");
+            }
         }
 
-        filterContainer.addEventListener('click', (e) => {
-            const button = e.target.closest('button[data-filter]');
-            if (!button) return;
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active', 'bg-gray-700', 'text-white'));
-            button.classList.add('active', 'bg-gray-700', 'text-white');
-            renderAllSections(button.dataset.filter);
-        });
-
-        Object.values(campaignLists).forEach(list => {
-            list.addEventListener('click', async (e) => {
-                const likeButton = e.target.closest('.like-button');
-                if (likeButton) {
-                    e.stopPropagation();
-                    if (!currentUserSession?.auth) {
-                        showAlertModal("Ação necessária", "Você precisa estar logado para curtir.");
-                        return;
-                    }
-                    const campaignId = likeButton.dataset.campaignId;
-                    const donorId = likeButton.dataset.donorId;
-                    const likerId = currentUserSession.auth.uid;
-                    const likeId = `${campaignId}_${donorId}_${likerId}`;
-                    const likeDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`, likeId);
-                    try {
-                        if (likeButton.classList.contains('liked')) {
-                            await deleteDoc(likeDocRef);
-                        } else {
-                            await setDoc(likeDocRef, { campaignId, donorId, likerId, createdAt: serverTimestamp() });
-                        }
-                    } catch (error) {
-                        console.error("Erro ao curtir:", error);
-                        showAlertModal("Erro", "Não foi possível registrar sua curtida.");
-                    }
-                } else {
-                    const card = e.target.closest('.campaign-card');
-                    if (card) {
-                        handleCampaignClick(card.dataset.id);
-                    }
-                }
-            });
-        });
+        // --- Inicialização ---
+        initializeApp();
     </script>
 </body>
 </html>
