@@ -5,6 +5,7 @@ const headerHTML = `
         <nav class="container mx-auto max-w-5xl p-4 flex justify-between items-center">
             <a href="index.html" class="text-2xl font-bold text-green-600" title="Voltar para a página inicial">Faz Bem</a>
             <div id="header-user-menu" class="flex items-center space-x-4">
+                <!-- O menu do usuário será inserido aqui -->
             </div>
         </nav>
     </header>
@@ -26,7 +27,9 @@ export async function injectHeader() {
 
         let userSpecificContent = '';
 
+        // Lógica para determinar o menu com base no papel do usuário
         if (auth.email === ADMIN_EMAIL) {
+            // Menu do Superadmin
             userSpecificContent = `
                 <a href="superadmin.html" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Painel Super Admin</a>
                 <a href="superadmin.html" class="flex items-center space-x-2 pl-2 border-l" title="Acessar painel">
@@ -35,6 +38,7 @@ export async function injectHeader() {
                 </a>
             `;
         } else if (profile?.role === 'entidade') {
+            // Menu da Entidade
             userSpecificContent = `
                 <a href="admin.html" class="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">Painel da Entidade</a>
                 <a href="admin.html" class="flex items-center space-x-2 pl-2 border-l" title="Acessar painel">
@@ -43,6 +47,7 @@ export async function injectHeader() {
                 </a>
             `;
         } else {
+            // Menu do Doador (padrão)
             userSpecificContent = `
                 <a href="minhas-entregas.html" class="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors hidden sm:block">Minhas Entregas</a>
                 <a href="perfil-doador.html" class="flex items-center space-x-2 pl-2 border-l" title="Acessar meu perfil">
