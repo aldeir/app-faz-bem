@@ -364,14 +364,183 @@
             document.getElementById('profile-btn').addEventListener('click', () => { loadProfileData(); showView('profile'); });
             document.getElementById('settings-btn').addEventListener('click', () => showView('settings'));
 
-            // (Resto dos event listeners)
-        }
+            searchInputs.donor.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                const filtered = !searchTerm ? allDonorsData : allDonorsData.filter(doc => {
+                    const user = doc.data();
+                    return (user.displayName || '').toLowerCase().includes(searchTerm) || (user.email || '').toLowerCase().includes(searchTerm);
+                });
+                renderDonorsList(filtered);
+            });
 
-        function loadProfileData() {
-            profileElements.displayName.textContent = currentUser.displayName;
-            profileElements.email.textContent = currentUser.email;
-            profileElements.displayNameInput.value = currentUser.displayName;
-            profileElements.photoPreview.src = currentUser.photoURL || 'https://placehold.co/128x128/e2e8f0/cbd5e0?text=Foto';
+            searchInputs.entity.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                const filtered = !searchTerm ? allEntitiesData : allEntitiesData.filter(doc => {
+                    const entity = doc.data();
+                    return (entity.publicName || '').toLowerCase().includes(searchTerm) || (entity.email || '').toLowerCase().includes(searchTerm) || (entity.cnpj || '').includes(searchTerm);
+                });
+                renderEntitiesList(filtered);
+            });
+            
+            searchInputs.campaign.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                const filtered = !searchTerm ? allCampaignsData : allCampaignsData.filter(doc => (doc.data().title || '').toLowerCase().includes(searchTerm));
+                renderCampaignsList(filtered);
+            });
+
+            lists.donors.addEventListener('click', async (e) => {
+                const target = e.target.closest('[data-action]');
+                if (!target) return;
+                const uid = target.dataset.uid;
+                const action = target.dataset.action;
+                const userDocRef = doc(db, "users", uid);
+
+                if (action === 'view-user-details') {
+                    const userDoc = allDonorsData.find(doc => doc.id === uid);
+                    if (!userDoc) return showAlertModal('Erro', 'Dados do doador não encontrados.');
+                    const user = userDoc.data();
+                    const address = user.address || {};
+                    const detailsHtml = `<p><strong>Nome:</strong> ${user.displayName||'N/A'}</p><p><strong>E-mail:</strong> ${user.email||'N/A'}</p><p><strong>Telefone:</strong> ${formatPhoneNumber(user.phone)}</p><p class="pt-2 border-t mt-2"><strong>Endereço:</strong> ${address.street||'Não informado'}, CEP: ${address.cep||'N/A'}</p>`;
+                    await showDetailsModal(`Detalhes de ${user.displayName}`, detailsHtml);
+                    return;
+                }
+
+                const userName = target.closest('.flex.justify-between.items-center').querySelector('h4').textContent;
+                const actions = {
+                    'block-user': { title: 'Bloquear Doador', message: `Bloquear "${userName}"?`, status: 'bloqueado' },
+                    'unblock-user': { title: 'Desbloquear Doador', message: `Desbloquear "${userName}"?`, status: 'ativo' }
+                };
+                const currentAction = actions[action];
+                if (currentAction) {
+                    const confirmed = await showConfirmationModal(currentAction.title, currentAction.message);
+                    if (confirmed) {
+                        try { await updateDoc(userDocRef, { status: currentAction.status }); }
+                        catch (error) { await showAlertModal('Erro', `Ocorreu um erro: ${error.message}`); }
+                    }
+                }
+            });
+
+            lists.entities.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const target = e.target.closest('[data-action]');
+                if (!target) return;
+                const uid = target.dataset.uid;
+                const action = target.dataset.action;
+                const entityDocRef = doc(db, "artifacts", firebaseConfig.projectId, "public", "data", "entidades", uid);
+                if (action === 'view-details') {
+                    const entityDoc = allEntitiesData.find(doc => doc.id === uid);
+                    if (!entityDoc) return showAlertModal('Erro', 'Dados da entidade não encontrados.');
+                    const entity = entityDoc.data();
+                    const address = entity.address || {};
+                    const detailsHtml = `<p><strong>Nome Público:</strong> ${entity.publicName||'N/A'}</p><p><strong>CNPJ:</strong> ${entity.cnpj||'N/A'}</p><p><strong>E-mail:</strong> ${entity.email||'N/A'}</p><p><strong>Telefone:</strong> ${formatPhoneNumber(entity.phone)}</p><p><strong>Responsável:</strong> ${entity.responsibleName||'N/A'}</p><p class="pt-2 border-t mt-2"><strong>Endereço:</strong> ${address.street||''}, ${address.number||''} - ${address.district||''}, ${address.city||''}</p><p class="pt-2 border-t mt-2"><strong>Sobre:</strong> ${entity.description||'Nenhuma descrição.'}</p>`;
+                    await showDetailsModal(`Detalhes de ${entity.publicName}`, detailsHtml);
+                    return;
+                }
+                const entityName = target.closest('.flex.justify-between.items-center').querySelector('h4').textContent;
+                const actions = {
+                    'approve': { title: 'Aprovar Entidade', message: `Aprovar "${entityName}"?`, status: 'ativo' },
+                    'reject': { title: 'Reprovar Entidade', message: `Reprovar e bloquear "${entityName}"?`, status: 'bloqueado' },
+                    'block': { title: 'Bloquear Entidade', message: `Bloquear "${entityName}"?`, status: 'bloqueado' },
+                    'unblock': { title: 'Desbloquear Entidade', message: `Desbloquear "${entityName}"?`, status: 'ativo' }
+                };
+                const currentAction = actions[action];
+                if (currentAction) {
+                    const confirmed = await showConfirmationModal(currentAction.title, currentAction.message);
+                    if (confirmed) {
+                        try { await updateDoc(entityDocRef, { status: currentAction.status }); }
+                        catch (error) { await showAlertModal('Erro', `Ocorreu um erro: ${error.message}`); }
+                    }
+                }
+            });
+
+            lists.campaigns.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const target = e.target.closest('[data-action]');
+                if (!target) return;
+                const id = target.dataset.id || target.dataset.uid;
+                const action = target.dataset.action;
+                const campaignDocRef = doc(db, "artifacts", firebaseConfig.projectId, "public", "data", "campaigns", id);
+                
+                if (action === 'view-campaign-details') {
+                    const campaignDoc = allCampaignsData.find(doc => doc.id === id);
+                    if (!campaignDoc) return showAlertModal('Erro', 'Dados da campanha não encontrados.');
+                    const campaign = campaignDoc.data();
+                    const detailsHtml = `<p><strong>Título:</strong> ${campaign.title}</p><p><strong>Entidade:</strong> ${campaign.entityName}</p><p><strong>Descrição:</strong> ${campaign.description}</p>`;
+                    await showDetailsModal(`Detalhes de ${campaign.title}`, detailsHtml);
+                    return;
+                }
+                
+                const actions = {
+                    'suspend': { title: 'Suspender Campanha', message: 'Suspender esta campanha?', status: 'suspended' },
+                    'reactivate': { title: 'Reativar Campanha', message: 'Reativar esta campanha?', status: 'active' }
+                };
+                const currentAction = actions[action];
+                if (currentAction) {
+                    const confirmed = await showConfirmationModal(currentAction.title, currentAction.message);
+                    if (confirmed) {
+                        try { await updateDoc(campaignDocRef, { status: currentAction.status }); }
+                        catch (error) { await showAlertModal('Erro', `Ocorreu um erro: ${error.message}`); }
+                    }
+                }
+            });
+
+            profileElements.photoUploadInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    cropperElements.image.src = event.target.result;
+                    cropperElements.modal.classList.remove('hidden');
+                    if (cropper) cropper.destroy();
+                    cropper = new Cropper(cropperElements.image, { aspectRatio: 1, viewMode: 1 });
+                };
+                reader.readAsDataURL(file);
+                e.target.value = '';
+            });
+
+            cropperElements.cancelBtn.addEventListener('click', () => cropperElements.modal.classList.add('hidden'));
+
+            cropperElements.confirmBtn.addEventListener('click', () => {
+                if (!cropper) return;
+                cropperElements.confirmBtn.disabled = true;
+                const canvas = cropper.getCroppedCanvas({ width: 256, height: 256 });
+                canvas.toBlob(async (blob) => {
+                    try {
+                        const storageRef = ref(storage, `profile_photos/${currentUser.uid}.webp`);
+                        await uploadBytes(storageRef, blob);
+                        const photoURL = await getDownloadURL(storageRef);
+                        await updateProfile(auth.currentUser, { photoURL });
+                        profileElements.photoPreview.src = photoURL;
+                        await injectHeader();
+                        showAlertModal('Sucesso', 'Foto atualizada!');
+                    } catch (error) {
+                        showAlertModal('Erro', 'Falha no upload da foto.');
+                    } finally {
+                        cropperElements.modal.classList.add('hidden');
+                        cropperElements.confirmBtn.disabled = false;
+                    }
+                }, 'image/webp', 0.9);
+            });
+
+            profileElements.form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const newDisplayName = profileElements.displayNameInput.value.trim();
+                if (!newDisplayName) {
+                    showAlertModal('Atenção', 'O nome não pode ficar em branco.');
+                    return;
+                }
+                profileElements.saveBtn.disabled = true;
+                try {
+                    await updateProfile(auth.currentUser, { displayName: newDisplayName });
+                    profileElements.displayName.textContent = newDisplayName;
+                    await injectHeader();
+                    showAlertModal('Sucesso', 'Perfil atualizado!');
+                } catch (error) {
+                    showAlertModal('Erro', 'Não foi possível atualizar o perfil.');
+                } finally {
+                    profileElements.saveBtn.disabled = false;
+                }
+            });
         }
     </script>
 </body>
