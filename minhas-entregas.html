@@ -15,6 +15,7 @@
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #22c55e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .item-card:hover { transform: scale(1.02); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -36,6 +37,19 @@
         </div>
     </main>
 
+    <!-- Modal para Foco no Item -->
+    <div id="item-focus-modal" class="hidden fixed z-50 inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center relative">
+            <button id="close-modal-btn" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h3 id="modal-item-title" class="text-xl font-bold text-gray-800 mb-4"></h3>
+            <img id="modal-item-photo" src="" class="w-full h-64 object-contain rounded-md mb-4 bg-gray-100">
+            <div id="modal-item-qrcode" class="mx-auto"></div>
+            <p class="text-sm text-gray-500 mt-4">Apresente este QR Code para a entidade confirmar o recebimento.</p>
+        </div>
+    </div>
+
     <script type="module">
         import { auth, db, onAuthStateChanged, firebaseConfig } from './app-config.js';
         import { collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -45,6 +59,13 @@
         const deliveriesView = document.getElementById('deliveries-view');
         const deliveriesList = document.getElementById('deliveries-list');
         const noDeliveriesPlaceholder = document.getElementById('no-deliveries-placeholder');
+        
+        // Elementos do Modal
+        const itemFocusModal = document.getElementById('item-focus-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const modalItemTitle = document.getElementById('modal-item-title');
+        const modalItemPhoto = document.getElementById('modal-item-photo');
+        const modalItemQrcode = document.getElementById('modal-item-qrcode');
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -68,9 +89,7 @@
                     noDeliveriesPlaceholder.classList.add('hidden');
                     deliveriesList.innerHTML = '';
                     const donations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    // Ordena para mostrar os agendamentos mais próximos primeiro
                     donations.sort((a, b) => a.scheduledAt.toMillis() - b.scheduledAt.toMillis());
-
                     donations.forEach(donation => {
                         const card = createDeliveryCard(donation);
                         deliveriesList.appendChild(card);
@@ -97,18 +116,22 @@
             let itemsHtml = '';
             donation.items.forEach((item, index) => {
                 const qrId = `qr-${donation.id}-${index}`;
+                // Adiciona data attributes para o modal e uma classe para o evento de clique
                 itemsHtml += `
-                    <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-md">
-                        <img src="${item.photoURL}" class="w-16 h-16 rounded-md object-cover">
-                        <div class="flex-grow">
+                    <div class="item-card flex items-center space-x-4 p-3 bg-gray-50 rounded-md border cursor-pointer transition-all" 
+                         data-donation-id="${donation.id}" 
+                         data-item-index="${index}"
+                         data-item-title="${item.type}"
+                         data-item-photo="${item.photoURL}">
+                        <img src="${item.photoURL}" class="w-16 h-16 rounded-md object-cover pointer-events-none">
+                        <div class="flex-grow pointer-events-none">
                             <p class="font-bold">${item.type}</p>
                             <p class="text-sm text-gray-600">${item.details} (${item.condition})</p>
                         </div>
-                        <div id="${qrId}" class="w-20 h-20"></div>
+                        <div id="${qrId}" class="w-20 h-20 pointer-events-none"></div>
                     </div>
                 `;
-                // Gera o QR Code após o elemento ser adicionado ao DOM
-                setTimeout(() => generateQRCode(qrId, `${donation.id}|${index}`), 0);
+                setTimeout(() => generateQRCode(qrId, `${donation.id}|${index}`, 4), 0);
             });
 
             card.innerHTML = `
@@ -122,19 +145,49 @@
                         ${itemsHtml}
                     </div>
                     <div class="mt-6 pt-4 border-t">
-                        <p class="text-sm text-gray-600">Leve esta tela no dia e horário agendados. O representante da entidade irá escanear o QR Code de cada item para confirmar o recebimento.</p>
+                        <p class="text-sm text-gray-600">Clique em um item para ampliar o QR Code e facilitar a leitura no momento da entrega.</p>
                     </div>
                 </div>
             `;
             return card;
         }
 
-        function generateQRCode(elementId, text) {
+        function generateQRCode(elementId, text, size) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
             const qr = qrcode(0, 'L');
             qr.addData(text);
             qr.make();
-            document.getElementById(elementId).innerHTML = qr.createImgTag(4, 4);
+            element.innerHTML = qr.createImgTag(size, 4);
         }
+
+        // --- Lógica do Modal ---
+        deliveriesList.addEventListener('click', (e) => {
+            const itemCard = e.target.closest('.item-card');
+            if (!itemCard) return;
+
+            const { donationId, itemIndex, itemTitle, itemPhoto } = itemCard.dataset;
+            
+            modalItemTitle.textContent = itemTitle;
+            modalItemPhoto.src = itemPhoto;
+            
+            // Gera um QR Code maior para o modal
+            modalItemQrcode.innerHTML = '';
+            generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`, 8);
+
+            itemFocusModal.classList.remove('hidden');
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            itemFocusModal.classList.add('hidden');
+        });
+
+        // Fecha o modal se clicar fora dele
+        itemFocusModal.addEventListener('click', (e) => {
+            if (e.target === itemFocusModal) {
+                itemFocusModal.classList.add('hidden');
+            }
+        });
 
     </script>
 </body>
