@@ -23,24 +23,31 @@ export async function injectHeader() {
     if (userSession?.auth) {
         const { auth, profile } = userSession;
         const photoURL = profile?.photoURL || auth.photoURL || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
-        // CORREÇÃO: Garante que o displayName para o superadmin seja pego diretamente do objeto auth
-        const displayName = (auth.email === ADMIN_EMAIL) ? auth.displayName : profile?.displayName;
+        
+        // CORREÇÃO: Lógica aprimorada para obter o nome de exibição correto
+        let displayName = auth.displayName; // Padrão
+        if (profile?.role === 'entidade') {
+            displayName = profile.publicName; // Entidades usam o Nome Público
+        } else if (profile?.role === 'doador') {
+            displayName = profile.displayName; // Doadores usam o displayName do perfil
+        }
 
         let userSpecificContent = '';
 
-        if (auth.email === ADMIN_EMAIL) {
-            // CORREÇÃO: O link da imagem agora aponta para superadmin.html
+        if (profile?.role === 'superadmin') {
+            // CORREÇÃO: Link da foto agora aponta para a âncora #perfil dentro da página superadmin
             userSpecificContent = `
                 <a href="superadmin.html" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Painel Super Admin</a>
-                <a href="superadmin.html" class="flex items-center space-x-2 pl-2 border-l" title="Acessar painel">
+                <a href="superadmin.html#perfil" class="flex items-center space-x-2 pl-2 border-l" title="Acessar meu perfil">
                     <span class="text-sm font-medium text-gray-700 hidden sm:block">${displayName}</span>
                     <img src="${photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200">
                 </a>
             `;
         } else if (profile?.role === 'entidade') {
+            // CORREÇÃO: Link da foto agora aponta para a nova página de perfil da entidade
             userSpecificContent = `
                 <a href="admin.html" class="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">Painel da Entidade</a>
-                <a href="admin.html" class="flex items-center space-x-2 pl-2 border-l" title="Acessar painel">
+                <a href="perfil-entidade.html" class="flex items-center space-x-2 pl-2 border-l" title="Acessar meu perfil">
                     <span class="text-sm font-medium text-gray-700 hidden sm:block">${displayName}</span>
                     <img src="${photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200">
                 </a>
