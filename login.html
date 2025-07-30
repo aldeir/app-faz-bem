@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entrar ou Cadastrar - Faz Bem</title>
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -19,6 +21,7 @@
 
     <div id="app-container">
 
+        <!-- TELA DE LOGIN / ESCOLHA DE CADASTRO -->
         <div id="login-view">
             <div class="min-h-screen flex items-center justify-center py-12 px-4">
                 <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
@@ -54,7 +57,9 @@
         
     </div>
 
+    <!-- SCRIPT CORRIGIDO E MODULARIZADO -->
     <script type="module">
+        // Importa as funções necessárias do arquivo de configuração central
         import { auth, db, onAuthStateChanged, firebaseConfig } from './app-config.js';
         import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -69,21 +74,24 @@
                 if (isRedirecting) return;
                 isRedirecting = true;
 
+                // Tenta encontrar um perfil na coleção 'entidades'
                 const appId = firebaseConfig.projectId;
                 let userDocRef = doc(db, "artifacts", appId, "public", "data", "entidades", user.uid);
                 let docSnap = await getDoc(userDocRef);
 
+                // Se não encontrar, procura na coleção 'users'
                 if (!docSnap.exists()) {
                     userDocRef = doc(db, "users", user.uid);
                     docSnap = await getDoc(userDocRef);
                 }
 
+                // Se ainda não existir em nenhum lugar, cria um perfil de 'doador' na coleção 'users'
                 if (!docSnap.exists()) {
                     await setDoc(doc(db, "users", user.uid), {
                         uid: user.uid,
                         displayName: user.displayName || 'Utilizador',
                         email: user.email,
-                        role: 'doador',
+                        role: 'doador', // Padrão para novos logins via Google
                         status: 'ativo'
                     });
                     docSnap = await getDoc(doc(db, "users", user.uid));
@@ -91,6 +99,7 @@
                 
                 const userData = docSnap.data();
 
+                // Lógica de redirecionamento baseada no papel do usuário
                 if (userData && userData.role === 'entidade') {
                     window.location.href = 'admin.html';
                 } else {
