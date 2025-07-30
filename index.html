@@ -101,7 +101,9 @@
         let allDonations = [];
         let allLikes = [];
         let currentUserSession = null;
-        let campaignsUnsubscribe, donationsUnsubscribe, likesUnsubscribe;
+        // AJUSTE: Variável para guardar as configurações dinâmicas
+        let campaignTypeSettings = {};
+        let campaignsUnsubscribe, donationsUnsubscribe, likesUnsubscribe, settingsUnsubscribe;
 
         // --- Lógica Principal ---
         async function initializeApp() {
@@ -115,10 +117,24 @@
             const campaignsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`);
             const donationsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`);
             const likesRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`);
+            // AJUSTE: Referência para o documento de configurações
+            const settingsRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs/campaignTypes`);
 
             if (campaignsUnsubscribe) campaignsUnsubscribe();
             if (donationsUnsubscribe) donationsUnsubscribe();
             if (likesUnsubscribe) likesUnsubscribe();
+            if (settingsUnsubscribe) settingsUnsubscribe();
+
+            // AJUSTE: Novo listener para as configurações
+            settingsUnsubscribe = onSnapshot(settingsRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    campaignTypeSettings = snapshot.data();
+                } else {
+                    // Fallback caso o documento de configurações não exista
+                    campaignTypeSettings = { 'default': { label: 'Outro', color: 'gray' } };
+                }
+                renderUI(); // Re-renderiza a UI quando as configurações mudam
+            });
 
             campaignsUnsubscribe = onSnapshot(query(campaignsRef, orderBy("priority", "desc"), orderBy("createdAt", "desc")), (snapshot) => {
                 allCampaigns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -145,7 +161,10 @@
         }
 
         function renderUI() {
-            if (allCampaigns.length === 0 && loadingContainer.style.display !== 'none') return;
+            // Garante que tanto as campanhas quanto as configurações foram carregadas antes de renderizar
+            if (allCampaigns.length === 0 || Object.keys(campaignTypeSettings).length === 0) {
+                 if (loadingContainer.style.display !== 'none') return;
+            }
             
             loadingContainer.style.display = 'none';
             const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.expiresAt.toDate() > new Date());
@@ -191,19 +210,14 @@
         }
 
         function createCampaignCard(campaign, donors, likes) {
-            const campaignTypeSettings = {
-                'agasalho': { label: 'Agasalho', color: 'blue' }, 'alimento': { label: 'Alimento', color: 'orange' },
-                'sangue': { label: 'Sangue', color: 'red' }, 'default': { label: 'Outro', color: 'gray' }
-            };
-            const settings = campaignTypeSettings[campaign.type] || campaignTypeSettings['default'];
+            // AJUSTE: Usa as configurações dinâmicas e fornece um fallback robusto
+            const settings = campaignTypeSettings[campaign.type] || campaignTypeSettings['default'] || { label: 'Campanha', color: 'gray' };
             const color = settings.color;
             
             const imageUrl = campaign.images?.[0] || `https://placehold.co/600x400/e2e8f0/e2e8f0?text=Sem+Imagem`;
             const now = new Date();
             const endDate = campaign.expiresAt.toDate();
-            const startDate = campaign.startsAt.toDate();
             
-            // MELHORIA: Verifica se a campanha está encerrada
             const isClosed = endDate < now;
 
             let statusTag = '';
@@ -249,7 +263,6 @@
                 if (donors.length > 5) donorsHtml += `<div class="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 text-gray-600 text-xs font-bold ring-2 ring-white">+${donors.length - 5}</div>`;
             }
 
-            // MELHORIA: Borda completa e indicação de campanha encerrada
             return `
                 <div data-id="${campaign.id}" class="campaign-card flex flex-col bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow border-2 border-${color}-500">
                     <div class="relative">
@@ -280,11 +293,11 @@
         }
 
         function renderFilters(campaigns) {
+            // AJUSTE: Usa as configurações dinâmicas para os rótulos dos filtros
             const counts = campaigns.reduce((acc, campaign) => { acc[campaign.type] = (acc[campaign.type] || 0) + 1; return acc; }, {});
             let buttonsHtml = `<button data-filter="all" class="filter-btn active bg-gray-700 text-white font-semibold py-2 px-4 rounded-full shadow-md">Todas (${campaigns.length})</button>`;
-            const campaignTypeSettings = { 'agasalho': { label: 'Agasalho' }, 'alimento': { label: 'Alimento' }, 'sangue': { label: 'Sangue' }, 'default': { label: 'Outro' } };
             for (const type in counts) {
-                const settings = campaignTypeSettings[type] || campaignTypeSettings['default'];
+                const settings = campaignTypeSettings[type] || { label: type };
                 buttonsHtml += `<button data-filter="${type}" class="filter-btn bg-white text-gray-700 font-semibold py-2 px-4 rounded-full shadow-md">${settings.label} (${counts[type]})</button>`;
             }
             filterContainer.innerHTML = buttonsHtml;
