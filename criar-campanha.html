@@ -132,9 +132,13 @@
     </div>
 
     <script type="module">
-        import { auth, db, storage, onAuthStateChanged, getCurrentUser, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
-        import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+        import {
+            auth, db, storage, ADMIN_EMAIL,
+            collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, Timestamp,
+            ref, uploadBytes, getDownloadURL
+        } from './app-config.js';
+        import { paths } from './firestore-paths.js';
+        import { getCurrentUser } from './auth-service.js';
 
         const pageTitle = document.getElementById('page-title');
         const loadingView = document.getElementById('loading-view');
@@ -231,8 +235,7 @@
         };
 
         const loadCampaignTypes = async () => {
-            const configPath = `/artifacts/${firebaseConfig.projectId}/public/data/configs`;
-            const typesDocRef = doc(db, configPath, 'campaignTypes');
+            const typesDocRef = doc(db, paths.configDoc('campaignTypes'));
             const docSnap = await getDoc(typesDocRef);
             if (docSnap.exists()) {
                 const types = docSnap.data();
@@ -262,7 +265,8 @@
             hoursEndSelect.innerHTML = options;
         };
 
-        const initializePage = async (user, userSession) => {
+        const initializePage = async (userSession) => {
+            const user = userSession.auth;
             hoursStartSelect.innerHTML = generateTimeOptions();
             updateEndTimeOptions(hoursStartSelect.value);
             
@@ -271,7 +275,7 @@
             if (isEditMode) {
                 setupEditModeUI();
                 document.getElementById('loading-text').textContent = "A carregar dados da campanha...";
-                const campaignRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`, campaignIdToEdit);
+                const campaignRef = doc(db, paths.campaignDoc(campaignIdToEdit));
                 const campaignSnap = await getDoc(campaignRef);
                 if (!campaignSnap.exists()) { alert("Erro: Campanha não encontrada."); window.location.href = 'index.html'; return; }
                 campaignDataForEdit = campaignSnap.data();
@@ -279,8 +283,7 @@
                 populateForm(campaignDataForEdit);
             }
             if (user.email === ADMIN_EMAIL) {
-                const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`;
-                const q = query(collection(db, entitiesPath), where("status", "==", "ativo"));
+                const q = query(collection(db, paths.entidades), where("status", "==", "ativo"));
                 const querySnapshot = await getDocs(q);
                 allEntities = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 let optionsHtml = '<option value="app_faz_bem">App Faz Bem (Campanha Geral)</option>';
@@ -296,15 +299,15 @@
             loadingView.classList.add('hidden');
             formView.classList.remove('hidden');
         };
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const userSession = await getCurrentUser();
-                initializePage(user, userSession);
+        
+        async function initializeApp() {
+            const userSession = await getCurrentUser();
+            if (userSession) {
+                initializePage(userSession);
             } else {
                 window.location.href = 'login.html';
             }
-        });
+        }
 
         mediaUploadInput.addEventListener('change', (e) => {
             campaignMediaFiles = Array.from(e.target.files).slice(0, 5);
@@ -331,7 +334,6 @@
             formError.classList.add('hidden');
             showLoadingButton(true);
             const user = auth.currentUser;
-            const campaignsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
             try {
                 let imageUrls;
                 if (campaignMediaFiles.length > 0) {
@@ -370,7 +372,7 @@
                 };
                 if (isEditMode) {
                     if (videoUrl === undefined) delete dataToSave.videoUrl;
-                    const campaignRef = doc(db, campaignsColPath, campaignIdToEdit);
+                    const campaignRef = doc(db, paths.campaignDoc(campaignIdToEdit));
                     await updateDoc(campaignRef, dataToSave);
                     document.getElementById('submit-feedback').textContent = 'Campanha atualizada com sucesso!';
                 } else {
@@ -398,7 +400,7 @@
                         startsAt: startsAt, expiresAt: expiresAt, status: status,
                         videoUrl: videoUrl || null,
                     };
-                    await addDoc(collection(db, campaignsColPath), finalData);
+                    await addDoc(collection(db, paths.campaigns), finalData);
                     document.getElementById('submit-feedback').textContent = 'Campanha publicada com sucesso!';
                 }
                 setTimeout(() => { window.location.href = user.email === ADMIN_EMAIL ? 'superadmin.html' : 'admin.html'; }, 2000);
@@ -410,6 +412,8 @@
                 showLoadingButton(false);
             }
         });
+
+        initializeApp();
     </script>
 </body>
 </html>
