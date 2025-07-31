@@ -29,7 +29,7 @@
         </div>
     </main>
     
-    <!-- CORREÇÃO: Adicionada a estrutura HTML completa do modal -->
+    <!-- CORREÇÃO: Adicionada a estrutura HTML completa do modal, que estava em falta -->
     <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
@@ -56,13 +56,14 @@
     </div>
 
     <script type="module">
-        import { auth, db, onAuthStateChanged, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
+        import { auth, db, onAuthStateChanged, ADMIN_EMAIL } from './app-config.js';
         import { injectHeader } from './app-header.js';
         import { collection, query, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { showConfirmationModal, showAlertModal, showDetailsModal } from './modal-handler.js';
 
         let allDonorsData = [];
 
+        // --- Auth Guard ---
         onAuthStateChanged(auth, async (user) => {
             await injectHeader();
             if (!user || user.email !== ADMIN_EMAIL) {
@@ -72,9 +73,11 @@
             loadAllDonors();
         });
 
+        // --- Elementos do DOM ---
         const allDonorsList = document.getElementById('all-donors-list');
         const donorSearchInput = document.getElementById('donor-search-input');
 
+        // --- Funções Utilitárias ---
         const formatPhoneNumber = (phone) => {
             if (!phone || typeof phone !== 'string') return 'N/A';
             const cleaned = phone.replace(/\D/g, '');
@@ -83,8 +86,10 @@
             return phone;
         };
 
+        // --- Carregamento e Renderização de Dados ---
         function loadAllDonors() {
-            onSnapshot(query(collection(db, "users")), (snapshot) => {
+            const q = query(collection(db, "users"));
+            onSnapshot(q, (snapshot) => {
                 allDonorsData = snapshot.docs;
                 renderDonorsList(allDonorsData);
             });
@@ -111,24 +116,26 @@
                     ? `<button data-action="block-user" data-uid="${userId}" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600">Bloquear</button>`
                     : `<button data-action="unblock-user" data-uid="${userId}" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">Desbloquear</button>`;
 
-                card.innerHTML = `<div class="flex justify-between items-center">
-                    <div class="flex items-center space-x-4">
-                        <img src="${user.photoURL || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Foto'}" class="w-16 h-16 rounded-full object-cover border">
-                        <div>
-                            <h4 class="font-bold">${user.displayName}</h4>
-                            <p class="text-sm text-gray-600">${user.email}</p>
+                card.innerHTML = \`
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center space-x-4">
+                            <img src="\${user.photoURL || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Foto'}" class="w-16 h-16 rounded-full object-cover border">
+                            <div>
+                                <h4 class="font-bold">\${user.displayName}</h4>
+                                <p class="text-sm text-gray-600">\${user.email}</p>
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <a href="#" data-action="view-user-details" data-uid="${userId}" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a>
-                        <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusColors[status]}">${status}</span>
-                        <div class="w-28 text-right">${actionButton}</div>
-                    </div>
-                </div>`;
+                        <div class="flex items-center space-x-4">
+                            <a href="#" data-action="view-user-details" data-uid="\${userId}" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a>
+                            <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full \${statusColors[status]}">\${status}</span>
+                            <div class="w-28 text-right">\${actionButton}</div>
+                        </div>
+                    </div>\`;
                 allDonorsList.appendChild(card);
             });
         }
 
+        // --- Gestão de Eventos ---
         donorSearchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase().trim();
             const filtered = !searchTerm ? allDonorsData : allDonorsData.filter(doc => {
@@ -141,6 +148,9 @@
         allDonorsList.addEventListener('click', async (e) => {
             const target = e.target.closest('[data-action]');
             if (!target) return;
+
+            e.preventDefault(); // Impede o comportamento padrão do link '#'
+            
             const uid = target.dataset.uid;
             const action = target.dataset.action;
             const userDocRef = doc(db, "users", uid);
@@ -164,7 +174,10 @@
             if (currentAction) {
                 const confirmed = await showConfirmationModal(currentAction.title, currentAction.message);
                 if (confirmed) {
-                    try { await updateDoc(userDocRef, { status: currentAction.status }); }
+                    try { 
+                        await updateDoc(userDocRef, { status: currentAction.status }); 
+                        showAlertModal('Sucesso!', `O usuário \${userName} foi atualizado.`);
+                    }
                     catch (error) { await showAlertModal('Erro', \`Ocorreu um erro: \${error.message}\`); }
                 }
             }
