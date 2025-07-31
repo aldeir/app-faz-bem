@@ -154,7 +154,7 @@
                 if (!userDoc) return showAlertModal('Erro', 'Dados do doador não encontrados.');
                 const user = userDoc.data();
                 const address = user.address || {};
-                const detailsHtml = `<p><strong>Nome:</strong> \${user.displayName||'N/A'}</p><p><strong>E-mail:</strong> \${user.email||'N/A'}</p><p><strong>Telefone:</strong> \${formatPhoneNumber(user.phone)}</p><p class="pt-2 border-t mt-2"><strong>Endereço:</strong> \${address.street||'Não informado'}, CEP: \${address.cep||'N/A'}</p>\`;
+                const detailsHtml = \`<p><strong>Nome:</strong> \${user.displayName||'N/A'}</p><p><strong>E-mail:</strong> \${user.email||'N/A'}</p><p><strong>Telefone:</strong> \${formatPhoneNumber(user.phone)}</p><p class="pt-2 border-t mt-2"><strong>Endereço:</strong> \${address.street||'Não informado'}, CEP: \${address.cep||'N/A'}</p>\`;
                 await showDetailsModal(\`Detalhes de \${user.displayName}\`, detailsHtml);
                 return;
             }
