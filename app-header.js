@@ -62,9 +62,10 @@ export async function injectHeader() {
             `;
         }
 
+
         userMenu.innerHTML = `
             ${userSpecificContent}
-            <button id="header-logout-btn" class="text-sm text-gray-500 hover:text-red-600">Sair</button>
+            <button id="header-logout-btn" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Sair</button>
         `;
 
         document.getElementById('header-logout-btn').addEventListener('click', () => {
