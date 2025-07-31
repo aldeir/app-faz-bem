@@ -1,4 +1,4 @@
-// app-config.js (Versão 2.4 - Correção de Perfil)
+// app-config.js (Versão 3.0 - Refatorado com firestore-paths)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { 
@@ -15,6 +15,7 @@ import {
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
+import { paths } from './firestore-paths.js'; // <-- 1. IMPORTAÇÃO DO MÓDULO
 
 const firebaseConfig = {
   apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
@@ -40,9 +41,10 @@ async function registerUser(authData, profileData) {
   await updateProfile(user, { displayName: authData.displayName });
   await sendEmailVerification(user);
 
-  const appId = firebaseConfig.projectId;
   const fullProfileData = { ...profileData, email: user.email, uid: user.uid };
-  await setDoc(doc(db, "artifacts", appId, "public", "data", "entidades", user.uid), fullProfileData);
+  // 2. USO DO PATHS PARA SALVAR O DOCUMENTO DA ENTIDADE
+  const entidadeRef = doc(db, paths.entidadeDoc(user.uid));
+  await setDoc(entidadeRef, fullProfileData);
   return userCredential;
 }
 
@@ -58,15 +60,15 @@ const getCurrentUser = () => {
                     return;
                 }
 
-                // CORREÇÃO: Prioriza a verificação do perfil de Entidade
-                const appId = firebaseConfig.projectId;
-                let userDocRef = doc(db, "artifacts", appId, "public", "data", "entidades", user.uid);
-                let docSnap = await getDoc(userDocRef);
+                // 3. USO DO PATHS PARA BUSCAR O PERFIL DE ENTIDADE
+                let entidadeRef = doc(db, paths.entidadeDoc(user.uid));
+                let docSnap = await getDoc(entidadeRef);
 
                 // Se não encontrar um perfil de Entidade, procura por um perfil de Doador
                 if (!docSnap.exists()) {
-                    userDocRef = doc(db, "users", user.uid);
-                    docSnap = await getDoc(userDocRef);
+                    // 4. USO DO PATHS PARA BUSCAR O PERFIL DE DOADOR
+                    let doadorRef = doc(db, paths.userDoc(user.uid));
+                    docSnap = await getDoc(doadorRef);
                 }
                 
                 resolve({ auth: user, profile: docSnap.exists() ? docSnap.data() : null });
