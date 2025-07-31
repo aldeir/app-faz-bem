@@ -1,4 +1,4 @@
-// app-config.js (Versão 3.2 - Formatação Profissional Corrigida)
+// app-config.js (Versão 3.4 - Sincronização Final com paths.init)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import {
@@ -15,7 +15,7 @@ import {
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
-import { paths, initializePaths } from './firestore-paths.js';
+import { paths } from './firestore-paths.js'; // Importa o objeto 'paths'
 
 const firebaseConfig = {
     apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
@@ -27,8 +27,9 @@ const firebaseConfig = {
     measurementId: "G-R5W1F2NXH4"
 };
 
-// Inicializa os caminhos centralizados, garantindo que o objeto 'paths' esteja pronto.
-initializePaths(firebaseConfig.projectId);
+// **PONTO DA CORREÇÃO DEFINITIVA**:
+// Chama o método 'init' do objeto 'paths' importado, passando o ID do projeto.
+paths.init(firebaseConfig.projectId);
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
