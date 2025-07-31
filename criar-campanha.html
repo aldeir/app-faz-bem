@@ -186,8 +186,9 @@
             document.getElementById('nav-mode-label').textContent = "Modo de Edição";
             document.getElementById('form-title').textContent = "Editar Detalhes da Campanha";
             document.getElementById('submit-btn-text').textContent = "Salvar Alterações";
-            document.getElementById('campaign-duration').disabled = true;
-            document.getElementById('campaign-starts-at').disabled = true;
+            // CORREÇÃO: Campos de data e duração foram re-habilitados para edição.
+            // document.getElementById('campaign-duration').disabled = true;
+            // document.getElementById('campaign-starts-at').disabled = true;
         };
 
         const showLoadingButton = (isLoading) => {
@@ -213,11 +214,29 @@
             document.getElementById('campaign-goal').value = data.goal || '';
             document.getElementById('campaign-priority').value = data.priority || 'normal';
             document.getElementById('campaign-slots').value = data.slots || '1';
+            
             if (data.startsAt) {
                 const date = data.startsAt.toDate();
-                const formattedDate = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + 'T' + ('0' + date.getHours()).slice(-2) + ':' + ('0' + date.getMinutes()).slice(-2);
+                // Formata a data para o padrão do input datetime-local (YYYY-MM-DDTHH:mm)
+                const formattedDate = date.getFullYear() + '-' + 
+                                      ('0' + (date.getMonth() + 1)).slice(-2) + '-' + 
+                                      ('0' + date.getDate()).slice(-2) + 'T' + 
+                                      ('0' + date.getHours()).slice(-2) + ':' + 
+                                      ('0' + date.getMinutes()).slice(-2);
                 document.getElementById('campaign-starts-at').value = formattedDate;
             }
+
+            // CORREÇÃO: Calcula e seleciona a duração correta no modo de edição
+            if (data.startsAt && data.expiresAt) {
+                const durationInSeconds = data.expiresAt.seconds - data.startsAt.seconds;
+                // Encontra a opção mais próxima no select para evitar problemas de arredondamento
+                const durationSelect = document.getElementById('campaign-duration');
+                const closestOption = [...durationSelect.options].reduce((prev, curr) => {
+                    return (Math.abs(curr.value - durationInSeconds) < Math.abs(prev.value - durationInSeconds) ? curr : prev);
+                });
+                durationSelect.value = closestOption.value;
+            }
+
             cepInput.value = data.address?.cep || '';
             streetInput.value = data.address?.street || '';
             numberInput.value = data.address?.number || '';
@@ -349,6 +368,14 @@
                     const uploadResult = await uploadBytes(videoRef, campaignVideoFile);
                     videoUrl = await getDownloadURL(uploadResult.ref); 
                 }
+                
+                // CORREÇÃO: Lê os valores de data e duração do formulário no modo de edição
+                const startsAtInput = document.getElementById('campaign-starts-at').value;
+                const durationInSeconds = parseInt(document.getElementById('campaign-duration').value, 10);
+                const startsAt = startsAtInput ? Timestamp.fromDate(new Date(startsAtInput)) : Timestamp.now();
+                const expiresAt = new Timestamp(startsAt.seconds + durationInSeconds, startsAt.nanoseconds);
+                const status = startsAt.toMillis() > Date.now() ? 'upcoming' : 'active';
+
                 const dataToSave = {
                     title: document.getElementById('campaign-title').value,
                     description: document.getElementById('campaign-description').value,
@@ -370,8 +397,14 @@
                     ...(imageUrls && { images: imageUrls }),
                     ...(videoUrl && { videoUrl: videoUrl }),
                 };
+
                 if (isEditMode) {
                     if (videoUrl === undefined) delete dataToSave.videoUrl;
+                    // Adiciona as datas atualizadas ao objeto a ser salvo
+                    dataToSave.startsAt = startsAt;
+                    dataToSave.expiresAt = expiresAt;
+                    dataToSave.status = status;
+
                     const campaignRef = doc(db, paths.campaignDoc(campaignIdToEdit));
                     await updateDoc(campaignRef, dataToSave);
                     document.getElementById('submit-feedback').textContent = 'Campanha atualizada com sucesso!';
@@ -387,16 +420,11 @@
                         const userSession = await getCurrentUser();
                         entityInfo = { name: userSession.profile.publicName, uid: user.uid };
                     }
-                    const now = Timestamp.now();
-                    const startsAtInput = document.getElementById('campaign-starts-at').value;
-                    const startsAt = startsAtInput ? Timestamp.fromDate(new Date(startsAtInput)) : now;
-                    const durationInSeconds = parseInt(document.getElementById('campaign-duration').value, 10);
-                    const expiresAt = new Timestamp(startsAt.seconds + durationInSeconds, startsAt.nanoseconds);
-                    const status = startsAt.toMillis() > now.toMillis() ? 'upcoming' : 'active';
+                    
                     const finalData = {
                         ...dataToSave,
                         entityName: entityInfo.name, creatorId: user.uid, entityId: entityInfo.uid,
-                        progress: 0, currentAmount: 0, createdAt: now,
+                        progress: 0, currentAmount: 0, createdAt: Timestamp.now(),
                         startsAt: startsAt, expiresAt: expiresAt, status: status,
                         videoUrl: videoUrl || null,
                     };
