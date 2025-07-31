@@ -153,10 +153,10 @@
     </div>
 
     <script type="module">
-        import { db, auth, onAuthStateChanged, firebaseConfig, getCurrentUser } from './app-config.js';
-        // CORREÇÃO: Adicionando setDoc à lista de importações do Firestore
-        import { doc, getDoc, collection, query, where, onSnapshot, runTransaction, serverTimestamp, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { db, doc, collection, query, where, onSnapshot, serverTimestamp, deleteDoc, setDoc } from './app-config.js';
+        import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
+        import { getCurrentUser } from './auth-service.js';
         import { showAlertModal } from './modal-handler.js';
 
         const loadingContainer = document.getElementById('loading-container');
@@ -175,7 +175,7 @@
         let likesUnsubscribe = null;
         let countdownInterval;
 
-        onAuthStateChanged(auth, async (user) => {
+        async function initializeApp() {
             await injectHeader();
             currentUserSession = await getCurrentUser();
             const params = new URLSearchParams(window.location.search);
@@ -185,7 +185,7 @@
                 return;
             }
             loadCampaignDetails();
-        });
+        }
 
         function renderCampaignInfo(campaign) {
             document.getElementById('campaign-title').textContent = campaign.title;
@@ -258,7 +258,7 @@
 
         function loadCampaignDetails() {
             if (campaignUnsubscribe) campaignUnsubscribe();
-            const campaignRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`, campaignId);
+            const campaignRef = doc(db, paths.campaignDoc(campaignId));
             
             campaignUnsubscribe = onSnapshot(campaignRef, (docSnap) => {
                 if (docSnap.exists()) {
@@ -294,12 +294,9 @@
         function loadCampaignDonors(campaignId) {
             if (donationsUnsubscribe) donationsUnsubscribe();
             if (likesUnsubscribe) likesUnsubscribe();
-
-            const donationsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/donations`;
-            const likesColPath = `/artifacts/${firebaseConfig.projectId}/public/data/likes`;
             
-            const donationsQuery = query(collection(db, donationsColPath), where("campaignId", "==", campaignId));
-            const likesQuery = query(collection(db, likesColPath), where("campaignId", "==", campaignId));
+            const donationsQuery = query(collection(db, paths.donations), where("campaignId", "==", campaignId));
+            const likesQuery = query(collection(db, paths.likes), where("campaignId", "==", campaignId));
 
             let donationsData = [];
             let likesData = {};
@@ -378,9 +375,7 @@
             const donorId = likeButton.dataset.donorId;
             const likerId = currentUserSession.auth.uid;
             
-            const likesRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`);
-            const likeId = `${campaignId}_${donorId}_${likerId}`;
-            const likeDocRef = doc(likesRef, likeId);
+            const likeDocRef = doc(db, paths.likeDoc(`${campaignId}_${donorId}_${likerId}`));
 
             try {
                 if (likeButton.classList.contains('liked')) {
@@ -416,6 +411,8 @@
             
             window.location.href = `registrar-doacao.html?id=${campaignId}`;
         });
+
+        initializeApp();
     </script>
 </body>
 </html>
