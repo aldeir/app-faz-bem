@@ -89,13 +89,13 @@
     </div>
 
     <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto">
-        <!-- ... (código do modal padrão) ... -->
-    </div>
+        </div>
 
     <script type="module">
-        import { auth, db, onAuthStateChanged, logout, firebaseConfig } from './app-config.js';
+        import { auth, db, onAuthStateChanged, logout } from './app-config.js';
         import { collection, query, where, onSnapshot, getDoc, doc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { showConfirmationModal, showAlertModal } from './modal-handler.js';
+        import { paths } from './firestore-paths.js'; // <-- 1. IMPORTAÇÃO DO MÓDULO
 
         const loadingView = document.getElementById('loading-view');
         const dashboardView = document.getElementById('dashboard-view');
@@ -113,9 +113,9 @@
                     window.location.href = 'verificar-email.html';
                     return;
                 }
-
-                const appId = firebaseConfig.projectId;
-                const entityDocRef = doc(db, "artifacts", appId, "public", "data", "entidades", user.uid);
+                
+                // 2. USO DO PATHS PARA BUSCAR DOCUMENTO DA ENTIDADE
+                const entityDocRef = doc(db, paths.entidadeDoc(user.uid));
                 const docSnap = await getDoc(entityDocRef);
 
                 if (docSnap.exists() && docSnap.data().role === 'entidade') {
@@ -145,16 +145,16 @@
         logoutBtnPending.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
 
         function loadScheduledDonations(entityId) {
-            const donationsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/donations`;
-            const q = query(collection(db, donationsColPath), where("entityId", "==", entityId), where("status", "==", "scheduled"));
+            // 3. USO DO PATHS NA COLEÇÃO DE DOAÇÕES
+            const q = query(collection(db, paths.donations), where("entityId", "==", entityId), where("status", "==", "scheduled"));
             onSnapshot(q, (snapshot) => {
                 scheduledDonationsCount.textContent = snapshot.size;
             });
         }
 
         function loadMyCampaigns(userId) {
-            const campaignsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
-            const q = query(collection(db, campaignsColPath), where("creatorId", "==", userId));
+            // 4. USO DO PATHS NA COLEÇÃO DE CAMPANHAS
+            const q = query(collection(db, paths.campaigns), where("creatorId", "==", userId));
 
             onSnapshot(q, (snapshot) => {
                 myCampaignsList.innerHTML = '';
@@ -194,31 +194,31 @@
                         status = { text: 'Ativa', color: 'bg-green-100 text-green-800' };
                     }
                     
-                    const actionButtons = !isCompleted && campaign.status !== 'upcoming' ? `
-                        <button data-action="end" data-id="${campaignId}" class="text-sm font-medium text-red-600 hover:text-red-800">Concluir Agora</button>
-                        <a href="criar-campanha.html?editId=${campaignId}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Editar</a>
-                    ` : `<a href="criar-campanha.html?editId=${campaignId}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Editar</a>`;
+                    const actionButtons = !isCompleted && campaign.status !== 'upcoming' ? \`
+                        <button data-action="end" data-id="\${campaignId}" class="text-sm font-medium text-red-600 hover:text-red-800">Concluir Agora</button>
+                        <a href="criar-campanha.html?editId=\${campaignId}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Editar</a>
+                    \` : \`<a href="criar-campanha.html?editId=\${campaignId}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Editar</a>\`;
 
                     const card = document.createElement('div');
                     card.className = 'p-4 border-b last:border-b-0';
-                    card.innerHTML = `
+                    card.innerHTML = \`
                         <div class="flex justify-between items-center">
                             <div class="flex items-center space-x-4">
-                                <img src="${(campaign.images && campaign.images[0]) || 'https://placehold.co/96x64/e2e8f0/cbd5e0?text=Img'}" class="w-24 h-16 object-cover rounded-md bg-gray-200">
+                                <img src="\${(campaign.images && campaign.images[0]) || 'https://placehold.co/96x64/e2e8f0/cbd5e0?text=Img'}" class="w-24 h-16 object-cover rounded-md bg-gray-200">
                                 <div>
-                                    <h4 class="font-bold text-lg">${campaign.title}</h4>
-                                    <p class="text-sm text-gray-500">Termina em: ${campaign.expiresAt.toDate().toLocaleDateString('pt-BR')}</p>
+                                    <h4 class="font-bold text-lg">\${campaign.title}</h4>
+                                    <p class="text-sm text-gray-500">Termina em: \${campaign.expiresAt.toDate().toLocaleDateString('pt-BR')}</p>
                                 </div>
                             </div>
                             <div class="flex items-center space-x-4">
-                                <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${status.color}">${status.text}</span>
+                                <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full \${status.color}">\${status.text}</span>
                                 <div class="w-48 text-right flex justify-end space-x-4">
-                                    <a href="detalhes.html?id=${campaignId}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Ver</a>
-                                    ${actionButtons}
+                                    <a href="detalhes.html?id=\${campaignId}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Ver</a>
+                                    \${actionButtons}
                                 </div>
                             </div>
                         </div>
-                    `;
+                    \`;
                     myCampaignsList.appendChild(card);
                 });
 
@@ -234,8 +234,8 @@
                 const campaignId = button.dataset.id;
                 const confirmed = await showConfirmationModal('Concluir Campanha', 'Deseja realmente concluir esta campanha agora? Esta ação não pode ser desfeita.');
                 if (confirmed) {
-                    const campaignsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
-                    const campaignRef = doc(db, campaignsColPath, campaignId);
+                    // 5. USO DO PATHS PARA BUSCAR DOCUMENTO DA CAMPANHA
+                    const campaignRef = doc(db, paths.campaignDoc(campaignId));
                     try {
                         await updateDoc(campaignRef, { expiresAt: Timestamp.now() });
                     } catch (error) {
