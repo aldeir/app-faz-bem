@@ -1,39 +1,50 @@
 // Arquivo: firestore-paths.js
-// Descrição: Centraliza todos os caminhos de coleções e documentos do Cloud Firestore.
-// Versão 2.0 - Corrigido para remover dependência circular.
+// Descrição: Centraliza todos os caminhos do Firestore.
+// Versão 3.0 - Arquitetura final para evitar dependências circulares.
 
-// O objeto 'paths' é exportado vazio inicialmente.
-// Ele será preenchido pela função 'initializePaths' assim que o app for carregado.
-const paths = {};
+const paths = {
+    _projectId: null,
+    _basePath: '',
 
-/**
- * Inicializa o objeto 'paths' com o ID do projeto do Firebase.
- * Esta função deve ser chamada uma única vez pelo app-config.js.
- * @param {string} projectId - O ID do projeto do Firebase.
- */
-function initializePaths(projectId) {
-    if (!projectId) {
-        throw new Error("O ID do Projeto é necessário para inicializar os caminhos do Firestore.");
-    }
-    
-    const basePath = `artifacts/${projectId}/public/data`;
+    /**
+     * Inicializa os caminhos com o ID do projeto. Deve ser chamado uma única vez.
+     * @param {string} projectId - O ID do projeto do Firebase.
+     */
+    init: function(projectId) {
+        if (!projectId) {
+            throw new Error("Firestore Paths Error: O ID do Projeto é obrigatório para a inicialização.");
+        }
+        if (this._projectId) return; // Evita re-inicialização
 
-    // --- CAMINHOS DE COLEÇÕES ---
-    paths.users = 'users';
-    paths.entidades = `${basePath}/entidades`;
-    paths.campaigns = `${basePath}/campaigns`;
-    paths.donations = `${basePath}/donations`;
-    paths.likes = `${basePath}/likes`;
-    paths.configs = `${basePath}/configs`;
+        this._projectId = projectId;
+        this._basePath = `artifacts/${this._projectId}/public/data`;
+    },
 
-    // --- FUNÇÕES GERADORAS DE CAMINHOS DE DOCUMENTOS ---
-    paths.userDoc = (uid) => `${paths.users}/${uid}`;
-    paths.entidadeDoc = (uid) => `${paths.entidades}/${uid}`;
-    paths.campaignDoc = (campaignId) => `${paths.campaigns}/${campaignId}`;
-    paths.donationDoc = (donationId) => `${paths.donations}/${donationId}`;
-    paths.likeDoc = (likeId) => `${paths.likes}/${likeId}`;
-    paths.configDoc = (configId) => `${paths.configs}/${configId}`;
-}
+    /**
+     * Verifica se o módulo foi inicializado antes de usar os caminhos.
+     * @private
+     */
+    _checkInit: function() {
+        if (!this._projectId) {
+            throw new Error("Firestore Paths Error: O serviço de caminhos não foi inicializado. Chame paths.init(projectId) primeiro.");
+        }
+    },
 
-// Exporta o objeto (que será preenchido) e a função de inicialização.
-export { paths, initializePaths };
+    // --- Getters para Coleções ---
+    get users() { this._checkInit(); return 'users'; },
+    get entidades() { this._checkInit(); return `${this._basePath}/entidades`; },
+    get campaigns() { this._checkInit(); return `${this._basePath}/campaigns`; },
+    get donations() { this._checkInit(); return `${this._basePath}/donations`; },
+    get likes() { this._checkInit(); return `${this._basePath}/likes`; },
+    get configs() { this._checkInit(); return `${this._basePath}/configs`; },
+
+    // --- Funções para Documentos ---
+    userDoc: function(uid) { this._checkInit(); return `${this.users}/${uid}`; },
+    entidadeDoc: function(uid) { this._checkInit(); return `${this.entidades}/${uid}`; },
+    campaignDoc: function(campaignId) { this._checkInit(); return `${this.campaigns}/${campaignId}`; },
+    donationDoc: function(donationId) { this._checkInit(); return `${this.donations}/${donationId}`; },
+    likeDoc: function(likeId) { this._checkInit(); return `${this.likes}/${likeId}`; },
+    configDoc: function(configId) { this._checkInit(); return `${this.configs}/${configId}`; },
+};
+
+export { paths };
