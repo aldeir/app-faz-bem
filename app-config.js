@@ -1,21 +1,16 @@
-// app-config.js (Versão 3.5 - Código limpo sem caracteres especiais)
+// app-config.js (Versão 4.0 - Arquitetura Limpa e Correta)
+// Responsabilidade: Apenas inicializar o Firebase e exportar os serviços.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import {
-    getAuth,
-    onAuthStateChanged,
-    signOut,
-    createUserWithEmailAndPassword,
-    updateProfile,
-    sendEmailVerification,
-    signInWithEmailAndPassword,
-    GoogleAuthProvider,
-    signInWithPopup
-} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
 import { paths } from './firestore-paths.js';
+
+// Importa e re-exporta todas as funções necessárias para que outras páginas
+// possam importar tudo a partir de um único lugar.
+export * from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+export * from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
@@ -30,71 +25,22 @@ const firebaseConfig = {
 // Inicializa o módulo de caminhos com o ID do projeto.
 paths.init(firebaseConfig.projectId);
 
+// Inicializa e exporta os serviços principais do Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
-const analytics = getAnalytics(app);
 
+// Exporta constantes e funções utilitárias globais
 const ADMIN_EMAIL = 'aldeir@gmail.com';
-
-async function registerUser(authData, profileData) {
-    const userCredential = await createUserWithEmailAndPassword(auth, authData.email, authData.password);
-    const user = userCredential.user;
-    await updateProfile(user, { displayName: authData.displayName });
-    await sendEmailVerification(user);
-
-    const fullProfileData = { ...profileData, email: user.email, uid: user.uid };
-    const entidadeRef = doc(db, paths.entidadeDoc(user.uid));
-    await setDoc(entidadeRef, fullProfileData);
-    return userCredential;
-}
-
 const logout = () => signOut(auth);
-
-const getCurrentUser = () => {
-    return new Promise((resolve) => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            unsubscribe();
-            if (user) {
-                if (user.email === ADMIN_EMAIL) {
-                    resolve({ auth: user, profile: { displayName: user.displayName, photoURL: user.photoURL, email: user.email, role: 'superadmin' } });
-                    return;
-                }
-
-                let entidadeRef = doc(db, paths.entidadeDoc(user.uid));
-                let docSnap = await getDoc(entidadeRef);
-
-                if (!docSnap.exists()) {
-                    let doadorRef = doc(db, paths.userDoc(user.uid));
-                    docSnap = await getDoc(doadorRef);
-                }
-
-                resolve({ auth: user, profile: docSnap.exists() ? docSnap.data() : null });
-            } else {
-                resolve(null);
-            }
-        });
-    });
-};
 
 export {
     app,
     auth,
     db,
     storage,
-    analytics,
-    registerUser,
     logout,
-    onAuthStateChanged,
-    getCurrentUser,
     ADMIN_EMAIL,
-    firebaseConfig,
-    signInWithEmailAndPassword,
-    GoogleAuthProvider,
-    signInWithPopup,
-    setDoc,
-    deleteDoc,
-    serverTimestamp,
-    updateProfile
+    firebaseConfig
 };
