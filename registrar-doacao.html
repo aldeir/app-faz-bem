@@ -83,7 +83,6 @@
         </div>
     </main>
 
-    <!-- CÓDIGO DO MODAL ADICIONADO AQUI -->
     <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
@@ -110,13 +109,12 @@
     </div>
 
     <script type="module">
-        import { auth, db, storage, onAuthStateChanged, getCurrentUser, firebaseConfig } from './app-config.js';
-        import { doc, getDoc, collection, addDoc, Timestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+        import { db, storage, ref, uploadBytes, getDownloadURL, doc, getDoc, collection, addDoc, Timestamp, query, where, getDocs } from './app-config.js';
+        import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
+        import { getCurrentUser } from './auth-service.js';
         import { showAlertModal } from './modal-handler.js';
 
-        // --- (O código JS permanece o mesmo da v1.5, pois já estava correto) ---
         const loadingView = document.getElementById('loading-view');
         const donationView = document.getElementById('donation-view');
         const campaignHeader = document.getElementById('campaign-header');
@@ -137,11 +135,11 @@
         let donatedItems = [];
         let selectedScheduleSlot = null;
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                await injectHeader();
-                currentUserSession = await getCurrentUser();
-                
+        async function initializeApp() {
+            await injectHeader();
+            currentUserSession = await getCurrentUser();
+
+            if (currentUserSession) {
                 const params = new URLSearchParams(window.location.search);
                 campaignId = params.get('id');
 
@@ -162,16 +160,16 @@
             } else {
                 window.location.href = 'login.html';
             }
-        });
+        }
 
         async function loadInitialData() {
             try {
-                const campaignRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`, campaignId);
+                const campaignRef = doc(db, paths.campaignDoc(campaignId));
                 const campaignSnap = await getDoc(campaignRef);
                 if (!campaignSnap.exists()) throw new Error("Campanha não encontrada.");
                 campaignData = campaignSnap.data();
 
-                const subtypesConfigRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs`, 'itemSubtypes');
+                const subtypesConfigRef = doc(db, paths.configDoc('itemSubtypes'));
                 const subtypesConfigSnap = await getDoc(subtypesConfigRef);
                 const itemSubtypes = subtypesConfigSnap.exists() ? subtypesConfigSnap.data() : {};
 
@@ -234,8 +232,7 @@
             const slotsPerHour = 2;
             const maxDonorsPerSlot = campaignData.slots || 1;
 
-            const donationsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`);
-            const q = query(donationsRef, where("campaignId", "==", campaignId));
+            const q = query(collection(db, paths.donations), where("campaignId", "==", campaignId));
             const querySnapshot = await getDocs(q);
             const existingAppointments = {};
             querySnapshot.forEach(doc => {
@@ -360,9 +357,8 @@
                     createdAt: Timestamp.now(),
                     scheduledAt: Timestamp.fromDate(selectedScheduleSlot)
                 };
-
-                const donationsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/donations`;
-                await addDoc(collection(db, donationsColPath), donationData);
+                
+                await addDoc(collection(db, paths.donations), donationData);
 
                 await showAlertModal('Sucesso!', 'Sua doação foi registrada com sucesso! Obrigado por fazer o bem!');
                 window.location.href = 'minhas-entregas.html';
@@ -376,6 +372,8 @@
                 submitBtnSpinner.classList.add('hidden');
             }
         });
+
+        initializeApp();
     </script>
 </body>
 </html>
