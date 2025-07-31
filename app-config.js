@@ -1,4 +1,4 @@
-// app-config.js (Versão 4.0 - Arquitetura Limpa e Correta)
+// app-config.js (Versão 4.1 - Exports de Storage Corrigidos)
 // Responsabilidade: Apenas inicializar o Firebase e exportar os serviços.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -11,6 +11,7 @@ import { paths } from './firestore-paths.js';
 // possam importar tudo a partir de um único lugar.
 export * from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 export * from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+export * from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js"; // <-- CORREÇÃO AQUI
 
 const firebaseConfig = {
     apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
