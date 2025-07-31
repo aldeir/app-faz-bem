@@ -60,8 +60,23 @@
         <!-- Schedule Section -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
             <h2 class="text-xl font-bold text-gray-800">2. Agendar Entrega</h2>
-            <p class="text-sm text-gray-600 mt-1">Selecione um dia e horário disponíveis para levar sua doação.</p>
-            <div id="schedule-container" class="mt-4"></div>
+            <p class="text-sm text-gray-600 mt-1">Selecione um dia e, em seguida, um horário disponível para levar sua doação.</p>
+            
+            <!-- CORREÇÃO: Nova estrutura de agendamento -->
+            <div class="mt-4 space-y-4">
+                <div>
+                    <label for="schedule-date-select" class="block text-sm font-medium text-gray-700">Selecione o dia</label>
+                    <select id="schedule-date-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+                        <option>Carregando dias disponíveis...</option>
+                    </select>
+                </div>
+                <div id="schedule-slots-container" class="hidden">
+                    <p class="block text-sm font-medium text-gray-700">Selecione o horário</p>
+                    <div id="schedule-slots-grid" class="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
+                        <!-- Os horários serão inseridos aqui -->
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Privacy Section -->
@@ -83,30 +98,7 @@
         </div>
     </main>
 
-    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
-                            <div class="mt-2">
-                                <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
-            </div>
-        </div>
-    </div>
+    <div id="app-modal"></div>
 
     <script type="module">
         import { db, storage, ref, uploadBytes, getDownloadURL, doc, getDoc, collection, addDoc, Timestamp, query, where, getDocs } from './app-config.js';
@@ -124,16 +116,21 @@
         const addItemBtn = document.getElementById('add-item-btn');
         const itemSubtypeSelect = document.getElementById('item-subtype');
         const itemOtherSubtypeInput = document.getElementById('item-other-subtype');
-        const scheduleContainer = document.getElementById('schedule-container');
         const submitDonationBtn = document.getElementById('submit-donation-btn');
         const formError = document.getElementById('form-error');
         const addItemError = document.getElementById('add-item-error');
+        
+        // CORREÇÃO: Novos seletores
+        const scheduleDateSelect = document.getElementById('schedule-date-select');
+        const scheduleSlotsContainer = document.getElementById('schedule-slots-container');
+        const scheduleSlotsGrid = document.getElementById('schedule-slots-grid');
 
         let currentUserSession = null;
         let campaignId = null;
         let campaignData = null;
         let donatedItems = [];
         let selectedScheduleSlot = null;
+        let existingAppointments = {};
 
         async function initializeApp() {
             await injectHeader();
@@ -175,13 +172,13 @@
 
                 populateCampaignHeader();
                 populateSubItemTypes(itemSubtypes[campaignData.type] || []);
-                await generateSchedule();
+                await generateScheduleDays();
 
                 loadingView.classList.add('hidden');
                 donationView.classList.remove('hidden');
             } catch (error) {
                 console.error("Error loading initial data:", error);
-                loadingView.innerHTML = `<p class="text-red-500 text-center p-8">${error.message}. Verifique as regras de segurança do Firestore e Storage.</p>`;
+                loadingView.innerHTML = `<p class="text-red-500 text-center p-8">${error.message}.</p>`;
             }
         }
 
@@ -224,66 +221,92 @@
             });
         }
 
-        async function generateSchedule() {
-            scheduleContainer.innerHTML = '<p class="text-center text-gray-500">Calculando horários disponíveis...</p>';
-            const now = new Date();
-            const campaignStart = campaignData.startsAt.toDate();
-            const campaignEnd = campaignData.expiresAt.toDate();
-            const slotsPerHour = 2;
-            const maxDonorsPerSlot = campaignData.slots || 1;
-
+        // CORREÇÃO: Função dividida em duas partes: gerar dias e gerar horários
+        async function generateScheduleDays() {
+            scheduleDateSelect.innerHTML = '<option value="">Carregando...</option>';
+            
             const q = query(collection(db, paths.donations), where("campaignId", "==", campaignId));
             const querySnapshot = await getDocs(q);
-            const existingAppointments = {};
+            existingAppointments = {};
             querySnapshot.forEach(doc => {
                 const scheduleTime = doc.data().scheduledAt.toDate().getTime();
                 existingAppointments[scheduleTime] = (existingAppointments[scheduleTime] || 0) + 1;
             });
 
-            scheduleContainer.innerHTML = '';
-            let currentDate = now > campaignStart ? new Date(now) : new Date(campaignStart);
-            let daysWithSlots = 0;
+            const now = new Date();
+            const campaignStart = campaignData.startsAt.toDate();
+            const campaignEnd = campaignData.expiresAt.toDate();
             
-            for (let d = 0; d < 7 && daysWithSlots < 7; d++) {
-                if (currentDate > campaignEnd) break;
-                const dayEl = document.createElement('div');
-                dayEl.className = 'mb-4';
-                dayEl.innerHTML = `<h4 class="font-semibold text-gray-700 border-b pb-1 mb-2">${currentDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</h4>`;
-                const slotsGrid = document.createElement('div');
-                slotsGrid.className = 'grid grid-cols-4 sm:grid-cols-6 gap-2';
-                let hasAvailableSlots = false;
-                for (let hour = 8; hour < 18; hour++) {
-                    for (let minute = 0; minute < 60; minute += (60 / slotsPerHour)) {
-                        const slotTime = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), hour, minute);
-                        if (slotTime < now || slotTime > campaignEnd) continue;
-                        const occupiedSlots = existingAppointments[slotTime.getTime()] || 0;
-                        const isFull = occupiedSlots >= maxDonorsPerSlot;
-                        const slotBtn = document.createElement('button');
-                        slotBtn.className = `schedule-slot p-2 border rounded-md text-sm ${isFull ? 'bg-gray-200 text-gray-400' : 'bg-green-50 text-green-800 hover:bg-green-100'}`;
-                        slotBtn.textContent = slotTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                        slotBtn.disabled = isFull;
-                        if (!isFull) {
-                            hasAvailableSlots = true;
-                            slotBtn.onclick = () => {
-                                document.querySelectorAll('.schedule-slot.selected').forEach(s => s.classList.remove('selected', 'bg-green-600', 'text-white'));
-                                slotBtn.classList.add('selected', 'bg-green-600', 'text-white');
-                                selectedScheduleSlot = slotTime;
-                            };
-                        }
-                        slotsGrid.appendChild(slotBtn);
-                    }
-                }
-                if (hasAvailableSlots) {
-                    dayEl.appendChild(slotsGrid);
-                    scheduleContainer.appendChild(dayEl);
-                    daysWithSlots++;
-                }
+            let currentDate = now > campaignStart ? new Date(now) : new Date(campaignStart);
+            let optionsHtml = '<option value="">Selecione uma data</option>';
+            let daysFound = 0;
+
+            while (currentDate <= campaignEnd && daysFound < 30) { // Limita a 30 dias para performance
+                // Formato YYYY-MM-DD para o value do option
+                const dateValue = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+                const dateLabel = currentDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+                optionsHtml += `<option value="${dateValue}">${dateLabel}</option>`;
                 currentDate.setDate(currentDate.getDate() + 1);
+                daysFound++;
             }
-            if (daysWithSlots === 0) {
-                scheduleContainer.innerHTML = '<p class="text-center text-yellow-600 bg-yellow-50 p-4 rounded-md">Não há horários de agendamento disponíveis para esta campanha no momento.</p>';
+
+            scheduleDateSelect.innerHTML = optionsHtml;
+            if (daysFound === 0) {
+                scheduleDateSelect.innerHTML = '<option value="">Nenhum dia disponível</option>';
             }
         }
+
+        function renderTimeSlotsForDate(selectedDateStr) {
+            scheduleSlotsGrid.innerHTML = '';
+            scheduleSlotsContainer.classList.remove('hidden');
+            selectedScheduleSlot = null;
+
+            const [year, month, day] = selectedDateStr.split('-').map(Number);
+            const selectedDate = new Date(year, month - 1, day);
+
+            // CORREÇÃO: Usa os horários da campanha
+            const startHour = parseInt((campaignData.operation?.hoursStart || '08:00').split(':')[0]);
+            const endHour = parseInt((campaignData.operation?.hoursEnd || '18:00').split(':')[0]);
+            
+            const maxDonorsPerSlot = campaignData.slots || 1;
+            const now = new Date();
+
+            for (let hour = startHour; hour < endHour; hour++) {
+                for (let minute of [0, 30]) {
+                    const slotTime = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), hour, minute);
+                    if (slotTime < now) continue;
+
+                    const occupiedSlots = existingAppointments[slotTime.getTime()] || 0;
+                    const isFull = occupiedSlots >= maxDonorsPerSlot;
+                    
+                    const slotBtn = document.createElement('button');
+                    const timeLabel = slotTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    slotBtn.className = `schedule-slot p-2 border rounded-md text-sm ${isFull ? 'bg-gray-200 text-gray-400' : 'bg-green-50 text-green-800 hover:bg-green-100'}`;
+                    slotBtn.textContent = timeLabel;
+                    slotBtn.disabled = isFull;
+
+                    if (!isFull) {
+                        slotBtn.onclick = () => {
+                            document.querySelectorAll('.schedule-slot.selected').forEach(s => s.classList.remove('selected', 'bg-green-600', 'text-white'));
+                            slotBtn.classList.add('selected', 'bg-green-600', 'text-white');
+                            selectedScheduleSlot = slotTime;
+                        };
+                    }
+                    scheduleSlotsGrid.appendChild(slotBtn);
+                }
+            }
+        }
+
+        scheduleDateSelect.addEventListener('change', (e) => {
+            const selectedDate = e.target.value;
+            if (selectedDate) {
+                renderTimeSlotsForDate(selectedDate);
+            } else {
+                scheduleSlotsContainer.classList.add('hidden');
+                scheduleSlotsGrid.innerHTML = '';
+                selectedScheduleSlot = null;
+            }
+        });
 
         itemSubtypeSelect.addEventListener('change', (e) => {
             itemOtherSubtypeInput.classList.toggle('hidden', e.target.value !== 'outro');
@@ -320,7 +343,7 @@
                 return;
             }
             if (!selectedScheduleSlot) {
-                formError.textContent = 'Por favor, selecione um horário para a entrega.';
+                formError.textContent = 'Por favor, selecione um dia e um horário para a entrega.';
                 return;
             }
 
@@ -332,9 +355,7 @@
 
             try {
                 const userId = currentUserSession?.auth?.uid;
-                if (!userId) {
-                    throw new Error("ID do usuário não encontrado. A autenticação pode ter falhado.");
-                }
+                if (!userId) throw new Error("ID do usuário não encontrado.");
 
                 const uploadedItems = await Promise.all(donatedItems.map(async (item) => {
                     const filePath = `donated_items/${userId}/${Date.now()}_${item.photoFile.name}`;
