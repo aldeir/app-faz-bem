@@ -23,7 +23,7 @@
                 <h1 class="text-3xl font-bold text-gray-800">Gestão de Doadores</h1>
                 <input type="search" id="donor-search-input" placeholder="Buscar por nome ou e-mail..." class="w-1/3 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
             </div>
-            <div id="all-donors-list" class="bg-white rounded-lg shadow">
+            <div id="all-donors-list" class="bg-white rounded-lg shadow overflow-hidden">
                 <p class="p-6 text-center text-gray-500">A carregar doadores...</p>
             </div>
         </div>
@@ -55,24 +55,25 @@
     </div>
 
     <script type="module">
-        import { auth, db, onAuthStateChanged, ADMIN_EMAIL } from './app-config.js';
+        import { db, ADMIN_EMAIL, collection, query, onSnapshot, doc, updateDoc } from './app-config.js';
+        import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
-        import { collection, query, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getCurrentUser } from './auth-service.js';
         import { showConfirmationModal, showAlertModal, showDetailsModal } from './modal-handler.js';
 
         let allDonorsData = [];
+        const allDonorsList = document.getElementById('all-donors-list');
+        const donorSearchInput = document.getElementById('donor-search-input');
 
-        onAuthStateChanged(auth, async (user) => {
+        async function initializeApp() {
             await injectHeader();
-            if (!user || user.email !== ADMIN_EMAIL) {
+            const userSession = await getCurrentUser();
+            if (!userSession || userSession.profile?.role !== 'superadmin') {
                 window.location.href = 'index.html';
                 return;
             }
             loadAllDonors();
-        });
-
-        const allDonorsList = document.getElementById('all-donors-list');
-        const donorSearchInput = document.getElementById('donor-search-input');
+        }
 
         const formatPhoneNumber = (phone) => {
             if (!phone || typeof phone !== 'string') return 'N/A';
@@ -83,7 +84,7 @@
         };
 
         function loadAllDonors() {
-            const q = query(collection(db, "users"));
+            const q = query(collection(db, paths.users));
             onSnapshot(q, (snapshot) => {
                 allDonorsData = snapshot.docs;
                 renderDonorsList(allDonorsData);
@@ -147,29 +148,28 @@
             
             const uid = target.dataset.uid;
             const action = target.dataset.action;
-            const userDocRef = doc(db, "users", uid);
+            const userDocRef = doc(db, paths.userDoc(uid));
 
-if (action === 'view-user-details') {
-    const userDoc = allDonorsData.find(doc => doc.id === uid);
-    if (!userDoc) return showAlertModal('Erro', 'Dados do doador não encontrados.');
+            if (action === 'view-user-details') {
+                const userDoc = allDonorsData.find(doc => doc.id === uid);
+                if (!userDoc) return showAlertModal('Erro', 'Dados do doador não encontrados.');
 
-    const user = userDoc.data();
-    const address = user.address || {};
+                const user = userDoc.data();
+                const address = user.address || {};
 
-    const detailsHtml = `<p><strong>Nome:</strong> ${user.displayName || 'N/A'}</p>
-<p><strong>E-mail:</strong> ${user.email || 'N/A'}</p>
-<p><strong>Telefone:</strong> ${formatPhoneNumber(user.phone)}</p>
-<p class="pt-2 border-t mt-2"><strong>Endereço:</strong> ${address.street || 'Não informado'}, CEP: ${address.cep || 'N/A'}</p>`;
+                const detailsHtml = `<p><strong>Nome:</strong> ${user.displayName || 'N/A'}</p>
+                <p><strong>E-mail:</strong> ${user.email || 'N/A'}</p>
+                <p><strong>Telefone:</strong> ${formatPhoneNumber(user.phone)}</p>
+                <p class="pt-2 border-t mt-2"><strong>Endereço:</strong> ${address.street || 'Não informado'}, CEP: ${address.cep || 'N/A'}</p>`;
 
-    await showDetailsModal(`Detalhes de ${user.displayName}`, detailsHtml);
-    return;
-}
-
+                await showDetailsModal(`Detalhes de ${user.displayName}`, detailsHtml);
+                return;
+            }
             
             const userName = target.closest('.flex.justify-between.items-center').querySelector('h4').textContent;
             const actions = {
-                'block-user': { title: 'Bloquear Doador', message: \`Bloquear "\${userName}"?\`, status: 'bloqueado' },
-                'unblock-user': { title: 'Desbloquear Doador', message: \`Desbloquear "\${userName}"?\`, status: 'ativo' }
+                'block-user': { title: 'Bloquear Doador', message: `Bloquear "${userName}"?`, status: 'bloqueado' },
+                'unblock-user': { title: 'Desbloquear Doador', message: `Desbloquear "${userName}"?`, status: 'ativo' }
             };
             const currentAction = actions[action];
             if (currentAction) {
@@ -177,12 +177,14 @@ if (action === 'view-user-details') {
                 if (confirmed) {
                     try { 
                         await updateDoc(userDocRef, { status: currentAction.status }); 
-                        showAlertModal('Sucesso!', \`O usuário \${userName} foi atualizado.\`);
+                        showAlertModal('Sucesso!', `O usuário ${userName} foi atualizado.`);
                     }
-                    catch (error) { await showAlertModal('Erro', \`Ocorreu um erro: \${error.message}\`); }
+                    catch (error) { await showAlertModal('Erro', `Ocorreu um erro: ${error.message}`); }
                 }
             }
         });
+
+        initializeApp();
     </script>
 </body>
 </html>
