@@ -189,22 +189,24 @@
                 if (!entityDoc) return showAlertModal('Erro', 'Dados da entidade não encontrados.');
                 const entity = entityDoc.data();
                 const address = entity.address || {};
-                const detailsHtml = \`
-                    <p><strong>Nome Público:</strong> \${entity.publicName || 'N/A'}</p>
-                    <p><strong>Responsável:</strong> \${entity.responsibleName || 'N/A'}</p>
-                    <p><strong>CNPJ:</strong> \${formatCnpj(entity.cnpj)}</p>
-                    <p><strong>E-mail:</strong> \${entity.email || 'N/A'}</p>
-                    <p><strong>Telefone:</strong> \${formatPhoneNumber(entity.phone)}</p>
-                    <p class="pt-2 border-t mt-2"><strong>Endereço:</strong> \${address.street || 'Não informado'}, Nº \${address.number || 'S/N'}, \${address.district || ''}</p>
-                \`;
-                await showDetailsModal(\`Detalhes de \${entityName}\`, detailsHtml);
+                // CORREÇÃO: Removido o caractere de escape inválido
+                const detailsHtml = `
+                    <p><strong>Nome Público:</strong> ${entity.publicName || 'N/A'}</p>
+                    <p><strong>Responsável:</strong> ${entity.responsibleName || 'N/A'}</p>
+                    <p><strong>CNPJ:</strong> ${formatCnpj(entity.cnpj)}</p>
+                    <p><strong>E-mail:</strong> ${entity.email || 'N/A'}</p>
+                    <p><strong>Telefone:</strong> ${formatPhoneNumber(entity.phone)}</p>
+                    <p class="pt-2 border-t mt-2"><strong>Endereço:</strong> ${address.street || 'Não informado'}, Nº ${address.number || 'S/N'}, ${address.district || ''}</p>
+                `;
+                await showDetailsModal(`Detalhes de ${entityName}`, detailsHtml);
                 return;
             }
             
+            // CORREÇÃO: Removido o caractere de escape inválido
             const actions = {
-                'approve-entity': { title: 'Aprovar Entidade', message: \`Aprovar "\${entityName}"? A entidade receberá um e-mail de notificação.\`, status: 'ativo' },
-                'block-entity': { title: 'Bloquear Entidade', message: \`Bloquear "\${entityName}"? Isso impedirá a criação de novas campanhas.\`, status: 'bloqueado' },
-                'unblock-entity': { title: 'Desbloquear Entidade', message: \`Desbloquear "\${entityName}"?\`, status: 'ativo' }
+                'approve-entity': { title: 'Aprovar Entidade', message: `Aprovar "${entityName}"? A entidade receberá um e-mail de notificação.`, status: 'ativo' },
+                'block-entity': { title: 'Bloquear Entidade', message: `Bloquear "${entityName}"? Isso impedirá a criação de novas campanhas.`, status: 'bloqueado' },
+                'unblock-entity': { title: 'Desbloquear Entidade', message: `Desbloquear "${entityName}"?`, status: 'ativo' }
             };
 
             const currentAction = actions[action];
@@ -213,9 +215,9 @@
                 if (confirmed) {
                     try { 
                         await updateDoc(entityDocRef, { status: currentAction.status }); 
-                        showAlertModal('Sucesso!', \`A entidade \${entityName} foi atualizada.\`);
+                        showAlertModal('Sucesso!', `A entidade ${entityName} foi atualizada.`);
                     }
-                    catch (error) { await showAlertModal('Erro', \`Ocorreu um erro: \${error.message}\`); }
+                    catch (error) { await showAlertModal('Erro', `Ocorreu um erro: ${error.message}`); }
                 }
             }
         });
