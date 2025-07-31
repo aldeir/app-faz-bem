@@ -79,9 +79,10 @@
     <div id="app-modal"></div>
 
     <script type="module">
-        import { db, auth, onAuthStateChanged, getCurrentUser, firebaseConfig, setDoc, deleteDoc, serverTimestamp } from './app-config.js';
+        import { db, collection, onSnapshot, query, orderBy, doc, setDoc, deleteDoc, serverTimestamp } from './app-config.js';
+        import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
-        import { collection, onSnapshot, query, orderBy, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getCurrentUser } from './auth-service.js'; // <-- MUDANÇA AQUI
         import { showAlertModal } from './modal-handler.js';
 
         // --- Elementos do DOM ---
@@ -101,7 +102,6 @@
         let allDonations = [];
         let allLikes = [];
         let currentUserSession = null;
-        // AJUSTE: Variável para guardar as configurações dinâmicas
         let campaignTypeSettings = {};
         let campaignsUnsubscribe, donationsUnsubscribe, likesUnsubscribe, settingsUnsubscribe;
 
@@ -114,34 +114,24 @@
         }
 
         function setupDataListeners() {
-            const campaignsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`);
-            const donationsRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`);
-            const likesRef = collection(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`);
-            // AJUSTE: Referência para o documento de configurações
-            const settingsRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/configs/campaignTypes`);
+            const settingsRef = doc(db, paths.configDoc('campaignTypes'));
 
             if (campaignsUnsubscribe) campaignsUnsubscribe();
             if (donationsUnsubscribe) donationsUnsubscribe();
             if (likesUnsubscribe) likesUnsubscribe();
             if (settingsUnsubscribe) settingsUnsubscribe();
 
-            // AJUSTE: Novo listener para as configurações
             settingsUnsubscribe = onSnapshot(settingsRef, (snapshot) => {
-                if (snapshot.exists()) {
-                    campaignTypeSettings = snapshot.data();
-                } else {
-                    // Fallback caso o documento de configurações não exista
-                    campaignTypeSettings = { 'default': { label: 'Outro', color: 'gray' } };
-                }
-                renderUI(); // Re-renderiza a UI quando as configurações mudam
+                campaignTypeSettings = snapshot.exists() ? snapshot.data() : { 'default': { label: 'Outro', color: 'gray' } };
+                renderUI();
             });
 
-            campaignsUnsubscribe = onSnapshot(query(campaignsRef, orderBy("priority", "desc"), orderBy("createdAt", "desc")), (snapshot) => {
+            campaignsUnsubscribe = onSnapshot(query(collection(db, paths.campaigns), orderBy("priority", "desc"), orderBy("createdAt", "desc")), (snapshot) => {
                 allCampaigns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderUI();
             });
 
-            donationsUnsubscribe = onSnapshot(query(donationsRef), (snapshot) => {
+            donationsUnsubscribe = onSnapshot(query(collection(db, paths.donations)), (snapshot) => {
                 const uniqueDonorsPerCampaign = {};
                 snapshot.docs.forEach(doc => {
                     const donation = doc.data();
@@ -154,14 +144,13 @@
                 renderUI();
             });
 
-            likesUnsubscribe = onSnapshot(query(likesRef), (snapshot) => {
+            likesUnsubscribe = onSnapshot(query(collection(db, paths.likes)), (snapshot) => {
                 allLikes = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 renderUI();
             });
         }
 
         function renderUI() {
-            // Garante que tanto as campanhas quanto as configurações foram carregadas antes de renderizar
             if (allCampaigns.length === 0 || Object.keys(campaignTypeSettings).length === 0) {
                  if (loadingContainer.style.display !== 'none') return;
             }
@@ -210,7 +199,6 @@
         }
 
         function createCampaignCard(campaign, donors, likes) {
-            // AJUSTE: Usa as configurações dinâmicas e fornece um fallback robusto
             const settings = campaignTypeSettings[campaign.type] || campaignTypeSettings['default'] || { label: 'Campanha', color: 'gray' };
             const color = settings.color;
             
@@ -293,7 +281,6 @@
         }
 
         function renderFilters(campaigns) {
-            // AJUSTE: Usa as configurações dinâmicas para os rótulos dos filtros
             const counts = campaigns.reduce((acc, campaign) => { acc[campaign.type] = (acc[campaign.type] || 0) + 1; return acc; }, {});
             let buttonsHtml = `<button data-filter="all" class="filter-btn active bg-gray-700 text-white font-semibold py-2 px-4 rounded-full shadow-md">Todas (${campaigns.length})</button>`;
             for (const type in counts) {
@@ -333,8 +320,7 @@
                 const campaignId = likeButton.dataset.campaignId;
                 const donorId = likeButton.dataset.donorId;
                 const likerId = currentUserSession.auth.uid;
-                const likeId = `${campaignId}_${donorId}_${likerId}`;
-                const likeDocRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/likes`, likeId);
+                const likeDocRef = doc(db, paths.likeDoc(`${campaignId}_${donorId}_${likerId}`));
                 
                 try {
                     if (likeButton.classList.contains('liked')) {
