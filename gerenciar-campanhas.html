@@ -90,7 +90,8 @@
 
             onSnapshot(q, (snapshot) => {
                 allCampaignsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                allCampaignsData.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+                // CORREÇÃO: Torna a ordenação mais robusta contra dados ausentes
+                allCampaignsData.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
                 
                 renderCampaigns(allCampaignsData);
 
@@ -122,10 +123,14 @@
             card.className = 'p-4 border-b last:border-b-0 hover:bg-gray-50';
 
             const now = new Date();
-            const isCompleted = campaign.expiresAt.toDate() < now;
+            // CORREÇÃO: Adiciona optional chaining (?.) para evitar erro se a data for nula/indefinida
+            const startDate = campaign.startsAt?.toDate();
+            const endDate = campaign.expiresAt?.toDate();
+
+            const isCompleted = endDate ? endDate < now : false;
             let status;
 
-            if (campaign.status === 'upcoming' && campaign.startsAt.toDate() > now) {
+            if (campaign.status === 'upcoming' && startDate && startDate > now) {
                 status = { text: 'Próxima', color: 'bg-blue-100 text-blue-800' };
             } else if (isCompleted) {
                 status = { text: 'Concluída', color: 'bg-gray-100 text-gray-800' };
@@ -149,8 +154,8 @@
                         </div>
                     </div>
                     <div class="col-span-4 md:col-span-2 text-sm text-gray-600">
-                        <p>Início: ${campaign.startsAt.toDate().toLocaleDateString('pt-BR')}</p>
-                        <p>Fim: ${campaign.expiresAt.toDate().toLocaleDateString('pt-BR')}</p>
+                        <p>Início: ${startDate ? startDate.toLocaleDateString('pt-BR') : 'N/D'}</p>
+                        <p>Fim: ${endDate ? endDate.toLocaleDateString('pt-BR') : 'N/D'}</p>
                     </div>
                     <div class="col-span-4 md:col-span-2 flex justify-center">
                         <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${status.color}">${status.text}</span>
@@ -166,8 +171,8 @@
         searchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase().trim();
             const filtered = allCampaignsData.filter(campaign => {
-                return campaign.title.toLowerCase().includes(searchTerm) ||
-                       campaign.entityName.toLowerCase().includes(searchTerm);
+                return (campaign.title || '').toLowerCase().includes(searchTerm) ||
+                       (campaign.entityName || '').toLowerCase().includes(searchTerm);
             });
             renderCampaigns(filtered);
         });
