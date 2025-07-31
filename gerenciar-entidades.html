@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Entidades - Faz Bem</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-button.active {
+            border-color: #16a34a; /* green-600 */
+            color: #16a34a;
+            background-color: #f0fdf4; /* green-50 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="app-header"></div>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="px-4">
+            <a href="superadmin.html" class="text-sm font-medium text-gray-600 hover:text-green-600 mb-6 inline-block">← Voltar ao Painel</a>
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Gestão de Entidades</h1>
+                <input type="search" id="entity-search-input" placeholder="Buscar por nome..." class="w-1/3 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+            </div>
+
+            <!-- Abas de Filtro -->
+            <div class="border-b border-gray-200 mb-4">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button data-status="all" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">Todas</button>
+                    <button data-status="pendente_aprovacao" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">Pendentes</button>
+                    <button data-status="ativo" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">Ativas</button>
+                    <button data-status="bloqueado" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">Bloqueadas</button>
+                </nav>
+            </div>
+
+            <div id="all-entities-list" class="bg-white rounded-lg shadow overflow-hidden">
+                <p class="p-6 text-center text-gray-500">A carregar entidades...</p>
+            </div>
+        </div>
+    </main>
+    
+    <div id="app-modal"></div>
+
+    <script type="module">
+        import { db, collection, query, onSnapshot, doc, updateDoc } from './app-config.js';
+        import { paths } from './firestore-paths.js';
+        import { injectHeader } from './app-header.js';
+        import { getCurrentUser } from './auth-service.js';
+        import { showConfirmationModal, showAlertModal, showDetailsModal } from './modal-handler.js';
+
+        let allEntitiesData = [];
+        let currentStatusFilter = 'all';
+        const allEntitiesList = document.getElementById('all-entities-list');
+        const entitySearchInput = document.getElementById('entity-search-input');
+        const tabsContainer = document.querySelector('nav[aria-label="Tabs"]');
+
+        async function initializeApp() {
+            await injectHeader();
+            const userSession = await getCurrentUser();
+            if (!userSession || userSession.profile?.role !== 'superadmin') {
+                window.location.href = 'index.html';
+                return;
+            }
+            loadAllEntities();
+        }
+
+        const formatPhoneNumber = (phone) => {
+            if (!phone || typeof phone !== 'string') return 'N/A';
+            const cleaned = phone.replace(/\D/g, '');
+            if (cleaned.length === 11) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
+            if (cleaned.length === 10) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
+            return phone;
+        };
+
+        const formatCnpj = (cnpj) => {
+            if (!cnpj || typeof cnpj !== 'string') return 'N/A';
+            return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+        };
+
+        function loadAllEntities() {
+            const q = query(collection(db, paths.entidades));
+            onSnapshot(q, (snapshot) => {
+                allEntitiesData = snapshot.docs;
+                filterAndRender();
+            });
+        }
+
+        function filterAndRender() {
+            const searchTerm = entitySearchInput.value.toLowerCase().trim();
+            let filtered = allEntitiesData;
+
+            if (currentStatusFilter !== 'all') {
+                filtered = filtered.filter(doc => (doc.data().status || 'pendente_aprovacao') === currentStatusFilter);
+            }
+
+            if (searchTerm) {
+                filtered = filtered.filter(doc => {
+                    const entity = doc.data();
+                    return (entity.publicName || '').toLowerCase().includes(searchTerm) ||
+                           (entity.responsibleName || '').toLowerCase().includes(searchTerm);
+                });
+            }
+            renderEntitiesList(filtered);
+        }
+
+        function renderEntitiesList(entities) {
+            allEntitiesList.innerHTML = '';
+            if (entities.length === 0) {
+                allEntitiesList.innerHTML = `<p class="p-6 text-center text-gray-500">Nenhuma entidade encontrada para os critérios selecionados.</p>`;
+                return;
+            }
+            
+            const statusOrder = { 'pendente_aprovacao': 1, 'ativo': 2, 'bloqueado': 3 };
+            entities.sort((a, b) => (statusOrder[a.data().status] || 99) - (statusOrder[b.data().status] || 99));
+
+            entities.forEach(docSnapshot => {
+                const entity = docSnapshot.data();
+                const entityId = docSnapshot.id;
+                const card = document.createElement('div');
+                card.className = 'p-4 border-b last:border-b-0';
+                
+                const status = entity.status || 'pendente_aprovacao';
+                const statusInfo = {
+                    'pendente_aprovacao': { text: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },
+                    'ativo': { text: 'Ativa', color: 'bg-green-100 text-green-800' },
+                    'bloqueado': { text: 'Bloqueada', color: 'bg-red-100 text-red-800' }
+                };
+
+                let actionButton = '';
+                if (status === 'pendente_aprovacao') {
+                    actionButton = `<button data-action="approve-entity" data-uid="${entityId}" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Aprovar</button>`;
+                } else if (status === 'ativo') {
+                    actionButton = `<button data-action="block-entity" data-uid="${entityId}" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600">Bloquear</button>`;
+                } else if (status === 'bloqueado') {
+                    actionButton = `<button data-action="unblock-entity" data-uid="${entityId}" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">Desbloquear</button>`;
+                }
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center space-x-4">
+                            <img src="${entity.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border">
+                            <div>
+                                <h4 class="font-bold">${entity.publicName}</h4>
+                                <p class="text-sm text-gray-600">Responsável: ${entity.responsibleName}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <a href="#" data-action="view-entity-details" data-uid="${entityId}" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a>
+                            <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusInfo[status].color}">${statusInfo[status].text}</span>
+                            <div class="w-28 text-right">${actionButton}</div>
+                        </div>
+                    </div>`;
+                allEntitiesList.appendChild(card);
+            });
+        }
+
+        entitySearchInput.addEventListener('input', filterAndRender);
+        tabsContainer.addEventListener('click', (e) => {
+            const button = e.target.closest('button.tab-button');
+            if (button) {
+                tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                currentStatusFilter = button.dataset.status;
+                filterAndRender();
+            }
+        });
+
+        allEntitiesList.addEventListener('click', async (e) => {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+
+            e.preventDefault();
+            
+            const uid = target.dataset.uid;
+            const action = target.dataset.action;
+            const entityDocRef = doc(db, paths.entidadeDoc(uid));
+            const entityDoc = allEntitiesData.find(doc => doc.id === uid);
+            const entityName = entityDoc?.data().publicName || 'a entidade';
+
+            if (action === 'view-entity-details') {
+                if (!entityDoc) return showAlertModal('Erro', 'Dados da entidade não encontrados.');
+                const entity = entityDoc.data();
+                const address = entity.address || {};
+                const detailsHtml = \`
+                    <p><strong>Nome Público:</strong> \${entity.publicName || 'N/A'}</p>
+                    <p><strong>Responsável:</strong> \${entity.responsibleName || 'N/A'}</p>
+                    <p><strong>CNPJ:</strong> \${formatCnpj(entity.cnpj)}</p>
+                    <p><strong>E-mail:</strong> \${entity.email || 'N/A'}</p>
+                    <p><strong>Telefone:</strong> \${formatPhoneNumber(entity.phone)}</p>
+                    <p class="pt-2 border-t mt-2"><strong>Endereço:</strong> \${address.street || 'Não informado'}, Nº \${address.number || 'S/N'}, \${address.district || ''}</p>
+                \`;
+                await showDetailsModal(\`Detalhes de \${entityName}\`, detailsHtml);
+                return;
+            }
+            
+            const actions = {
+                'approve-entity': { title: 'Aprovar Entidade', message: \`Aprovar "\${entityName}"? A entidade receberá um e-mail de notificação.\`, status: 'ativo' },
+                'block-entity': { title: 'Bloquear Entidade', message: \`Bloquear "\${entityName}"? Isso impedirá a criação de novas campanhas.\`, status: 'bloqueado' },
+                'unblock-entity': { title: 'Desbloquear Entidade', message: \`Desbloquear "\${entityName}"?\`, status: 'ativo' }
+            };
+
+            const currentAction = actions[action];
+            if (currentAction) {
+                const confirmed = await showConfirmationModal(currentAction.title, currentAction.message);
+                if (confirmed) {
+                    try { 
+                        await updateDoc(entityDocRef, { status: currentAction.status }); 
+                        showAlertModal('Sucesso!', \`A entidade \${entityName} foi atualizada.\`);
+                    }
+                    catch (error) { await showAlertModal('Erro', \`Ocorreu um erro: \${error.message}\`); }
+                }
+            }
+        });
+
+        initializeApp();
+    </script>
+</body>
+</html>
