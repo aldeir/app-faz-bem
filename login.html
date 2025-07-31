@@ -52,9 +52,10 @@
     </div>
 
     <script type="module">
-        import { auth, db, onAuthStateChanged, firebaseConfig, ADMIN_EMAIL } from './app-config.js';
+        import { auth, db, onAuthStateChanged, ADMIN_EMAIL } from './app-config.js';
         import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { paths } from './firestore-paths.js'; // <-- 1. IMPORTAÇÃO DO MÓDULO
 
         document.addEventListener('DOMContentLoaded', () => {
             const loginForm = document.getElementById('login-form');
@@ -78,22 +79,23 @@
                     return;
                 }
 
-                // CORREÇÃO: Prioriza a verificação do perfil de Entidade
-                const appId = firebaseConfig.projectId;
-                let userDocRef = doc(db, "artifacts", appId, "public", "data", "entidades", user.uid);
+                // 2. USO DO PATHS PARA BUSCAR O PERFIL DE ENTIDADE
+                let userDocRef = doc(db, paths.entidadeDoc(user.uid));
                 let docSnap = await getDoc(userDocRef);
                 let userData = docSnap.exists() ? docSnap.data() : null;
 
                 // Se não for uma entidade, verifica se é um doador
                 if (!userData) {
-                    userDocRef = doc(db, "users", user.uid);
+                    // 3. USO DO PATHS PARA BUSCAR O PERFIL DE DOADOR
+                    userDocRef = doc(db, paths.userDoc(user.uid));
                     docSnap = await getDoc(userDocRef);
                     userData = docSnap.exists() ? docSnap.data() : null;
                 }
 
                 // Se for um novo login com Google, cria um perfil de doador
                 if (!userData && user.providerData.some(p => p.providerId === 'google.com')) {
-                    await setDoc(doc(db, "users", user.uid), {
+                    // 4. USO DO PATHS PARA CRIAR O NOVO DOADOR
+                    await setDoc(doc(db, paths.userDoc(user.uid)), {
                         uid: user.uid,
                         displayName: user.displayName || 'Utilizador',
                         email: user.email,
