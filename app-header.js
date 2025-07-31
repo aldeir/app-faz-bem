@@ -1,4 +1,7 @@
-import { getCurrentUser, logout, ADMIN_EMAIL } from './app-config.js';
+// app-header.js (Versão 3.0 - Refatorado com auth-service)
+
+import { logout } from './app-config.js';
+import { getCurrentUser } from './auth-service.js'; // <-- MUDANÇA AQUI
 
 const headerHTML = `
     <header class="bg-white shadow-sm sticky top-0 z-10">
@@ -24,18 +27,16 @@ export async function injectHeader() {
         const { auth, profile } = userSession;
         const photoURL = profile?.photoURL || auth.photoURL || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
         
-        // CORREÇÃO: Lógica aprimorada para obter o nome de exibição correto
-        let displayName = auth.displayName; // Padrão
+        let displayName = auth.displayName;
         if (profile?.role === 'entidade') {
-            displayName = profile.publicName; // Entidades usam o Nome Público
-        } else if (profile?.role === 'doador') {
-            displayName = profile.displayName; // Doadores usam o displayName do perfil
+            displayName = profile.publicName;
+        } else if (profile?.role === 'doador' || profile?.role === 'superadmin') {
+            displayName = profile.displayName;
         }
 
         let userSpecificContent = '';
 
         if (profile?.role === 'superadmin') {
-            // CORREÇÃO: Link da foto agora aponta para a âncora #perfil dentro da página superadmin
             userSpecificContent = `
                 <a href="superadmin.html" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Painel Super Admin</a>
                 <a href="superadmin.html#perfil" class="flex items-center space-x-2 pl-2 border-l" title="Acessar meu perfil">
@@ -44,7 +45,6 @@ export async function injectHeader() {
                 </a>
             `;
         } else if (profile?.role === 'entidade') {
-            // CORREÇÃO: Link da foto agora aponta para a nova página de perfil da entidade
             userSpecificContent = `
                 <a href="admin.html" class="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">Painel da Entidade</a>
                 <a href="perfil-entidade.html" class="flex items-center space-x-2 pl-2 border-l" title="Acessar meu perfil">
@@ -61,7 +61,6 @@ export async function injectHeader() {
                 </a>
             `;
         }
-
 
         userMenu.innerHTML = `
             ${userSpecificContent}
