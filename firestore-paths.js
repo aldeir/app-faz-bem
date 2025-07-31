@@ -1,6 +1,5 @@
 // Arquivo: firestore-paths.js
-// Descrição: Centraliza todos os caminhos do Firestore.
-// Versão 3.0 - Arquitetura final para evitar dependências circulares.
+// Versão 3.1 - Código limpo sem caracteres especiais.
 
 const paths = {
     _projectId: null,
