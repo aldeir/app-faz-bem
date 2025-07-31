@@ -1,78 +1,39 @@
 // Arquivo: firestore-paths.js
 // Descrição: Centraliza todos os caminhos de coleções e documentos do Cloud Firestore.
+// Versão 2.0 - Corrigido para remover dependência circular.
 
-import { firebaseConfig } from './app-config.js';
-
-// O ID do projeto é usado para construir o caminho base, garantindo que funcione em diferentes ambientes (dev, prod).
-const appId = firebaseConfig.projectId;
-const basePath = `artifacts/${appId}/public/data`;
+// O objeto 'paths' é exportado vazio inicialmente.
+// Ele será preenchido pela função 'initializePaths' assim que o app for carregado.
+const paths = {};
 
 /**
- * Objeto que contém todos os caminhos e funções geradoras de caminho para o Firestore.
- * O uso deste módulo é preferível a construir os caminhos manualmente em cada arquivo.
+ * Inicializa o objeto 'paths' com o ID do projeto do Firebase.
+ * Esta função deve ser chamada uma única vez pelo app-config.js.
+ * @param {string} projectId - O ID do projeto do Firebase.
  */
-export const paths = {
-  // --- CAMINHOS DE COLEÇÕES ---
-  
-  /** Caminho para a coleção de usuários (doadores). */
-  users: 'users',
+function initializePaths(projectId) {
+    if (!projectId) {
+        throw new Error("O ID do Projeto é necessário para inicializar os caminhos do Firestore.");
+    }
+    
+    const basePath = `artifacts/${projectId}/public/data`;
 
-  /** Caminho para a coleção de entidades. */
-  entidades: `${basePath}/entidades`,
+    // --- CAMINHOS DE COLEÇÕES ---
+    paths.users = 'users';
+    paths.entidades = `${basePath}/entidades`;
+    paths.campaigns = `${basePath}/campaigns`;
+    paths.donations = `${basePath}/donations`;
+    paths.likes = `${basePath}/likes`;
+    paths.configs = `${basePath}/configs`;
 
-  /** Caminho para a coleção de campanhas. */
-  campaigns: `${basePath}/campaigns`,
+    // --- FUNÇÕES GERADORAS DE CAMINHOS DE DOCUMENTOS ---
+    paths.userDoc = (uid) => `${paths.users}/${uid}`;
+    paths.entidadeDoc = (uid) => `${paths.entidades}/${uid}`;
+    paths.campaignDoc = (campaignId) => `${paths.campaigns}/${campaignId}`;
+    paths.donationDoc = (donationId) => `${paths.donations}/${donationId}`;
+    paths.likeDoc = (likeId) => `${paths.likes}/${likeId}`;
+    paths.configDoc = (configId) => `${paths.configs}/${configId}`;
+}
 
-  /** Caminho para a coleção de doações. */
-  donations: `${basePath}/donations`,
-
-  /** Caminho para a coleção de likes. */
-  likes: `${basePath}/likes`,
-
-  /** Caminho para a coleção de configurações gerais. */
-  configs: `${basePath}/configs`,
-
-  // --- FUNÇÕES GERADORAS DE CAMINHOS DE DOCUMENTOS ---
-
-  /**
-   * Retorna o caminho para um documento de usuário específico.
-   * @param {string} uid - O ID do usuário.
-   * @returns {string} O caminho completo do documento.
-   */
-  userDoc: (uid) => `${paths.users}/${uid}`,
-
-  /**
-   * Retorna o caminho para um documento de entidade específica.
-   * @param {string} uid - O ID da entidade (que é o mesmo do usuário criador).
-   * @returns {string} O caminho completo do documento.
-   */
-  entidadeDoc: (uid) => `${paths.entidades}/${uid}`,
-  
-  /**
-   * Retorna o caminho para um documento de campanha específica.
-   * @param {string} campaignId - O ID da campanha.
-   * @returns {string} O caminho completo do documento.
-   */
-  campaignDoc: (campaignId) => `${paths.campaigns}/${campaignId}`,
-  
-  /**
-   * Retorna o caminho para um documento de doação específica.
-   * @param {string} donationId - O ID da doação.
-   * @returns {string} O caminho completo do documento.
-   */
-  donationDoc: (donationId) => `${paths.donations}/${donationId}`,
-  
-  /**
-   * Retorna o caminho para um documento de like específico.
-   * @param {string} likeId - O ID do like (composto por campaignId_donorId_likerId).
-   * @returns {string} O caminho completo do documento.
-   */
-  likeDoc: (likeId) => `${paths.likes}/${likeId}`,
-  
-  /**
-   * Retorna o caminho para um documento de configuração específico.
-   * @param {string} configId - O ID da configuração (ex: 'campaignTypes', 'itemSubtypes').
-   * @returns {string} O caminho completo do documento.
-   */
-  configDoc: (configId) => `${paths.configs}/${configId}`,
-};
+// Exporta o objeto (que será preenchido) e a função de inicialização.
+export { paths, initializePaths };
