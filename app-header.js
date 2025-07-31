@@ -1,7 +1,7 @@
-// app-header.js (Versão 3.0 - Refatorado com auth-service)
+// app-header.js (Versão 3.1 - Link do Superadmin Corrigido)
 
 import { logout } from './app-config.js';
-import { getCurrentUser } from './auth-service.js'; // <-- MUDANÇA AQUI
+import { getCurrentUser } from './auth-service.js';
 
 const headerHTML = `
     <header class="bg-white shadow-sm sticky top-0 z-10">
@@ -37,9 +37,10 @@ export async function injectHeader() {
         let userSpecificContent = '';
 
         if (profile?.role === 'superadmin') {
+            // CORREÇÃO: O link agora aponta para a página de perfil correta.
             userSpecificContent = `
                 <a href="superadmin.html" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Painel Super Admin</a>
-                <a href="superadmin.html#perfil" class="flex items-center space-x-2 pl-2 border-l" title="Acessar meu perfil">
+                <a href="perfil-admin.html" class="flex items-center space-x-2 pl-2 border-l" title="Acessar meu perfil">
                     <span class="text-sm font-medium text-gray-700 hidden sm:block">${displayName}</span>
                     <img src="${photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200">
                 </a>
