@@ -1,13 +1,26 @@
-// Arquivo: auth-service.js
-// Responsabilidade: Centralizar a lógica de obtenção de dados do usuário autenticado.
+// Arquivo: auth-service.js (Versão 2.0 - Com Gestão de Presença)
 
-// CORREÇÃO: 'paths' agora é importado do app-config.js
-import { auth, db, ADMIN_EMAIL, onAuthStateChanged, getDoc, doc, paths } from './app-config.js';
+import { auth, db, rtdb, ADMIN_EMAIL, onAuthStateChanged, getDoc, doc, ref, set, onDisconnect, serverTimestamp } from './app-config.js';
+import { paths } from './firestore-paths.js';
 
 /**
- * Obtém o usuário autenticado atual juntamente com seu perfil do Firestore.
- * @returns {Promise<{auth: import("firebase/auth").User, profile: object}|null>}
+ * Gerencia o status de presença do usuário no Realtime Database.
+ * @param {object} user - O objeto de autenticação do usuário.
+ * @param {object} profile - O perfil do usuário do Firestore.
  */
+function managePresence(user, profile) {
+    const userStatusRef = ref(rtdb, `status/${user.uid}`);
+    
+    const presenceData = {
+        name: profile.displayName || user.displayName,
+        photoURL: profile.photoURL || user.photoURL,
+        onlineAt: serverTimestamp()
+    };
+
+    set(userStatusRef, presenceData);
+    onDisconnect(userStatusRef).remove();
+}
+
 export const getCurrentUser = () => {
     return new Promise((resolve) => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -17,26 +30,34 @@ export const getCurrentUser = () => {
                 return;
             }
 
+            let profile = null;
+
             if (user.email === ADMIN_EMAIL) {
-                const superAdminProfile = {
+                profile = {
                     displayName: user.displayName || 'Super Admin',
                     photoURL: user.photoURL,
                     email: user.email,
                     role: 'superadmin'
                 };
-                resolve({ auth: user, profile: superAdminProfile });
-                return;
+            } else {
+                let userDocRef = doc(db, paths.entidadeDoc(user.uid));
+                let docSnap = await getDoc(userDocRef);
+
+                if (!docSnap.exists()) {
+                    userDocRef = doc(db, paths.userDoc(user.uid));
+                    docSnap = await getDoc(userDocRef);
+                }
+                if (docSnap.exists()) {
+                    profile = docSnap.data();
+                }
             }
 
-            let userDocRef = doc(db, paths.entidadeDoc(user.uid));
-            let docSnap = await getDoc(userDocRef);
-
-            if (!docSnap.exists()) {
-                userDocRef = doc(db, paths.userDoc(user.uid));
-                docSnap = await getDoc(userDocRef);
+            if (profile) {
+                managePresence(user, profile);
+                resolve({ auth: user, profile: profile });
+            } else {
+                resolve({ auth: user, profile: null }); // Usuário autenticado mas sem perfil no DB
             }
-            
-            resolve({ auth: user, profile: docSnap.exists() ? docSnap.data() : null });
         });
     });
 };
