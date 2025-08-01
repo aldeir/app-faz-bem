@@ -1,7 +1,8 @@
-// app-header.js (Versão 3.4 - Correção Definitiva do Conflito 'ref')
+// app-header.js (Versão 3.5 - Arquitetura Limpa)
 
-import { db, rtdb, paths, collection, query, where, onSnapshot, databaseRef, onValue } from './app-config.js';
-import { logout } from './app-config.js';
+import { db, rtdb, logout } from './app-config.js';
+import { collection, query, where, onSnapshot, databaseRef, onValue } from './firebase-services.js';
+import { paths } from './firestore-paths.js';
 import { getCurrentUser } from './auth-service.js';
 
 let unreadListener = null;
@@ -21,7 +22,6 @@ function listenForOnlineUsers() {
     const onlineContainer = document.getElementById('online-users-container');
     if (!onlineContainer) return;
 
-    // CORREÇÃO: Utiliza 'databaseRef' em vez de 'ref' para o Realtime Database
     const statusRef = databaseRef(rtdb, 'status');
     onValue(statusRef, (snapshot) => {
         const users = snapshot.val();
@@ -66,7 +66,7 @@ export async function injectHeader() {
     headerContainer.innerHTML = headerHTML;
     const userMenu = document.getElementById('header-user-menu');
     
-    listenForOnlineUsers(); // Inicia o listener para todos os visitantes
+    listenForOnlineUsers();
 
     const userSession = await getCurrentUser();
 
