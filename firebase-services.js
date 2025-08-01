@@ -1,6 +1,6 @@
 // Arquivo: firebase-services.js
 // Responsabilidade: Único ponto de importação para todas as funções do SDK do Firebase.
-// Resolve conflitos de nome e centraliza as dependências.
+// Resolve conflitos de nome e centraliza as dependências..
 
 // Auth
 export { 
