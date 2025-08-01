@@ -1,5 +1,4 @@
-// app-config.js (Versão 6.0 - Arquitetura Limpa)
-// Responsabilidade: Apenas inicializar o Firebase e exportar os serviços e configurações do app.
+// app-config.js (Versão 6.1 - Com DatabaseURL)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -16,6 +15,7 @@ const firebaseConfig = {
     messagingSenderId: "218995880923",
     appId: "1:218995880923:web:ce8a371bc402904c0dedfe",
     measurementId: "G-R5W1F2NXH4",
+    // CORREÇÃO: Adicionada a URL do Realtime Database
     databaseURL: "https://app-faz-bem-guacui-default-rtdb.firebaseio.com"
 };
 
