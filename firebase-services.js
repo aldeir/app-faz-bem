@@ -28,7 +28,8 @@ export {
     getDocs, 
     updateDoc, 
     writeBatch, 
-    FieldValue 
+    FieldValue,
+    orderBy // <-- CORREÇÃO: Função 'orderBy' adicionada à lista de exportação.
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Storage (com alias para 'ref')
