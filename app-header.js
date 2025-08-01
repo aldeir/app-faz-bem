@@ -1,29 +1,43 @@
-// app-header.js (Versão 3.3 - Importações Corrigidas)
+// app-header.js (Versão 3.3 - Com Indicador de Usuários Online)
 
-import { db, paths, collection, query, where, onSnapshot } from './app-config.js';
+import { db, rtdb, paths, collection, query, where, onSnapshot, ref, onValue } from './app-config.js';
 import { logout } from './app-config.js';
 import { getCurrentUser } from './auth-service.js';
 
 let unreadListener = null;
 
 function listenForUnreadNotifications(userId) {
-    const bellIcon = document.getElementById('notification-bell-icon');
     const bellIndicator = document.getElementById('notification-indicator');
-    if (!bellIcon || !bellIndicator) return;
+    if (!bellIndicator) return;
 
-    const q = query(
-        collection(db, paths.notifications),
-        where("userId", "==", userId),
-        where("read", "==", false)
-    );
-
+    const q = query(collection(db, paths.notifications), where("userId", "==", userId), where("read", "==", false));
     if (unreadListener) unreadListener();
-
     unreadListener = onSnapshot(q, (snapshot) => {
-        if (snapshot.size > 0) {
-            bellIndicator.classList.remove('hidden');
+        bellIndicator.classList.toggle('hidden', snapshot.empty);
+    });
+}
+
+function listenForOnlineUsers() {
+    const onlineContainer = document.getElementById('online-users-container');
+    if (!onlineContainer) return;
+
+    const statusRef = ref(rtdb, 'status');
+    onValue(statusRef, (snapshot) => {
+        const users = snapshot.val();
+        if (users) {
+            const userList = Object.values(users);
+            onlineContainer.innerHTML = `
+                <div class="flex items-center -space-x-2 mr-2">
+                    ${userList.slice(0, 3).map(user => `
+                        <img class="inline-block h-6 w-6 rounded-full ring-2 ring-white" 
+                             src="${user.photoURL || 'https://placehold.co/24x24/e2e8f0/cbd5e0?text=?'}" 
+                             title="${user.name}">
+                    `).join('')}
+                </div>
+                <span class="text-sm font-medium text-green-600">${userList.length} online</span>
+            `;
         } else {
-            bellIndicator.classList.add('hidden');
+            onlineContainer.innerHTML = `<span class="text-sm text-gray-500">0 online</span>`;
         }
     });
 }
@@ -31,7 +45,12 @@ function listenForUnreadNotifications(userId) {
 const headerHTML = `
     <header class="bg-white shadow-sm sticky top-0 z-10">
         <nav class="container mx-auto max-w-5xl p-4 flex justify-between items-center">
-            <a href="index.html" class="text-2xl font-bold text-green-600" title="Voltar para a página inicial">Faz Bem</a>
+            <div class="flex items-center space-x-4">
+                <a href="index.html" class="text-2xl font-bold text-green-600" title="Voltar para a página inicial">Faz Bem</a>
+                <div id="online-users-container" class="hidden sm:flex items-center pl-4 border-l border-gray-200">
+                    <!-- Indicador de usuários online -->
+                </div>
+            </div>
             <div id="header-user-menu" class="flex items-center space-x-4">
                 <!-- O menu do usuário será inserido aqui -->
             </div>
@@ -46,6 +65,8 @@ export async function injectHeader() {
     headerContainer.innerHTML = headerHTML;
     const userMenu = document.getElementById('header-user-menu');
     
+    listenForOnlineUsers(); // Inicia o listener para todos os visitantes
+
     const userSession = await getCurrentUser();
 
     if (userSession?.auth) {
