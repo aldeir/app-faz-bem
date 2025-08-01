@@ -158,7 +158,7 @@
             }
             
             loadingContainer.style.display = 'none';
-            const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.expiresAt.toDate() > new Date());
+            const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.expiresAt?.toDate() > new Date());
             
             renderFilters(activeCampaigns);
             renderAllSections(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
@@ -166,9 +166,9 @@
 
         function renderAllSections(filter = 'all') {
             const now = new Date();
-            const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.startsAt.toDate() <= now && c.expiresAt.toDate() > now);
-            const upcomingCampaigns = allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt.toDate() > now);
-            const recentCampaigns = allCampaigns.filter(c => c.expiresAt.toDate() <= now).slice(0, 4);
+            const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.startsAt?.toDate() <= now && c.expiresAt?.toDate() > now);
+            const upcomingCampaigns = allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt?.toDate() > now);
+            const recentCampaigns = allCampaigns.filter(c => c.expiresAt?.toDate() <= now).slice(0, 4);
             
             const filteredActive = (filter === 'all') ? activeCampaigns : activeCampaigns.filter(c => c.type === filter);
             
@@ -206,9 +206,9 @@
             
             const imageUrl = campaign.images?.[0] || `https://placehold.co/600x400/e2e8f0/e2e8f0?text=Sem+Imagem`;
             const now = new Date();
-            const endDate = campaign.expiresAt.toDate();
+            const endDate = campaign.expiresAt?.toDate();
             
-            const isClosed = endDate < now;
+            const isClosed = !endDate || endDate < now;
 
             let statusTag = '';
             if (isClosed) {
