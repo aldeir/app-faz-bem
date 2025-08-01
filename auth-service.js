@@ -1,18 +1,13 @@
-// Arquivo: auth-service.js (Versão 2.1 - Corrigido com databaseRef)
+// Arquivo: auth-service.js (Versão 2.2 - Arquitetura Limpa)
 
-import { 
-    auth, db, rtdb, ADMIN_EMAIL, onAuthStateChanged, getDoc, doc, 
-    databaseRef, set, onDisconnect, serverTimestamp 
-} from './app-config.js';
+import { auth, db, rtdb, ADMIN_EMAIL } from './app-config.js';
+import { onAuthStateChanged, getDoc, doc, databaseRef, set, onDisconnect, serverTimestamp } from './firebase-services.js';
 import { paths } from './firestore-paths.js';
 
 /**
  * Gerencia o status de presença do usuário no Realtime Database.
- * @param {object} user - O objeto de autenticação do usuário.
- * @param {object} profile - O perfil do usuário do Firestore.
  */
 function managePresence(user, profile) {
-    // CORREÇÃO: Usa 'databaseRef' que foi importado corretamente do app-config
     const userStatusRef = databaseRef(rtdb, `status/${user.uid}`);
     
     const presenceData = {
@@ -60,7 +55,7 @@ export const getCurrentUser = () => {
                 managePresence(user, profile);
                 resolve({ auth: user, profile: profile });
             } else {
-                resolve({ auth: user, profile: null }); // Usuário autenticado mas sem perfil no DB
+                resolve({ auth: user, profile: null });
             }
         });
     });
