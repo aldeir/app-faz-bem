@@ -14,6 +14,11 @@
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #16a34a; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .tab-button.active {
+            border-color: #16a34a; /* green-600 */
+            color: #16a34a;
+            background-color: #f0fdf4; /* green-50 */
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -32,11 +37,23 @@
             <h1 class="text-3xl font-bold text-gray-800">Visão Global de Agendamentos</h1>
             <a href="superadmin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
         </div>
+
+        <!-- Abas de Navegação -->
+        <div class="border-b border-gray-200 mb-6">
+            <nav id="tabs-container" class="-mb-px flex space-x-8" aria-label="Tabs">
+                <button data-tab="upcoming" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Próximos</button>
+                <button data-tab="overdue" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Vencidos</button>
+                <button data-tab="completed" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Recebidos</button>
+            </nav>
+        </div>
         
-        <div id="schedules-list" class="space-y-6">
-            <div id="no-schedules-placeholder" class="hidden text-center text-gray-500 py-10 bg-white rounded-lg shadow">
-                <p>Nenhuma doação agendada em toda a plataforma.</p>
-            </div>
+        <!-- Conteúdo das Abas -->
+        <div id="upcoming-list" class="tab-content space-y-6"></div>
+        <div id="overdue-list" class="tab-content hidden space-y-6"></div>
+        <div id="completed-list" class="tab-content hidden space-y-6"></div>
+
+        <div id="no-schedules-placeholder" class="hidden text-center text-gray-500 py-10 bg-white rounded-lg shadow">
+            <p>Nenhuma doação encontrada para esta categoria.</p>
         </div>
     </main>
 
@@ -50,8 +67,14 @@
 
         const loadingView = document.getElementById('loading-view');
         const schedulesView = document.getElementById('schedules-view');
-        const schedulesList = document.getElementById('schedules-list');
         const noSchedulesPlaceholder = document.getElementById('no-schedules-placeholder');
+        const tabsContainer = document.getElementById('tabs-container');
+        
+        const listContainers = {
+            upcoming: document.getElementById('upcoming-list'),
+            overdue: document.getElementById('overdue-list'),
+            completed: document.getElementById('completed-list'),
+        };
 
         async function initializeApp() {
             await injectHeader();
@@ -59,68 +82,105 @@
             if (userSession && userSession.profile?.role === 'superadmin') {
                 loadGlobalSchedules();
             } else {
-                // Protege a página contra acesso não autorizado
                 window.location.href = 'index.html';
             }
         }
 
         function loadGlobalSchedules() {
-            // A query busca todos os agendamentos, sem filtro de entidade
-            const q = query(collection(db, paths.donations), where("status", "==", "scheduled"));
+            const q = query(collection(db, paths.donations), where("status", "in", ["scheduled", "completed"]));
 
             onSnapshot(q, (snapshot) => {
+                const allDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAllLists(allDonations);
                 loadingView.classList.add('hidden');
                 schedulesView.classList.remove('hidden');
+            }, (error) => {
+                console.error("Erro ao buscar agendamentos globais:", error);
+                schedulesView.innerHTML = `<p class="text-red-500 text-center">Ocorreu um erro ao carregar os agendamentos.</p>`;
+            });
+        }
 
-                if (snapshot.empty) {
-                    schedulesList.innerHTML = '';
-                    noSchedulesPlaceholder.classList.remove('hidden');
-                    schedulesList.appendChild(noSchedulesPlaceholder);
-                    return;
+        function renderAllLists(allDonations) {
+            const now = new Date();
+            const upcoming = [];
+            const overdue = [];
+            const completed = [];
+
+            allDonations.forEach(donation => {
+                if (donation.status === 'completed') {
+                    completed.push(donation);
+                } else if (donation.status === 'scheduled') {
+                    if (donation.scheduledAt.toDate() < now) {
+                        overdue.push(donation);
+                    } else {
+                        upcoming.push(donation);
+                    }
                 }
-                
-                const donations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                donations.sort((a, b) => a.scheduledAt.toMillis() - b.scheduledAt.toMillis());
+            });
+            
+            upcoming.sort((a, b) => a.scheduledAt.toMillis() - b.scheduledAt.toMillis());
+            overdue.sort((a, b) => a.scheduledAt.toMillis() - b.scheduledAt.toMillis());
+            completed.sort((a, b) => b.scheduledAt.toMillis() - a.scheduledAt.toMillis());
 
+            renderListContent(upcoming, 'upcoming');
+            renderListContent(overdue, 'overdue');
+            renderListContent(completed, 'completed');
+            
+            updateActiveTabContent();
+        }
+
+        function renderListContent(donations, key) {
+            const container = listContainers[key];
+            container.innerHTML = '';
+            if (donations.length > 0) {
                 const groupedByDay = donations.reduce((acc, donation) => {
                     const date = donation.scheduledAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', weekday: 'long' });
-                    if (!acc[date]) {
-                        acc[date] = [];
-                    }
+                    if (!acc[date]) acc[date] = [];
                     acc[date].push(donation);
                     return acc;
                 }, {});
 
-                schedulesList.innerHTML = '';
-                noSchedulesPlaceholder.classList.add('hidden');
-
                 for (const date in groupedByDay) {
                     const daySection = document.createElement('div');
-                    let donationsHtml = '';
-                    
-                    groupedByDay[date].sort((a, b) => a.scheduledAt.toMillis() - b.scheduledAt.toMillis());
-                    groupedByDay[date].forEach(donation => {
-                        donationsHtml += createDonationCard(donation);
-                    });
-
+                    let donationsHtml = groupedByDay[date].map(donation => createDonationCard(donation, key)).join('');
                     daySection.innerHTML = `
                         <h2 class="text-xl font-semibold text-gray-700 mb-3 capitalize">${date}</h2>
-                        <div class="space-y-4">
-                            ${donationsHtml}
-                        </div>
+                        <div class="space-y-4">${donationsHtml}</div>
                     `;
-                    schedulesList.appendChild(daySection);
+                    container.appendChild(daySection);
                 }
-
-            }, (error) => {
-                console.error("Erro ao buscar agendamentos globais:", error);
-                schedulesList.innerHTML = `<p class="text-red-500 text-center">Ocorreu um erro ao carregar os agendamentos.</p>`;
-            });
+            }
         }
 
-        function createDonationCard(donation) {
+        function updateActiveTabContent() {
+            const activeTab = tabsContainer.querySelector('.tab-button.active').dataset.tab;
+            let hasContent = false;
+            
+            Object.entries(listContainers).forEach(([key, container]) => {
+                if (key === activeTab) {
+                    container.classList.remove('hidden');
+                    if (container.innerHTML.trim() !== '') {
+                        hasContent = true;
+                    }
+                } else {
+                    container.classList.add('hidden');
+                }
+            });
+
+            noSchedulesPlaceholder.classList.toggle('hidden', hasContent);
+        }
+
+        function createDonationCard(donation, type) {
             const scheduledTime = donation.scheduledAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            const isOverdue = donation.scheduledAt.toDate() < new Date();
+            let statusHtml = '';
+
+            if (type === 'completed') {
+                statusHtml = `<p class="text-lg font-bold text-gray-500">Recebido</p>`;
+            } else {
+                const isOverdue = type === 'overdue';
+                statusHtml = `<p class="text-lg font-bold ${isOverdue ? 'text-red-500' : 'text-green-600'}">${scheduledTime}</p>
+                              ${isOverdue ? '<p class="text-xs font-medium text-red-500">Vencido</p>' : ''}`;
+            }
 
             return `
                 <div class="bg-white rounded-lg shadow-md p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -133,10 +193,9 @@
                         </div>
                     </div>
                     <div class="flex items-center space-x-4 w-full sm:w-auto">
-                         <div class="text-center sm:text-right">
-                            <p class="text-lg font-bold ${isOverdue ? 'text-red-500' : 'text-green-600'}">${scheduledTime}</p>
-                            ${isOverdue ? '<p class="text-xs font-medium text-red-500">Atrasado</p>' : ''}
-                        </div>
+                         <div class="text-center sm:text-right w-24">
+                            ${statusHtml}
+                         </div>
                         <a href="detalhes.html?id=${donation.campaignId}" class="w-full sm:w-auto text-center bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">
                             Ver Campanha
                         </a>
@@ -144,6 +203,15 @@
                 </div>
             `;
         }
+
+        tabsContainer.addEventListener('click', (e) => {
+            const button = e.target.closest('button.tab-button');
+            if (button) {
+                tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                updateActiveTabContent();
+            }
+        });
 
         initializeApp();
     </script>
