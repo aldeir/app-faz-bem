@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Faz Bem - Área da Entidade</title>
     
+    <!-- PWA Tags -->
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,7 +21,6 @@
 </head>
 <body class="bg-gray-100">
 
-    <!-- 1. DIV PADRÃO PARA O CABEÇALHO DINÂMICO -->
     <div id="app-header"></div>
 
     <div id="app-container">
@@ -34,8 +38,6 @@
         </div>
         
         <div id="dashboard-view" class="hidden">
-            <!-- O <nav> estático foi removido daqui -->
-
             <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 <div class="px-4 py-6 sm:px-0">
                     <div class="flex justify-between items-center mb-6">
@@ -64,7 +66,7 @@
 
                     <div class="border-b border-gray-200">
                         <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                            <a href="#" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-green-500 text-green-600">Minhas Campanhas</a>
+                            <a href="gerenciar-campanhas.html" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-green-500 text-green-600">Minhas Campanhas</a>
                             <a href="gerenciar-agendamentos.html" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Gerenciar Agendamentos</a>
                         </nav>
                     </div>
@@ -77,66 +79,51 @@
         </div>
     </div>
 
-    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto">
-        <!-- ... (código do modal padrão) ... -->
-    </div>
+    <div id="app-modal"></div>
 
     <script type="module">
-        import { auth, db, onAuthStateChanged, logout } from './app-config.js';
-        import { collection, query, where, onSnapshot, getDoc, doc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { db, logout } from './app-config.js';
+        import { collection, query, where, onSnapshot, doc, updateDoc, Timestamp, getDoc } from "./firebase-services.js";
         import { showConfirmationModal, showAlertModal } from './modal-handler.js';
         import { paths } from './firestore-paths.js';
-        import { injectHeader } from './app-header.js'; // <-- 2. IMPORTAÇÃO DO MÓDULO DE CABEÇALHO
+        import { injectHeader } from './app-header.js';
+        import { getCurrentUser } from './auth-service.js';
 
         const loadingView = document.getElementById('loading-view');
         const dashboardView = document.getElementById('dashboard-view');
         const pendingApprovalView = document.getElementById('pending-approval-view');
-        // A linha abaixo foi removida pois o app-header.js agora controla esses elementos
-        // const userNameDisplay = document.getElementById('user-name-display');
         const logoutBtnPending = document.getElementById('logout-btn-pending');
         const myCampaignsList = document.getElementById('my-campaigns-list');
         const myCampaignsPlaceholder = document.getElementById('my-campaigns-placeholder');
         const scheduledDonationsCount = document.getElementById('scheduled-donations-count');
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                // 3. CHAMADA PARA INJETAR O CABEÇALHO PADRONIZADO
-                await injectHeader();
+        async function initializeApp() {
+            await injectHeader();
+            const userSession = await getCurrentUser();
 
-                if (!user.emailVerified && user.providerData.some(p => p.providerId === 'password')) {
+            if (userSession && userSession.profile?.role === 'entidade') {
+                const { auth, profile } = userSession;
+                if (!auth.emailVerified && auth.providerData.some(p => p.providerId === 'password')) {
                     window.location.href = 'verificar-email.html';
                     return;
                 }
                 
-                const entityDocRef = doc(db, paths.entidadeDoc(user.uid));
-                const docSnap = await getDoc(entityDocRef);
-
-                if (docSnap.exists() && docSnap.data().role === 'entidade') {
-                    const entityData = docSnap.data();
-                    
-                    if (entityData.status === 'ativo') {
-                        loadingView.classList.add('hidden');
-                        pendingApprovalView.classList.add('hidden');
-                        dashboardView.classList.remove('hidden');
-                        // A linha abaixo foi removida pois o app-header.js agora controla o nome do usuário
-                        // userNameDisplay.textContent = entityData.publicName || user.displayName;
-                        loadMyCampaigns(user.uid);
-                        loadScheduledDonations(user.uid);
-                    } else {
-                        loadingView.classList.add('hidden');
-                        dashboardView.classList.add('hidden');
-                        pendingApprovalView.classList.remove('hidden');
-                    }
+                if (profile.status === 'ativo') {
+                    loadingView.classList.add('hidden');
+                    pendingApprovalView.classList.add('hidden');
+                    dashboardView.classList.remove('hidden');
+                    loadMyCampaigns(auth.uid);
+                    loadScheduledDonations(auth.uid);
                 } else {
-                    window.location.href = 'index.html';
+                    loadingView.classList.add('hidden');
+                    dashboardView.classList.add('hidden');
+                    pendingApprovalView.classList.remove('hidden');
                 }
             } else {
                 window.location.href = 'login.html';
             }
-        });
+        }
 
-        // A linha abaixo foi removida pois o app-header.js agora controla o botão de logout
-        // logoutBtn.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
         logoutBtnPending.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
 
         function loadScheduledDonations(entityId) {
@@ -164,20 +151,20 @@
                 let upcomingCount = 0;
                 const now = new Date();
 
-                snapshot.docs.sort((a, b) => b.data().createdAt.toMillis() - a.data().createdAt.toMillis()).forEach(docSnapshot => {
-                    const campaign = docSnapshot.data();
-                    const campaignId = docSnapshot.id;
+                const campaigns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                campaigns.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
 
-                    if (campaign.status === 'upcoming' && campaign.startsAt.toDate() > now) {
+                campaigns.forEach(campaign => {
+                    const isCompleted = campaign.expiresAt?.toDate() < now;
+                    
+                    if (campaign.status === 'upcoming' && campaign.startsAt?.toDate() > now) {
                         upcomingCount++;
-                    } else if (campaign.expiresAt.toDate() < now) {
+                    } else if (isCompleted) {
                         completedCount++;
                     } else {
                         activeCount++;
                     }
 
-                    const isCompleted = campaign.expiresAt.toDate() < now;
-                    
                     let status;
                     if (campaign.status === 'upcoming') {
                         status = { text: 'Próxima', color: 'bg-blue-100 text-blue-800' };
@@ -188,9 +175,9 @@
                     }
                     
                     const actionButtons = !isCompleted && campaign.status !== 'upcoming' ? `
-                        <button data-action="end" data-id="${campaignId}" class="text-sm font-medium text-red-600 hover:text-red-800">Concluir Agora</button>
-                        <a href="criar-campanha.html?editId=${campaignId}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Editar</a>
-                    ` : `<a href="criar-campanha.html?editId=${campaignId}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Editar</a>`;
+                        <button data-action="end" data-id="${campaign.id}" class="text-sm font-medium text-red-600 hover:text-red-800">Concluir Agora</button>
+                        <a href="criar-campanha.html?editId=${campaign.id}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Editar</a>
+                    ` : `<a href="criar-campanha.html?editId=${campaign.id}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Editar</a>`;
 
                     const card = document.createElement('div');
                     card.className = 'p-4 border-b last:border-b-0';
@@ -200,13 +187,13 @@
                                 <img src="${(campaign.images && campaign.images[0]) || 'https://placehold.co/96x64/e2e8f0/cbd5e0?text=Img'}" class="w-24 h-16 object-cover rounded-md bg-gray-200">
                                 <div>
                                     <h4 class="font-bold text-lg">${campaign.title}</h4>
-                                    <p class="text-sm text-gray-500">Termina em: ${campaign.expiresAt.toDate().toLocaleDateString('pt-BR')}</p>
+                                    <p class="text-sm text-gray-500">Termina em: ${campaign.expiresAt?.toDate().toLocaleDateString('pt-BR') || 'N/A'}</p>
                                 </div>
                             </div>
                             <div class="flex items-center space-x-4">
                                 <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${status.color}">${status.text}</span>
                                 <div class="w-48 text-right flex justify-end space-x-4">
-                                    <a href="detalhes.html?id=${campaignId}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Ver</a>
+                                    <a href="detalhes.html?id=${campaign.id}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Ver</a>
                                     ${actionButtons}
                                 </div>
                             </div>
@@ -236,6 +223,21 @@
                 }
             }
         });
+
+        initializeApp();
+    </script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
