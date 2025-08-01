@@ -1,16 +1,11 @@
-// app-header.js (Versão 3.2 - Com Sistema de Notificações)
+// app-header.js (Versão 3.3 - Importações Corrigidas)
 
-import { db, collection, query, where, onSnapshot } from './app-config.js';
-import { paths } from './firestore-paths.js';
+import { db, paths, collection, query, where, onSnapshot } from './app-config.js';
 import { logout } from './app-config.js';
 import { getCurrentUser } from './auth-service.js';
 
-let unreadListener = null; // Variável para manter a referência do listener
+let unreadListener = null;
 
-/**
- * Escuta em tempo real por notificações não lidas para o usuário atual.
- * @param {string} userId - O ID do usuário logado.
- */
 function listenForUnreadNotifications(userId) {
     const bellIcon = document.getElementById('notification-bell-icon');
     const bellIndicator = document.getElementById('notification-indicator');
@@ -22,7 +17,6 @@ function listenForUnreadNotifications(userId) {
         where("read", "==", false)
     );
 
-    // Cancela o listener anterior para evitar múltiplas execuções
     if (unreadListener) unreadListener();
 
     unreadListener = onSnapshot(q, (snapshot) => {
@@ -94,7 +88,6 @@ export async function injectHeader() {
             logout().then(() => window.location.href = 'index.html');
         });
 
-        // Inicia o listener para notificações não lidas
         listenForUnreadNotifications(auth.uid);
 
     } else {
