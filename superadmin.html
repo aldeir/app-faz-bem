@@ -38,7 +38,8 @@
                             <a href="criar-campanha.html" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">+ Criar Nova Campanha</a>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Grid de Métricas Atualizado -->
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
                         <a href="gerenciar-doadores.html" class="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
                             <h3 class="text-sm font-medium text-gray-500">Doadores</h3>
                             <p id="total-donors" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
@@ -55,6 +56,11 @@
                             <h3 class="text-sm font-medium text-gray-500">Campanhas</h3>
                             <p id="total-campaigns" class="mt-1 text-3xl font-semibold text-gray-900">0</p>
                         </a>
+                        <!-- Novo Card de Agendamentos -->
+                        <div class="block bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-sm font-medium text-gray-500">Agendamentos Ativos</h3>
+                            <p id="total-scheduled" class="mt-1 text-3xl font-semibold text-blue-600">0</p>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -62,16 +68,19 @@
     </div>
 
     <script type="module">
-        import { auth, db, onAuthStateChanged, ADMIN_EMAIL, firebaseConfig } from './app-config.js';
+        import { db, collection, query, where, onSnapshot } from './app-config.js';
+        import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
-        import { collection, query, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getCurrentUser } from './auth-service.js';
 
         const accessDeniedView = document.getElementById('access-denied-view');
         const dashboardView = document.getElementById('dashboard-view');
 
-        onAuthStateChanged(auth, async (user) => {
+        async function initializeApp() {
             await injectHeader();
-            if (user && user.email === ADMIN_EMAIL) {
+            const userSession = await getCurrentUser();
+
+            if (userSession && userSession.profile?.role === 'superadmin') {
                 dashboardView.classList.remove('hidden');
                 accessDeniedView.classList.add('hidden');
                 loadDashboardMetrics();
@@ -79,26 +88,35 @@
                 accessDeniedView.classList.remove('hidden');
                 dashboardView.classList.add('hidden');
             }
-        });
+        }
 
         function loadDashboardMetrics() {
-            onSnapshot(query(collection(db, "users")), snap => { 
+            // Contagem de Doadores
+            onSnapshot(query(collection(db, paths.users)), snap => { 
                 document.getElementById('total-donors').textContent = snap.size; 
             });
             
-            const entitiesPath = `/artifacts/${firebaseConfig.projectId}/public/data/entidades`;
-            onSnapshot(query(collection(db, entitiesPath)), snap => {
+            // Contagem de Entidades
+            onSnapshot(query(collection(db, paths.entidades)), snap => {
                 const active = snap.docs.filter(doc => doc.data().status === 'ativo').length;
                 const pending = snap.docs.filter(doc => doc.data().status === 'pendente_aprovacao').length;
                 document.getElementById('total-entities').textContent = active;
                 document.getElementById('total-pending-entities').textContent = pending;
             });
 
-            const campaignsPath = `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`;
-            onSnapshot(query(collection(db, campaignsPath)), snap => { 
+            // Contagem de Campanhas
+            onSnapshot(query(collection(db, paths.campaigns)), snap => { 
                 document.getElementById('total-campaigns').textContent = snap.size; 
             });
+
+            // Nova Contagem de Agendamentos Ativos
+            const scheduledQuery = query(collection(db, paths.donations), where("status", "==", "scheduled"));
+            onSnapshot(scheduledQuery, snap => {
+                document.getElementById('total-scheduled').textContent = snap.size;
+            });
         }
+
+        initializeApp();
     </script>
 </body>
 </html>
