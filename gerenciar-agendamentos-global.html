@@ -90,7 +90,6 @@
         const listContent = document.getElementById('list-content');
         const searchInput = document.getElementById('search-input');
 
-        // Controles de Paginação
         const paginationControls = document.getElementById('pagination-controls');
         const pageCounter = document.getElementById('page-counter');
         const prevPageBtn = document.getElementById('prev-page-btn');
@@ -98,7 +97,7 @@
         
         let allDonations = [];
         let currentPage = 1;
-        const ITEMS_PER_PAGE = 20; // Quantidade de itens por página
+        const ITEMS_PER_PAGE = 10; // Itens por página (agora são doadores)
 
         async function initializeApp() {
             await injectHeader();
@@ -115,7 +114,7 @@
 
             onSnapshot(q, (snapshot) => {
                 allDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                currentPage = 1; // Reseta para a primeira página a cada nova carga de dados
+                currentPage = 1;
                 filterAndRender();
                 loadingView.classList.add('hidden');
                 schedulesView.classList.remove('hidden');
@@ -146,11 +145,24 @@
                 return false;
             });
 
-            renderPaginatedList(filteredDonations);
+            const groupedByDonor = filteredDonations.reduce((acc, donation) => {
+                const donorId = donation.donorId;
+                if (!acc[donorId]) {
+                    acc[donorId] = {
+                        donorName: donation.donorName,
+                        donorPhoto: donation.donorPhoto,
+                        donations: []
+                    };
+                }
+                acc[donorId].donations.push(donation);
+                return acc;
+            }, {});
+
+            renderPaginatedList(Object.values(groupedByDonor));
         }
 
-        function renderPaginatedList(donations) {
-            const totalItems = donations.length;
+        function renderPaginatedList(donors) {
+            const totalItems = donors.length;
             const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
             
             if (totalItems === 0) {
@@ -165,72 +177,57 @@
 
             const start = (currentPage - 1) * ITEMS_PER_PAGE;
             const end = start + ITEMS_PER_PAGE;
-            const pageItems = donations.slice(start, end);
-
-            // Ordena os itens da página atual
-            pageItems.sort((a, b) => {
-                const dateA = a.scheduledAt.toMillis();
-                const dateB = b.scheduledAt.toMillis();
-                // Para "Recebidos", a ordem é decrescente (mais recente primeiro)
-                return a.status === 'completed' ? dateB - dateA : dateA - dateB;
-            });
+            const pageItems = donors.slice(start, end);
 
             renderListContent(pageItems);
 
-            // Atualiza controles da paginação
             pageCounter.textContent = `${start + 1}-${Math.min(end, totalItems)} de ${totalItems}`;
             prevPageBtn.disabled = currentPage === 1;
             nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
         }
 
-        function renderListContent(donations) {
+        function renderListContent(donors) {
             listContent.innerHTML = '';
-            if (donations.length > 0) {
-                const groupedByDay = donations.reduce((acc, donation) => {
-                    const date = donation.scheduledAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', weekday: 'long' });
-                    if (!acc[date]) acc[date] = [];
-                    acc[date].push(donation);
-                    return acc;
-                }, {});
+            donors.forEach(donor => {
+                const donorSection = document.createElement('div');
+                donorSection.className = 'bg-white rounded-lg shadow-md p-4';
+                
+                const itemsHtml = donor.donations.map(createItemCard).join('');
 
-                for (const date in groupedByDay) {
-                    const daySection = document.createElement('div');
-                    let donationsHtml = groupedByDay[date].map(createDonationCard).join('');
-                    daySection.innerHTML = `
-                        <h2 class="text-xl font-semibold text-gray-700 mb-3 capitalize">${date}</h2>
-                        <div class="space-y-4">${donationsHtml}</div>
-                    `;
-                    listContent.appendChild(daySection);
-                }
-            }
+                donorSection.innerHTML = `
+                    <div class="flex items-center border-b pb-3 mb-3">
+                        <img src="${donor.donorPhoto || 'https://placehold.co/48x48/e2e8f0/cbd5e0?text=Foto'}" class="w-12 h-12 rounded-full object-cover border mr-4">
+                        <h2 class="text-xl font-semibold text-gray-800">${donor.donorName}</h2>
+                    </div>
+                    <div class="space-y-2">${itemsHtml}</div>
+                `;
+                listContent.appendChild(donorSection);
+            });
         }
 
-        function createDonationCard(donation) {
+        function createItemCard(donation) {
             const scheduledTime = donation.scheduledAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const scheduledDate = donation.scheduledAt.toDate().toLocaleDateString('pt-BR');
             let statusHtml = '';
             const now = new Date();
 
             if (donation.status === 'completed') {
-                statusHtml = `<p class="text-lg font-bold text-gray-500">Recebido</p>`;
+                statusHtml = `<span class="font-semibold text-gray-500">Recebido</span>`;
             } else {
                 const isOverdue = donation.scheduledAt.toDate() < now;
-                statusHtml = `<p class="text-lg font-bold ${isOverdue ? 'text-red-500' : 'text-green-600'}">${scheduledTime}</p>
-                              ${isOverdue ? '<p class="text-xs font-medium text-red-500">Vencido</p>' : ''}`;
+                statusHtml = `<span class="font-semibold ${isOverdue ? 'text-red-500' : 'text-green-600'}">${isOverdue ? 'Vencido' : 'Próximo'}</span>`;
             }
 
             return `
-                <div class="bg-white rounded-lg shadow-md p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div class="flex items-center space-x-4">
-                        <img src="${donation.donorPhoto || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Foto'}" class="w-16 h-16 rounded-full object-cover border">
-                        <div>
-                            <p class="font-bold text-lg text-gray-800">${donation.donorName}</p>
-                            <p class="text-sm text-gray-600">Campanha: <span class="font-medium">${donation.campaignTitle}</span></p>
-                            <p class="text-sm text-gray-500">Para: <span class="font-semibold">${donation.entityName || 'N/A'}</span></p>
-                        </div>
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 rounded-md hover:bg-gray-50">
+                    <div class="flex-grow">
+                        <p class="font-medium text-gray-800">${donation.items.length} item(ns) - <span class="font-normal text-gray-600">${donation.campaignTitle}</span></p>
+                        <p class="text-sm text-gray-500">Para: <span class="font-semibold">${donation.entityName || 'N/A'}</span></p>
                     </div>
-                    <div class="flex items-center space-x-4 w-full sm:w-auto">
-                         <div class="text-center sm:text-right w-24">
-                            ${statusHtml}
+                    <div class="flex items-center space-x-4 text-sm w-full sm:w-auto">
+                         <div class="text-center sm:text-right w-28">
+                            <p>${scheduledDate} às ${scheduledTime}</p>
+                            <p>${statusHtml}</p>
                          </div>
                         <a href="detalhes.html?id=${donation.campaignId}" class="w-full sm:w-auto text-center bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">
                             Ver Campanha
