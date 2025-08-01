@@ -324,7 +324,9 @@
             const now = new Date();
 
             if (item.status === 'completed') {
-                const receivedByHtml = item.receivedBy ? `por ${item.receivedBy}` : '';
+                const receivedByUser = profilesCache.get(item.receivedBy);
+                const receivedByName = receivedByUser ? receivedByUser.displayName : (item.receivedBy || 'Entidade');
+                const receivedByHtml = item.receivedBy ? `por ${receivedByName}` : '';
                 statusHtml = `<span class="font-medium text-gray-500">Entregue em ${scheduledDate} ${receivedByHtml}</span>`;
             } else {
                 const isOverdue = item.scheduledAt?.toDate() < now;
@@ -388,7 +390,6 @@
                     showDetailsModal(profilesCache.get(id), action);
                     return;
                 }
-                // Se não estiver no cache (improvável com a nova lógica), busca no DB
                 const docPath = action === 'view-donor' ? paths.userDoc(id) : paths.entidadeDoc(id);
                 const docRef = doc(db, docPath);
                 const docSnap = await getDoc(docRef);
@@ -405,22 +406,35 @@
             const bodyEl = document.getElementById('details-modal-body');
             let bodyHtml = '';
 
+            const formatPhoneNumber = (phone) => {
+                if (!phone || typeof phone !== 'string') return 'N/A';
+                const cleaned = phone.replace(/\D/g, '');
+                if (cleaned.length === 11) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
+                if (cleaned.length === 10) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
+                return phone;
+            };
+
+            const formatCnpj = (cnpj) => {
+                if (!cnpj || typeof cnpj !== 'string') return 'N/A';
+                return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+            };
+
             if (type === 'view-donor') {
                 titleEl.textContent = `Detalhes de ${data.displayName}`;
                 bodyHtml = `
                     <p><strong>Nome:</strong> ${data.displayName || 'N/A'}</p>
                     <p><strong>E-mail:</strong> ${data.email || 'N/A'}</p>
-                    <p><strong>Telefone:</strong> ${data.phone || 'N/A'}</p>
-                    <p><strong>Endereço:</strong> ${data.address?.street || 'Não informado'}</p>
+                    <p><strong>Telefone:</strong> ${formatPhoneNumber(data.phone)}</p>
+                    <p><strong>Endereço:</strong> ${data.address?.street || 'Não informado'}, CEP: ${data.address?.cep || 'N/A'}</p>
                 `;
             } else { // view-entity
                 titleEl.textContent = `Detalhes de ${data.publicName}`;
                 bodyHtml = `
                     <p><strong>Nome Público:</strong> ${data.publicName || 'N/A'}</p>
                     <p><strong>Responsável:</strong> ${data.responsibleName || 'N/A'}</p>
-                    <p><strong>CNPJ:</strong> ${data.cnpj || 'N/A'}</p>
+                    <p><strong>CNPJ:</strong> ${formatCnpj(data.cnpj)}</p>
                     <p><strong>E-mail:</strong> ${data.email || 'N/A'}</p>
-                    <p><strong>Telefone:</strong> ${data.phone || 'N/A'}</p>
+                    <p><strong>Telefone:</strong> ${formatPhoneNumber(data.phone)}</p>
                 `;
             }
             bodyEl.innerHTML = bodyHtml;
