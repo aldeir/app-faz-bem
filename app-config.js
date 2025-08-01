@@ -1,18 +1,28 @@
-// app-config.js (Versão 4.3 - Com Realtime Database)
+// app-config.js (Versão 5.0 - Exports Explícitos e Corrigidos)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { getStorage } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-// Importa o serviço do Realtime Database
-import { getDatabase } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
-import { paths } from './firestore-paths.js';
+// Auth
+import { 
+    getAuth, signOut, onAuthStateChanged, createUserWithEmailAndPassword, 
+    updateProfile, sendEmailVerification, signInWithEmailAndPassword, 
+    GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo 
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+// Firestore
+import { 
+    getFirestore, doc, setDoc, getDoc, serverTimestamp, deleteDoc,
+    collection, query, where, onSnapshot, getDocs, updateDoc,
+    writeBatch, FieldValue
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// Storage
+import { 
+    getStorage, ref as storageRef, uploadBytes, getDownloadURL 
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+// Realtime Database
+import { 
+    getDatabase, ref as databaseRef, set, onDisconnect, onValue 
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
-export * from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-export * from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-export * from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-// Re-exporta as funções do Realtime Database
-export * from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+import { paths } from './firestore-paths.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
@@ -22,7 +32,6 @@ const firebaseConfig = {
     messagingSenderId: "218995880923",
     appId: "1:218995880923:web:ce8a371bc402904c0dedfe",
     measurementId: "G-R5W1F2NXH4",
-    // Adiciona a URL do Realtime Database
     databaseURL: "https://app-faz-bem-guacui-default-rtdb.firebaseio.com"
 };
 
@@ -32,20 +41,26 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
-// Inicializa e exporta o Realtime Database
 const rtdb = getDatabase(app);
 
 const ADMIN_EMAIL = 'aldeir@gmail.com';
 const logout = () => signOut(auth);
 
+// Exporta tudo de forma explícita para evitar conflitos
 export {
-    app,
-    auth,
-    db,
-    storage,
-    rtdb, // Exporta a instância do Realtime Database
-    logout,
-    ADMIN_EMAIL,
-    firebaseConfig,
-    paths
+    // Serviços
+    app, auth, db, storage, rtdb,
+    // Constantes e Funções
+    logout, ADMIN_EMAIL, firebaseConfig, paths,
+    // Auth
+    onAuthStateChanged, createUserWithEmailAndPassword, updateProfile, 
+    sendEmailVerification, signInWithEmailAndPassword, GoogleAuthProvider, 
+    signInWithPopup, getAdditionalUserInfo,
+    // Firestore
+    doc, setDoc, getDoc, serverTimestamp, deleteDoc, collection, 
+    query, where, onSnapshot, getDocs, updateDoc, writeBatch, FieldValue,
+    // Storage (com alias)
+    storageRef, uploadBytes, getDownloadURL,
+    // Realtime DB (com alias)
+    databaseRef, set, onDisconnect, onValue
 };
