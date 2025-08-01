@@ -1,8 +1,7 @@
-// app-header.js (Versão 3.5 - Arquitetura Limpa)
+// app-header.js (Versão 3.6 - Indicador Online Sempre Visível)
 
-import { db, rtdb, logout } from './app-config.js';
-import { collection, query, where, onSnapshot, databaseRef, onValue } from './firebase-services.js';
-import { paths } from './firestore-paths.js';
+import { db, rtdb, paths, collection, query, where, onSnapshot, databaseRef, onValue } from './app-config.js';
+import { logout } from './app-config.js';
 import { getCurrentUser } from './auth-service.js';
 
 let unreadListener = null;
@@ -43,16 +42,17 @@ function listenForOnlineUsers() {
     });
 }
 
+// CORREÇÃO: Otimizado para telas menores e para sempre exibir o contador online.
 const headerHTML = `
     <header class="bg-white shadow-sm sticky top-0 z-10">
         <nav class="container mx-auto max-w-5xl p-4 flex justify-between items-center">
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2 sm:space-x-4">
                 <a href="index.html" class="text-2xl font-bold text-green-600" title="Voltar para a página inicial">Faz Bem</a>
-                <div id="online-users-container" class="hidden sm:flex items-center pl-4 border-l border-gray-200">
+                <div id="online-users-container" class="flex items-center pl-2 sm:pl-4 border-l border-gray-200">
                     <!-- Indicador de usuários online -->
                 </div>
             </div>
-            <div id="header-user-menu" class="flex items-center space-x-4">
+            <div id="header-user-menu" class="flex items-center space-x-2 sm:space-x-4">
                 <!-- O menu do usuário será inserido aqui -->
             </div>
         </nav>
@@ -66,7 +66,7 @@ export async function injectHeader() {
     headerContainer.innerHTML = headerHTML;
     const userMenu = document.getElementById('header-user-menu');
     
-    listenForOnlineUsers();
+    listenForOnlineUsers(); // Inicia o listener para todos os visitantes
 
     const userSession = await getCurrentUser();
 
