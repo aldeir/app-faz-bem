@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Perfil da Entidade - Faz Bem</title>
     
+    <!-- PWA Tags -->
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -71,7 +76,8 @@
     </div>
 
     <script type="module">
-        import { db, storage, paths, doc, updateDoc, ref, uploadBytes, getDownloadURL } from './app-config.js';
+        import { db, storage, paths } from './app-config.js';
+        import { doc, updateDoc, storageRef, uploadBytes, getDownloadURL } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
 
@@ -130,9 +136,9 @@
             try {
                 if (croppedImageBlob) {
                     const fileName = `logos/logo_${currentUserSession.auth.uid}.webp`;
-                    const storageRef = ref(storage, fileName);
-                    await uploadBytes(storageRef, croppedImageBlob);
-                    dataToUpdate.logoUrl = await getDownloadURL(storageRef);
+                    const fileRef = storageRef(storage, fileName);
+                    await uploadBytes(fileRef, croppedImageBlob);
+                    dataToUpdate.logoUrl = await getDownloadURL(fileRef);
                 }
 
                 const entityDocRef = doc(db, paths.entidadeDoc(currentUserSession.auth.uid));
@@ -189,6 +195,19 @@
         }
 
         initializeApp();
+    </script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
