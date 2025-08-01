@@ -1,5 +1,5 @@
 // Arquivo: firestore-paths.js
-// Versão 3.1 - Código limpo sem caracteres especiais.
+// Versão 3.2 - Path de Notificações Adicionado e Corrigido.
 
 const paths = {
     _projectId: null,
@@ -36,6 +36,8 @@ const paths = {
     get donations() { this._checkInit(); return `${this._basePath}/donations`; },
     get likes() { this._checkInit(); return `${this._basePath}/likes`; },
     get configs() { this._checkInit(); return `${this._basePath}/configs`; },
+    // CORREÇÃO: Adicionado o getter para a coleção de notificações.
+    get notifications() { this._checkInit(); return `${this._basePath}/notifications`; },
 
     // --- Funções para Documentos ---
     userDoc: function(uid) { this._checkInit(); return `${this.users}/${uid}`; },
@@ -44,6 +46,8 @@ const paths = {
     donationDoc: function(donationId) { this._checkInit(); return `${this.donations}/${donationId}`; },
     likeDoc: function(likeId) { this._checkInit(); return `${this.likes}/${likeId}`; },
     configDoc: function(configId) { this._checkInit(); return `${this.configs}/${configId}`; },
+    // CORREÇÃO: Adicionada a função para documentos de notificação.
+    notificationDoc: function(notificationId) { this._checkInit(); return `${this.notifications}/${notificationId}`; },
 };
 
 export { paths };
