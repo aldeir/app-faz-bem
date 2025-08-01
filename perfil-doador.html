@@ -114,8 +114,8 @@
     </div>
 
     <script type="module">
-        import { auth, db, storage, ref, uploadBytes, getDownloadURL, updateProfile, doc, updateDoc, collection, query, where, getDocs } from './app-config.js';
-        import { paths } from './firestore-paths.js';
+        // CORREÇÃO: 'paths' agora é importado do app-config.js
+        import { auth, db, storage, paths, ref, uploadBytes, getDownloadURL, updateProfile, doc, updateDoc, collection, query, where, getDocs } from './app-config.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
 
