@@ -88,10 +88,26 @@
         </div>
     </div>
 
+    <!-- Modal para Detalhes do Doador/Entidade -->
+    <div id="details-modal" class="hidden fixed z-50 inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
+            <button id="close-details-modal-btn" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <div class="flex items-center space-x-3 mb-4 border-b pb-3">
+                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-blue-100">
+                    <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <h3 id="details-modal-title" class="text-lg leading-6 font-medium text-gray-900"></h3>
+            </div>
+            <div id="details-modal-body" class="text-sm text-gray-600 space-y-2"></div>
+        </div>
+    </div>
+
     <div id="app-modal"></div>
 
     <script type="module">
-        import { db, collection, query, where, onSnapshot } from './app-config.js';
+        import { db, collection, query, where, onSnapshot, doc, getDoc } from './app-config.js';
         import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
@@ -110,9 +126,12 @@
 
         const itemDetailsModal = document.getElementById('item-details-modal');
         const closeItemModalBtn = document.getElementById('close-item-modal-btn');
+        const detailsModal = document.getElementById('details-modal');
+        const closeDetailsModalBtn = document.getElementById('close-details-modal-btn');
         
         let allDonations = [];
         let donorRanking = new Map();
+        let profilesCache = new Map(); // Cache para perfis de doadores e entidades
         let currentPage = 1;
         const ITEMS_PER_PAGE = 10;
 
@@ -169,8 +188,8 @@
 
                 if (activeTab === 'all') return true;
                 if (activeTab === 'completed') return donation.status === 'completed';
-                if (activeTab === 'upcoming') return donation.status === 'scheduled' && donation.scheduledAt.toDate() >= now;
-                if (activeTab === 'overdue') return donation.status === 'scheduled' && donation.scheduledAt.toDate() < now;
+                if (activeTab === 'upcoming') return donation.status === 'scheduled' && donation.scheduledAt?.toDate() >= now;
+                if (activeTab === 'overdue') return donation.status === 'scheduled' && donation.scheduledAt?.toDate() < now;
                 
                 return false;
             });
@@ -232,7 +251,6 @@
                             items: []
                         };
                     }
-                    // Adiciona a doação inteira para ter acesso ao ID no item
                     acc[d.campaignId].items.push(...d.items.map((item, index) => ({...item, scheduledAt: d.scheduledAt, status: d.status, donationId: d.id, itemIndex: index})));
                     return acc;
                 }, {});
@@ -243,7 +261,7 @@
                             <h3 class="font-semibold text-gray-700">
                                 <a href="detalhes.html?id=${campaignId}" target="_blank" class="hover:underline">${campaignData.items.length} Itens - Campanha: ${campaignData.campaignTitle}</a>
                             </h3>
-                            <p class="text-sm text-gray-500 mb-2">Entidade: <a href="#" class="hover:underline font-medium">${campaignData.entityName || 'N/A'}</a></p>
+                            <p class="text-sm text-gray-500 mb-2">Entidade: <a href="#" data-action="view-entity" data-id="${campaignData.entityId}" class="hover:underline font-medium">${campaignData.entityName || 'N/A'}</a></p>
                             <ul class="list-disc list-inside pl-2 space-y-1 text-sm">
                                 ${campaignData.items.map(createItemDetailRow).join('')}
                             </ul>
@@ -252,7 +270,7 @@
                 }).join('');
 
                 const stats = allDonations.filter(d => d.donorId === donor.donorId).reduce((acc, d) => {
-                    const isOverdue = d.status === 'scheduled' && d.scheduledAt.toDate() < new Date();
+                    const isOverdue = d.status === 'scheduled' && d.scheduledAt?.toDate() < new Date();
                     if (d.status === 'completed') acc.completed += d.items.length;
                     else if (isOverdue) acc.overdue += d.items.length;
                     else acc.upcoming += d.items.length;
@@ -264,7 +282,7 @@
 
                 donorSection.innerHTML = `
                     <div class="flex flex-col sm:flex-row items-start sm:items-center border-b pb-3 mb-3 gap-4">
-                        <a href="gerenciar-doadores.html" target="_blank" class="flex items-center flex-grow">
+                        <a href="#" data-action="view-donor" data-id="${donor.donorId}" class="flex items-center flex-grow">
                             <img src="${donor.donorPhoto || 'https://placehold.co/48x48/e2e8f0/cbd5e0?text=Foto'}" class="w-12 h-12 rounded-full object-cover border mr-4">
                             <h2 class="text-xl font-semibold text-gray-800 hover:text-green-600">${donor.donorName}</h2>
                         </a>
@@ -282,20 +300,17 @@
         }
 
         function createItemDetailRow(item) {
-            const scheduledTime = item.scheduledAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            const scheduledDate = item.scheduledAt.toDate().toLocaleDateString('pt-BR');
+            const scheduledDate = item.scheduledAt?.toDate().toLocaleDateString('pt-BR');
             let statusHtml = '';
             const now = new Date();
 
             if (item.status === 'completed') {
-                // Futuramente, aqui exibiremos quem recebeu e quando.
                 statusHtml = `<span class="font-medium text-gray-500">Entregue em ${scheduledDate}</span>`;
             } else {
-                const isOverdue = item.scheduledAt.toDate() < now;
-                statusHtml = `<span class="font-medium ${isOverdue ? 'text-red-500' : 'text-green-600'}">${isOverdue ? 'Vencido' : 'Agendado'} para ${scheduledDate} às ${scheduledTime}</span>`;
+                const isOverdue = item.scheduledAt?.toDate() < now;
+                statusHtml = `<span class="font-medium ${isOverdue ? 'text-red-500' : 'text-green-600'}">${isOverdue ? 'Vencido' : 'Agendado'} para ${scheduledDate}</span>`;
             }
             
-            // Adiciona data-attributes para o modal
             return `<li>
                         <a href="#" class="hover:underline" 
                            data-action="view-item" 
@@ -308,7 +323,6 @@
         }
         
         // --- Event Listeners ---
-
         tabsContainer.addEventListener('click', (e) => {
             const button = e.target.closest('button.tab-button');
             if (button) {
@@ -336,20 +350,64 @@
             filterAndRender();
         });
 
-        listContent.addEventListener('click', (e) => {
-            const target = e.target.closest('[data-action="view-item"]');
-            if (target) {
-                e.preventDefault();
+        listContent.addEventListener('click', async (e) => {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+            e.preventDefault();
+
+            const action = target.dataset.action;
+            const id = target.dataset.id;
+
+            if (action === 'view-item') {
                 document.getElementById('modal-item-photo').src = target.dataset.photo;
                 document.getElementById('modal-item-title').textContent = target.dataset.title;
                 document.getElementById('modal-item-details').textContent = target.dataset.details;
                 itemDetailsModal.classList.remove('hidden');
+            } else if (action === 'view-donor' || action === 'view-entity') {
+                if (profilesCache.has(id)) {
+                    showDetailsModal(profilesCache.get(id), action);
+                    return;
+                }
+                const docPath = action === 'view-donor' ? paths.userDoc(id) : paths.entidadeDoc(id);
+                const docRef = doc(db, docPath);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    profilesCache.set(id, data);
+                    showDetailsModal(data, action);
+                }
             }
         });
 
-        closeItemModalBtn.addEventListener('click', () => {
-            itemDetailsModal.classList.add('hidden');
-        });
+        function showDetailsModal(data, type) {
+            const titleEl = document.getElementById('details-modal-title');
+            const bodyEl = document.getElementById('details-modal-body');
+            let bodyHtml = '';
+
+            if (type === 'view-donor') {
+                titleEl.textContent = `Detalhes de ${data.displayName}`;
+                bodyHtml = `
+                    <p><strong>Nome:</strong> ${data.displayName || 'N/A'}</p>
+                    <p><strong>E-mail:</strong> ${data.email || 'N/A'}</p>
+                    <p><strong>Telefone:</strong> ${data.phone || 'N/A'}</p>
+                    <p><strong>Endereço:</strong> ${data.address?.street || 'Não informado'}</p>
+                `;
+            } else { // view-entity
+                titleEl.textContent = `Detalhes de ${data.publicName}`;
+                bodyHtml = `
+                    <p><strong>Nome Público:</strong> ${data.publicName || 'N/A'}</p>
+                    <p><strong>Responsável:</strong> ${data.responsibleName || 'N/A'}</p>
+                    <p><strong>CNPJ:</strong> ${data.cnpj || 'N/A'}</p>
+                    <p><strong>E-mail:</strong> ${data.email || 'N/A'}</p>
+                    <p><strong>Telefone:</strong> ${data.phone || 'N/A'}</p>
+                `;
+            }
+            bodyEl.innerHTML = bodyHtml;
+            detailsModal.classList.remove('hidden');
+        }
+
+        closeItemModalBtn.addEventListener('click', () => itemDetailsModal.classList.add('hidden'));
+        closeDetailsModalBtn.addEventListener('click', () => detailsModal.classList.add('hidden'));
 
         initializeApp();
     </script>
