@@ -1,13 +1,11 @@
 {
   "rules": {
     "status": {
-      // O superadmin pode ler a lista completa de usuários online.
-      ".read": "auth.token.email === 'aldeir@gmail.com'",
+      // CORREÇÃO: Permite que qualquer pessoa (logada ou não) leia a lista de usuários online.
+      ".read": true,
       "$uid": {
         // Cada usuário só pode escrever no seu próprio status de presença.
-        ".write": "auth.uid === $uid",
-        // Ninguém além do superadmin pode ler o status individual de outro usuário.
-        ".read": "auth.uid === $uid || auth.token.email === 'aldeir@gmail.com'"
+        ".write": "auth.uid === $uid"
       }
     }
   }
