@@ -39,7 +39,6 @@
     </main>
 
     <script type="module">
-        // CORREÇÃO: 'paths' agora é importado do app-config.js
         import { db, paths, collection, query, where, onSnapshot, orderBy, writeBatch } from './app-config.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
@@ -49,10 +48,8 @@
         const notificationsList = document.getElementById('notifications-list');
         const noNotificationsPlaceholder = document.getElementById('no-notifications-placeholder');
 
-        let currentUserSession = null;
-
         async function initializeApp() {
-            currentUserSession = await getCurrentUser();
+            const currentUserSession = await getCurrentUser();
             await injectHeader(); 
 
             if (currentUserSession) {
@@ -76,8 +73,9 @@
                 notificationsView.classList.remove('hidden');
             }, (error) => {
                 console.error("Erro ao carregar notificações:", error);
-                loadingView.innerHTML = `<p class="text-red-500">Ocorreu um erro ao carregar as notificações.</p>`;
+                loadingView.classList.add('hidden');
                 notificationsView.classList.remove('hidden');
+                notificationsList.innerHTML = `<p class="p-10 text-center text-red-500">Ocorreu um erro ao carregar as notificações.</p>`;
             });
         }
 
