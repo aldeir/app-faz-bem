@@ -83,12 +83,24 @@
                 </div>
             </div>
         </div>
+
+        <!-- PAINEL: Usuários Online -->
+        <div class="mt-8 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Usuários Online Agora</h2>
+            <div class="flex items-center">
+                <span id="online-users-count" class="text-2xl font-bold text-green-600 mr-4">0</span>
+                <div id="online-users-list" class="flex -space-x-2">
+                    <!-- Fotos dos usuários online serão inseridas aqui -->
+                </div>
+            </div>
+            <p id="no-online-users" class="text-sm text-gray-500 mt-2">Nenhum usuário autenticado online no momento.</p>
+        </div>
     </main>
 
     <div id="app-modal"></div>
 
     <script type="module">
-        import { db, doc, getDoc, updateDoc, FieldValue } from './app-config.js';
+        import { db, rtdb, doc, getDoc, updateDoc, FieldValue, ref, onValue } from './app-config.js';
         import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
@@ -97,7 +109,6 @@
         const loadingView = document.getElementById('loading-view');
         const configView = document.getElementById('config-view');
         
-        // Campaign Types elements
         const campaignTypesList = document.getElementById('campaign-types-list');
         const campaignTypeForm = document.getElementById('campaign-type-form');
         const campaignFormTitle = document.getElementById('campaign-form-title');
@@ -107,12 +118,15 @@
         const cancelEditBtn = document.getElementById('cancel-edit-btn');
         const campaignTypeIdHidden = document.getElementById('campaign-type-id-hidden');
 
-        // Item Subtypes elements
         const itemTypeSelect = document.getElementById('item-type-select');
         const itemSubtypesEditor = document.getElementById('item-subtypes-editor');
         const itemSubtypesList = document.getElementById('item-subtypes-list');
         const itemSubtypeForm = document.getElementById('item-subtype-form');
         const itemSubtypeInput = document.getElementById('item-subtype-input');
+
+        const onlineUsersCount = document.getElementById('online-users-count');
+        const onlineUsersList = document.getElementById('online-users-list');
+        const noOnlineUsers = document.getElementById('no-online-users');
 
         let campaignTypesData = {};
         let itemSubtypesData = {};
@@ -125,6 +139,7 @@
                 return;
             }
             await loadConfigs();
+            listenForOnlineUsers();
             loadingView.classList.add('hidden');
             configView.classList.remove('hidden');
         }
@@ -139,6 +154,27 @@
             itemSubtypesData = itemSubtypesSnap.exists() ? itemSubtypesSnap.data() : {};
             
             renderCampaignTypes();
+        }
+
+        function listenForOnlineUsers() {
+            const statusRef = ref(rtdb, 'status');
+            onValue(statusRef, (snapshot) => {
+                const users = snapshot.val();
+                if (users) {
+                    const userList = Object.values(users);
+                    onlineUsersCount.textContent = userList.length;
+                    onlineUsersList.innerHTML = userList.slice(0, 10).map(user => `
+                        <img class="inline-block h-8 w-8 rounded-full ring-2 ring-white" 
+                             src="${user.photoURL || 'https://placehold.co/32x32/e2e8f0/cbd5e0?text=?'}" 
+                             title="${user.name}">
+                    `).join('');
+                    noOnlineUsers.classList.add('hidden');
+                } else {
+                    onlineUsersCount.textContent = '0';
+                    onlineUsersList.innerHTML = '';
+                    noOnlineUsers.classList.remove('hidden');
+                }
+            });
         }
 
         function renderCampaignTypes() {
