@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>App Faz Bem - Campanhas</title>
     
+    <!-- PWA Tags -->
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -79,7 +84,6 @@
     <div id="app-modal"></div>
 
     <script type="module">
-        // CORREÇÃO: Importa serviços do app-config e funções do firebase-services
         import { db, paths } from './app-config.js';
         import { collection, onSnapshot, query, orderBy, doc, setDoc, deleteDoc, serverTimestamp } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
@@ -208,7 +212,6 @@
 
             let statusTag = '';
             if (isClosed) {
-                // Não mostra outras tags se estiver encerrada
             } else if (campaign.status === 'upcoming') { 
                 statusTag = `<div class="absolute top-2 left-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">PRÓXIMA</div>`; 
             } else if (campaign.priority === 'high') { 
@@ -347,6 +350,19 @@
         }
 
         initializeApp();
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
