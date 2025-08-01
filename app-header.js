@@ -1,6 +1,6 @@
-// app-header.js (Versão 3.3 - Com Indicador de Usuários Online)
+// app-header.js (Versão 3.4 - Correção Definitiva do Conflito 'ref')
 
-import { db, rtdb, paths, collection, query, where, onSnapshot, ref, onValue } from './app-config.js';
+import { db, rtdb, paths, collection, query, where, onSnapshot, databaseRef, onValue } from './app-config.js';
 import { logout } from './app-config.js';
 import { getCurrentUser } from './auth-service.js';
 
@@ -21,7 +21,8 @@ function listenForOnlineUsers() {
     const onlineContainer = document.getElementById('online-users-container');
     if (!onlineContainer) return;
 
-    const statusRef = ref(rtdb, 'status');
+    // CORREÇÃO: Utiliza 'databaseRef' em vez de 'ref' para o Realtime Database
+    const statusRef = databaseRef(rtdb, 'status');
     onValue(statusRef, (snapshot) => {
         const users = snapshot.val();
         if (users) {
