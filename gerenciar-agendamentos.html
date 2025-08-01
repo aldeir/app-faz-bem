@@ -157,7 +157,6 @@
                 const campaignsSnapshot = await getDocs(campaignsQuery);
                 campaignsSnapshot.forEach(doc => campaignsMap.set(doc.id, { id: doc.id, ...doc.data() }));
 
-                // Query para buscar agendados e completados
                 const donationsQuery = query(collection(db, paths.donations), where("entityId", "==", entityId), where("status", "in", ["scheduled", "completed"]));
                 onSnapshot(donationsQuery, (snapshot) => {
                     allDonationsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -300,7 +299,6 @@
             }
         });
 
-        // --- QR Code Logic (permanece o mesmo) ---
         function startScanner() {
             if (!html5QrCode) html5QrCode = new Html5Qrcode("qr-reader-container");
             qrScannerModal.classList.remove('hidden');
@@ -399,13 +397,18 @@
         closeScannerBtn.addEventListener('click', stopScanner);
         cancelReceiveBtn.addEventListener('click', () => itemConfirmModal.classList.add('hidden'));
 
-        document.getElementById('schedules-list').addEventListener('click', async (e) => {
+        // CORREÇÃO: O listener de cliques agora é adicionado ao elemento <main>
+        schedulesView.addEventListener('click', async (e) => {
             const button = e.target.closest('[data-action]');
             if (!button) return;
 
             const action = button.dataset.action;
             if (action === 'toggle-options') {
                 const menu = button.nextElementSibling;
+                // Fecha outros menus abertos
+                document.querySelectorAll('.options-menu').forEach(m => {
+                    if (m !== menu) m.classList.add('hidden');
+                });
                 menu.classList.toggle('hidden');
             } else if (action === 'cancel-schedule') {
                 const donationId = button.dataset.donationId;
