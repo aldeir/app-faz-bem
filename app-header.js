@@ -1,4 +1,4 @@
-// app-header.js (Versão 3.7 - Arquitetura Final Corrigida)
+// app-header.js (Versão 3.8 - Arquitetura Final Corrigida)
 
 import { db, rtdb, logout } from './app-config.js';
 import { collection, query, where, onSnapshot, databaseRef, onValue } from './firebase-services.js';
@@ -98,7 +98,7 @@ export async function injectHeader() {
                 <span id="notification-indicator" class="hidden absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
             </a>
 
-            <a href="${profileLink}" class="flex items-center space-x-2 pl-2 border-l" title="Aceder ao meu perfil">
+            <a href="${profileLink}" class="flex items-center space-x-2 pl-2 border-l" title="Acessar meu perfil">
                 <span class="text-sm font-medium text-gray-700 hidden sm:block">${displayName}</span>
                 <img src="${photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200">
             </a>
