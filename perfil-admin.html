@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meu Perfil - Administrador - Faz Bem</title>
     
+    <!-- PWA Tags -->
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -87,9 +92,10 @@
     </div>
 
     <script type="module">
-        import { auth, storage, ref, uploadBytes, getDownloadURL, updateProfile } from './app-config.js';
+        import { auth, storage } from './app-config.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
+        import { storageRef, uploadBytes, getDownloadURL, updateProfile } from './firebase-services.js';
 
         const loadingView = document.getElementById('loading-view');
         const profileView = document.getElementById('profile-view');
@@ -178,9 +184,9 @@
             const canvas = cropper.getCroppedCanvas({ width: 256, height: 256, imageSmoothingQuality: 'high' });
             canvas.toBlob(async (blob) => {
                 try {
-                    const storageRef = ref(storage, `profile_photos/${currentUserSession.auth.uid}.webp`);
-                    await uploadBytes(storageRef, blob);
-                    const photoURL = await getDownloadURL(storageRef);
+                    const fileRef = storageRef(storage, `profile_photos/${currentUserSession.auth.uid}.webp`);
+                    await uploadBytes(fileRef, blob);
+                    const photoURL = await getDownloadURL(fileRef);
                     
                     await updateProfile(auth.currentUser, { photoURL: photoURL });
 
@@ -212,6 +218,19 @@
         }
 
         initializeApp();
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
