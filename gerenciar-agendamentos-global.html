@@ -75,6 +75,19 @@
         </div>
     </main>
 
+    <!-- Modal para Detalhes do Item -->
+    <div id="item-details-modal" class="hidden fixed z-50 inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center relative">
+             <button id="close-item-modal-btn" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Detalhes do Item</h3>
+            <img id="modal-item-photo" src="" class="w-full h-64 object-contain rounded-md mb-4 bg-gray-100">
+            <p id="modal-item-title" class="font-bold text-lg text-gray-900"></p>
+            <p id="modal-item-details" class="text-sm text-gray-600"></p>
+        </div>
+    </div>
+
     <div id="app-modal"></div>
 
     <script type="module">
@@ -94,6 +107,9 @@
         const pageCounter = document.getElementById('page-counter');
         const prevPageBtn = document.getElementById('prev-page-btn');
         const nextPageBtn = document.getElementById('next-page-btn');
+
+        const itemDetailsModal = document.getElementById('item-details-modal');
+        const closeItemModalBtn = document.getElementById('close-item-modal-btn');
         
         let allDonations = [];
         let donorRanking = new Map();
@@ -212,10 +228,12 @@
                         acc[d.campaignId] = {
                             campaignTitle: d.campaignTitle,
                             entityName: d.entityName,
+                            entityId: d.entityId,
                             items: []
                         };
                     }
-                    acc[d.campaignId].items.push(...d.items.map(item => ({...item, scheduledAt: d.scheduledAt, status: d.status})));
+                    // Adiciona a doação inteira para ter acesso ao ID no item
+                    acc[d.campaignId].items.push(...d.items.map((item, index) => ({...item, scheduledAt: d.scheduledAt, status: d.status, donationId: d.id, itemIndex: index})));
                     return acc;
                 }, {});
 
@@ -223,9 +241,9 @@
                     return `
                         <div class="mt-2">
                             <h3 class="font-semibold text-gray-700">
-                                <a href="detalhes.html?id=${campaignId}" class="hover:underline">${campaignData.items.length} Itens - Campanha: ${campaignData.campaignTitle}</a>
+                                <a href="detalhes.html?id=${campaignId}" target="_blank" class="hover:underline">${campaignData.items.length} Itens - Campanha: ${campaignData.campaignTitle}</a>
                             </h3>
-                            <p class="text-sm text-gray-500 mb-2">Entidade: ${campaignData.entityName || 'N/A'}</p>
+                            <p class="text-sm text-gray-500 mb-2">Entidade: <a href="#" class="hover:underline font-medium">${campaignData.entityName || 'N/A'}</a></p>
                             <ul class="list-disc list-inside pl-2 space-y-1 text-sm">
                                 ${campaignData.items.map(createItemDetailRow).join('')}
                             </ul>
@@ -233,7 +251,7 @@
                     `;
                 }).join('');
 
-                const stats = donor.donations.reduce((acc, d) => {
+                const stats = allDonations.filter(d => d.donorId === donor.donorId).reduce((acc, d) => {
                     const isOverdue = d.status === 'scheduled' && d.scheduledAt.toDate() < new Date();
                     if (d.status === 'completed') acc.completed += d.items.length;
                     else if (isOverdue) acc.overdue += d.items.length;
@@ -242,11 +260,11 @@
                 }, { completed: 0, upcoming: 0, overdue: 0 });
 
                 const rank = donorRanking.get(donor.donorId);
-                const rankHtml = rank ? `#${rank}` : 'Sem Rank';
+                const rankHtml = rank ? `#${rank}` : 'N/A';
 
                 donorSection.innerHTML = `
                     <div class="flex flex-col sm:flex-row items-start sm:items-center border-b pb-3 mb-3 gap-4">
-                        <a href="#" class="flex items-center flex-grow">
+                        <a href="gerenciar-doadores.html" target="_blank" class="flex items-center flex-grow">
                             <img src="${donor.donorPhoto || 'https://placehold.co/48x48/e2e8f0/cbd5e0?text=Foto'}" class="w-12 h-12 rounded-full object-cover border mr-4">
                             <h2 class="text-xl font-semibold text-gray-800 hover:text-green-600">${donor.donorName}</h2>
                         </a>
@@ -270,13 +288,26 @@
             const now = new Date();
 
             if (item.status === 'completed') {
+                // Futuramente, aqui exibiremos quem recebeu e quando.
                 statusHtml = `<span class="font-medium text-gray-500">Entregue em ${scheduledDate}</span>`;
             } else {
                 const isOverdue = item.scheduledAt.toDate() < now;
                 statusHtml = `<span class="font-medium ${isOverdue ? 'text-red-500' : 'text-green-600'}">${isOverdue ? 'Vencido' : 'Agendado'} para ${scheduledDate} às ${scheduledTime}</span>`;
             }
-            return `<li>${item.type} - ${statusHtml}</li>`;
+            
+            // Adiciona data-attributes para o modal
+            return `<li>
+                        <a href="#" class="hover:underline" 
+                           data-action="view-item" 
+                           data-photo="${item.photoURL}" 
+                           data-title="${item.type}" 
+                           data-details="${item.details} (${item.condition})">
+                           ${item.type}
+                        </a> - ${statusHtml}
+                    </li>`;
         }
+        
+        // --- Event Listeners ---
 
         tabsContainer.addEventListener('click', (e) => {
             const button = e.target.closest('button.tab-button');
@@ -303,6 +334,21 @@
         nextPageBtn.addEventListener('click', () => {
             currentPage++;
             filterAndRender();
+        });
+
+        listContent.addEventListener('click', (e) => {
+            const target = e.target.closest('[data-action="view-item"]');
+            if (target) {
+                e.preventDefault();
+                document.getElementById('modal-item-photo').src = target.dataset.photo;
+                document.getElementById('modal-item-title').textContent = target.dataset.title;
+                document.getElementById('modal-item-details').textContent = target.dataset.details;
+                itemDetailsModal.classList.remove('hidden');
+            }
+        });
+
+        closeItemModalBtn.addEventListener('click', () => {
+            itemDetailsModal.classList.add('hidden');
         });
 
         initializeApp();
