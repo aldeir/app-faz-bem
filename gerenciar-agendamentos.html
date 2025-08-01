@@ -83,7 +83,8 @@
     <div id="app-modal"></div>
 
     <script type="module">
-        import { db, collection, query, where, onSnapshot, doc, getDoc, runTransaction, Timestamp } from './app-config.js';
+        // CORREÇÃO: Adicionada a importação da função 'getDocs'
+        import { db, collection, query, where, onSnapshot, doc, getDoc, getDocs, runTransaction, Timestamp } from './app-config.js';
         import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
