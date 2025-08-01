@@ -96,8 +96,9 @@
         const nextPageBtn = document.getElementById('next-page-btn');
         
         let allDonations = [];
+        let donorRanking = new Map();
         let currentPage = 1;
-        const ITEMS_PER_PAGE = 10; // Itens por página (agora são doadores)
+        const ITEMS_PER_PAGE = 10;
 
         async function initializeApp() {
             await injectHeader();
@@ -110,10 +111,11 @@
         }
 
         function loadGlobalSchedules() {
-            const q = query(collection(db, paths.donations), where("status", "in", ["scheduled", "completed"]));
+            const q = query(collection(db, paths.donations));
 
             onSnapshot(q, (snapshot) => {
                 allDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                calculateRanking();
                 currentPage = 1;
                 filterAndRender();
                 loadingView.classList.add('hidden');
@@ -122,6 +124,18 @@
                 console.error("Erro ao buscar agendamentos globais:", error);
                 schedulesView.innerHTML = `<p class="text-red-500 text-center">Ocorreu um erro ao carregar os agendamentos.</p>`;
             });
+        }
+
+        function calculateRanking() {
+            const completedCounts = allDonations
+                .filter(d => d.status === 'completed')
+                .reduce((acc, d) => {
+                    acc[d.donorId] = (acc[d.donorId] || 0) + d.items.length;
+                    return acc;
+                }, {});
+            
+            const sortedDonors = Object.entries(completedCounts).sort(([, a], [, b]) => b - a);
+            donorRanking = new Map(sortedDonors.map(([donorId, count], index) => [donorId, index + 1]));
         }
 
         function filterAndRender() {
@@ -149,6 +163,7 @@
                 const donorId = donation.donorId;
                 if (!acc[donorId]) {
                     acc[donorId] = {
+                        donorId: donorId,
                         donorName: donation.donorName,
                         donorPhoto: donation.donorPhoto,
                         donations: []
@@ -192,49 +207,75 @@
                 const donorSection = document.createElement('div');
                 donorSection.className = 'bg-white rounded-lg shadow-md p-4';
                 
-                const itemsHtml = donor.donations.map(createItemCard).join('');
+                const itemsByCampaign = donor.donations.reduce((acc, d) => {
+                    if (!acc[d.campaignId]) {
+                        acc[d.campaignId] = {
+                            campaignTitle: d.campaignTitle,
+                            entityName: d.entityName,
+                            items: []
+                        };
+                    }
+                    acc[d.campaignId].items.push(...d.items.map(item => ({...item, scheduledAt: d.scheduledAt, status: d.status})));
+                    return acc;
+                }, {});
+
+                const campaignsHtml = Object.entries(itemsByCampaign).map(([campaignId, campaignData]) => {
+                    return `
+                        <div class="mt-2">
+                            <h3 class="font-semibold text-gray-700">
+                                <a href="detalhes.html?id=${campaignId}" class="hover:underline">${campaignData.items.length} Itens - Campanha: ${campaignData.campaignTitle}</a>
+                            </h3>
+                            <p class="text-sm text-gray-500 mb-2">Entidade: ${campaignData.entityName || 'N/A'}</p>
+                            <ul class="list-disc list-inside pl-2 space-y-1 text-sm">
+                                ${campaignData.items.map(createItemDetailRow).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }).join('');
+
+                const stats = donor.donations.reduce((acc, d) => {
+                    const isOverdue = d.status === 'scheduled' && d.scheduledAt.toDate() < new Date();
+                    if (d.status === 'completed') acc.completed += d.items.length;
+                    else if (isOverdue) acc.overdue += d.items.length;
+                    else acc.upcoming += d.items.length;
+                    return acc;
+                }, { completed: 0, upcoming: 0, overdue: 0 });
+
+                const rank = donorRanking.get(donor.donorId);
+                const rankHtml = rank ? `#${rank}` : 'Sem Rank';
 
                 donorSection.innerHTML = `
-                    <div class="flex items-center border-b pb-3 mb-3">
-                        <img src="${donor.donorPhoto || 'https://placehold.co/48x48/e2e8f0/cbd5e0?text=Foto'}" class="w-12 h-12 rounded-full object-cover border mr-4">
-                        <h2 class="text-xl font-semibold text-gray-800">${donor.donorName}</h2>
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center border-b pb-3 mb-3 gap-4">
+                        <a href="#" class="flex items-center flex-grow">
+                            <img src="${donor.donorPhoto || 'https://placehold.co/48x48/e2e8f0/cbd5e0?text=Foto'}" class="w-12 h-12 rounded-full object-cover border mr-4">
+                            <h2 class="text-xl font-semibold text-gray-800 hover:text-green-600">${donor.donorName}</h2>
+                        </a>
+                        <div class="flex space-x-4 text-center text-xs sm:text-sm">
+                            <div><p class="font-bold text-lg text-green-600">${stats.completed}</p><p class="text-gray-500">Recebidos</p></div>
+                            <div><p class="font-bold text-lg text-blue-600">${stats.upcoming}</p><p class="text-gray-500">Próximos</p></div>
+                            <div><p class="font-bold text-lg text-red-500">${stats.overdue}</p><p class="text-gray-500">Vencidos</p></div>
+                            <div><p class="font-bold text-lg text-yellow-500">${rankHtml}</p><p class="text-gray-500">Ranking</p></div>
+                        </div>
                     </div>
-                    <div class="space-y-2">${itemsHtml}</div>
+                    <div class="space-y-3">${campaignsHtml}</div>
                 `;
                 listContent.appendChild(donorSection);
             });
         }
 
-        function createItemCard(donation) {
-            const scheduledTime = donation.scheduledAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            const scheduledDate = donation.scheduledAt.toDate().toLocaleDateString('pt-BR');
+        function createItemDetailRow(item) {
+            const scheduledTime = item.scheduledAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const scheduledDate = item.scheduledAt.toDate().toLocaleDateString('pt-BR');
             let statusHtml = '';
             const now = new Date();
 
-            if (donation.status === 'completed') {
-                statusHtml = `<span class="font-semibold text-gray-500">Recebido</span>`;
+            if (item.status === 'completed') {
+                statusHtml = `<span class="font-medium text-gray-500">Entregue em ${scheduledDate}</span>`;
             } else {
-                const isOverdue = donation.scheduledAt.toDate() < now;
-                statusHtml = `<span class="font-semibold ${isOverdue ? 'text-red-500' : 'text-green-600'}">${isOverdue ? 'Vencido' : 'Próximo'}</span>`;
+                const isOverdue = item.scheduledAt.toDate() < now;
+                statusHtml = `<span class="font-medium ${isOverdue ? 'text-red-500' : 'text-green-600'}">${isOverdue ? 'Vencido' : 'Agendado'} para ${scheduledDate} às ${scheduledTime}</span>`;
             }
-
-            return `
-                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 rounded-md hover:bg-gray-50">
-                    <div class="flex-grow">
-                        <p class="font-medium text-gray-800">${donation.items.length} item(ns) - <span class="font-normal text-gray-600">${donation.campaignTitle}</span></p>
-                        <p class="text-sm text-gray-500">Para: <span class="font-semibold">${donation.entityName || 'N/A'}</span></p>
-                    </div>
-                    <div class="flex items-center space-x-4 text-sm w-full sm:w-auto">
-                         <div class="text-center sm:text-right w-28">
-                            <p>${scheduledDate} às ${scheduledTime}</p>
-                            <p>${statusHtml}</p>
-                         </div>
-                        <a href="detalhes.html?id=${donation.campaignId}" class="w-full sm:w-auto text-center bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">
-                            Ver Campanha
-                        </a>
-                    </div>
-                </div>
-            `;
+            return `<li>${item.type} - ${statusHtml}</li>`;
         }
 
         tabsContainer.addEventListener('click', (e) => {
