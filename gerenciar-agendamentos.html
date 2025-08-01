@@ -9,7 +9,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Biblioteca para o leitor de QR Code -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
     <style>
@@ -17,6 +16,13 @@
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #16a34a; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         #qr-reader-container { border-radius: 0.5rem; overflow: hidden; }
+        .options-menu {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            z-index: 20;
+            transition: opacity 0.2s, transform 0.2s;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -67,7 +73,8 @@
     <!-- Modal de Confirmação do Item -->
     <div id="item-confirm-modal" class="hidden fixed z-50 inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center relative">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Confirmar Recebimento</h3>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Confirmar Recebimento</h3>
+            <p id="modal-warning-message" class="text-sm text-yellow-600 bg-yellow-100 p-2 rounded-md mb-4 hidden"></p>
             <img id="modal-item-photo" src="" class="w-full h-64 object-contain rounded-md mb-4 bg-gray-100">
             <p id="modal-item-title" class="font-bold text-lg text-gray-900"></p>
             <p id="modal-item-details" class="text-sm text-gray-600"></p>
@@ -83,19 +90,18 @@
     <div id="app-modal"></div>
 
     <script type="module">
-        // CORREÇÃO: Adicionada a importação da função 'getDocs'
-        import { db, collection, query, where, onSnapshot, doc, getDoc, getDocs, runTransaction, Timestamp } from './app-config.js';
+        import { db, collection, query, where, onSnapshot, doc, getDoc, getDocs, runTransaction, Timestamp, updateDoc } from './app-config.js';
         import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
-        import { showAlertModal } from './modal-handler.js';
+        import { showAlertModal, showConfirmationModal } from './modal-handler.js';
+        import { createNotification } from './notification-service.js';
 
         const loadingView = document.getElementById('loading-view');
         const schedulesView = document.getElementById('schedules-view');
         const schedulesList = document.getElementById('schedules-list');
         const noSchedulesPlaceholder = document.getElementById('no-schedules-placeholder');
         
-        // QR Code elements
         const scanQrBtn = document.getElementById('scan-qr-btn');
         const qrScannerModal = document.getElementById('qr-scanner-modal');
         const closeScannerBtn = document.getElementById('close-scanner-btn');
@@ -202,14 +208,24 @@
                                 <p class="text-sm text-gray-500">${donation.items.length} item(ns) para entregar</p>
                             </div>
                         </div>
-                        <div class="flex items-center space-x-4 w-full sm:w-auto">
+                        <div class="flex items-center space-x-2 w-full sm:w-auto">
                              <div class="text-center sm:text-right">
                                 <p class="text-lg font-bold ${isOverdue ? 'text-red-500' : 'text-green-600'}">${scheduledTime}</p>
                                 ${isOverdue ? '<p class="text-xs font-medium text-red-500">Atrasado</p>' : ''}
                             </div>
                             <a href="receber-doacao.html?id=${donation.id}" class="w-full sm:w-auto text-center bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">
-                                Receber Manualmente
+                                Manual
                             </a>
+                            <div class="relative">
+                                <button data-action="toggle-options" class="p-2 rounded-full hover:bg-gray-200">
+                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01"></path></svg>
+                                </button>
+                                <div class="options-menu hidden origin-top-right right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                    <div class="py-1" role="menu" aria-orientation="vertical">
+                                        <a href="#" data-action="cancel-schedule" data-donation-id="${donation.id}" data-donor-id="${donation.donorId}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Cancelar Horário</a>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="p-2 ${colors.bg} flex items-center justify-center">
@@ -221,20 +237,11 @@
 
         // --- QR Code Logic ---
         function startScanner() {
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("qr-reader-container");
-            }
+            if (!html5QrCode) html5QrCode = new Html5Qrcode("qr-reader-container");
             qrScannerModal.classList.remove('hidden');
             qrScannerStatus.textContent = "Iniciando câmera...";
-            html5QrCode.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                onScanSuccess,
-                (errorMessage) => { /* ignore */ }
-            ).catch(err => {
-                qrScannerStatus.textContent = "Erro ao acessar a câmera.";
-                console.error(err);
-            });
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {})
+            .catch(err => { qrScannerStatus.textContent = "Erro ao acessar a câmera."; console.error(err); });
         }
 
         function stopScanner() {
@@ -244,26 +251,41 @@
             qrScannerModal.classList.add('hidden');
         }
 
-        function onScanSuccess(decodedText) {
-            qrScannerStatus.textContent = `Código lido: ${decodedText}`;
+        async function onScanSuccess(decodedText) {
+            qrScannerStatus.textContent = `Código lido. A processar...`;
             stopScanner();
 
             const [donationId, itemIndexStr] = decodedText.split('|');
             const itemIndex = parseInt(itemIndexStr, 10);
+            
+            const donationRef = doc(db, paths.donationDoc(donationId));
+            const donationSnap = await getDoc(donationRef);
 
-            const donation = allDonationsData.find(d => d.id === donationId);
-            if (!donation || isNaN(itemIndex) || itemIndex >= donation.items.length) {
+            if (!donationSnap.exists() || isNaN(itemIndex) || itemIndex >= donationSnap.data().items.length) {
                 showAlertModal('Erro', 'QR Code inválido ou não pertence a um agendamento ativo.');
                 return;
             }
 
+            const donation = { id: donationSnap.id, ...donationSnap.data() };
             const item = donation.items[itemIndex];
+            const campaign = campaignsMap.get(donation.campaignId);
+            
             if (item.status === 'received') {
                 showAlertModal('Aviso', 'Este item já foi recebido anteriormente.');
                 return;
             }
 
-            // Populate and show confirmation modal
+            const now = new Date();
+            const isOverdue = donation.scheduledAt.toDate() < now;
+            const isCampaignOver = campaign && campaign.expiresAt.toDate() < now;
+            const warningMessage = document.getElementById('modal-warning-message');
+            warningMessage.classList.add('hidden');
+
+            if(isOverdue || isCampaignOver) {
+                warningMessage.textContent = isCampaignOver ? 'Atenção: A campanha já encerrou.' : 'Atenção: O agendamento está vencido.';
+                warningMessage.classList.remove('hidden');
+            }
+
             document.getElementById('modal-item-photo').src = item.photoURL;
             document.getElementById('modal-item-title').textContent = item.type;
             document.getElementById('modal-item-details').textContent = `${item.details} (${item.condition})`;
@@ -290,20 +312,18 @@
                     if (!campaignDoc.exists()) throw "Campanha associada não encontrada!";
 
                     const newItems = [...currentDonation.items];
-                    if (newItems[itemIndex].status === 'received') return; // Already received, do nothing
+                    if (newItems[itemIndex].status === 'received') return;
                     
                     newItems[itemIndex].status = 'received';
                     const allItemsReceived = newItems.every(item => item.status === 'received');
                     
                     const updateData = { items: newItems };
-                    if (allItemsReceived) {
-                        updateData.status = 'completed';
-                    }
+                    if (allItemsReceived) updateData.status = 'completed';
                     
                     transaction.update(donationRef, updateData);
                     transaction.update(campaignRef, { currentAmount: (campaignDoc.data().currentAmount || 0) + 1 });
                 });
-                showAlertModal('Sucesso!', `Item "${allDonationsData.find(d=>d.id===donationId).items[itemIndex].type}" confirmado com sucesso!`);
+                showAlertModal('Sucesso!', `Item confirmado com sucesso!`);
             } catch (error) {
                 console.error("Erro na transação: ", error);
                 showAlertModal("Erro", "Não foi possível confirmar o recebimento. Tente novamente.");
@@ -313,6 +333,37 @@
         scanQrBtn.addEventListener('click', startScanner);
         closeScannerBtn.addEventListener('click', stopScanner);
         cancelReceiveBtn.addEventListener('click', () => itemConfirmModal.classList.add('hidden'));
+
+        schedulesList.addEventListener('click', async (e) => {
+            const button = e.target.closest('[data-action]');
+            if (!button) return;
+
+            const action = button.dataset.action;
+            if (action === 'toggle-options') {
+                const menu = button.nextElementSibling;
+                menu.classList.toggle('hidden');
+            } else if (action === 'cancel-schedule') {
+                const donationId = button.dataset.donationId;
+                const donorId = button.dataset.donorId;
+                const donation = allDonationsData.find(d => d.id === donationId);
+                
+                const confirmed = await showConfirmationModal('Cancelar Agendamento', `Tem certeza que deseja cancelar o agendamento de ${donation.donorName}? O doador será notificado.`);
+                if (confirmed) {
+                    try {
+                        const donationRef = doc(db, paths.donationDoc(donationId));
+                        await updateDoc(donationRef, { status: 'cancelled_by_entity' });
+                        
+                        const message = `Seu agendamento para a campanha "${donation.campaignTitle}" foi cancelado pela entidade. Por favor, acesse a área "Minhas Entregas" para reagendar.`;
+                        await createNotification(donorId, message, 'minhas-entregas.html');
+                        
+                        showAlertModal('Sucesso!', 'O agendamento foi cancelado e o doador notificado.');
+                    } catch (error) {
+                        showAlertModal('Erro', 'Não foi possível cancelar o agendamento.');
+                        console.error(error);
+                    }
+                }
+            }
+        });
 
         initializeApp();
     </script>
