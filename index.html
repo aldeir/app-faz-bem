@@ -79,13 +79,13 @@
     <div id="app-modal"></div>
 
     <script type="module">
-        import { db, collection, onSnapshot, query, orderBy, doc, setDoc, deleteDoc, serverTimestamp } from './app-config.js';
-        import { paths } from './firestore-paths.js';
+        // CORREÇÃO: Importa serviços do app-config e funções do firebase-services
+        import { db, paths } from './app-config.js';
+        import { collection, onSnapshot, query, orderBy, doc, setDoc, deleteDoc, serverTimestamp } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
-        import { getCurrentUser } from './auth-service.js'; // <-- MUDANÇA AQUI
+        import { getCurrentUser } from './auth-service.js';
         import { showAlertModal } from './modal-handler.js';
 
-        // --- Elementos do DOM ---
         const loadingContainer = document.getElementById('loading-container');
         const filterContainer = document.getElementById('filter-container');
         const campaignLists = {
@@ -97,7 +97,6 @@
             active: document.getElementById('active-campaigns-empty'),
         };
 
-        // --- Estado da Aplicação ---
         let allCampaigns = [];
         let allDonations = [];
         let allLikes = [];
@@ -105,7 +104,6 @@
         let campaignTypeSettings = {};
         let campaignsUnsubscribe, donationsUnsubscribe, likesUnsubscribe, settingsUnsubscribe;
 
-        // --- Lógica Principal ---
         async function initializeApp() {
             await injectHeader();
             currentUserSession = await getCurrentUser();
@@ -290,7 +288,6 @@
             filterContainer.innerHTML = buttonsHtml;
         }
 
-        // --- Gestão de Eventos ---
         function setupEventListeners() {
             filterContainer.addEventListener('click', (e) => {
                 const button = e.target.closest('button[data-filter]');
@@ -349,7 +346,6 @@
             }
         }
 
-        // --- Inicialização ---
         initializeApp();
     </script>
 </body>
