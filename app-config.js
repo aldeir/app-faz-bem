@@ -1,27 +1,11 @@
-// app-config.js (Versão 5.0 - Exports Explícitos e Corrigidos)
+// app-config.js (Versão 6.0 - Arquitetura Limpa)
+// Responsabilidade: Apenas inicializar o Firebase e exportar os serviços e configurações do app.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-// Auth
-import { 
-    getAuth, signOut, onAuthStateChanged, createUserWithEmailAndPassword, 
-    updateProfile, sendEmailVerification, signInWithEmailAndPassword, 
-    GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo 
-} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-// Firestore
-import { 
-    getFirestore, doc, setDoc, getDoc, serverTimestamp, deleteDoc,
-    collection, query, where, onSnapshot, getDocs, updateDoc,
-    writeBatch, FieldValue
-} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-// Storage
-import { 
-    getStorage, ref as storageRef, uploadBytes, getDownloadURL 
-} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-// Realtime Database
-import { 
-    getDatabase, ref as databaseRef, set, onDisconnect, onValue 
-} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
-
+import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+import { getDatabase } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 import { paths } from './firestore-paths.js';
 
 const firebaseConfig = {
@@ -46,21 +30,14 @@ const rtdb = getDatabase(app);
 const ADMIN_EMAIL = 'aldeir@gmail.com';
 const logout = () => signOut(auth);
 
-// Exporta tudo de forma explícita para evitar conflitos
 export {
-    // Serviços
-    app, auth, db, storage, rtdb,
-    // Constantes e Funções
-    logout, ADMIN_EMAIL, firebaseConfig, paths,
-    // Auth
-    onAuthStateChanged, createUserWithEmailAndPassword, updateProfile, 
-    sendEmailVerification, signInWithEmailAndPassword, GoogleAuthProvider, 
-    signInWithPopup, getAdditionalUserInfo,
-    // Firestore
-    doc, setDoc, getDoc, serverTimestamp, deleteDoc, collection, 
-    query, where, onSnapshot, getDocs, updateDoc, writeBatch, FieldValue,
-    // Storage (com alias)
-    storageRef, uploadBytes, getDownloadURL,
-    // Realtime DB (com alias)
-    databaseRef, set, onDisconnect, onValue
+    app,
+    auth,
+    db,
+    storage,
+    rtdb,
+    logout,
+    ADMIN_EMAIL,
+    firebaseConfig,
+    paths
 };
