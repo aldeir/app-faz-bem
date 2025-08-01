@@ -1,5 +1,5 @@
-// app-config.js (Versão 4.1 - Exports de Storage Corrigidos)
-// Responsabilidade: Apenas inicializar o Firebase e exportar os serviços.
+// app-config.js (Versão 4.2 - Exportando Paths)
+// Responsabilidade: Inicializar o Firebase e exportar todos os serviços e configurações.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -7,11 +7,10 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase
 import { getStorage } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { paths } from './firestore-paths.js';
 
-// Importa e re-exporta todas as funções necessárias para que outras páginas
-// possam importar tudo a partir de um único lugar.
+// Re-exporta todas as funções para um único ponto de acesso
 export * from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 export * from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-export * from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js"; // <-- CORREÇÃO AQUI
+export * from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
@@ -23,16 +22,13 @@ const firebaseConfig = {
     measurementId: "G-R5W1F2NXH4"
 };
 
-// Inicializa o módulo de caminhos com o ID do projeto.
 paths.init(firebaseConfig.projectId);
 
-// Inicializa e exporta os serviços principais do Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// Exporta constantes e funções utilitárias globais
 const ADMIN_EMAIL = 'aldeir@gmail.com';
 const logout = () => signOut(auth);
 
@@ -43,5 +39,6 @@ export {
     storage,
     logout,
     ADMIN_EMAIL,
-    firebaseConfig
+    firebaseConfig,
+    paths // <-- CORREÇÃO: Exporta o objeto 'paths' já inicializado
 };
