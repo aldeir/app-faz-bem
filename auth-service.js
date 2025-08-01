@@ -1,6 +1,9 @@
-// Arquivo: auth-service.js (Versão 2.0 - Com Gestão de Presença)
+// Arquivo: auth-service.js (Versão 2.1 - Corrigido com databaseRef)
 
-import { auth, db, rtdb, ADMIN_EMAIL, onAuthStateChanged, getDoc, doc, ref, set, onDisconnect, serverTimestamp } from './app-config.js';
+import { 
+    auth, db, rtdb, ADMIN_EMAIL, onAuthStateChanged, getDoc, doc, 
+    databaseRef, set, onDisconnect, serverTimestamp 
+} from './app-config.js';
 import { paths } from './firestore-paths.js';
 
 /**
@@ -9,7 +12,8 @@ import { paths } from './firestore-paths.js';
  * @param {object} profile - O perfil do usuário do Firestore.
  */
 function managePresence(user, profile) {
-    const userStatusRef = ref(rtdb, `status/${user.uid}`);
+    // CORREÇÃO: Usa 'databaseRef' que foi importado corretamente do app-config
+    const userStatusRef = databaseRef(rtdb, `status/${user.uid}`);
     
     const presenceData = {
         name: profile.displayName || user.displayName,
