@@ -71,10 +71,9 @@
     </div>
 
     <script type="module">
-        import { auth, db, storage, onAuthStateChanged, getCurrentUser, firebaseConfig } from './app-config.js';
+        import { db, storage, paths, doc, updateDoc, ref, uploadBytes, getDownloadURL } from './app-config.js';
         import { injectHeader } from './app-header.js';
-        import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+        import { getCurrentUser } from './auth-service.js';
 
         const loadingView = document.getElementById('loading-view');
         const profileView = document.getElementById('profile-view');
@@ -91,26 +90,22 @@
         const cancelCropBtn = document.getElementById('cancel-crop-btn');
         const confirmCropBtn = document.getElementById('confirm-crop-btn');
 
-        let currentUser = null;
+        let currentUserSession = null;
         let cropper;
         let croppedImageBlob = null;
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                const userSession = await getCurrentUser();
-                if (userSession?.profile?.role !== 'entidade') {
-                    window.location.href = 'index.html'; // Redireciona se não for entidade
-                    return;
-                }
-                await injectHeader();
-                loadProfileData(userSession.profile);
+        async function initializeApp() {
+            await injectHeader();
+            currentUserSession = await getCurrentUser();
+
+            if (currentUserSession && currentUserSession.profile?.role === 'entidade') {
+                loadProfileData(currentUserSession.profile);
                 loadingView.classList.add('hidden');
                 profileView.classList.remove('hidden');
             } else {
                 window.location.href = 'login.html';
             }
-        });
+        }
 
         function loadProfileData(profile) {
             document.getElementById('entity-name-display').textContent = profile.publicName || 'Nome não definido';
@@ -134,13 +129,13 @@
 
             try {
                 if (croppedImageBlob) {
-                    const fileName = `logo_${currentUser.uid}.webp`;
-                    const storageRef = ref(storage, `logos/${fileName}`);
+                    const fileName = `logos/logo_${currentUserSession.auth.uid}.webp`;
+                    const storageRef = ref(storage, fileName);
                     await uploadBytes(storageRef, croppedImageBlob);
                     dataToUpdate.logoUrl = await getDownloadURL(storageRef);
                 }
 
-                const entityDocRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/entidades`, currentUser.uid);
+                const entityDocRef = doc(db, paths.entidadeDoc(currentUserSession.auth.uid));
                 await updateDoc(entityDocRef, dataToUpdate);
                 
                 showSaveFeedback('Perfil atualizado com sucesso!', 'success');
@@ -192,6 +187,8 @@
             saveFeedback.className = `text-sm mr-4 ${type === 'success' ? 'text-green-600' : 'text-red-600'}`;
             setTimeout(() => { saveFeedback.textContent = ''; }, 4000);
         }
+
+        initializeApp();
     </script>
 </body>
 </html>
