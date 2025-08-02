@@ -166,8 +166,8 @@
         let cropper;
         let croppedImageBlob = null;
 
-        IMask(cnpjInput, { mask: '00.000.000/0000-00', lazy: false });
-        IMask(phoneInput, { mask: [ { mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' } ], lazy: false });
+        const cnpjMask = IMask(cnpjInput, { mask: '00.000.000/0000-00', lazy: false });
+        const phoneMask = IMask(phoneInput, { mask: [ { mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' } ], lazy: false });
 
         logoUploadInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -213,7 +213,8 @@
                 errorDiv.textContent = "Por favor, selecione e confirme um logotipo.";
                 errorDiv.classList.remove('hidden'); return;
             }
-            if (IMask.find(cnpjInput).unmaskedValue.length !== 14) {
+            // CORREÇÃO: Utiliza a propriedade 'unmaskedValue' da instância da máscara
+            if (cnpjMask.unmaskedValue.length !== 14) {
                 errorDiv.textContent = "O CNPJ está incompleto.";
                 errorDiv.classList.remove('hidden'); return;
             }
@@ -235,8 +236,8 @@
 
                 const profileData = {
                     publicName: document.getElementById('entity-public-name').value,
-                    cnpj: IMask.find(cnpjInput).unmaskedValue,
-                    phone: IMask.find(phoneInput).unmaskedValue,
+                    cnpj: cnpjMask.unmaskedValue,
+                    phone: phoneMask.unmaskedValue,
                     logoUrl: logoUrl,
                     description: document.getElementById('entity-description').value,
                     responsibleName: document.getElementById('responsible-name').value,
