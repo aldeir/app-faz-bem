@@ -1,6 +1,6 @@
 // Arquivo: firebase-services.js
 // Responsabilidade: Único ponto de importação para todas as funções do SDK do Firebase.
-// Resolve conflitos de nome e centraliza as dependências..
+// Resolve conflitos de nome e centraliza as dependências.
 
 // Auth
 export { 
@@ -29,7 +29,8 @@ export {
     updateDoc, 
     writeBatch, 
     FieldValue,
-    orderBy // <-- CORREÇÃO: Função 'orderBy' adicionada à lista de exportação.
+    orderBy,
+    Timestamp // <-- CORREÇÃO: Função 'Timestamp' adicionada à lista de exportação.
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Storage (com alias para 'ref')
