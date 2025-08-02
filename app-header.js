@@ -1,4 +1,4 @@
-// app-header.js (Versão 4.0 - Com Bloqueio de Segurança)
+// app-header.js (Versão 4.1 - Implementação do Portão de Segurança)
 
 import { db, rtdb, logout } from './app-config.js';
 import { collection, query, where, onSnapshot, databaseRef, onValue, sendEmailVerification } from './firebase-services.js';
@@ -38,11 +38,12 @@ function listenForOnlineUsers() {
 }
 
 function showVerificationBlock(user) {
-    const appContainer = document.getElementById('app-container');
-    if (!appContainer) return;
-
-    appContainer.innerHTML = `
-        <div class="min-h-[calc(100vh-150px)] flex items-center justify-center text-center p-4">
+    const pageContent = document.getElementById('page-content');
+    if (!pageContent) return;
+    
+    // Esconde o conteúdo principal e exibe a mensagem de verificação.
+    pageContent.innerHTML = `
+        <div class="min-h-[calc(100vh-200px)] flex items-center justify-center text-center p-4">
             <div class="max-w-md w-full bg-white p-10 rounded-xl shadow-lg">
                 <h1 class="text-2xl font-bold text-yellow-600">Verificação de E-mail Pendente</h1>
                 <p class="mt-4 text-gray-700">Enviámos um link de verificação para o seu e-mail. Por favor, clique no link para ativar a sua conta e ter acesso completo à plataforma.</p>
@@ -70,12 +71,25 @@ function showVerificationBlock(user) {
     });
 }
 
+const headerHTML = `
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <nav class="container mx-auto max-w-5xl p-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <a href="index.html" class="text-2xl font-bold text-green-600" title="Voltar para a página inicial">Faz Bem</a>
+                <div id="online-users-container" class="flex items-center pl-2 sm:pl-4 border-l border-gray-200"></div>
+            </div>
+            <div id="header-user-menu" class="flex items-center space-x-2 sm:space-x-4"></div>
+        </nav>
+    </header>
+`;
 
-const headerHTML = `...`; // O HTML do header permanece o mesmo
-
+/**
+ * Injeta o cabeçalho e atua como um portão de segurança para a página.
+ * @returns {Promise<boolean>} Retorna 'true' se o utilizador estiver verificado e a página puder carregar, 'false' caso contrário.
+ */
 export async function injectHeader() {
     const headerContainer = document.getElementById('app-header');
-    if (!headerContainer) return;
+    if (!headerContainer) return true; // Se não houver header, permite o carregamento
 
     headerContainer.innerHTML = headerHTML;
     const userMenu = document.getElementById('header-user-menu');
@@ -88,9 +102,12 @@ export async function injectHeader() {
         const { auth, profile, isVerified } = userSession;
 
         // PONTO CENTRAL DA CORREÇÃO DE SEGURANÇA
-        // Se o e-mail não foi verificado, bloqueia o conteúdo da página.
         if (!isVerified) {
             showVerificationBlock(auth);
+            // Preenche o menu do utilizador mesmo na tela de bloqueio para permitir o logout
+            userMenu.innerHTML = `<button id="header-logout-btn" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Sair</button>`;
+            document.getElementById('header-logout-btn').addEventListener('click', () => logout().then(() => window.location.href = 'login.html'));
+            return false; // **Impede o carregamento da página**
         }
         
         const photoURL = profile?.photoURL || auth.photoURL || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
@@ -132,4 +149,5 @@ export async function injectHeader() {
     } else {
         userMenu.innerHTML = `<a href="login.html" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 shadow">Entrar / Registar</a>`;
     }
+    return true; // **Permite o carregamento da página**
 }
