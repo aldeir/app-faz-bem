@@ -23,7 +23,7 @@
 
     <div id="app-header"></div>
 
-    <div id="app-container">
+    <main id="page-content">
         <div id="loading-view" class="min-h-screen flex items-center justify-center">
             <p class="text-gray-600">A carregar...</p>
         </div>
@@ -37,47 +37,47 @@
             </div>
         </div>
         
-        <div id="dashboard-view" class="hidden">
-            <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                <div class="px-4 py-6 sm:px-0">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-semibold text-gray-800">Resumo da Entidade</h2>
-                        <a href="criar-campanha.html" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">+ Criar Nova Campanha</a>
-                    </div>
+        <div id="dashboard-view" class="hidden max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <div class="px-4 py-6 sm:px-0">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-semibold text-gray-800">Resumo da Entidade</h2>
+                    <a href="criar-campanha.html" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">+ Criar Nova Campanha</a>
+                </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <div class="bg-white p-6 rounded-lg shadow">
-                            <h3 class="text-sm font-medium text-gray-500">Campanhas Ativas</h3>
-                            <p id="active-campaigns-count" class="mt-1 text-3xl font-semibold text-green-600">0</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow">
-                            <h3 class="text-sm font-medium text-gray-500">Próximas Campanhas</h3>
-                            <p id="upcoming-campaigns-count" class="mt-1 text-3xl font-semibold text-blue-600">0</p>
-                        </div>
-                        <a href="gerenciar-agendamentos.html" class="block bg-yellow-50 p-6 rounded-lg shadow border border-yellow-200 hover:shadow-md">
-                            <h3 class="text-sm font-medium text-yellow-700">Doações Agendadas</h3>
-                            <p id="scheduled-donations-count" class="mt-1 text-3xl font-semibold text-yellow-800">0</p>
-                        </a>
-                        <div class="bg-white p-6 rounded-lg shadow">
-                            <h3 class="text-sm font-medium text-gray-500">Campanhas Concluídas</h3>
-                            <p id="completed-campaigns-count" class="mt-1 text-3xl font-semibold text-gray-500">0</p>
-                        </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-sm font-medium text-gray-500">Campanhas Ativas</h3>
+                        <p id="active-campaigns-count" class="mt-1 text-3xl font-semibold text-green-600">0</p>
                     </div>
-
-                    <div class="border-b border-gray-200">
-                        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                            <a href="gerenciar-campanhas.html" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-green-500 text-green-600">Minhas Campanhas</a>
-                            <a href="gerenciar-agendamentos.html" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Gerenciar Agendamentos</a>
-                        </nav>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-sm font-medium text-gray-500">Próximas Campanhas</h3>
+                        <p id="upcoming-campaigns-count" class="mt-1 text-3xl font-semibold text-blue-600">0</p>
                     </div>
-
-                    <div id="my-campaigns-list" class="bg-white rounded-b-lg shadow-sm mt-4">
-                        <p id="my-campaigns-placeholder" class="text-gray-500 p-6">Ainda não criou nenhuma campanha.</p>
+                    <!-- CORREÇÃO: Link aponta para a nova página global -->
+                    <a href="gerenciar-agendamentos-global.html" class="block bg-yellow-50 p-6 rounded-lg shadow border border-yellow-200 hover:shadow-md">
+                        <h3 class="text-sm font-medium text-yellow-700">Doações Agendadas</h3>
+                        <p id="scheduled-donations-count" class="mt-1 text-3xl font-semibold text-yellow-800">0</p>
+                    </a>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-sm font-medium text-gray-500">Campanhas Concluídas</h3>
+                        <p id="completed-campaigns-count" class="mt-1 text-3xl font-semibold text-gray-500">0</p>
                     </div>
                 </div>
-            </main>
+
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                        <a href="gerenciar-campanhas.html" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-green-500 text-green-600">Minhas Campanhas</a>
+                        <!-- CORREÇÃO: Link aponta para a nova página global -->
+                        <a href="gerenciar-agendamentos-global.html" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Gerenciar Agendamentos</a>
+                    </nav>
+                </div>
+
+                <div id="my-campaigns-list" class="bg-white rounded-b-lg shadow-sm mt-4">
+                    <p id="my-campaigns-placeholder" class="text-gray-500 p-6">Ainda não criou nenhuma campanha.</p>
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
 
     <div id="app-modal"></div>
 
@@ -98,15 +98,16 @@
         const scheduledDonationsCount = document.getElementById('scheduled-donations-count');
 
         async function initializeApp() {
-            await injectHeader();
+            const canProceed = await injectHeader();
+            if (!canProceed) {
+                loadingView.classList.add('hidden');
+                return;
+            }
+
             const userSession = await getCurrentUser();
 
             if (userSession && userSession.profile?.role === 'entidade') {
                 const { auth, profile } = userSession;
-                if (!auth.emailVerified && auth.providerData.some(p => p.providerId === 'password')) {
-                    window.location.href = 'verificar-email.html';
-                    return;
-                }
                 
                 if (profile.status === 'ativo') {
                     loadingView.classList.add('hidden');
