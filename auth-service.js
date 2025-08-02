@@ -1,21 +1,16 @@
-// Arquivo: auth-service.js (Versão 2.2 - Arquitetura Limpa)
+// Arquivo: auth-service.js (Versão 2.3 - Com Lógica de Verificação)
 
 import { auth, db, rtdb, ADMIN_EMAIL } from './app-config.js';
 import { onAuthStateChanged, getDoc, doc, databaseRef, set, onDisconnect, serverTimestamp } from './firebase-services.js';
 import { paths } from './firestore-paths.js';
 
-/**
- * Gerencia o status de presença do usuário no Realtime Database.
- */
 function managePresence(user, profile) {
     const userStatusRef = databaseRef(rtdb, `status/${user.uid}`);
-    
     const presenceData = {
         name: profile.displayName || user.displayName,
         photoURL: profile.photoURL || user.photoURL,
         onlineAt: serverTimestamp()
     };
-
     set(userStatusRef, presenceData);
     onDisconnect(userStatusRef).remove();
 }
@@ -30,6 +25,9 @@ export const getCurrentUser = () => {
             }
 
             let profile = null;
+            // Verifica se o provedor é de senha e se o e-mail foi verificado.
+            const isPasswordProvider = user.providerData.some(p => p.providerId === 'password');
+            const isVerified = !isPasswordProvider || user.emailVerified;
 
             if (user.email === ADMIN_EMAIL) {
                 profile = {
@@ -53,9 +51,10 @@ export const getCurrentUser = () => {
 
             if (profile) {
                 managePresence(user, profile);
-                resolve({ auth: user, profile: profile });
+                // Retorna o status de verificação junto com os dados do usuário.
+                resolve({ auth: user, profile: profile, isVerified: isVerified });
             } else {
-                resolve({ auth: user, profile: null });
+                resolve({ auth: user, profile: null, isVerified: isVerified });
             }
         });
     });
