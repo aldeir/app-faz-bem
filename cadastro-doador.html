@@ -52,6 +52,17 @@
                         </button>
                     </div>
                     
+                    <!-- Campos de Endereço Opcionais -->
+                    <div class="pt-4 border-t space-y-4">
+                        <p class="text-sm text-gray-600">Endereço (opcional, para facilitar doações futuras)</p>
+                        <input id="signup-cep" type="text" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="CEP">
+                        <input id="signup-street" type="text" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Rua / Avenida">
+                        <div class="grid grid-cols-3 gap-4">
+                            <input id="signup-number" type="text" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 col-span-1" placeholder="Nº">
+                            <input id="signup-district" type="text" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 col-span-2" placeholder="Bairro">
+                        </div>
+                    </div>
+
                     <div id="signup-error" class="text-red-500 text-sm hidden pt-2"></div>
                     
                     <button type="submit" id="submit-btn" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
@@ -73,14 +84,10 @@
         const errorDiv = document.getElementById('signup-error');
         const submitBtn = document.getElementById('submit-btn');
         const phoneInput = document.getElementById('signup-phone');
+        const cepInput = document.getElementById('signup-cep');
 
-        // Aplica a máscara de telefone
-        IMask(phoneInput, {
-            mask: [
-                { mask: '(00) 0000-0000' },
-                { mask: '(00) 00000-0000' }
-            ]
-        });
+        IMask(phoneInput, { mask: [{ mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' }] });
+        IMask(cepInput, { mask: '00000-000' });
 
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -90,6 +97,13 @@
             const phone = phoneInput.value;
             const password = document.getElementById('signup-password').value;
             const passwordConfirm = document.getElementById('signup-password-confirm').value;
+
+            const address = {
+                cep: cepInput.value,
+                street: document.getElementById('signup-street').value,
+                number: document.getElementById('signup-number').value,
+                district: document.getElementById('signup-district').value,
+            };
 
             errorDiv.classList.add('hidden');
             errorDiv.textContent = '';
@@ -115,6 +129,7 @@
                     displayName: name,
                     email: user.email,
                     phone: phone,
+                    address: address,
                     role: 'doador',
                     status: 'ativo'
                 });
