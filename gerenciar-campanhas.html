@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Campanhas - Faz Bem</title>
     
+    <!-- PWA Tags -->
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,32 +25,35 @@
 
     <div id="app-header"></div>
 
-    <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
-        <div class="text-center">
-            <div class="loader mx-auto"></div>
-            <p class="mt-4 text-gray-600">A carregar campanhas...</p>
-        </div>
-    </div>
-
-    <main id="management-view" class="hidden container mx-auto max-w-7xl p-4 sm:p-6 my-8">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-800">Gerenciar Campanhas</h1>
-            <a id="back-link" href="superadmin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
-        </div>
-        
-        <div class="mb-6">
-            <input type="search" id="campaign-search-input" placeholder="Buscar por título ou nome da entidade..." class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+    <main id="page-content">
+        <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
+            <div class="text-center">
+                <div class="loader mx-auto"></div>
+                <p class="mt-4 text-gray-600">A carregar campanhas...</p>
+            </div>
         </div>
 
-        <div id="campaigns-list" class="bg-white rounded-lg shadow overflow-hidden">
-            <p id="no-campaigns-placeholder" class="hidden p-6 text-center text-gray-500">Nenhuma campanha encontrada.</p>
+        <div id="management-view" class="hidden container mx-auto max-w-7xl p-4 sm:p-6 my-8">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Gerenciar Campanhas</h1>
+                <a id="back-link" href="superadmin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
+            </div>
+            
+            <div class="mb-6">
+                <input type="search" id="campaign-search-input" placeholder="Buscar por título ou nome da entidade..." class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+            </div>
+
+            <div id="campaigns-list" class="bg-white rounded-lg shadow overflow-hidden">
+                <p id="no-campaigns-placeholder" class="hidden p-6 text-center text-gray-500">Nenhuma campanha encontrada.</p>
+            </div>
         </div>
     </main>
 
     <div id="app-modal"></div>
 
     <script type="module">
-        import { db, collection, query, where, onSnapshot, doc, updateDoc, Timestamp } from './app-config.js';
+        import { db } from './app-config.js';
+        import { collection, query, where, onSnapshot, doc, updateDoc, Timestamp } from './firebase-services.js';
         import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
@@ -62,7 +70,12 @@
         let currentUserSession = null;
 
         async function initializeApp() {
-            await injectHeader();
+            const canProceed = await injectHeader();
+            if (!canProceed) {
+                loadingView.classList.add('hidden');
+                return;
+            }
+
             currentUserSession = await getCurrentUser();
 
             if (!currentUserSession || !['superadmin', 'entidade'].includes(currentUserSession.profile?.role)) {
@@ -70,7 +83,6 @@
                 return;
             }
 
-            // Ajusta o link de "Voltar" conforme o perfil
             if (currentUserSession.profile.role === 'entidade') {
                 backLink.href = 'admin.html';
             }
@@ -81,16 +93,13 @@
         function loadCampaigns() {
             let q;
             if (currentUserSession.profile.role === 'superadmin') {
-                // Superadmin vê todas as campanhas
                 q = query(collection(db, paths.campaigns));
             } else {
-                // Entidade vê apenas as suas campanhas
                 q = query(collection(db, paths.campaigns), where("creatorId", "==", currentUserSession.auth.uid));
             }
 
             onSnapshot(q, (snapshot) => {
                 allCampaignsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                // CORREÇÃO: Torna a ordenação mais robusta contra dados ausentes
                 allCampaignsData.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
                 
                 renderCampaigns(allCampaignsData);
@@ -104,7 +113,7 @@
         }
 
         function renderCampaigns(campaigns) {
-            campaignsList.innerHTML = ''; // Limpa a lista
+            campaignsList.innerHTML = '';
             if (campaigns.length === 0) {
                 campaignsList.appendChild(noCampaignsPlaceholder);
                 noCampaignsPlaceholder.classList.remove('hidden');
@@ -123,7 +132,6 @@
             card.className = 'p-4 border-b last:border-b-0 hover:bg-gray-50';
 
             const now = new Date();
-            // CORREÇÃO: Adiciona optional chaining (?.) para evitar erro se a data for nula/indefinida
             const startDate = campaign.startsAt?.toDate();
             const endDate = campaign.expiresAt?.toDate();
 
@@ -195,6 +203,19 @@
         });
 
         initializeApp();
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
