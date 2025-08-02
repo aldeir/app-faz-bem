@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verifique seu E-mail - Faz Bem</title>
     
+    <!-- PWA Tags -->
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -19,74 +24,94 @@
 </head>
 <body class="bg-gray-100">
 
-    <div class="min-h-screen flex items-center justify-center py-12 px-4">
-        <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg text-center">
-            <div>
-                <svg class="mx-auto h-12 w-12 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                <h1 class="mt-4 text-2xl font-bold text-gray-900">Confirme seu E-mail</h1>
-                <p class="mt-2 text-gray-600">
-                    Enviamos um link de verificação para o seu e-mail. Por favor, clique no link para ativar sua conta.
-                </p>
-            </div>
-            
-            <div id="message-feedback" class="text-sm text-green-700 mt-4"></div>
+    <div id="app-header"></div>
 
-            <div class="mt-6">
-                <button id="resend-email-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
-                    Reenviar E-mail de Verificação
-                </button>
-            </div>
-            <div class="mt-4">
-                <a href="login.html" class="font-medium text-green-600 hover:text-green-500">Voltar para o Login</a>
+    <main>
+        <div class="min-h-[calc(100vh-80px)] flex items-center justify-center py-12 px-4">
+            <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg text-center">
+                <div>
+                    <svg class="mx-auto h-12 w-12 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <h1 class="mt-4 text-2xl font-bold text-gray-900">Confirme seu E-mail</h1>
+                    <p class="mt-2 text-gray-600">
+                        Enviamos um link de verificação para o seu e-mail. Por favor, clique no link para ativar sua conta.
+                    </p>
+                </div>
+                
+                <div id="message-feedback" class="text-sm text-green-700 mt-4"></div>
+
+                <div class="mt-6">
+                    <button id="resend-email-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                        Reenviar E-mail de Verificação
+                    </button>
+                </div>
+                <div class="mt-4">
+                    <a href="index.html" class="font-medium text-green-600 hover:text-green-500">Ir para a Página Principal</a>
+                </div>
             </div>
         </div>
-    </div>
+    </main>
 
-    <!-- Módulos do Firebase -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
-            authDomain: "app-faz-bem-guacui.firebaseapp.com",
-            projectId: "app-faz-bem-guacui",
-            storageBucket: "app-faz-bem-guacui.appspot.com",
-            messagingSenderId: "218995880923",
-            appId: "1:218995880923:web:ce8a371bc402904c0dedfe",
-            measurementId: "G-R5W1F2NXH4"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
+        import { auth } from './app-config.js';
+        import { onAuthStateChanged, sendEmailVerification } from './firebase-services.js';
+        import { injectHeader } from './app-header.js';
 
         const resendBtn = document.getElementById('resend-email-btn');
         const feedbackDiv = document.getElementById('message-feedback');
 
-        onAuthStateChanged(auth, (user) => {
-            if (user && user.emailVerified) {
-                // Se o usuário já verificou e acessou esta página, redireciona para o login
-                window.location.href = 'login.html';
-            }
-        });
+        async function initializeApp() {
+            await injectHeader();
+
+            onAuthStateChanged(auth, (user) => {
+                if (user && user.emailVerified) {
+                    // Se o utilizador já verificou e acedeu a esta página, redireciona para a página principal
+                    window.location.href = 'index.html';
+                } else if (!user) {
+                    // Se não houver utilizador, redireciona para o login
+                    window.location.href = 'login.html';
+                }
+                // Se o utilizador existir mas não estiver verificado, permanece nesta página.
+            });
+        }
 
         resendBtn.addEventListener('click', async () => {
             const user = auth.currentUser;
             if (user) {
                 try {
+                    resendBtn.disabled = true;
+                    resendBtn.textContent = 'Aguarde...';
                     await sendEmailVerification(user);
                     feedbackDiv.textContent = 'Um novo e-mail de verificação foi enviado!';
-                    resendBtn.disabled = true;
-                    setTimeout(() => { resendBtn.disabled = false; }, 30000); // Evita spam
+                    setTimeout(() => { 
+                        resendBtn.disabled = false;
+                        resendBtn.textContent = 'Reenviar E-mail de Verificação';
+                    }, 30000); // Evita spam
                 } catch (error) {
                     feedbackDiv.textContent = 'Erro ao reenviar e-mail: ' + error.message;
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = 'Reenviar E-mail de Verificação';
                 }
             } else {
                 feedbackDiv.textContent = 'Nenhum usuário logado para reenviar o e-mail. Por favor, faça o login novamente.';
             }
         });
+
+        initializeApp();
+    </script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
