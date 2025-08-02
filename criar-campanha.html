@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="page-title">Criar Nova Campanha - Faz Bem</title>
     
+    <!-- PWA Tags -->
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/imask"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,7 +25,9 @@
 </head>
 <body class="bg-gray-100">
 
-    <div id="app-container">
+    <div id="app-header"></div>
+
+    <main id="page-content">
         <div id="loading-view" class="min-h-screen flex items-center justify-center">
             <div class="text-center">
                 <div class="loader mx-auto"></div>
@@ -29,23 +36,12 @@
         </div>
 
         <div id="form-view" class="hidden">
-            <nav class="bg-white shadow-sm">
-                <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between h-16">
-                        <div class="flex items-center space-x-4">
-                            <span class="text-2xl font-bold text-green-600">Faz Bem</span>
-                            <span id="nav-mode-label" class="font-semibold text-gray-500">Nova Campanha</span>
-                        </div>
-                        <div class="flex items-center">
-                             <a href="javascript:history.back()" class="text-sm text-gray-500 hover:text-green-600">← Voltar</a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            <main class="max-w-5xl mx-auto py-8 px-4">
+            <div class="max-w-5xl mx-auto py-8 px-4">
                 <form id="create-campaign-form" class="bg-white p-8 rounded-xl shadow-lg" novalidate>
-                    <h3 id="form-title" class="text-2xl font-semibold mb-6 border-b pb-4">Detalhes da Campanha</h3>
+                    <div class="flex justify-between items-center mb-6 border-b pb-4">
+                        <h3 id="form-title" class="text-2xl font-semibold">Detalhes da Campanha</h3>
+                        <a href="javascript:history.back()" class="text-sm text-gray-500 hover:text-green-600">← Voltar</a>
+                    </div>
                     
                     <div id="entity-info-container" class="mb-6"></div>
 
@@ -127,18 +123,18 @@
                         </button>
                     </div>
                 </form>
-            </main>
+            </div>
         </div>
-    </div>
+    </main>
+
+    <div id="app-modal"></div>
 
     <script type="module">
-        import {
-            auth, db, storage, ADMIN_EMAIL,
-            collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, Timestamp,
-            ref, uploadBytes, getDownloadURL
-        } from './app-config.js';
-        import { paths } from './firestore-paths.js';
+        import { auth, db, storage, ADMIN_EMAIL, paths } from './app-config.js';
+        import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, Timestamp, storageRef, uploadBytes, getDownloadURL } from "./firebase-services.js";
+        import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
+        import { showAlertModal } from './modal-handler.js';
 
         const pageTitle = document.getElementById('page-title');
         const loadingView = document.getElementById('loading-view');
@@ -183,12 +179,8 @@
 
         const setupEditModeUI = () => {
             pageTitle.textContent = "Editar Campanha - Faz Bem";
-            document.getElementById('nav-mode-label').textContent = "Modo de Edição";
             document.getElementById('form-title').textContent = "Editar Detalhes da Campanha";
             document.getElementById('submit-btn-text').textContent = "Salvar Alterações";
-            // CORREÇÃO: Campos de data e duração foram re-habilitados para edição.
-            // document.getElementById('campaign-duration').disabled = true;
-            // document.getElementById('campaign-starts-at').disabled = true;
         };
 
         const showLoadingButton = (isLoading) => {
@@ -214,29 +206,19 @@
             document.getElementById('campaign-goal').value = data.goal || '';
             document.getElementById('campaign-priority').value = data.priority || 'normal';
             document.getElementById('campaign-slots').value = data.slots || '1';
-            
             if (data.startsAt) {
                 const date = data.startsAt.toDate();
-                // Formata a data para o padrão do input datetime-local (YYYY-MM-DDTHH:mm)
-                const formattedDate = date.getFullYear() + '-' + 
-                                      ('0' + (date.getMonth() + 1)).slice(-2) + '-' + 
-                                      ('0' + date.getDate()).slice(-2) + 'T' + 
-                                      ('0' + date.getHours()).slice(-2) + ':' + 
-                                      ('0' + date.getMinutes()).slice(-2);
+                const formattedDate = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + 'T' + ('0' + date.getHours()).slice(-2) + ':' + ('0' + date.getMinutes()).slice(-2);
                 document.getElementById('campaign-starts-at').value = formattedDate;
             }
-
-            // CORREÇÃO: Calcula e seleciona a duração correta no modo de edição
             if (data.startsAt && data.expiresAt) {
                 const durationInSeconds = data.expiresAt.seconds - data.startsAt.seconds;
-                // Encontra a opção mais próxima no select para evitar problemas de arredondamento
                 const durationSelect = document.getElementById('campaign-duration');
                 const closestOption = [...durationSelect.options].reduce((prev, curr) => {
                     return (Math.abs(curr.value - durationInSeconds) < Math.abs(prev.value - durationInSeconds) ? curr : prev);
                 });
                 durationSelect.value = closestOption.value;
             }
-
             cepInput.value = data.address?.cep || '';
             streetInput.value = data.address?.street || '';
             numberInput.value = data.address?.number || '';
@@ -284,7 +266,19 @@
             hoursEndSelect.innerHTML = options;
         };
 
-        const initializePage = async (userSession) => {
+        async function initializeApp() {
+            const canProceed = await injectHeader();
+            if (!canProceed) {
+                loadingView.classList.add('hidden');
+                return;
+            }
+
+            const userSession = await getCurrentUser();
+            if (!userSession || !['superadmin', 'entidade'].includes(userSession.profile?.role)) {
+                window.location.href = 'index.html';
+                return;
+            }
+
             const user = userSession.auth;
             hoursStartSelect.innerHTML = generateTimeOptions();
             updateEndTimeOptions(hoursStartSelect.value);
@@ -310,22 +304,13 @@
                 entityInfoContainer.innerHTML = `<label for="entity-selector" class="block text-sm font-medium text-gray-700 mb-2">Publicar campanha em nome de:</label><select id="entity-selector" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 bg-yellow-50">${optionsHtml}</select>`;
                 const entitySelector = document.getElementById('entity-selector');
                 if (isEditMode) { entitySelector.value = campaignDataForEdit.entityId; entitySelector.disabled = true; }
-            } else if (userSession?.profile?.role === 'entidade' && userSession.profile.status === 'ativo') {
+            } else if (userSession.profile?.status === 'ativo') {
                 renderEntityHeader(userSession.profile);
             } else {
                 alert('Acesso negado. Você precisa ser uma entidade aprovada.'); window.location.href = 'index.html'; 
             }
             loadingView.classList.add('hidden');
             formView.classList.remove('hidden');
-        };
-        
-        async function initializeApp() {
-            const userSession = await getCurrentUser();
-            if (userSession) {
-                initializePage(userSession);
-            } else {
-                window.location.href = 'login.html';
-            }
         }
 
         mediaUploadInput.addEventListener('change', (e) => {
@@ -357,19 +342,18 @@
                 let imageUrls;
                 if (campaignMediaFiles.length > 0) {
                     const uploadPromises = campaignMediaFiles.map(file => {
-                        const mediaRef = ref(storage, `campaigns/${user.uid}_${Date.now()}_${file.name}`);
-                        return uploadBytes(mediaRef, file).then(snapshot => getDownloadURL(snapshot.ref));
+                        const fileRef = storageRef(storage, `campaigns/${user.uid}_${Date.now()}_${file.name}`);
+                        return uploadBytes(fileRef, file).then(snapshot => getDownloadURL(snapshot.ref));
                     });
                     imageUrls = await Promise.all(uploadPromises);
                 }
                 let videoUrl;
                 if (campaignVideoFile) {
-                    const videoRef = ref(storage, `campaigns/${user.uid}_${Date.now()}_${campaignVideoFile.name}`);
+                    const videoRef = storageRef(storage, `campaigns/${user.uid}_${Date.now()}_${campaignVideoFile.name}`);
                     const uploadResult = await uploadBytes(videoRef, campaignVideoFile);
                     videoUrl = await getDownloadURL(uploadResult.ref); 
                 }
                 
-                // CORREÇÃO: Lê os valores de data e duração do formulário no modo de edição
                 const startsAtInput = document.getElementById('campaign-starts-at').value;
                 const durationInSeconds = parseInt(document.getElementById('campaign-duration').value, 10);
                 const startsAt = startsAtInput ? Timestamp.fromDate(new Date(startsAtInput)) : Timestamp.now();
@@ -400,7 +384,6 @@
 
                 if (isEditMode) {
                     if (videoUrl === undefined) delete dataToSave.videoUrl;
-                    // Adiciona as datas atualizadas ao objeto a ser salvo
                     dataToSave.startsAt = startsAt;
                     dataToSave.expiresAt = expiresAt;
                     dataToSave.status = status;
@@ -442,6 +425,19 @@
         });
 
         initializeApp();
+    </script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
