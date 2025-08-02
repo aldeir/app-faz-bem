@@ -60,7 +60,7 @@
 
     <script type="module">
         import { db, paths } from './app-config.js';
-        import { doc, getDoc, updateDoc, runTransaction } from "./firebase-services.js";
+        import { doc, getDoc, runTransaction } from "./firebase-services.js";
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal } from './modal-handler.js';
@@ -172,7 +172,6 @@
                     if (allItemsReceived) {
                         updateData.status = 'completed';
                     }
-                    // Adiciona quem recebeu o item
                     updateData.receivedBy = currentUserSession.auth.uid;
                     
                     transaction.update(donationRef, updateData);
