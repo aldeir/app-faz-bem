@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configurações Gerais - Faz Bem</title>
     
+    <!-- PWA Tags -->
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,88 +25,90 @@
 
     <div id="app-header"></div>
 
-    <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
-        <div class="text-center">
-            <div class="loader mx-auto"></div>
-            <p class="mt-4 text-gray-600">A carregar configurações...</p>
-        </div>
-    </div>
-
-    <main id="config-view" class="hidden container mx-auto max-w-5xl p-4 sm:p-6 my-8">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-800">Configurações Gerais</h1>
-            <a href="superadmin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
+    <main id="page-content">
+        <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
+            <div class="text-center">
+                <div class="loader mx-auto"></div>
+                <p class="mt-4 text-gray-600">A carregar configurações...</p>
+            </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Seção de Tipos de Campanha -->
-            <div class="bg-white p-6 rounded-lg shadow">
-                <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Tipos de Campanha</h2>
-                <div id="campaign-types-list" class="space-y-2 mb-6"></div>
-                <form id="campaign-type-form" class="space-y-4 pt-4 border-t">
-                    <h3 id="campaign-form-title" class="font-medium text-gray-700">Adicionar Novo Tipo</h3>
-                    <input type="hidden" id="campaign-type-id-hidden">
-                    <div>
-                        <label for="campaign-type-id" class="block text-sm font-medium text-gray-600">ID (ex: agasalho, alimento)</label>
-                        <input type="text" id="campaign-type-id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                    </div>
-                    <div>
-                        <label for="campaign-type-label" class="block text-sm font-medium text-gray-600">Rótulo (ex: Agasalhos, Alimentos)</label>
-                        <input type="text" id="campaign-type-label" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                    </div>
-                    <div>
-                        <label for="campaign-type-color" class="block text-sm font-medium text-gray-600">Cor</label>
-                        <select id="campaign-type-color" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            <option value="green">Verde</option>
-                            <option value="blue">Azul</option>
-                            <option value="yellow">Amarelo</option>
-                            <option value="red">Vermelho</option>
-                            <option value="purple">Roxo</option>
-                            <option value="gray">Cinza</option>
-                        </select>
-                    </div>
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" id="cancel-edit-btn" class="hidden px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button>
-                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Salvar Tipo</button>
-                    </div>
-                </form>
+        <div id="config-view" class="hidden container mx-auto max-w-5xl p-4 sm:p-6 my-8">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Configurações Gerais</h1>
+                <a href="superadmin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
             </div>
 
-            <!-- Seção de Tipos de Itens -->
-            <div class="bg-white p-6 rounded-lg shadow">
-                <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Tipos de Itens por Campanha</h2>
-                <div>
-                    <label for="item-type-select" class="block text-sm font-medium text-gray-600">Selecione um Tipo de Campanha para editar</label>
-                    <select id="item-type-select" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></select>
-                </div>
-                <div id="item-subtypes-editor" class="hidden mt-4">
-                    <div id="item-subtypes-list" class="space-y-2 mb-4"></div>
-                    <form id="item-subtype-form" class="flex gap-3 pt-4 border-t">
-                        <input type="text" id="item-subtype-input" placeholder="Adicionar novo tipo de item" class="flex-grow block w-full border-gray-300 rounded-md shadow-sm">
-                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Adicionar</button>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Seção de Tipos de Campanha -->
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Tipos de Campanha</h2>
+                    <div id="campaign-types-list" class="space-y-2 mb-6"></div>
+                    <form id="campaign-type-form" class="space-y-4 pt-4 border-t">
+                        <h3 id="campaign-form-title" class="font-medium text-gray-700">Adicionar Novo Tipo</h3>
+                        <input type="hidden" id="campaign-type-id-hidden">
+                        <div>
+                            <label for="campaign-type-id" class="block text-sm font-medium text-gray-600">ID (ex: agasalho, alimento)</label>
+                            <input type="text" id="campaign-type-id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="campaign-type-label" class="block text-sm font-medium text-gray-600">Rótulo (ex: Agasalhos, Alimentos)</label>
+                            <input type="text" id="campaign-type-label" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="campaign-type-color" class="block text-sm font-medium text-gray-600">Cor</label>
+                            <select id="campaign-type-color" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                <option value="green">Verde</option>
+                                <option value="blue">Azul</option>
+                                <option value="yellow">Amarelo</option>
+                                <option value="red">Vermelho</option>
+                                <option value="purple">Roxo</option>
+                                <option value="gray">Cinza</option>
+                            </select>
+                        </div>
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" id="cancel-edit-btn" class="hidden px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button>
+                            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Salvar Tipo</button>
+                        </div>
                     </form>
                 </div>
-            </div>
-        </div>
 
-        <!-- PAINEL: Usuários Online -->
-        <div class="mt-8 bg-white p-6 rounded-lg shadow">
-            <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Usuários Online Agora</h2>
-            <div class="flex items-center">
-                <span id="online-users-count" class="text-2xl font-bold text-green-600 mr-4">0</span>
-                <div id="online-users-list" class="flex -space-x-2">
-                    <!-- Fotos dos usuários online serão inseridas aqui -->
+                <!-- Seção de Tipos de Itens -->
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Tipos de Itens por Campanha</h2>
+                    <div>
+                        <label for="item-type-select" class="block text-sm font-medium text-gray-600">Selecione um Tipo de Campanha para editar</label>
+                        <select id="item-type-select" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></select>
+                    </div>
+                    <div id="item-subtypes-editor" class="hidden mt-4">
+                        <div id="item-subtypes-list" class="space-y-2 mb-4"></div>
+                        <form id="item-subtype-form" class="flex gap-3 pt-4 border-t">
+                            <input type="text" id="item-subtype-input" placeholder="Adicionar novo tipo de item" class="flex-grow block w-full border-gray-300 rounded-md shadow-sm">
+                            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Adicionar</button>
+                        </form>
+                    </div>
                 </div>
             </div>
-            <p id="no-online-users" class="text-sm text-gray-500 mt-2">Nenhum usuário autenticado online no momento.</p>
+
+            <!-- PAINEL: Usuários Online -->
+            <div class="mt-8 bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Usuários Online Agora</h2>
+                <div class="flex items-center">
+                    <span id="online-users-count" class="text-2xl font-bold text-green-600 mr-4">0</span>
+                    <div id="online-users-list" class="flex -space-x-2">
+                        <!-- Fotos dos usuários online serão inseridas aqui -->
+                    </div>
+                </div>
+                <p id="no-online-users" class="text-sm text-gray-500 mt-2">Nenhum usuário autenticado online no momento.</p>
+            </div>
         </div>
     </main>
 
     <div id="app-modal"></div>
 
     <script type="module">
-        import { db, rtdb, doc, getDoc, updateDoc, FieldValue, ref, onValue } from './app-config.js';
-        import { paths } from './firestore-paths.js';
+        import { db, rtdb, paths } from './app-config.js';
+        import { doc, getDoc, updateDoc, FieldValue, onValue, databaseRef } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         import { showConfirmationModal, showAlertModal } from './modal-handler.js';
@@ -132,7 +139,12 @@
         let itemSubtypesData = {};
 
         async function initializeApp() {
-            await injectHeader();
+            const canProceed = await injectHeader();
+            if (!canProceed) {
+                loadingView.classList.add('hidden');
+                return;
+            }
+
             const userSession = await getCurrentUser();
             if (!userSession || userSession.profile?.role !== 'superadmin') {
                 window.location.href = 'index.html';
@@ -157,7 +169,7 @@
         }
 
         function listenForOnlineUsers() {
-            const statusRef = ref(rtdb, 'status');
+            const statusRef = databaseRef(rtdb, 'status');
             onValue(statusRef, (snapshot) => {
                 const users = snapshot.val();
                 if (users) {
@@ -333,6 +345,19 @@
         });
 
         initializeApp();
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
