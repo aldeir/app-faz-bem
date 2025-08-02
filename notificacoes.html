@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minhas Notificações - Faz Bem</title>
     
+    <!-- PWA Tags -->
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,26 +25,31 @@
 
     <div id="app-header"></div>
 
-    <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
-        <div class="text-center">
-            <div class="loader mx-auto"></div>
-            <p class="mt-4 text-gray-600">A carregar notificações...</p>
+    <main id="page-content">
+        <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
+            <div class="text-center">
+                <div class="loader mx-auto"></div>
+                <p class="mt-4 text-gray-600">A carregar notificações...</p>
+            </div>
         </div>
-    </div>
 
-    <main id="notifications-view" class="hidden container mx-auto max-w-2xl p-4 sm:p-6 my-8">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-800">Minhas Notificações</h1>
-            <a href="index.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar para Início</a>
-        </div>
-        
-        <div id="notifications-list" class="bg-white rounded-lg shadow overflow-hidden">
-            <p id="no-notifications-placeholder" class="hidden p-10 text-center text-gray-500">Você não tem nenhuma notificação no momento.</p>
+        <div id="notifications-view" class="hidden container mx-auto max-w-2xl p-4 sm:p-6 my-8">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Minhas Notificações</h1>
+                <a href="index.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar para Início</a>
+            </div>
+            
+            <div id="notifications-list" class="bg-white rounded-lg shadow overflow-hidden">
+                <p id="no-notifications-placeholder" class="hidden p-10 text-center text-gray-500">Você não tem nenhuma notificação no momento.</p>
+            </div>
         </div>
     </main>
 
+    <div id="app-modal"></div>
+
     <script type="module">
-        import { db, paths, collection, query, where, onSnapshot, orderBy, writeBatch } from './app-config.js';
+        import { db, paths } from './app-config.js';
+        import { collection, query, where, onSnapshot, orderBy, writeBatch } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
 
@@ -49,9 +59,13 @@
         const noNotificationsPlaceholder = document.getElementById('no-notifications-placeholder');
 
         async function initializeApp() {
-            const currentUserSession = await getCurrentUser();
-            await injectHeader(); 
+            const canProceed = await injectHeader();
+            if (!canProceed) {
+                loadingView.classList.add('hidden');
+                return;
+            }
 
+            const currentUserSession = await getCurrentUser();
             if (currentUserSession) {
                 loadNotifications(currentUserSession.auth.uid);
             } else {
@@ -123,6 +137,19 @@
         }
 
         initializeApp();
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
