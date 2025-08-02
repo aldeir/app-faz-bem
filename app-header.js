@@ -38,7 +38,7 @@ function listenForOnlineUsers() {
 }
 
 function showVerificationBlock(user) {
-    const pageContent = document.getElementById('page-content');
+    const pageContent = document.querySelector('main'); // Seleciona o conteúdo principal da página
     if (!pageContent) return;
     
     // Esconde o conteúdo principal e exibe a mensagem de verificação.
@@ -100,7 +100,7 @@ export async function injectHeader() {
 
     if (userSession?.auth) {
         const { auth, profile, isVerified } = userSession;
-
+        
         // PONTO CENTRAL DA CORREÇÃO DE SEGURANÇA
         if (!isVerified) {
             showVerificationBlock(auth);
