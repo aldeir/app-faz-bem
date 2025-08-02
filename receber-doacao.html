@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receber Doação - Faz Bem</title>
     
+    <!-- PWA Tags -->
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,30 +26,32 @@
 
     <div id="app-header"></div>
 
-    <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
-        <p class="text-gray-600">A carregar detalhes da doação...</p>
-    </div>
+    <main id="page-content">
+        <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
+            <p class="text-gray-600">A carregar detalhes da doação...</p>
+        </div>
 
-    <main id="receive-view" class="hidden container mx-auto max-w-2xl p-4 sm:p-6 my-8">
-        <div class="bg-white rounded-xl shadow-lg p-6">
-            <a href="gerenciar-agendamentos.html" class="text-sm font-medium text-gray-600 hover:text-green-600 mb-4 inline-block">← Voltar para Agendamentos</a>
-            
-            <!-- Informações do Doador -->
-            <div id="donor-info" class="flex items-center space-x-4 pb-4 border-b"></div>
+        <div id="receive-view" class="hidden container mx-auto max-w-2xl p-4 sm:p-6 my-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <a href="gerenciar-agendamentos.html" class="text-sm font-medium text-gray-600 hover:text-green-600 mb-4 inline-block">← Voltar para Agendamentos</a>
+                
+                <!-- Informações do Doador -->
+                <div id="donor-info" class="flex items-center space-x-4 pb-4 border-b"></div>
 
-            <!-- Leitor de QR Code -->
-            <div class="my-6 text-center">
-                <div id="qr-reader" class="w-full max-w-sm mx-auto my-4"></div>
-                <div id="qr-reader-results" class="text-sm font-medium h-6"></div>
-                <button id="start-scan-btn" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700">
-                    Ativar Leitor de QR Code
-                </button>
-            </div>
+                <!-- Leitor de QR Code -->
+                <div class="my-6 text-center">
+                    <div id="qr-reader" class="w-full max-w-sm mx-auto my-4"></div>
+                    <div id="qr-reader-results" class="text-sm font-medium h-6"></div>
+                    <button id="start-scan-btn" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700">
+                        Ativar Leitor de QR Code
+                    </button>
+                </div>
 
-            <!-- Lista de Itens -->
-            <div>
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Itens da Doação</h2>
-                <div id="items-list" class="space-y-3"></div>
+                <!-- Lista de Itens -->
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Itens da Doação</h2>
+                    <div id="items-list" class="space-y-3"></div>
+                </div>
             </div>
         </div>
     </main>
@@ -52,10 +59,10 @@
     <div id="app-modal"></div>
 
     <script type="module">
-        import { auth, db, onAuthStateChanged, firebaseConfig } from './app-config.js';
-        // Importa runTransaction para a nova lógica
-        import { doc, getDoc, updateDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { db, paths } from './app-config.js';
+        import { doc, getDoc, updateDoc, runTransaction } from "./firebase-services.js";
         import { injectHeader } from './app-header.js';
+        import { getCurrentUser } from './auth-service.js';
         import { showAlertModal } from './modal-handler.js';
 
         const loadingView = document.getElementById('loading-view');
@@ -68,10 +75,17 @@
         let donationId = null;
         let donationData = null;
         let html5QrCode = null;
+        let currentUserSession = null;
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                injectHeader();
+        async function initializeApp() {
+            const canProceed = await injectHeader();
+            if (!canProceed) {
+                loadingView.classList.add('hidden');
+                return;
+            }
+            
+            currentUserSession = await getCurrentUser();
+            if (currentUserSession && currentUserSession.profile?.role === 'entidade') {
                 const params = new URLSearchParams(window.location.search);
                 donationId = params.get('id');
                 if (!donationId) {
@@ -82,10 +96,10 @@
             } else {
                 window.location.href = 'login.html';
             }
-        });
+        }
 
         async function loadDonationDetails() {
-            const donationRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`, donationId);
+            const donationRef = doc(db, paths.donationDoc(donationId));
             const docSnap = await getDoc(donationRef);
 
             if (docSnap.exists()) {
@@ -139,45 +153,40 @@
                 return;
             }
 
-            const donationRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/donations`, donationId);
-            const campaignRef = doc(db, `/artifacts/${firebaseConfig.projectId}/public/data/campaigns`, donationData.campaignId);
+            const donationRef = doc(db, paths.donationDoc(donationId));
+            const campaignRef = doc(db, paths.campaignDoc(donationData.campaignId));
 
             try {
-                // Usa uma transação para garantir que ambas as atualizações aconteçam ou nenhuma aconteça.
                 await runTransaction(db, async (transaction) => {
                     const campaignDoc = await transaction.get(campaignRef);
-                    if (!campaignDoc.exists()) {
-                        throw "Campanha não encontrada!";
-                    }
+                    if (!campaignDoc.exists()) throw "Campanha não encontrada!";
 
-                    // 1. Incrementa a contagem de itens recebidos na campanha
                     const newAmount = (campaignDoc.data().currentAmount || 0) + 1;
                     transaction.update(campaignRef, { currentAmount: newAmount });
 
-                    // 2. Atualiza o status do item na doação
                     const newItems = [...donationData.items];
                     newItems[itemIndex].status = 'received';
                     
-                    // 3. Verifica se todos os itens foram recebidos para concluir a doação
                     const allItemsReceived = newItems.every(item => item.status === 'received');
+                    const updateData = { items: newItems };
                     if (allItemsReceived) {
-                        transaction.update(donationRef, { items: newItems, status: 'completed' });
-                    } else {
-                        transaction.update(donationRef, { items: newItems });
+                        updateData.status = 'completed';
                     }
+                    // Adiciona quem recebeu o item
+                    updateData.receivedBy = currentUserSession.auth.uid;
+                    
+                    transaction.update(donationRef, updateData);
                 });
 
-                // Atualiza o estado local para refletir a mudança na UI
                 donationData.items[itemIndex].status = 'received';
                 renderItemsList();
                 qrReaderResults.textContent = `Item "${donationData.items[itemIndex].type}" confirmado!`;
                 qrReaderResults.className = "text-sm font-medium h-6 text-green-600";
                 
-                // Checa se a doação foi concluída no estado local
                 if (donationData.items.every(item => item.status === 'received')) {
                     donationData.status = 'completed';
                     await showAlertModal("Doação Concluída!", "Todos os itens foram recebidos. Esta doação foi marcada como concluída.");
-                    if (html5QrCode) {
+                    if (html5QrCode && html5QrCode.isScanning) {
                         html5QrCode.stop().catch(err => console.error("Erro ao parar o scanner.", err));
                     }
                     window.location.href = 'gerenciar-agendamentos.html';
@@ -235,6 +244,20 @@
             });
         });
 
+        initializeApp();
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
