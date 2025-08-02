@@ -45,13 +45,13 @@
 
     <div id="app-header"></div>
 
-    <div class="container mx-auto max-w-4xl p-4 sm:p-6">
-        <header class="text-center my-8">
-            <h1 class="text-4xl sm:text-5xl font-bold text-green-600">Faz Bem</h1>
-            <p class="text-lg text-gray-600 mt-2">Conectando corações e transformando vidas em Guaçuí-ES.</p>
-        </header>
+    <main id="page-content">
+        <div class="container mx-auto max-w-4xl p-4 sm:p-6">
+            <header class="text-center my-8">
+                <h1 class="text-4xl sm:text-5xl font-bold text-green-600">Faz Bem</h1>
+                <p class="text-lg text-gray-600 mt-2">Conectando corações e transformando vidas em Guaçuí-ES.</p>
+            </header>
 
-        <main>
             <div id="filter-container" class="flex flex-wrap justify-center gap-2 mb-8"></div>
             
             <div id="active-campaigns-section">
@@ -60,12 +60,12 @@
                 <p id="active-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha ativa no momento.</p>
             </div>
 
-            <div id="upcoming-campaigns-section" class="campaign-section">
+            <div id="upcoming-campaigns-section" class="mt-10">
                 <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b-2 border-blue-200 pb-2">Próximas Campanhas</h2>
                 <div id="upcoming-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
             </div>
 
-            <div id="recent-campaigns-section" class="campaign-section">
+            <div id="recent-campaigns-section" class="mt-10">
                 <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b-2 border-gray-300 pb-2">Campanhas Recentes</h2>
                 <div id="recent-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
             </div>
@@ -74,12 +74,12 @@
                 <div class="loader mx-auto"></div>
                 <p class="mt-4 text-gray-600">A carregar campanhas...</p>
             </div>
-        </main>
 
-        <footer class="text-center mt-12 py-4 border-t">
-            <p class="text-gray-500">&copy; 2025 App Faz Bem. Uma iniciativa comunitária.</p>
-        </footer>
-    </div>
+            <footer class="text-center mt-12 py-4 border-t">
+                <p class="text-gray-500">&copy; 2025 App Faz Bem. Uma iniciativa comunitária.</p>
+            </footer>
+        </div>
+    </main>
     
     <div id="app-modal"></div>
 
@@ -109,12 +109,17 @@
         let campaignsUnsubscribe, donationsUnsubscribe, likesUnsubscribe, settingsUnsubscribe;
 
         async function initializeApp() {
-            await injectHeader();
+            const canProceed = await injectHeader();
+            if (!canProceed) {
+                loadingContainer.classList.add('hidden');
+                return;
+            };
+
             currentUserSession = await getCurrentUser();
             setupDataListeners();
             setupEventListeners();
         }
-
+        
         function setupDataListeners() {
             const settingsRef = doc(db, paths.configDoc('campaignTypes'));
 
@@ -154,7 +159,7 @@
 
         function renderUI() {
             if (allCampaigns.length === 0 || Object.keys(campaignTypeSettings).length === 0) {
-                 if (loadingContainer.style.display !== 'none') return;
+                 if (loadingContainer.style.display !== 'none' && campaignsUnsubscribe) return;
             }
             
             loadingContainer.style.display = 'none';
@@ -356,7 +361,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js').then(registration => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
                     console.log('ServiceWorker registration successful with scope: ', registration.scope);
                 }, err => {
                     console.log('ServiceWorker registration failed: ', err);
