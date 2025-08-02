@@ -30,7 +30,8 @@ export {
     writeBatch, 
     FieldValue,
     orderBy,
-    Timestamp // <-- CORREÇÃO: Função 'Timestamp' adicionada à lista de exportação.
+    Timestamp,
+    addDoc // <-- CORREÇÃO: Função 'addDoc' adicionada à lista de exportação.
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Storage (com alias para 'ref')
