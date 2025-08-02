@@ -109,12 +109,8 @@
         let campaignsUnsubscribe, donationsUnsubscribe, likesUnsubscribe, settingsUnsubscribe;
 
         async function initializeApp() {
-            const canProceed = await injectHeader();
-            if (!canProceed) {
-                loadingContainer.classList.add('hidden');
-                return;
-            };
-
+            // O cabeçalho é injetado, mas não bloqueia a página (lógica dentro do injectHeader)
+            await injectHeader();
             currentUserSession = await getCurrentUser();
             setupDataListeners();
             setupEventListeners();
@@ -322,6 +318,10 @@
                     showAlertModal("Ação necessária", "Você precisa estar logado para curtir.");
                     return;
                 }
+                if (!currentUserSession.isVerified) {
+                    showAlertModal("Verifique seu E-mail", "Você precisa verificar seu e-mail para poder curtir. Verifique sua caixa de entrada ou o banner no topo da página.");
+                    return;
+                }
                 const campaignId = likeButton.dataset.campaignId;
                 const donorId = likeButton.dataset.donorId;
                 const likerId = currentUserSession.auth.uid;
@@ -345,11 +345,13 @@
                 const campaignId = card.dataset.id;
                 if (!campaignId) return;
 
-                if (currentUserSession?.auth) {
-                    window.location.href = `detalhes.html?id=${campaignId}`;
-                } else {
+                if (!currentUserSession?.auth) {
                     const destination = `detalhes.html?id=${campaignId}`;
                     window.location.href = `login.html?redirect=${encodeURIComponent(destination)}`;
+                } else if (!currentUserSession.isVerified) {
+                    window.location.href = 'verificar-email.html';
+                } else {
+                    window.location.href = `detalhes.html?id=${campaignId}`;
                 }
             }
         }
