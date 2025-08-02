@@ -31,7 +31,8 @@ export {
     FieldValue,
     orderBy,
     Timestamp,
-    addDoc // <-- CORREÇÃO: Função 'addDoc' adicionada à lista de exportação.
+    addDoc,
+    runTransaction // <-- CORREÇÃO: Função 'runTransaction' adicionada à lista de exportação.
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Storage (com alias para 'ref')
