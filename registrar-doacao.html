@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrar Doação - Faz Bem</title>
     
+    <!-- PWA Tags -->
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,109 +28,87 @@
 
     <div id="app-header"></div>
 
-    <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
-        <div class="text-center">
-            <div class="loader mx-auto !w-10 !h-10 !border-4"></div>
-            <p class="mt-4 text-gray-600">A carregar informações...</p>
-        </div>
-    </div>
-
-    <main id="donation-view" class="hidden container mx-auto max-w-4xl p-4 sm:p-6 my-8">
-        <!-- Campaign Header -->
-        <div id="campaign-header" class="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex items-center space-x-4 mb-8 border-l-4 border-green-500"></div>
-
-        <!-- Items Section -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <h2 class="text-xl font-bold text-gray-800">1. Itens para Doar</h2>
-            <div id="donated-items-list" class="mt-4 space-y-4">
-                <p id="no-items-placeholder" class="text-center text-gray-500 py-4 bg-gray-50 rounded-md">Nenhum item adicionado ainda.</p>
+    <main id="page-content">
+        <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
+            <div class="text-center">
+                <div class="loader mx-auto !w-10 !h-10 !border-4"></div>
+                <p class="mt-4 text-gray-600">A carregar informações...</p>
             </div>
-            <div class="mt-6 pt-6 border-t">
-                <h3 class="text-lg font-medium text-gray-900">Adicionar Novo Item</h3>
-                <form id="add-item-form" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                    <select id="item-subtype" class="border-gray-300 rounded-md shadow-sm w-full col-span-1 md:col-span-2"><option value="">Selecione o item...</option></select>
-                    <input type="text" id="item-other-subtype" placeholder="Descreva o item específico" class="hidden border-gray-300 rounded-md shadow-sm w-full col-span-1 md:col-span-2">
-                    <input type="text" id="item-details" placeholder="Detalhes (ex: Tamanho G, azul)" class="border-gray-300 rounded-md shadow-sm">
-                    <select id="item-condition" class="border-gray-300 rounded-md shadow-sm"><option value="novo">Novo</option><option value="usado">Usado</option></select>
-                    <div class="col-span-1 md:col-span-2">
-                        <label for="item-photo" class="text-sm font-medium text-gray-700">Foto do Item (obrigatório)</label>
-                        <input type="file" id="item-photo" accept="image/*" required class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+        </div>
+
+        <div id="donation-view" class="hidden container mx-auto max-w-4xl p-4 sm:p-6 my-8">
+            <!-- Campaign Header -->
+            <div id="campaign-header" class="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex items-center space-x-4 mb-8 border-l-4 border-green-500"></div>
+
+            <!-- Items Section -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <h2 class="text-xl font-bold text-gray-800">1. Itens para Doar</h2>
+                <div id="donated-items-list" class="mt-4 space-y-4">
+                    <p id="no-items-placeholder" class="text-center text-gray-500 py-4 bg-gray-50 rounded-md">Nenhum item adicionado ainda.</p>
+                </div>
+                <div class="mt-6 pt-6 border-t">
+                    <h3 class="text-lg font-medium text-gray-900">Adicionar Novo Item</h3>
+                    <form id="add-item-form" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                        <select id="item-subtype" class="border-gray-300 rounded-md shadow-sm w-full col-span-1 md:col-span-2"><option value="">Selecione o item...</option></select>
+                        <input type="text" id="item-other-subtype" placeholder="Descreva o item específico" class="hidden border-gray-300 rounded-md shadow-sm w-full col-span-1 md:col-span-2">
+                        <input type="text" id="item-details" placeholder="Detalhes (ex: Tamanho G, azul)" class="border-gray-300 rounded-md shadow-sm">
+                        <select id="item-condition" class="border-gray-300 rounded-md shadow-sm"><option value="novo">Novo</option><option value="usado">Usado</option></select>
+                        <div class="col-span-1 md:col-span-2">
+                            <label for="item-photo" class="text-sm font-medium text-gray-700">Foto do Item (obrigatório)</label>
+                            <input type="file" id="item-photo" accept="image/*" required class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                        </div>
+                    </form>
+                    <div id="add-item-error" class="text-red-600 text-sm font-semibold mt-3"></div>
+                    <button id="add-item-btn" class="mt-4 bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">Adicionar Item à Lista</button>
+                </div>
+            </div>
+
+            <!-- Schedule Section -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <h2 class="text-xl font-bold text-gray-800">2. Agendar Entrega</h2>
+                <p class="text-sm text-gray-600 mt-1">Selecione um dia e, em seguida, um horário disponível para levar sua doação.</p>
+                
+                <div class="mt-4 space-y-4">
+                    <div>
+                        <label for="schedule-date-select" class="block text-sm font-medium text-gray-700">Selecione o dia</label>
+                        <select id="schedule-date-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+                            <option>Carregando dias disponíveis...</option>
+                        </select>
                     </div>
-                </form>
-                <div id="add-item-error" class="text-red-600 text-sm font-semibold mt-3"></div>
-                <button id="add-item-btn" class="mt-4 bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">Adicionar Item à Lista</button>
+                    <div id="schedule-slots-container" class="hidden">
+                        <p class="block text-sm font-medium text-gray-700">Selecione o horário</p>
+                        <div id="schedule-slots-grid" class="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
+                            <!-- Os horários serão inseridos aqui -->
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <!-- Schedule Section -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <h2 class="text-xl font-bold text-gray-800">2. Agendar Entrega</h2>
-            <p class="text-sm text-gray-600 mt-1">Selecione um dia e, em seguida, um horário disponível para levar sua doação.</p>
+            <!-- Privacy Section -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <h2 class="text-xl font-bold text-gray-800">3. Privacidade</h2>
+                <div class="mt-2 flex items-center space-x-8">
+                    <label class="flex items-center cursor-pointer"><input type="radio" name="privacy" value="public" checked class="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500"><span class="ml-2 text-gray-700">Pública (mostrar minha foto de perfil na campanha)</span></label>
+                    <label class="flex items-center cursor-pointer"><input type="radio" name="privacy" value="anonymous" class="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500"><span class="ml-2 text-gray-700">Anônima</span></label>
+                </div>
+            </div>
             
-            <div class="mt-4 space-y-4">
-                <div>
-                    <label for="schedule-date-select" class="block text-sm font-medium text-gray-700">Selecione o dia</label>
-                    <select id="schedule-date-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
-                        <option>Carregando dias disponíveis...</option>
-                    </select>
-                </div>
-                <div id="schedule-slots-container" class="hidden">
-                    <p class="block text-sm font-medium text-gray-700">Selecione o horário</p>
-                    <div id="schedule-slots-grid" class="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
-                        <!-- Os horários serão inseridos aqui -->
-                    </div>
-                </div>
-            </div>
-        </div>
+            <div id="form-error" class="text-red-600 text-center font-semibold mb-4"></div>
 
-        <!-- Privacy Section -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <h2 class="text-xl font-bold text-gray-800">3. Privacidade</h2>
-            <div class="mt-2 flex items-center space-x-8">
-                <label class="flex items-center cursor-pointer"><input type="radio" name="privacy" value="public" checked class="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500"><span class="ml-2 text-gray-700">Pública (mostrar minha foto de perfil na campanha)</span></label>
-                <label class="flex items-center cursor-pointer"><input type="radio" name="privacy" value="anonymous" class="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500"><span class="ml-2 text-gray-700">Anônima</span></label>
+            <div class="flex justify-end">
+                <button id="submit-donation-btn" class="bg-green-600 text-white font-bold py-4 px-10 rounded-lg text-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed inline-flex items-center">
+                    <span id="submit-btn-text">Confirmar Minha Doação</span>
+                    <div id="submit-btn-spinner" class="hidden loader !w-6 !h-6 !border-2 ml-3"></div>
+                </button>
             </div>
-        </div>
-        
-        <div id="form-error" class="text-red-600 text-center font-semibold mb-4"></div>
-
-        <div class="flex justify-end">
-            <button id="submit-donation-btn" class="bg-green-600 text-white font-bold py-4 px-10 rounded-lg text-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed inline-flex items-center">
-                <span id="submit-btn-text">Confirmar Minha Doação</span>
-                <div id="submit-btn-spinner" class="hidden loader !w-6 !h-6 !border-2 ml-3"></div>
-            </button>
         </div>
     </main>
 
-    <!-- CORREÇÃO: Estrutura HTML completa do modal adicionada -->
-    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
-                            <div class="mt-2">
-                                <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
-            </div>
-        </div>
-    </div>
+    <div id="app-modal"></div>
 
     <script type="module">
-        import { db, storage, ref, uploadBytes, getDownloadURL, doc, getDoc, collection, addDoc, Timestamp, query, where, getDocs } from './app-config.js';
-        import { paths } from './firestore-paths.js';
+        import { db, storage, paths } from './app-config.js';
+        import { doc, getDoc, collection, addDoc, Timestamp, query, where, getDocs, storageRef, uploadBytes, getDownloadURL } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal } from './modal-handler.js';
@@ -155,7 +138,12 @@
         let existingAppointments = {};
 
         async function initializeApp() {
-            await injectHeader();
+            const canProceed = await injectHeader();
+            if (!canProceed) {
+                loadingView.classList.add('hidden');
+                return;
+            }
+
             currentUserSession = await getCurrentUser();
 
             if (currentUserSession) {
@@ -262,7 +250,7 @@
             let optionsHtml = '<option value="">Selecione uma data</option>';
             let daysFound = 0;
 
-            while (currentDate <= campaignEnd && daysFound < 30) { // Limita a 30 dias para performance
+            while (currentDate <= campaignEnd && daysFound < 30) {
                 const dateValue = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
                 const dateLabel = currentDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
                 optionsHtml += `<option value="${dateValue}">${dateLabel}</option>`;
@@ -378,7 +366,7 @@
 
                 const uploadedItems = await Promise.all(donatedItems.map(async (item) => {
                     const filePath = `donated_items/${userId}/${Date.now()}_${item.photoFile.name}`;
-                    const fileRef = ref(storage, filePath);
+                    const fileRef = storageRef(storage, filePath);
                     const snapshot = await uploadBytes(fileRef, item.photoFile);
                     const photoURL = await getDownloadURL(snapshot.ref);
                     return { type: item.type, details: item.details, condition: item.condition, photoURL: photoURL, status: 'pending' };
@@ -414,6 +402,19 @@
         });
 
         initializeApp();
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
