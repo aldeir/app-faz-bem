@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minhas Entregas - Faz Bem</title>
     
+    <!-- PWA Tags -->
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,18 +27,19 @@
 
     <div id="app-header"></div>
 
-    <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
-        <div class="text-center">
-            <div class="loader mx-auto !w-10 !h-10 !border-4"></div>
-            <p class="mt-4 text-gray-600">A carregar suas entregas...</p>
+    <main id="page-content">
+        <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
+            <div class="text-center">
+                <div class="loader mx-auto !w-10 !h-10 !border-4"></div>
+                <p class="mt-4 text-gray-600">A carregar suas entregas...</p>
+            </div>
         </div>
-    </div>
 
-    <main id="deliveries-view" class="hidden container mx-auto max-w-4xl p-4 sm:p-6 my-8">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6">Minhas Entregas Agendadas</h1>
-        <div id="deliveries-list" class="space-y-8">
-            <!-- As doações serão inseridas aqui -->
-            <p id="no-deliveries-placeholder" class="text-center text-gray-500 py-10 bg-white rounded-lg shadow">Você não possui nenhuma entrega agendada no momento.</p>
+        <div id="deliveries-view" class="hidden container mx-auto max-w-4xl p-4 sm:p-6 my-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Minhas Entregas Agendadas</h1>
+            <div id="deliveries-list" class="space-y-8">
+                <p id="no-deliveries-placeholder" class="text-center text-gray-500 py-10 bg-white rounded-lg shadow">Você não possui nenhuma entrega agendada no momento.</p>
+            </div>
         </div>
     </main>
 
@@ -51,34 +57,39 @@
     </div>
 
     <script type="module">
-        import { auth, db, onAuthStateChanged, firebaseConfig } from './app-config.js';
-        import { collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { db, paths } from './app-config.js';
+        import { collection, query, where, onSnapshot } from "./firebase-services.js";
         import { injectHeader } from './app-header.js';
+        import { getCurrentUser } from './auth-service.js';
 
         const loadingView = document.getElementById('loading-view');
         const deliveriesView = document.getElementById('deliveries-view');
         const deliveriesList = document.getElementById('deliveries-list');
         const noDeliveriesPlaceholder = document.getElementById('no-deliveries-placeholder');
         
-        // Elementos do Modal
         const itemFocusModal = document.getElementById('item-focus-modal');
         const closeModalBtn = document.getElementById('close-modal-btn');
         const modalItemTitle = document.getElementById('modal-item-title');
         const modalItemPhoto = document.getElementById('modal-item-photo');
         const modalItemQrcode = document.getElementById('modal-item-qrcode');
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                injectHeader();
-                loadUserDeliveries(user.uid);
+        async function initializeApp() {
+            const canProceed = await injectHeader();
+            if (!canProceed) {
+                loadingView.classList.add('hidden');
+                return;
+            }
+
+            const userSession = await getCurrentUser();
+            if (userSession) {
+                loadUserDeliveries(userSession.auth.uid);
             } else {
                 window.location.href = 'login.html';
             }
-        });
+        }
 
         function loadUserDeliveries(userId) {
-            const donationsColPath = `/artifacts/${firebaseConfig.projectId}/public/data/donations`;
-            const q = query(collection(db, donationsColPath), where("donorId", "==", userId), where("status", "==", "scheduled"));
+            const q = query(collection(db, paths.donations), where("donorId", "==", userId), where("status", "==", "scheduled"));
 
             onSnapshot(q, (snapshot) => {
                 if (snapshot.empty) {
@@ -116,7 +127,6 @@
             let itemsHtml = '';
             donation.items.forEach((item, index) => {
                 const qrId = `qr-${donation.id}-${index}`;
-                // Adiciona data attributes para o modal e uma classe para o evento de clique
                 itemsHtml += `
                     <div class="item-card flex items-center space-x-4 p-3 bg-gray-50 rounded-md border cursor-pointer transition-all" 
                          data-donation-id="${donation.id}" 
@@ -161,7 +171,6 @@
             element.innerHTML = qr.createImgTag(size, 4);
         }
 
-        // --- Lógica do Modal ---
         deliveriesList.addEventListener('click', (e) => {
             const itemCard = e.target.closest('.item-card');
             if (!itemCard) return;
@@ -171,7 +180,6 @@
             modalItemTitle.textContent = itemTitle;
             modalItemPhoto.src = itemPhoto;
             
-            // Gera um QR Code maior para o modal
             modalItemQrcode.innerHTML = '';
             generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`, 8);
 
@@ -182,13 +190,26 @@
             itemFocusModal.classList.add('hidden');
         });
 
-        // Fecha o modal se clicar fora dele
         itemFocusModal.addEventListener('click', (e) => {
             if (e.target === itemFocusModal) {
                 itemFocusModal.classList.add('hidden');
             }
         });
 
+        initializeApp();
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
