@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visão Global de Agendamentos - Faz Bem</title>
     
+    <!-- PWA Tags -->
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,49 +34,51 @@
 
     <div id="app-header"></div>
 
-    <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
-        <div class="text-center">
-            <div class="loader mx-auto"></div>
-            <p class="mt-4 text-gray-600">A carregar todos os agendamentos...</p>
-        </div>
-    </div>
-
-    <main id="schedules-view" class="hidden container mx-auto max-w-5xl p-4 sm:p-6 my-8">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-800">Visão Global de Agendamentos</h1>
-            <a href="superadmin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
-        </div>
-        
-        <div class="mb-6">
-            <input type="search" id="search-input" placeholder="Buscar por doador, campanha ou entidade..." class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+    <main id="page-content">
+        <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
+            <div class="text-center">
+                <div class="loader mx-auto"></div>
+                <p class="mt-4 text-gray-600">A carregar todos os agendamentos...</p>
+            </div>
         </div>
 
-        <!-- Abas de Navegação -->
-        <div class="border-b border-gray-200 mb-6">
-            <nav id="tabs-container" class="-mb-px flex space-x-8" aria-label="Tabs">
-                <button data-tab="all" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Todos</button>
-                <button data-tab="upcoming" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Próximos</button>
-                <button data-tab="overdue" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Vencidos</button>
-                <button data-tab="completed" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Recebidos</button>
-            </nav>
-        </div>
-        
-        <!-- Conteúdo das Abas -->
-        <div id="list-content" class="space-y-6"></div>
+        <div id="schedules-view" class="hidden container mx-auto max-w-5xl p-4 sm:p-6 my-8">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Visão Global de Agendamentos</h1>
+                <a href="superadmin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
+            </div>
+            
+            <div class="mb-6">
+                <input type="search" id="search-input" placeholder="Buscar por doador, campanha ou entidade..." class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+            </div>
 
-        <div id="no-schedules-placeholder" class="hidden text-center text-gray-500 py-10 bg-white rounded-lg shadow">
-            <p>Nenhuma doação encontrada para esta categoria.</p>
-        </div>
+            <!-- Abas de Navegação -->
+            <div class="border-b border-gray-200 mb-6">
+                <nav id="tabs-container" class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button data-tab="all" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Todos</button>
+                    <button data-tab="upcoming" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Próximos</button>
+                    <button data-tab="overdue" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Vencidos</button>
+                    <button data-tab="completed" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Recebidos</button>
+                </nav>
+            </div>
+            
+            <!-- Conteúdo das Abas -->
+            <div id="list-content" class="space-y-6"></div>
 
-        <!-- Paginação -->
-        <div id="pagination-controls" class="hidden mt-6 flex justify-end items-center space-x-4 text-sm text-gray-700">
-            <span id="page-counter"></span>
-            <button id="prev-page-btn" class="pagination-btn p-2 rounded-md hover:bg-gray-200">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-            </button>
-            <button id="next-page-btn" class="pagination-btn p-2 rounded-md hover:bg-gray-200">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-            </button>
+            <div id="no-schedules-placeholder" class="hidden text-center text-gray-500 py-10 bg-white rounded-lg shadow">
+                <p>Nenhuma doação encontrada para esta categoria.</p>
+            </div>
+
+            <!-- Paginação -->
+            <div id="pagination-controls" class="hidden mt-6 flex justify-end items-center space-x-4 text-sm text-gray-700">
+                <span id="page-counter"></span>
+                <button id="prev-page-btn" class="pagination-btn p-2 rounded-md hover:bg-gray-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <button id="next-page-btn" class="pagination-btn p-2 rounded-md hover:bg-gray-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+            </div>
         </div>
     </main>
 
@@ -107,8 +114,8 @@
     <div id="app-modal"></div>
 
     <script type="module">
-        import { db, collection, query, where, onSnapshot, doc, getDoc, getDocs } from './app-config.js';
-        import { paths } from './firestore-paths.js';
+        import { db, paths } from './app-config.js';
+        import { collection, query, where, onSnapshot, doc, getDoc, getDocs } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
 
@@ -136,10 +143,15 @@
         const ITEMS_PER_PAGE = 10;
 
         async function initializeApp() {
-            await injectHeader();
+            const canProceed = await injectHeader();
+            if (!canProceed) {
+                loadingView.classList.add('hidden');
+                return;
+            };
+
             const userSession = await getCurrentUser();
             if (userSession && userSession.profile?.role === 'superadmin') {
-                await loadAllProfiles(); // Carrega todos os perfis primeiro
+                await loadAllProfiles();
                 loadGlobalSchedules();
             } else {
                 window.location.href = 'index.html';
@@ -445,6 +457,19 @@
         closeDetailsModalBtn.addEventListener('click', () => detailsModal.classList.add('hidden'));
 
         initializeApp();
+    </script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
