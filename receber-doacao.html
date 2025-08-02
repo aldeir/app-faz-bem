@@ -194,7 +194,6 @@
 
                 showAlertModal('Sucesso!', `Item "${currentDonationData.items[itemIndex].type}" confirmado com sucesso!`);
                 
-                // Se estiver na página de uma doação específica, atualiza a UI
                 if (donationId === scannedDonationId) {
                     donationData.items[itemIndex].status = 'received';
                     renderItemsList();
