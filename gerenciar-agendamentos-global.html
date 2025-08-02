@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visão Global de Agendamentos - Faz Bem</title>
+    <title id="page-title">Visão Global de Agendamentos - Faz Bem</title>
     
     <!-- PWA Tags -->
     <meta name="theme-color" content="#22c55e">
@@ -38,21 +38,20 @@
         <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
             <div class="text-center">
                 <div class="loader mx-auto"></div>
-                <p class="mt-4 text-gray-600">A carregar todos os agendamentos...</p>
+                <p class="mt-4 text-gray-600">A carregar agendamentos...</p>
             </div>
         </div>
 
         <div id="schedules-view" class="hidden container mx-auto max-w-5xl p-4 sm:p-6 my-8">
             <div class="flex justify-between items-center mb-6">
-                <h1 class="text-3xl font-bold text-gray-800">Visão Global de Agendamentos</h1>
-                <a href="superadmin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
+                <h1 id="page-heading" class="text-3xl font-bold text-gray-800">Visão Global de Agendamentos</h1>
+                <a id="back-link" href="superadmin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
             </div>
             
             <div class="mb-6">
-                <input type="search" id="search-input" placeholder="Buscar por doador, campanha ou entidade..." class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                <input type="search" id="search-input" placeholder="Buscar por doador ou campanha..." class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
             </div>
 
-            <!-- Abas de Navegação -->
             <div class="border-b border-gray-200 mb-6">
                 <nav id="tabs-container" class="-mb-px flex space-x-8" aria-label="Tabs">
                     <button data-tab="all" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Todos</button>
@@ -62,54 +61,16 @@
                 </nav>
             </div>
             
-            <!-- Conteúdo das Abas -->
             <div id="list-content" class="space-y-6"></div>
+            <div id="no-schedules-placeholder" class="hidden text-center text-gray-500 py-10 bg-white rounded-lg shadow"><p>Nenhuma doação encontrada para esta categoria.</p></div>
 
-            <div id="no-schedules-placeholder" class="hidden text-center text-gray-500 py-10 bg-white rounded-lg shadow">
-                <p>Nenhuma doação encontrada para esta categoria.</p>
-            </div>
-
-            <!-- Paginação -->
             <div id="pagination-controls" class="hidden mt-6 flex justify-end items-center space-x-4 text-sm text-gray-700">
                 <span id="page-counter"></span>
-                <button id="prev-page-btn" class="pagination-btn p-2 rounded-md hover:bg-gray-200">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                </button>
-                <button id="next-page-btn" class="pagination-btn p-2 rounded-md hover:bg-gray-200">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                </button>
+                <button id="prev-page-btn" class="pagination-btn p-2 rounded-md hover:bg-gray-200"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+                <button id="next-page-btn" class="pagination-btn p-2 rounded-md hover:bg-gray-200"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
             </div>
         </div>
     </main>
-
-    <!-- Modal para Detalhes do Item -->
-    <div id="item-details-modal" class="hidden fixed z-50 inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center relative">
-             <button id="close-item-modal-btn" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Detalhes do Item</h3>
-            <img id="modal-item-photo" src="" class="w-full h-64 object-contain rounded-md mb-4 bg-gray-100">
-            <p id="modal-item-title" class="font-bold text-lg text-gray-900"></p>
-            <p id="modal-item-details" class="text-sm text-gray-600"></p>
-        </div>
-    </div>
-
-    <!-- Modal para Detalhes do Doador/Entidade -->
-    <div id="details-modal" class="hidden fixed z-50 inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
-            <button id="close-details-modal-btn" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-            <div class="flex items-center space-x-3 mb-4 border-b pb-3">
-                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-blue-100">
-                    <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </div>
-                <h3 id="details-modal-title" class="text-lg leading-6 font-medium text-gray-900"></h3>
-            </div>
-            <div id="details-modal-body" class="text-sm text-gray-600 space-y-2"></div>
-        </div>
-    </div>
 
     <div id="app-modal"></div>
 
@@ -121,23 +82,19 @@
 
         const loadingView = document.getElementById('loading-view');
         const schedulesView = document.getElementById('schedules-view');
+        const pageTitle = document.getElementById('page-title');
+        const pageHeading = document.getElementById('page-heading');
+        const backLink = document.getElementById('back-link');
         const noSchedulesPlaceholder = document.getElementById('no-schedules-placeholder');
         const tabsContainer = document.getElementById('tabs-container');
         const listContent = document.getElementById('list-content');
         const searchInput = document.getElementById('search-input');
-
         const paginationControls = document.getElementById('pagination-controls');
         const pageCounter = document.getElementById('page-counter');
         const prevPageBtn = document.getElementById('prev-page-btn');
         const nextPageBtn = document.getElementById('next-page-btn');
-
-        const itemDetailsModal = document.getElementById('item-details-modal');
-        const closeItemModalBtn = document.getElementById('close-item-modal-btn');
-        const detailsModal = document.getElementById('details-modal');
-        const closeDetailsModalBtn = document.getElementById('close-details-modal-btn');
         
         let allDonations = [];
-        let donorRanking = new Map();
         let profilesCache = new Map();
         let currentPage = 1;
         const ITEMS_PER_PAGE = 10;
@@ -147,56 +104,53 @@
             if (!canProceed) {
                 loadingView.classList.add('hidden');
                 return;
-            };
-
+            }
+            
             const userSession = await getCurrentUser();
-            if (userSession && userSession.profile?.role === 'superadmin') {
-                await loadAllProfiles();
-                loadGlobalSchedules();
+            if (userSession && ['superadmin', 'entidade'].includes(userSession.profile?.role)) {
+                setupUIForRole(userSession.profile.role);
+                loadSchedules(userSession);
             } else {
                 window.location.href = 'index.html';
             }
         }
 
-        async function loadAllProfiles() {
-            const usersQuery = query(collection(db, paths.users));
-            const entitiesQuery = query(collection(db, paths.entidades));
-            
-            const [usersSnapshot, entitiesSnapshot] = await Promise.all([
-                getDocs(usersQuery),
-                getDocs(entitiesQuery)
-            ]);
-
-            usersSnapshot.forEach(doc => profilesCache.set(doc.id, doc.data()));
-            entitiesSnapshot.forEach(doc => profilesCache.set(doc.id, doc.data()));
+        function setupUIForRole(role) {
+            if (role === 'entidade') {
+                pageTitle.textContent = 'Meus Agendamentos - Faz Bem';
+                pageHeading.textContent = 'Meus Agendamentos';
+                backLink.href = 'admin.html';
+                searchInput.placeholder = 'Buscar por doador ou campanha...';
+            }
         }
 
-        function loadGlobalSchedules() {
-            const q = query(collection(db, paths.donations));
+        async function loadSchedules(userSession) {
+            let q;
+            if (userSession.profile.role === 'superadmin') {
+                q = query(collection(db, paths.donations), where("status", "in", ["scheduled", "completed"]));
+                await loadAllProfiles(); // Superadmin precisa de todos os perfis
+            } else {
+                q = query(collection(db, paths.donations), where("entityId", "==", userSession.auth.uid), where("status", "in", ["scheduled", "completed"]));
+            }
 
             onSnapshot(q, (snapshot) => {
                 allDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                calculateRanking();
                 currentPage = 1;
                 filterAndRender();
                 loadingView.classList.add('hidden');
                 schedulesView.classList.remove('hidden');
             }, (error) => {
-                console.error("Erro ao buscar agendamentos globais:", error);
+                console.error("Erro ao buscar agendamentos:", error);
                 schedulesView.innerHTML = `<p class="text-red-500 text-center">Ocorreu um erro ao carregar os agendamentos.</p>`;
             });
         }
 
-        function calculateRanking() {
-            const completedCounts = allDonations
-                .filter(d => d.status === 'completed')
-                .reduce((acc, d) => {
-                    acc[d.donorId] = (acc[d.donorId] || 0) + d.items.length;
-                    return acc;
-                }, {});
-            
-            const sortedDonors = Object.entries(completedCounts).sort(([, a], [, b]) => b - a);
-            donorRanking = new Map(sortedDonors.map(([donorId, count], index) => [donorId, index + 1]));
+        async function loadAllProfiles() {
+            const usersQuery = query(collection(db, paths.users));
+            const entitiesQuery = query(collection(db, paths.entidades));
+            const [usersSnapshot, entitiesSnapshot] = await Promise.all([getDocs(usersQuery), getDocs(entitiesQuery)]);
+            usersSnapshot.forEach(doc => profilesCache.set(doc.id, doc.data()));
+            entitiesSnapshot.forEach(doc => profilesCache.set(doc.id, doc.data()));
         }
 
         function filterAndRender() {
@@ -223,25 +177,11 @@
                 return false;
             });
 
-            const groupedByDonor = filteredDonations.reduce((acc, donation) => {
-                const donorId = donation.donorId;
-                if (!acc[donorId]) {
-                    acc[donorId] = {
-                        donorId: donorId,
-                        donorName: donation.donorName,
-                        donorPhoto: donation.donorPhoto,
-                        donations: []
-                    };
-                }
-                acc[donorId].donations.push(donation);
-                return acc;
-            }, {});
-
-            renderPaginatedList(Object.values(groupedByDonor));
+            renderPaginatedList(filteredDonations);
         }
 
-        function renderPaginatedList(donors) {
-            const totalItems = donors.length;
+        function renderPaginatedList(donations) {
+            const totalItems = donations.length;
             const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
             
             if (totalItems === 0) {
@@ -256,7 +196,7 @@
 
             const start = (currentPage - 1) * ITEMS_PER_PAGE;
             const end = start + ITEMS_PER_PAGE;
-            const pageItems = donors.slice(start, end);
+            const pageItems = donations.slice(start, end);
 
             renderListContent(pageItems);
 
@@ -265,98 +205,61 @@
             nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
         }
 
-        function renderListContent(donors) {
+        function renderListContent(donations) {
             listContent.innerHTML = '';
-            donors.forEach(donor => {
-                const donorSection = document.createElement('div');
-                donorSection.className = 'bg-white rounded-lg shadow-md p-4';
-                
-                const itemsByCampaign = donor.donations.reduce((acc, d) => {
-                    if (!acc[d.campaignId]) {
-                        const entityProfile = profilesCache.get(d.entityId);
-                        const entityDisplayName = entityProfile ? entityProfile.publicName : (d.entityName || 'N/A');
-                        acc[d.campaignId] = {
-                            campaignTitle: d.campaignTitle,
-                            entityName: entityDisplayName,
-                            entityId: d.entityId,
-                            items: []
-                        };
-                    }
-                    acc[d.campaignId].items.push(...d.items.map((item, index) => ({...item, scheduledAt: d.scheduledAt, status: d.status, receivedBy: d.receivedBy})));
-                    return acc;
-                }, {});
+            donations.sort((a, b) => (b.scheduledAt?.toMillis() || 0) - (a.scheduledAt?.toMillis() || 0));
 
-                const campaignsHtml = Object.entries(itemsByCampaign).map(([campaignId, campaignData]) => {
-                    return `
-                        <div class="mt-2">
-                            <h3 class="font-semibold text-gray-700">
-                                <a href="detalhes.html?id=${campaignId}" target="_blank" class="hover:underline">${campaignData.items.length} Itens - Campanha: ${campaignData.campaignTitle}</a>
-                            </h3>
-                            <p class="text-sm text-gray-500 mb-2">Entidade: <a href="#" data-action="view-entity" data-id="${campaignData.entityId}" class="hover:underline font-medium">${campaignData.entityName}</a></p>
-                            <ul class="list-disc list-inside pl-2 space-y-1 text-sm">
-                                ${campaignData.items.map(createItemDetailRow).join('')}
-                            </ul>
-                        </div>
-                    `;
-                }).join('');
+            const groupedByDay = donations.reduce((acc, donation) => {
+                const date = donation.scheduledAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', weekday: 'long' });
+                if (!acc[date]) acc[date] = [];
+                acc[date].push(donation);
+                return acc;
+            }, {});
 
-                const stats = allDonations.filter(d => d.donorId === donor.donorId).reduce((acc, d) => {
-                    const isOverdue = d.status === 'scheduled' && d.scheduledAt?.toDate() < new Date();
-                    if (d.status === 'completed') acc.completed += d.items.length;
-                    else if (isOverdue) acc.overdue += d.items.length;
-                    else acc.upcoming += d.items.length;
-                    return acc;
-                }, { completed: 0, upcoming: 0, overdue: 0 });
-
-                const rank = donorRanking.get(donor.donorId);
-                const rankHtml = rank ? `#${rank}` : 'N/A';
-
-                donorSection.innerHTML = `
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center border-b pb-3 mb-3 gap-4">
-                        <a href="#" data-action="view-donor" data-id="${donor.donorId}" class="flex items-center flex-grow">
-                            <img src="${donor.donorPhoto || 'https://placehold.co/48x48/e2e8f0/cbd5e0?text=Foto'}" class="w-12 h-12 rounded-full object-cover border mr-4">
-                            <h2 class="text-xl font-semibold text-gray-800 hover:text-green-600">${donor.donorName}</h2>
-                        </a>
-                        <div class="flex space-x-4 text-center text-xs sm:text-sm">
-                            <div><p class="font-bold text-lg text-green-600">${stats.completed}</p><p class="text-gray-500">Recebidos</p></div>
-                            <div><p class="font-bold text-lg text-blue-600">${stats.upcoming}</p><p class="text-gray-500">Próximos</p></div>
-                            <div><p class="font-bold text-lg text-red-500">${stats.overdue}</p><p class="text-gray-500">Vencidos</p></div>
-                            <div><p class="font-bold text-lg text-yellow-500">${rankHtml}</p><p class="text-gray-500">Ranking</p></div>
-                        </div>
-                    </div>
-                    <div class="space-y-3">${campaignsHtml}</div>
+            for (const date in groupedByDay) {
+                const daySection = document.createElement('div');
+                let donationsHtml = groupedByDay[date].map(createDonationCard).join('');
+                daySection.innerHTML = `
+                    <h2 class="text-xl font-semibold text-gray-700 mb-3 capitalize">${date}</h2>
+                    <div class="space-y-4">${donationsHtml}</div>
                 `;
-                listContent.appendChild(donorSection);
-            });
+                listContent.appendChild(daySection);
+            }
         }
 
-        function createItemDetailRow(item) {
-            const scheduledDate = item.scheduledAt?.toDate().toLocaleDateString('pt-BR');
+        function createDonationCard(donation) {
+            const scheduledTime = donation.scheduledAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             let statusHtml = '';
             const now = new Date();
 
-            if (item.status === 'completed') {
-                const receivedByUser = profilesCache.get(item.receivedBy);
-                const receivedByName = receivedByUser ? receivedByUser.displayName : (item.receivedBy || 'Entidade');
-                const receivedByHtml = item.receivedBy ? `por ${receivedByName}` : '';
-                statusHtml = `<span class="font-medium text-gray-500">Entregue em ${scheduledDate} ${receivedByHtml}</span>`;
+            if (donation.status === 'completed') {
+                statusHtml = `<p class="text-lg font-bold text-gray-500">Recebido</p>`;
             } else {
-                const isOverdue = item.scheduledAt?.toDate() < now;
-                statusHtml = `<span class="font-medium ${isOverdue ? 'text-red-500' : 'text-green-600'}">${isOverdue ? 'Vencido' : 'Agendado'} para ${scheduledDate}</span>`;
+                const isOverdue = donation.scheduledAt.toDate() < now;
+                statusHtml = `<p class="text-lg font-bold ${isOverdue ? 'text-red-500' : 'text-green-600'}">${scheduledTime}</p>
+                              ${isOverdue ? '<p class="text-xs font-medium text-red-500">Vencido</p>' : ''}`;
             }
-            
-            return `<li>
-                        <a href="#" class="hover:underline" 
-                           data-action="view-item" 
-                           data-photo="${item.photoURL}" 
-                           data-title="${item.type}" 
-                           data-details="${item.details} (${item.condition})">
-                           ${item.type}
-                        </a> - ${statusHtml}
-                    </li>`;
+
+            return `
+                <div class="bg-white rounded-lg shadow-md p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <img src="${donation.donorPhoto || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Foto'}" class="w-16 h-16 rounded-full object-cover border">
+                        <div>
+                            <p class="font-bold text-lg text-gray-800">${donation.donorName}</p>
+                            <p class="text-sm text-gray-600">Campanha: <span class="font-medium">${donation.campaignTitle}</span></p>
+                            <p class="text-sm text-gray-500">Para: <span class="font-semibold">${donation.entityName || 'N/A'}</span></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4 w-full sm:w-auto">
+                         <div class="text-center sm:text-right w-24">${statusHtml}</div>
+                        <a href="detalhes.html?id=${donation.campaignId}" class="w-full sm:w-auto text-center bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">
+                            Ver Campanha
+                        </a>
+                    </div>
+                </div>
+            `;
         }
-        
-        // --- Event Listeners ---
+
         tabsContainer.addEventListener('click', (e) => {
             const button = e.target.closest('button.tab-button');
             if (button) {
@@ -383,78 +286,6 @@
             currentPage++;
             filterAndRender();
         });
-
-        listContent.addEventListener('click', async (e) => {
-            const target = e.target.closest('[data-action]');
-            if (!target) return;
-            e.preventDefault();
-
-            const action = target.dataset.action;
-            const id = target.dataset.id;
-
-            if (action === 'view-item') {
-                document.getElementById('modal-item-photo').src = target.dataset.photo;
-                document.getElementById('modal-item-title').textContent = target.dataset.title;
-                document.getElementById('modal-item-details').textContent = target.dataset.details;
-                itemDetailsModal.classList.remove('hidden');
-            } else if (action === 'view-donor' || action === 'view-entity') {
-                if (profilesCache.has(id)) {
-                    showDetailsModal(profilesCache.get(id), action);
-                    return;
-                }
-                const docPath = action === 'view-donor' ? paths.userDoc(id) : paths.entidadeDoc(id);
-                const docRef = doc(db, docPath);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    profilesCache.set(id, data);
-                    showDetailsModal(data, action);
-                }
-            }
-        });
-
-        function showDetailsModal(data, type) {
-            const titleEl = document.getElementById('details-modal-title');
-            const bodyEl = document.getElementById('details-modal-body');
-            let bodyHtml = '';
-
-            const formatPhoneNumber = (phone) => {
-                if (!phone || typeof phone !== 'string') return 'N/A';
-                const cleaned = phone.replace(/\D/g, '');
-                if (cleaned.length === 11) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
-                if (cleaned.length === 10) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
-                return phone;
-            };
-
-            const formatCnpj = (cnpj) => {
-                if (!cnpj || typeof cnpj !== 'string') return 'N/A';
-                return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
-            };
-
-            if (type === 'view-donor') {
-                titleEl.textContent = `Detalhes de ${data.displayName}`;
-                bodyHtml = `
-                    <p><strong>Nome:</strong> ${data.displayName || 'N/A'}</p>
-                    <p><strong>E-mail:</strong> ${data.email || 'N/A'}</p>
-                    <p><strong>Telefone:</strong> ${formatPhoneNumber(data.phone)}</p>
-                    <p><strong>Endereço:</strong> ${data.address?.street || 'Não informado'}, CEP: ${data.address?.cep || 'N/A'}</p>
-                `;
-            } else { // view-entity
-                titleEl.textContent = `Detalhes de ${data.publicName}`;
-                bodyHtml = `
-                    <p><strong>Nome Público:</strong> ${data.publicName || 'N/A'}</p>
-                    <p><strong>Responsável:</strong> ${data.responsibleName || 'N/A'}</p>
-                    <p><strong>CNPJ:</strong> ${formatCnpj(data.cnpj)}</p>
-                    <p><strong>E-mail:</strong> ${data.email || 'N/A'}</p>
-                    <p><strong>Telefone:</strong> ${formatPhoneNumber(data.phone)}</p>
-                `;
-            }
-            bodyEl.innerHTML = bodyHtml;
-            detailsModal.classList.remove('hidden');
-        }
-
-        closeItemModalBtn.addEventListener('click', () => itemDetailsModal.classList.add('hidden'));
-        closeDetailsModalBtn.addEventListener('click', () => detailsModal.classList.add('hidden'));
 
         initializeApp();
     </script>
