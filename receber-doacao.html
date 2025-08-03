@@ -74,7 +74,7 @@
         import { collection, query, where, onSnapshot, doc, getDoc, runTransaction } from "./firebase-services.js";
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
-        import { showAlertModal } from './modal-handler.js';
+        import { showAlertModal, showConfirmationModal } from './modal-handler.js';
 
         const loadingView = document.getElementById('loading-view');
         const receiveView = document.getElementById('receive-view');
