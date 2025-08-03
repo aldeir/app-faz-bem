@@ -1,9 +1,10 @@
 // service-worker.js
 
-const CACHE_NAME = 'app-faz-bem-cache-v2'; // Versão do cache, mude se alterar os assets
-const assetsToCache = [
-  // Adicione aqui APENAS os arquivos que você tem CERTEZA que existem no repositório.
-  // O caminho deve ser completo a partir da raiz do site do GitHub Pages.
+// Altere a versão do cache sempre que fizer alterações nos arquivos cacheados.
+const CACHE_NAME = 'faz-bem-cache-v2'; 
+const urlsToCache = [
+  // Adicione aqui os caminhos completos e corretos dos seus arquivos essenciais.
+  // O Service Worker tentará cachear todos. Se um falhar, a instalação pode ser interrompida.
   '/app-faz-bem/',
   '/app-faz-bem/index.html',
   '/app-faz-bem/login.html',
@@ -15,67 +16,65 @@ const assetsToCache = [
   '/app-faz-bem/app-header.js',
   // URLs externas também podem ser cacheadas
   'https://cdn.tailwindcss.com',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css',
-  'https://unpkg.com/html5-qrcode'
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'
 ];
 
-// Evento de Instalação
+// Evento de Instalação: Salva os assets essenciais no cache.
 self.addEventListener('install', event => {
   console.log('Service Worker: Instalando...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Service Worker: Adicionando assets ao cache...');
-        // Usamos requisições individuais para que um erro não pare todo o processo
-        const promises = assetsToCache.map(url => {
-          return fetch(url).then(response => {
-            if (!response.ok) {
-              // Se um arquivo não for encontrado (404), ele não será adicionado ao cache, mas não quebrará a instalação.
-              console.error(`Service Worker: Falha ao buscar o asset: ${url}. Status: ${response.status}`);
-              return Promise.resolve(); // Continua para o próximo arquivo
-            }
-            return cache.put(url, response);
-          });
-        });
-        return Promise.all(promises);
+        return cache.addAll(urlsToCache);
       })
       .then(() => {
-        console.log('Service Worker: Instalação concluída.');
-        return self.skipWaiting();
-      })
-      .catch(error => {
-        console.error('Service Worker: Erro geral durante a instalação.', error);
+        // Força o novo service worker a se tornar ativo imediatamente.
+        return self.skipWaiting(); 
       })
   );
 });
 
-// Evento de Ativação
+// Evento de Ativação: Limpa caches antigos para evitar conflitos.
 self.addEventListener('activate', event => {
   console.log('Service Worker: Ativando...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
-        cacheNames.filter(cache => cache !== CACHE_NAME).map(cache => {
-          console.log('Service Worker: Limpando cache antigo:', cache);
-          return caches.delete(cache);
+        cacheNames.map(cache => {
+          if (cache !== CACHE_NAME) {
+            console.log('Service Worker: Limpando cache antigo:', cache);
+            return caches.delete(cache);
+          }
         })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => {
+      // Garante que o service worker ativado controle a página imediatamente.
+      return self.clients.claim();
+    })
   );
 });
 
-// Evento Fetch
+// Evento Fetch: Implementa a estratégia "Stale-While-Revalidate".
 self.addEventListener('fetch', event => {
-  // Estratégia: Cache, caindo para a rede (Cache falling back to network)
+  // Ignora requisições que não são GET (como POST para o Firestore)
+  if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        // Retorna do cache se encontrar
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        // Se não, busca na rede
-        return fetch(event.request);
-      })
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.match(event.request).then(cachedResponse => {
+        // 1. Busca na rede em paralelo
+        const fetchedResponsePromise = fetch(event.request).then(networkResponse => {
+          // Se a busca na rede for bem-sucedida, atualiza o cache
+          cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        });
+
+        // 2. Retorna a resposta do cache imediatamente (se existir), ou espera a da rede
+        return cachedResponse || fetchedResponsePromise;
+      });
+    })
   );
 });
