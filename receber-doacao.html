@@ -86,21 +86,19 @@
         </div>
     </div>
 
-
-    <!-- Scripts Firebase e da Aplicação -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    
-    <!-- Script do leitor de QR Code -->
+    <!-- Script do leitor de QR Code (não é módulo) -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <!-- Scripts da Aplicação como MÓDULOS -->
+    <script type="module">
+        // Importações necessárias dos seus próprios módulos e do Firebase
+        import { auth, db } from './app-config.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js";
+        import { getDoc, doc, collection, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js";
+        import './auth-service.js';
+        import './firebase-services.js';
+        import './app-header.js';
 
-    <script src="app-config.js"></script>
-    <script src="auth-service.js"></script>
-    <script src="firebase-services.js"></script>
-    <script src="app-header.js"></script>
-
-    <script>
         // Elementos da UI
         const donationsContainer = document.getElementById('donations-container');
         const loader = document.getElementById('loader');
@@ -115,7 +113,7 @@
         /**
          * Inicializa o listener de autenticação e carrega as doações se o usuário for uma entidade.
          */
-        auth.onAuthStateChanged(async (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const userProfile = await getDoc(doc(db, 'users', user.uid));
                 if (userProfile.exists() && userProfile.data().role === 'entidade') {
@@ -196,7 +194,7 @@
                     <img src="${item.photoUrl || 'https://placehold.co/64x64/e2e8f0/e2e8f0?text=Item'}" 
                          alt="${item.name}" 
                          class="w-16 h-16 rounded-md object-cover cursor-pointer"
-                         onclick="showImageModal('${item.photoUrl}', '${item.name}')">
+                         onclick="window.showImageModal('${item.photoUrl}', '${item.name}')">
                     <div>
                         <p class="font-semibold">${item.name}</p>
                         <p class="text-sm text-gray-600">Quantidade: ${item.quantity}</p>
@@ -208,7 +206,7 @@
                 <div class="flex flex-col md:flex-row justify-between md:items-center mb-4">
                     <div>
                         <p class="text-sm text-gray-500">Campanha:</p>
-                        <a href="#" class="text-lg font-bold text-blue-600 hover:underline" onclick="showCampaignDetails('${campaign.id}')">
+                        <a href="#" class="text-lg font-bold text-blue-600 hover:underline" onclick="window.showCampaignDetails('${campaign.id}')">
                             ${campaign ? campaign.title : 'Campanha não encontrada'}
                         </a>
                     </div>
@@ -217,7 +215,7 @@
 
                 <div class="mb-4">
                     <p class="text-sm text-gray-500">Doador:</p>
-                    <a href="#" class="font-semibold text-gray-800 hover:underline" onclick="showDonorDetails('${donor.id}')">
+                    <a href="#" class="font-semibold text-gray-800 hover:underline" onclick="window.showDonorDetails('${donor.id}')">
                         ${donor ? donor.name : 'Doador não encontrado'}
                     </a>
                 </div>
@@ -228,10 +226,10 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <button onclick="openQrModal('${donation.id}')" class="flex-1 bg-gray-800 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300 flex items-center justify-center">
+                    <button onclick="window.openQrModal('${donation.id}')" class="flex-1 bg-gray-800 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300 flex items-center justify-center">
                         <i class="fas fa-qrcode mr-2"></i> Receber via QR Code
                     </button>
-                    <button onclick="confirmManualReception('${donation.id}')" class="flex-1 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition duration-300 flex items-center justify-center">
+                    <button onclick="window.confirmManualReception('${donation.id}')" class="flex-1 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition duration-300 flex items-center justify-center">
                         <i class="fas fa-check-circle mr-2"></i> Confirmar Recebimento Manual
                     </button>
                 </div>
@@ -240,17 +238,17 @@
         }
 
         // --- Funções dos Modais ---
-
-        function openModal() {
+        // Expondo as funções ao escopo global para que o 'onclick' funcione
+        window.openModal = function() {
             detailsModal.style.display = 'flex';
         }
 
-        function closeModal() {
+        window.closeModal = function() {
             detailsModal.style.display = 'none';
             modalContent.innerHTML = ''; // Limpa o conteúdo ao fechar
         }
         
-        async function showCampaignDetails(campaignId) {
+        window.showCampaignDetails = async function(campaignId) {
             modalTitle.innerText = 'Detalhes da Campanha';
             modalContent.innerHTML = '<div class="loader mx-auto"></div>';
             openModal();
@@ -269,7 +267,7 @@
             }
         }
 
-        async function showDonorDetails(donorId) {
+        window.showDonorDetails = async function(donorId) {
             modalTitle.innerText = 'Detalhes do Doador';
             modalContent.innerHTML = '<div class="loader mx-auto"></div>';
             openModal();
@@ -292,7 +290,7 @@
             }
         }
 
-        function showImageModal(imageUrl, itemName) {
+        window.showImageModal = function(imageUrl, itemName) {
             modalTitle.innerText = `Item: ${itemName}`;
             modalContent.innerHTML = `
                 <img src="${imageUrl || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem'}" 
@@ -304,44 +302,33 @@
 
         // --- Funções de Ação ---
         
-        /**
-         * Confirma o recebimento manual de uma doação.
-         * @param {string} donationId - O ID da doação a ser confirmada.
-         */
-        function confirmManualReception(donationId) {
-            // Usando um modal customizado para confirmação
+        window.confirmManualReception = function(donationId) {
             modalTitle.innerText = 'Confirmar Recebimento';
             modalContent.innerHTML = `
                 <p>Tem certeza que deseja confirmar o recebimento desta doação?</p>
                 <div class="mt-6 flex justify-end gap-3">
                     <button onclick="closeModal()" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">Cancelar</button>
-                    <button onclick="processReception('${donationId}')" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Sim, Confirmar</button>
+                    <button onclick="window.processReception('${donationId}')" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Sim, Confirmar</button>
                 </div>
             `;
             openModal();
         }
         
-        /**
-         * Processa a atualização do status da doação no Firebase.
-         * @param {string} donationId - O ID da doação.
-         */
-        async function processReception(donationId) {
+        window.processReception = async function(donationId) {
             modalContent.innerHTML = '<div class="loader mx-auto"></div><p class="text-center mt-2">Processando...</p>';
             try {
                 const donationRef = doc(db, 'donations', donationId);
                 await updateDoc(donationRef, {
                     status: 'recebido',
-                    receivedDate: new Date() // Adiciona a data de recebimento
+                    receivedDate: new Date()
                 });
 
-                // Feedback visual de sucesso
                 const cardToRemove = document.getElementById(`donation-${donationId}`);
                 if(cardToRemove) {
                     cardToRemove.style.transition = 'opacity 0.5s ease';
                     cardToRemove.style.opacity = '0';
                     setTimeout(() => {
                         cardToRemove.remove();
-                        // Verifica se ainda há doações, se não, mostra a mensagem
                         if(donationsContainer.children.length === 0) {
                             noDonationsMessage.style.display = 'block';
                         }
@@ -358,12 +345,12 @@
         
         // --- Funções do QR Code ---
 
-        function openQrModal(donationId) {
+        window.openQrModal = function(donationId) {
             qrCodeModal.style.display = 'flex';
             startQrScanner(donationId);
         }
 
-        function closeQrModal() {
+        window.closeQrModal = function() {
             if (html5QrCode && html5QrCode.isScanning) {
                 html5QrCode.stop().then(() => {
                     console.log("QR Code scanning stopped.");
@@ -379,19 +366,17 @@
             const qrReaderElement = document.getElementById('qr-reader');
             const resultsElement = document.getElementById('qr-reader-results');
             
-            // Limpa a div antes de iniciar um novo scanner
             qrReaderElement.innerHTML = '';
             resultsElement.innerHTML = 'Aponte a câmera para o QR Code do doador.';
 
             html5QrCode = new Html5Qrcode("qr-reader");
 
             const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-                // `decodedText` contém o ID da doação lido do QR Code
                 if (decodedText === expectedDonationId) {
                     resultsElement.innerHTML = `<p class="text-green-600 font-bold">QR Code válido! Confirmando recebimento...</p>`;
                     html5QrCode.stop();
-                    processReception(decodedText);
-                    setTimeout(closeQrModal, 2000); // Fecha o modal após 2s
+                    window.processReception(decodedText);
+                    setTimeout(closeQrModal, 2000);
                 } else {
                     resultsElement.innerHTML = `<p class="text-red-500 font-bold">QR Code inválido! Este QR Code não corresponde a esta doação.</p>`;
                 }
@@ -399,11 +384,9 @@
 
             const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-            // Tenta usar a câmera traseira ('environment')
             html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
                 .catch(err => {
                     console.log("Não foi possível iniciar com a câmera traseira, tentando câmera frontal.", err);
-                    // Se falhar, tenta usar a câmera frontal ('user')
                     html5QrCode.start({ facingMode: "user" }, config, qrCodeSuccessCallback)
                         .catch(err => {
                             resultsElement.innerHTML = `<p class="text-red-500">Erro ao iniciar a câmera. Verifique as permissões.</p>`;
@@ -411,7 +394,6 @@
                         });
                 });
         }
-
     </script>
 </body>
 
