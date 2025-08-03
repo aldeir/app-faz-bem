@@ -230,24 +230,33 @@
                 acc[item.campaignId].push(item);
                 return acc;
             }, {});
+            
+            const itemsForPagination = Object.values(itemsByCampaign).flat();
+            const itemsForCurrentPage = (activeTab === 'completed') 
+                ? itemsForPagination.slice(0, completedItemsPage * ITEMS_PER_PAGE)
+                : itemsForPagination;
 
-            if (Object.keys(itemsByCampaign).length === 0) {
+            const finalItemsByCampaign = itemsForCurrentPage.reduce((acc, item) => {
+                if (!acc[item.campaignId]) acc[item.campaignId] = [];
+                acc[item.campaignId].push(item);
+                return acc;
+            }, {});
+
+            if (Object.keys(finalItemsByCampaign).length === 0) {
                 noDonationsMessage.style.display = 'block';
                 return;
             }
             noDonationsMessage.style.display = 'none';
             
-            for (const campaignId in itemsByCampaign) {
+            for (const campaignId in finalItemsByCampaign) {
                 const campaignData = campaignsCache.get(campaignId);
-                const items = itemsByCampaign[campaignId];
+                const items = finalItemsByCampaign[campaignId];
                 
                 const campaignCard = await createCampaignCard(campaignData, items, activeTab);
                 if (campaignCard) donationsContainer.appendChild(campaignCard);
             }
 
-            // REINTRODUZIDO: Renderiza o botão "Carregar Mais" se necessário
-            const itemsForPagination = Object.values(itemsByCampaign).flat();
-            if (activeTab === 'completed' && itemsToFilter.length > itemsForPagination.length) {
+            if (activeTab === 'completed' && itemsForPagination.length > itemsForCurrentPage.length) {
                 const loadMoreBtn = document.createElement('button');
                 loadMoreBtn.textContent = 'Carregar Mais Itens';
                 loadMoreBtn.className = 'bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition';
@@ -274,7 +283,6 @@
                 const uniqueItemId = `${item.donationId}_${item.itemIndex}`;
                 const isCompleted = item.status === 'completed';
 
-                // REINTRODUZIDO: Lógica para data e recebedor
                 let dateInfo = '';
                 if (item.scheduledAt) {
                     const dateStr = item.scheduledAt.toLocaleDateString('pt-BR');
