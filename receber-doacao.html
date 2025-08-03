@@ -12,16 +12,12 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .tab-button.active { border-color: #2563eb; color: #2563eb; background-color: #eff6ff; }
         .item-row:hover { background-color: #f9fafb; }
-        .truncate-2-lines {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-        }
+        .truncate-2-lines { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .stat-card { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-50">
 
     <div id="app-header"></div>
 
@@ -41,16 +37,19 @@
                 </button>
             </div>
 
-            <!-- Totalizadores -->
+            <!-- Totalizadores Clicáveis -->
             <div id="stats-container" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8"></div>
 
-            <!-- Abas de Navegação -->
-            <div class="border-b border-gray-200 mb-6">
-                <nav id="tabs-container" class="-mb-px flex space-x-6" aria-label="Tabs">
-                    <button data-tab="pending" class="tab-button active whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">Pendentes</button>
-                    <button data-tab="overdue" class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Vencidos</button>
-                    <button data-tab="completed" class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Histórico</button>
-                </nav>
+            <!-- Filtro e Abas -->
+            <div class="bg-white p-4 rounded-xl shadow-md mb-6">
+                <input type="search" id="search-input" placeholder="Filtrar por item, doador ou campanha..." class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                <div class="border-b border-gray-200">
+                    <nav id="tabs-container" class="-mb-px flex space-x-6" aria-label="Tabs">
+                        <button data-tab="pending" class="tab-button active whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">Pendentes</button>
+                        <button data-tab="overdue" class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Vencidos</button>
+                        <button data-tab="completed" class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Histórico</button>
+                    </nav>
+                </div>
             </div>
 
             <div id="donations-container" class="space-y-8"></div>
@@ -67,9 +66,7 @@
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto">
             <div class="p-4 border-b flex justify-between items-center">
                 <h3 id="modal-title" class="text-xl font-bold">Detalhes</h3>
-                <button onclick="window.closeModal()" class="text-gray-500 hover:text-gray-800">
-                    <i class="fas fa-times fa-lg"></i>
-                </button>
+                <button onclick="window.closeModal()" class="text-gray-500 hover:text-gray-800"><i class="fas fa-times fa-lg"></i></button>
             </div>
             <div id="modal-content" class="p-6"></div>
         </div>
@@ -80,9 +77,7 @@
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
             <div class="p-4 border-b flex justify-between items-center">
                 <h3 class="text-xl font-bold">Ler QR Code da Doação</h3>
-                <button onclick="window.closeQrModal()" class="text-gray-500 hover:text-gray-800">
-                    <i class="fas fa-times fa-lg"></i>
-                </button>
+                <button onclick="window.closeQrModal()" class="text-gray-500 hover:text-gray-800"><i class="fas fa-times fa-lg"></i></button>
             </div>
             <div class="p-6">
                 <div id="qr-reader" style="width: 100%;"></div>
@@ -110,6 +105,7 @@
         const tabsContainer = document.getElementById('tabs-container');
         const paginationContainer = document.getElementById('pagination-container');
         const statsContainer = document.getElementById('stats-container');
+        const searchInput = document.getElementById('search-input');
         
         let html5QrCode;
         let allDonationsData = [];
@@ -140,6 +136,7 @@
                 for (const donationDoc of querySnapshot.docs) {
                     allDonationsData.push({ id: donationDoc.id, ...donationDoc.data() });
                 }
+                allDonationsData.sort((a, b) => (b.scheduledAt?.toDate() || 0) - (a.scheduledAt?.toDate() || 0));
 
                 updateStatusCounters();
                 await renderItemsByStatus();
@@ -150,157 +147,147 @@
                 donationsView.classList.remove('hidden');
             }
         }
+        
+        function getItemsByStatus() {
+            const now = new Date();
+            const allItems = allDonationsData.flatMap(donation => 
+                donation.items.map((item, index) => ({
+                    ...item,
+                    donationId: donation.id,
+                    itemIndex: index,
+                    donorId: donation.donorId,
+                    campaignId: donation.campaignId,
+                    scheduledAt: donation.scheduledAt?.toDate(),
+                    campaignExpiresAt: donation.campaignExpiresAt?.toDate()
+                }))
+            );
+
+            const pending = allItems.filter(i => i.status === 'pending' && i.scheduledAt >= now);
+            const overdue = allItems.filter(i => i.status === 'pending' && i.scheduledAt < now);
+            const completed = allItems.filter(i => i.status !== 'pending');
+            
+            return { pending, overdue, completed };
+        }
 
         function updateStatusCounters() {
-            const now = new Date();
-            let pending = 0, overdue = 0, completed = 0;
-
-            allDonationsData.forEach(donation => {
-                donation.items.forEach(item => {
-                    if (item.status === 'pending') {
-                        if (donation.scheduledAt?.toDate() < now) {
-                            overdue++;
-                        } else {
-                            pending++;
-                        }
-                    } else {
-                        completed++;
-                    }
-                });
-            });
-
+            const { pending, overdue, completed } = getItemsByStatus();
             statsContainer.innerHTML = `
-                <div class="bg-blue-100 text-blue-800 p-4 rounded-xl shadow">
-                    <p class="text-sm font-medium">Pendentes</p>
-                    <p class="text-3xl font-bold">${pending}</p>
+                <div class="stat-card bg-blue-100 text-blue-800 p-4 rounded-xl shadow" data-tab="pending">
+                    <p class="text-sm font-medium"><i class="fas fa-clock mr-2"></i>Pendentes</p>
+                    <p class="text-3xl font-bold">${pending.length}</p>
                 </div>
-                <div class="bg-red-100 text-red-800 p-4 rounded-xl shadow">
-                    <p class="text-sm font-medium">Vencidos</p>
-                    <p class="text-3xl font-bold">${overdue}</p>
+                <div class="stat-card bg-red-100 text-red-800 p-4 rounded-xl shadow" data-tab="overdue">
+                    <p class="text-sm font-medium"><i class="fas fa-exclamation-triangle mr-2"></i>Vencidos</p>
+                    <p class="text-3xl font-bold">${overdue.length}</p>
                 </div>
-                <div class="bg-green-100 text-green-800 p-4 rounded-xl shadow">
-                    <p class="text-sm font-medium">Itens no Histórico</p>
-                    <p class="text-3xl font-bold">${completed}</p>
+                <div class="stat-card bg-green-100 text-green-800 p-4 rounded-xl shadow" data-tab="completed">
+                    <p class="text-sm font-medium"><i class="fas fa-check-circle mr-2"></i>Histórico</p>
+                    <p class="text-3xl font-bold">${completed.length}</p>
                 </div>
             `;
         }
-
+        
         async function renderItemsByStatus(filterDonationId = null) {
             donationsContainer.innerHTML = '';
             paginationContainer.innerHTML = '';
             const activeTab = tabsContainer.querySelector('.tab-button.active').dataset.tab;
-            const now = new Date();
+            const searchTerm = searchInput.value.toLowerCase();
+            const { pending, overdue, completed } = getItemsByStatus();
 
-            let itemsToDisplay = [];
-            let sourceDonations = filterDonationId ? allDonationsData.filter(d => d.id === filterDonationId) : allDonationsData;
-
-            sourceDonations.forEach(donation => {
-                donation.items.forEach((item, index) => {
-                    itemsToDisplay.push({ ...item, donationId: donation.id, itemIndex: index, donorId: donation.donorId, campaignId: donation.campaignId, scheduledAt: donation.scheduledAt?.toDate() });
-                });
-            });
-
-            let filteredItems = itemsToDisplay.filter(item => {
-                const isOverdue = item.scheduledAt < now;
-                switch (activeTab) {
-                    case 'pending': return item.status === 'pending' && !isOverdue;
-                    case 'overdue': return item.status === 'pending' && isOverdue;
-                    case 'completed': return item.status !== 'pending';
-                    default: return false;
-                }
-            });
-
-            if (filteredItems.length === 0) {
-                noDonationsMessage.style.display = 'block';
-                return;
+            let itemsToFilter;
+            switch (activeTab) {
+                case 'pending': itemsToFilter = pending; break;
+                case 'overdue': itemsToFilter = overdue; break;
+                case 'completed': itemsToFilter = completed; break;
+                default: itemsToFilter = [];
             }
-            noDonationsMessage.style.display = 'none';
+            
+            if (filterDonationId) {
+                itemsToFilter = itemsToFilter.filter(item => item.donationId === filterDonationId);
+            }
 
-            const itemsForCurrentPage = (activeTab === 'completed') 
-                ? filteredItems.slice(0, completedItemsPage * ITEMS_PER_PAGE)
-                : filteredItems;
+            const itemsByCampaign = (await Promise.all(itemsToFilter.map(async item => {
+                let campaignData = campaignsCache.get(item.campaignId);
+                if (!campaignData) {
+                    const campaignDoc = await getDoc(doc(db, paths.campaignDoc(item.campaignId)));
+                    campaignData = campaignDoc.exists() ? {id: campaignDoc.id, ...campaignDoc.data()} : { id: item.campaignId, title: 'Campanha Desconhecida' };
+                    campaignsCache.set(item.campaignId, campaignData);
+                }
+                item.campaignTitle = campaignData.title;
+                item.campaignIsActive = (campaignData.expiresAt?.toDate() || new Date()) > new Date();
 
-            const itemsByCampaign = itemsForCurrentPage.reduce((acc, item) => {
+                let donorName = profilesCache.get(item.donorId)?.displayName || 'Doador Anônimo';
+                item.donorName = donorName;
+
+                return item;
+            }))).filter(item => 
+                !searchTerm ||
+                item.type.toLowerCase().includes(searchTerm) ||
+                item.donorName.toLowerCase().includes(searchTerm) ||
+                item.campaignTitle.toLowerCase().includes(searchTerm)
+            ).reduce((acc, item) => {
                 if (!acc[item.campaignId]) acc[item.campaignId] = [];
                 acc[item.campaignId].push(item);
                 return acc;
             }, {});
 
-            for (const campaignId in itemsByCampaign) {
-                let campaignData;
-                if (campaignsCache.has(campaignId)) {
-                    campaignData = campaignsCache.get(campaignId);
-                } else {
-                    const campaignDoc = await getDoc(doc(db, paths.campaignDoc(campaignId)));
-                    campaignData = campaignDoc.exists() ? {id: campaignDoc.id, ...campaignDoc.data()} : { id: campaignId, title: 'Campanha Desconhecida' };
-                    campaignsCache.set(campaignId, campaignData);
-                }
-                
-                const campaignCard = await createCampaignCard(campaignData, itemsByCampaign[campaignId]);
-                if (campaignCard) {
-                    donationsContainer.appendChild(campaignCard);
-                }
+            if (Object.keys(itemsByCampaign).length === 0) {
+                noDonationsMessage.style.display = 'block';
+                return;
             }
-
-            if (activeTab === 'completed' && filteredItems.length > itemsForCurrentPage.length) {
-                const loadMoreBtn = document.createElement('button');
-                loadMoreBtn.textContent = 'Carregar Mais Itens';
-                loadMoreBtn.className = 'bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition';
-                loadMoreBtn.onclick = () => {
-                    completedItemsPage++;
-                    renderItemsByStatus();
-                };
-                paginationContainer.appendChild(loadMoreBtn);
+            noDonationsMessage.style.display = 'none';
+            
+            for (const campaignId in itemsByCampaign) {
+                const campaignData = campaignsCache.get(campaignId);
+                const items = itemsByCampaign[campaignId];
+                
+                const campaignCard = await createCampaignCard(campaignData, items, activeTab);
+                if (campaignCard) donationsContainer.appendChild(campaignCard);
             }
         }
-
-        async function createCampaignCard(campaign, items) {
+        
+        async function createCampaignCard(campaign, items, activeTab) {
             const card = document.createElement('div');
             card.className = 'bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500';
-            
-            const itemsHtml = await Promise.all(items.map(async item => {
-                let donorName = 'Doador Anônimo';
-                if (profilesCache.has(item.donorId)) {
-                    donorName = profilesCache.get(item.donorId).displayName;
-                } else {
+
+            const renderItemRow = async (item) => {
+                let donorName = item.donorName;
+                if (!profilesCache.has(item.donorId)) {
                     const donorDoc = await getDoc(doc(db, paths.userDoc(item.donorId)));
-                    if (donorDoc.exists()) {
-                        const donorData = donorDoc.data();
-                        profilesCache.set(item.donorId, donorData);
-                        donorName = donorData.displayName;
-                    }
+                    if (donorDoc.exists()) profilesCache.set(item.donorId, donorDoc.data());
+                    donorName = profilesCache.get(item.donorId)?.displayName || 'Doador Anônimo';
                 }
 
                 const uniqueItemId = `${item.donationId}_${item.itemIndex}`;
                 const isCompleted = item.status === 'completed';
-                let receivedByText = '';
-                if (isCompleted && item.receivedBy) {
-                    if (profilesCache.has(item.receivedBy)) {
-                        receivedByText = `Recebido por: ${profilesCache.get(item.receivedBy).displayName}`;
-                    } else {
-                        const receiverDoc = await getDoc(doc(db, paths.userDoc(item.receivedBy)));
-                        if(receiverDoc.exists()) {
-                            profilesCache.set(item.receivedBy, receiverDoc.data());
-                            receivedByText = `Recebido por: ${receiverDoc.data().displayName}`;
-                        }
-                    }
-                }
+                const statusHtml = isCompleted ? `<p class="text-xs text-green-600 font-semibold">Recebido</p>` : `<button onclick="window.confirmItemReception('${item.donationId}', ${item.itemIndex})" class="bg-green-600 text-white text-sm font-bold py-2 px-3 rounded-lg hover:bg-green-700 transition">Receber</button>`;
 
                 return `
-                <div id="item-row-${uniqueItemId}" class="item-row flex items-center justify-between p-2 border-b last:border-b-0">
+                <div id="item-row-${uniqueItemId}" class="item-row flex items-center justify-between py-3">
                     <div class="flex items-center space-x-4 flex-grow">
                         <img src="${item.photoURL || 'https://placehold.co/64x64/e2e8f0/e2e8f0?text=Item'}" alt="${item.type}" class="w-16 h-16 rounded-md object-cover">
                         <div>
                             <p class="font-semibold text-gray-800">${item.type}</p>
-                            <p class="text-sm text-gray-600">Doador: ${donorName}</p>
-                            ${isCompleted ? `<p class="text-xs text-green-600">${receivedByText}</p>` : ''}
+                            <p class="text-sm text-gray-600 flex items-center"><i class="fas fa-user-circle text-gray-400 mr-2"></i>Doador: ${donorName}</p>
                         </div>
                     </div>
-                    ${!isCompleted ? `<button onclick="window.confirmItemReception('${item.donationId}', ${item.itemIndex})" class="bg-green-600 text-white text-sm font-bold py-2 px-3 rounded-lg hover:bg-green-700 transition duration-300">Receber</button>` : ''}
+                    <div class="text-right">${statusHtml}</div>
                 </div>`;
-            }));
+            };
+
+            let cardContentHtml;
+            if (activeTab === 'overdue') {
+                const activeCampaignItems = items.filter(i => i.campaignIsActive);
+                const expiredCampaignItems = items.filter(i => !i.campaignIsActive);
+                
+                const activeHtml = activeCampaignItems.length > 0 ? `<h4 class="font-semibold text-amber-600 mb-2 mt-4">Campanha Ativa</h4>` + (await Promise.all(activeCampaignItems.map(renderItemRow))).join('') : '';
+                const expiredHtml = expiredCampaignItems.length > 0 ? `<h4 class="font-semibold text-red-600 mb-2 mt-4">Campanha Encerrada</h4>` + (await Promise.all(expiredCampaignItems.map(renderItemRow))).join('') : '';
+                cardContentHtml = activeHtml + expiredHtml;
+            } else {
+                cardContentHtml = (await Promise.all(items.map(renderItemRow))).join('');
+            }
             
-            if (itemsHtml.join('').trim() === '') return null;
+            if (!cardContentHtml.trim()) return null;
 
             card.innerHTML = `
                 <div class="border-b pb-4 mb-4">
@@ -313,42 +300,33 @@
                         </div>
                     </div>
                 </div>
-                <div class="space-y-2">${itemsHtml.join('')}</div>`;
+                <div class="pl-6 border-l-2 border-gray-200 space-y-2">${cardContentHtml}</div>`;
             return card;
         }
 
         window.openModal = () => detailsModal.style.display = 'flex';
         window.closeModal = () => detailsModal.style.display = 'none';
-        
+
+        statsContainer.addEventListener('click', e => {
+            const card = e.target.closest('.stat-card');
+            if (card?.dataset?.tab) {
+                const tabButton = tabsContainer.querySelector(`button[data-tab="${card.dataset.tab}"]`);
+                if(tabButton) tabButton.click();
+            }
+        });
+
         window.showCampaignDetails = (campaignId) => {
             const campaign = campaignsCache.get(campaignId);
             if (!campaign) return;
             modalTitle.innerText = 'Detalhes da Campanha';
-            modalContent.innerHTML = `
-                <h3 class="font-bold text-lg text-gray-900">${campaign.title}</h3>
-                <p class="text-sm text-gray-500 mt-1">Organizado por: ${campaign.entityName || 'N/A'}</p>
-                <p class="mt-4 text-gray-700 whitespace-pre-wrap">${campaign.description}</p>
-            `;
+            modalContent.innerHTML = `<h3 class="font-bold text-lg text-gray-900">${campaign.title}</h3><p class="text-sm text-gray-500 mt-1">Organizado por: ${campaign.entityName || 'N/A'}</p><p class="mt-4 text-gray-700 whitespace-pre-wrap">${campaign.description}</p>`;
             openModal();
         };
 
         window.confirmItemReception = (donationId, itemIndex) => {
-            const donation = allDonationsData.find(d => d.id === donationId);
-            const item = donation?.items[itemIndex];
+            const item = allDonationsData.find(d => d.id === donationId)?.items[itemIndex];
             if (!item) return;
-
-            modalContent.innerHTML = `
-                <div class="text-center">
-                    <img src="${item.photoURL || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem'}" alt="Foto de ${item.type}" class="w-full h-64 object-contain rounded-md mb-4 bg-gray-100">
-                    <p class="font-bold text-lg text-gray-900">${item.type}</p>
-                    <p class="text-sm text-gray-600">${item.details} (${item.condition})</p>
-                    <p class="mt-4">Você confirma o recebimento deste item?</p>
-                </div>
-                <div class="mt-6 flex justify-end gap-3">
-                    <button onclick="window.closeModal()" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">Cancelar</button>
-                    <button id="confirm-reception-btn" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Sim, Recebido</button>
-                </div>
-            `;
+            modalContent.innerHTML = `<div class="text-center"><img src="${item.photoURL || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem'}" class="w-full h-64 object-contain rounded-md mb-4 bg-gray-100"><p class="font-bold text-lg">${item.type}</p><p class="text-sm text-gray-600">${item.details} (${item.condition})</p><p class="mt-4">Confirmar recebimento?</p></div><div class="mt-6 flex justify-end gap-3"><button onclick="window.closeModal()" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">Cancelar</button><button id="confirm-reception-btn" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Sim, Recebido</button></div>`;
             openModal();
             document.getElementById('confirm-reception-btn').onclick = () => processItemReception(donationId, itemIndex);
         };
@@ -358,39 +336,26 @@
             const donationRef = doc(db, paths.donationDoc(donationId));
             try {
                 const docSnap = await getDoc(donationRef);
-                if (!docSnap.exists()) throw new Error("Doação não encontrada!");
-
                 const currentDonation = docSnap.data();
                 const updatedItems = [...currentDonation.items];
-                
                 updatedItems[itemIndex] = { ...updatedItems[itemIndex], status: 'completed', receivedBy: auth.currentUser.uid, receivedDate: new Date() };
                 await updateDoc(donationRef, { items: updatedItems });
-
                 const cachedDonation = allDonationsData.find(d => d.id === donationId);
                 if (cachedDonation) cachedDonation.items[itemIndex].status = 'completed';
-
                 updateStatusCounters();
                 await renderItemsByStatus();
                 closeModal();
-            } catch (error) {
-                console.error("Erro ao confirmar recebimento do item: ", error);
-            }
+            } catch (error) { console.error("Erro ao confirmar recebimento: ", error); }
         }
         
-        window.openQrModal = () => {
-            qrCodeModal.style.display = 'flex';
-            startQrScanner();
-        };
-
+        window.openQrModal = () => { qrCodeModal.style.display = 'flex'; startQrScanner(); };
         window.closeQrModal = () => {
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().catch(err => console.error("Falha ao parar o scanner.", err));
-            }
+            if (html5QrCode?.isScanning) html5QrCode.stop().catch(console.error);
             qrCodeModal.style.display = 'none';
-            document.getElementById('qr-reader-results').innerHTML = '';
             renderItemsByStatus();
         };
 
+        // CORREÇÃO: Lógica completa do QR Code restaurada.
         function startQrScanner() {
             const qrReaderElement = document.getElementById('qr-reader');
             const resultsElement = document.getElementById('qr-reader-results');
@@ -416,7 +381,7 @@
 
         tabsContainer.addEventListener('click', (e) => {
             const button = e.target.closest('button.tab-button');
-            if (button) {
+            if (button && !button.classList.contains('active')) {
                 tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
                 completedItemsPage = 1;
@@ -424,17 +389,10 @@
             }
         });
 
-        initializeApp();
+        searchInput.addEventListener('input', () => renderItemsByStatus());
 
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js').then(reg => {
-                    console.log('ServiceWorker registrado com sucesso.', reg);
-                }).catch(err => {
-                    console.log('Falha ao registrar o ServiceWorker: ', err);
-                });
-            });
-        }
+        initializeApp();
+        if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js'));
     </script>
 </body>
 </html>
