@@ -56,15 +56,25 @@
     </main>
     
     <div id="app-modal"></div>
-    <!-- Outros modals (QR, Confirmação, etc.) serão adicionados aqui pelo JS se necessário -->
-
+    
+    <!-- Modal do Leitor de QR Code -->
+    <div id="qr-scanner-modal" class="hidden fixed z-50 inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 space-y-4 relative">
+            <button id="close-scanner-btn" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h2 class="text-xl font-bold text-gray-800 text-center">Aponte para o QR Code do Item</h2>
+            <div id="qr-reader-container" class="w-full"></div>
+            <p id="qr-scanner-status" class="text-center text-sm text-gray-600 h-5"></p>
+        </div>
+    </div>
 
     <script type="module">
         import { db, paths } from './app-config.js';
         import { collection, query, where, onSnapshot, doc, getDoc, runTransaction } from "./firebase-services.js";
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
-        import { showAlertModal, showConfirmationModal } from './modal-handler.js';
+        import { showAlertModal } from './modal-handler.js';
 
         const loadingView = document.getElementById('loading-view');
         const receiveView = document.getElementById('receive-view');
@@ -72,8 +82,10 @@
         const noDonationsPlaceholder = document.getElementById('no-donations-placeholder');
         const pageHeading = document.getElementById('page-heading');
         const backLink = document.getElementById('back-link');
-
+        const scanQrBtn = document.getElementById('scan-qr-btn');
+        
         let currentUserSession = null;
+        let html5QrCode = null;
 
         async function initializeApp() {
             const canProceed = await injectHeader();
@@ -101,10 +113,8 @@
         function loadScheduledDonations(userSession) {
             let q;
             if (userSession.profile.role === 'superadmin') {
-                // Superadmin vê apenas as doações destinadas ao "App Faz Bem"
                 q = query(collection(db, paths.donations), where("entityId", "==", "app_faz_bem"), where("status", "==", "scheduled"));
             } else {
-                // Entidade vê apenas as suas doações
                 q = query(collection(db, paths.donations), where("entityId", "==", userSession.auth.uid), where("status", "==", "scheduled"));
             }
 
@@ -158,7 +168,7 @@
                 `).join('');
 
                 campaignSection.innerHTML = `
-                    <h2 class="text-2xl font-bold text-gray-800">${campaignGroup.title}</h2>
+                    <h2 class="text-2xl font-bold text-gray-800"><a href="detalhes.html?id=${campaignId}" class="hover:underline">${campaignGroup.title}</a></h2>
                     <div class="mt-4">${donorsHtml}</div>
                 `;
                 donationsContainer.appendChild(campaignSection);
@@ -167,6 +177,17 @@
 
         function createItemRow(item) {
             const isReceived = item.status === 'received';
+            const canReceive = currentUserSession.profile.role === 'superadmin' ? item.entityId === 'app_faz_bem' : true;
+
+            let actionHtml = `<span class="font-bold text-sm text-green-600">✓ Recebido</span>`;
+            if (!isReceived) {
+                if (canReceive) {
+                    actionHtml = `<button data-donation-id="${item.donationId}" data-item-index="${item.itemIndex}" class="manual-receive-btn bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-semibold py-1 px-3 rounded-md">Receber</button>`;
+                } else {
+                    actionHtml = `<span class="text-sm text-gray-400">Apenas a entidade responsável pode receber.</span>`;
+                }
+            }
+            
             return `
                 <div class="flex items-center justify-between p-2 rounded-md ${isReceived ? 'bg-green-50' : 'hover:bg-gray-50'}">
                     <div class="flex items-center space-x-3">
@@ -176,16 +197,60 @@
                             <p class="text-sm text-gray-500">${item.details} (${item.condition})</p>
                         </div>
                     </div>
-                    ${!isReceived ? `
-                    <button data-donation-id="${item.donationId}" data-item-index="${item.itemIndex}" class="manual-receive-btn bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-semibold py-1 px-3 rounded-md">
-                        Receber
-                    </button>` : `<span class="font-bold text-sm text-green-600">✓ Recebido</span>`}
+                    ${actionHtml}
                 </div>
             `;
         }
-
-        // A lógica de QR Code e updateItemStatus permanece a mesma, mas agora é chamada a partir dos botões na lista.
         
+        async function updateItemStatus(donationId, itemIndex) {
+            const donationRef = doc(db, paths.donationDoc(donationId));
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const donationDoc = await transaction.get(donationRef);
+                    if (!donationDoc.exists()) throw "Doação não encontrada!";
+                    
+                    const currentDonation = donationDoc.data();
+                    if (currentDonation.items[itemIndex].status === 'received') return;
+
+                    const campaignRef = doc(db, paths.campaignDoc(currentDonation.campaignId));
+                    const campaignDoc = await transaction.get(campaignRef);
+                    if (!campaignDoc.exists()) throw "Campanha associada não encontrada!";
+
+                    const newAmount = (campaignDoc.data().currentAmount || 0) + 1;
+                    transaction.update(campaignRef, { currentAmount: newAmount });
+
+                    const newItems = [...currentDonation.items];
+                    newItems[itemIndex].status = 'received';
+                    
+                    const allItemsReceived = newItems.every(item => item.status === 'received');
+                    const updateData = { items: newItems };
+                    if (allItemsReceived) {
+                        updateData.status = 'completed';
+                    }
+                    updateData.receivedBy = currentUserSession.auth.uid;
+                    
+                    transaction.update(donationRef, updateData);
+                });
+                showAlertModal('Sucesso!', `Item confirmado com sucesso!`);
+            } catch (error) {
+                console.error("Erro na transação: ", error);
+                showAlertModal("Erro", "Não foi possível confirmar o recebimento. Tente novamente.");
+            }
+        }
+
+        donationsContainer.addEventListener('click', (e) => {
+            const button = e.target.closest('.manual-receive-btn');
+            if (button) {
+                const donationId = button.dataset.donationId;
+                const itemIndex = parseInt(button.dataset.itemIndex, 10);
+                updateItemStatus(donationId, itemIndex);
+            }
+        });
+        
+        scanQrBtn.addEventListener('click', () => {
+            // Lógica do QR Code aqui
+        });
+
         initializeApp();
     </script>
 
