@@ -90,14 +90,12 @@
             
             const userSession = await getCurrentUser();
             if (userSession && userSession.profile?.role === 'entidade') {
-                // CORREÇÃO: Usar auth.currentUser.uid como a fonte definitiva do ID do usuário logado.
                 const entityId = auth.currentUser?.uid;
                 if (entityId) {
                     await loadPendingDonations(entityId);
                     loadingView.classList.add('hidden');
                     donationsView.classList.remove('hidden');
                 } else {
-                    console.error("Erro crítico: Sessão de entidade detectada, mas o UID do usuário não foi encontrado no objeto de autenticação.");
                     window.location.href = 'index.html';
                 }
             } else {
@@ -107,10 +105,11 @@
 
         async function loadPendingDonations(entityId) {
             try {
+                // CORREÇÃO: Alterado de 'agendado' para 'scheduled' para corresponder ao modelo de dados.
                 const donationsQuery = query(
                     collection(db, paths.donations),
                     where('entityId', '==', entityId),
-                    where('status', '==', 'agendado')
+                    where('status', '==', 'scheduled') 
                 );
 
                 const querySnapshot = await getDocs(donationsQuery);
@@ -145,16 +144,16 @@
             card.className = 'bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500';
             card.id = `donation-${donation.id}`;
 
-            const scheduledDate = donation.scheduledDate?.toDate().toLocaleString('pt-BR') || 'Data não definida';
+            const scheduledDate = donation.scheduledAt?.toDate().toLocaleString('pt-BR') || 'Data não definida';
 
             const itemsHtml = donation.items.map(item => `
                 <div class="flex items-center space-x-3">
                     <img src="${item.photoUrl || 'https://placehold.co/64x64/e2e8f0/e2e8f0?text=Item'}" 
-                         alt="${item.name}" 
+                         alt="${item.name || item.type}" 
                          class="w-16 h-16 rounded-md object-cover cursor-pointer"
-                         onclick="window.showImageModal('${item.photoUrl}', '${item.name}')">
+                         onclick="window.showImageModal('${item.photoUrl}', '${item.name || item.type}')">
                     <div>
-                        <p class="font-semibold">${item.name}</p>
+                        <p class="font-semibold">${item.name || item.type}</p>
                         <p class="text-sm text-gray-600">Quantidade: ${item.quantity}</p>
                     </div>
                 </div>
@@ -236,7 +235,7 @@
             modalContent.innerHTML = '<div class="loader mx-auto"></div><p class="text-center mt-2">Processando...</p>';
             try {
                 const donationRef = doc(db, paths.donationDoc(donationId));
-                await updateDoc(donationRef, { status: 'recebido', receivedDate: new Date() });
+                await updateDoc(donationRef, { status: 'completed', receivedDate: new Date() });
                 const cardToRemove = document.getElementById(`donation-${donationId}`);
                 if(cardToRemove) {
                     cardToRemove.style.transition = 'opacity 0.5s ease';
