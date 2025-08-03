@@ -125,7 +125,7 @@
                     allDonationsData.push({ id: donationDoc.id, ...donationDoc.data() });
                 }
 
-                renderItemsByStatus(); // Renderiza a aba inicial (Pendentes)
+                await renderItemsByStatus(); // Renderiza a aba inicial (Pendentes)
             } catch (error) {
                 console.error("Erro ao carregar doações: ", error);
                 donationsContainer.innerHTML = `<p class="text-red-500 text-center">Ocorreu um erro ao carregar as doações.</p>`;
@@ -143,7 +143,6 @@
             let itemsToDisplay = [];
             let sourceDonations = filterDonationId ? allDonationsData.filter(d => d.id === filterDonationId) : allDonationsData;
 
-            // Transforma as doações em uma lista plana de itens, adicionando referência ao pai
             sourceDonations.forEach(donation => {
                 donation.items.forEach((item, index) => {
                     itemsToDisplay.push({
@@ -157,7 +156,6 @@
                 });
             });
 
-            // Filtra os itens com base na aba ativa
             let filteredItems = itemsToDisplay.filter(item => {
                 const isOverdue = item.scheduledAt < now;
                 switch (activeTab) {
@@ -174,7 +172,6 @@
             }
             noDonationsMessage.style.display = 'none';
 
-            // Agrupa os itens filtrados por campanha
             const itemsByCampaign = filteredItems.reduce((acc, item) => {
                 if (!acc[item.campaignId]) acc[item.campaignId] = [];
                 acc[item.campaignId].push(item);
@@ -184,7 +181,12 @@
             for (const campaignId in itemsByCampaign) {
                 const campaignDoc = await getDoc(doc(db, paths.campaignDoc(campaignId)));
                 const campaignData = campaignDoc.exists() ? campaignDoc.data() : { title: 'Campanha Desconhecida' };
-                donationsContainer.appendChild(createCampaignCard(campaignData, itemsByCampaign[campaignId]));
+                
+                // CORREÇÃO: Verifica se o card retornado é um elemento válido antes de adicionar.
+                const campaignCard = await createCampaignCard(campaignData, itemsByCampaign[campaignId]);
+                if (campaignCard) {
+                    donationsContainer.appendChild(campaignCard);
+                }
             }
         }
 
@@ -222,6 +224,11 @@
                     ${!isCompleted ? `<button onclick="window.confirmItemReception('${item.donationId}', ${item.itemIndex})" class="bg-green-600 text-white text-sm font-bold py-2 px-3 rounded-lg hover:bg-green-700 transition duration-300">Receber</button>` : ''}
                 </div>`;
             }));
+            
+            // CORREÇÃO: Se não houver itens para esta campanha (na aba atual), retorna null em vez de um fragmento.
+            if (itemsHtml.join('').trim() === '') {
+                return null;
+            }
 
             card.innerHTML = `
                 <div class="border-b pb-3 mb-3">
@@ -269,11 +276,9 @@
                 updatedItems[itemIndex] = { ...updatedItems[itemIndex], status: 'completed', receivedBy: auth.currentUser.uid, receivedDate: new Date() };
                 await updateDoc(donationRef, { items: updatedItems });
 
-                // Atualiza o cache local
                 const cachedDonation = allDonationsData.find(d => d.id === donationId);
                 if (cachedDonation) cachedDonation.items[itemIndex].status = 'completed';
 
-                // Re-renderiza a lista da aba atual para refletir a mudança
                 await renderItemsByStatus();
                 closeModal();
             } catch (error) {
@@ -293,7 +298,7 @@
             }
             qrCodeModal.style.display = 'none';
             document.getElementById('qr-reader-results').innerHTML = '';
-            renderItemsByStatus(); // Volta para a visão completa
+            renderItemsByStatus();
         };
 
         function startQrScanner() {
