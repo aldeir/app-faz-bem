@@ -1,7 +1,7 @@
 // service-worker.js
 
 // Altere a versão do cache sempre que fizer alterações nos arquivos cacheados.
-const CACHE_NAME = 'faz-bem-cache-v3'; 
+const CACHE_NAME = 'faz-bem-cache-v4'; 
 const urlsToCache = [
   // Adicione aqui os caminhos completos e corretos dos seus arquivos essenciais.
   '/app-faz-bem/',
@@ -25,10 +25,18 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Service Worker: Adicionando assets ao cache...');
-        return cache.addAll(urlsToCache);
+        // CORREÇÃO: Trata requisições externas com 'no-cors' para evitar erros de CORS.
+        const cachePromises = urlsToCache.map(url => {
+          const request = new Request(url, { mode: 'no-cors' });
+          return fetch(request).then(response => cache.put(url, response));
+        });
+        return Promise.all(cachePromises);
       })
       .then(() => {
         return self.skipWaiting(); 
+      })
+      .catch(error => {
+        console.error('Service Worker: Falha na instalação -', error);
       })
   );
 });
