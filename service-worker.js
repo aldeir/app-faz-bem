@@ -1,10 +1,9 @@
 // service-worker.js
 
 // Altere a versão do cache sempre que fizer alterações nos arquivos cacheados.
-const CACHE_NAME = 'faz-bem-cache-v2'; 
+const CACHE_NAME = 'faz-bem-cache-v3'; 
 const urlsToCache = [
   // Adicione aqui os caminhos completos e corretos dos seus arquivos essenciais.
-  // O Service Worker tentará cachear todos. Se um falhar, a instalação pode ser interrompida.
   '/app-faz-bem/',
   '/app-faz-bem/index.html',
   '/app-faz-bem/login.html',
@@ -29,7 +28,6 @@ self.addEventListener('install', event => {
         return cache.addAll(urlsToCache);
       })
       .then(() => {
-        // Força o novo service worker a se tornar ativo imediatamente.
         return self.skipWaiting(); 
       })
   );
@@ -49,32 +47,45 @@ self.addEventListener('activate', event => {
         })
       );
     }).then(() => {
-      // Garante que o service worker ativado controle a página imediatamente.
       return self.clients.claim();
     })
   );
 });
 
-// Evento Fetch: Implementa a estratégia "Stale-While-Revalidate".
+// Evento Fetch: Implementa a estratégia "Network First" para páginas HTML
+// e "Cache First" para outros assets (CSS, JS, imagens).
 self.addEventListener('fetch', event => {
   // Ignora requisições que não são GET (como POST para o Firestore)
   if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
     return;
   }
 
-  event.respondWith(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.match(event.request).then(cachedResponse => {
-        // 1. Busca na rede em paralelo
-        const fetchedResponsePromise = fetch(event.request).then(networkResponse => {
-          // Se a busca na rede for bem-sucedida, atualiza o cache
-          cache.put(event.request, networkResponse.clone());
+  // Estratégia "Network First" para páginas HTML (navigation requests)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(networkResponse => {
+          // Se a rede funcionar, clona a resposta para o cache e a retorna
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseClone);
+          });
           return networkResponse;
-        });
+        })
+        .catch(() => {
+          // Se a rede falhar, tenta servir do cache
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
 
-        // 2. Retorna a resposta do cache imediatamente (se existir), ou espera a da rede
-        return cachedResponse || fetchedResponsePromise;
-      });
-    })
+  // Estratégia "Cache First" para todos os outros assets (CSS, JS, imagens, etc.)
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        // Retorna do cache se encontrar, senão busca na rede
+        return response || fetch(event.request);
+      })
   );
 });
