@@ -157,8 +157,8 @@
                     itemIndex: index,
                     donorId: donation.donorId,
                     campaignId: donation.campaignId,
-                    scheduledAt: donation.scheduledAt?.toDate(),
-                    campaignExpiresAt: donation.campaignExpiresAt?.toDate()
+                    scheduledAt: donation.scheduledAt?.toDate()
+                    // CORREÇÃO: Removida a tentativa de acessar campaignExpiresAt aqui.
                 }))
             );
 
@@ -217,6 +217,13 @@
                 item.campaignIsActive = (campaignData.expiresAt?.toDate() || new Date()) > new Date();
 
                 let donorName = profilesCache.get(item.donorId)?.displayName || 'Doador Anônimo';
+                if (!profilesCache.has(item.donorId)) {
+                    const donorDoc = await getDoc(doc(db, paths.userDoc(item.donorId)));
+                    if (donorDoc.exists()) {
+                        profilesCache.set(item.donorId, donorDoc.data());
+                        donorName = donorDoc.data().displayName;
+                    }
+                }
                 item.donorName = donorName;
 
                 return item;
