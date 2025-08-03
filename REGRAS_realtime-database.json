@@ -1,7 +1,7 @@
 {
   "rules": {
     "status": {
-      // CORREÇÃO: Permite que qualquer pessoa (logada ou não) leia a lista de usuários online.
+      // Permite que qualquer pessoa (logada ou não) leia a lista de usuários online.
       ".read": true,
       "$uid": {
         // Cada usuário só pode escrever no seu próprio status de presença.
