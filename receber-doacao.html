@@ -1,270 +1,418 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receber Doações - Faz Bem</title>
-    
-    <!-- PWA Tags -->
-    <meta name="theme-color" content="#22c55e">
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
-
+    <title>Receber Doações - App Faz Bem</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #16a34a; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Estilos para a animação de carregamento */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
+
 <body class="bg-gray-100">
 
+    <!-- Cabeçalho da Aplicação -->
     <div id="app-header"></div>
 
-    <main id="page-content">
-        <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
-            <div class="text-center">
-                <div class="loader mx-auto"></div>
-                <p class="mt-4 text-gray-600">A carregar agendamentos...</p>
-            </div>
+    <main class="container mx-auto p-4">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6">Doações Pendentes de Recebimento</h1>
+
+        <!-- Container para os cards de doação -->
+        <div id="donations-container" class="space-y-6">
+            <!-- O conteúdo será carregado aqui via JavaScript -->
         </div>
 
-        <div id="receive-view" class="hidden container mx-auto max-w-4xl p-4 sm:p-6 my-8">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                <div>
-                    <h1 id="page-heading" class="text-3xl font-bold text-gray-800">Receber Doações</h1>
-                    <p class="text-sm text-gray-500 mt-1">Confirme o recebimento dos itens agendados.</p>
-                </div>
-                <div class="flex items-center space-x-4">
-                     <button id="scan-qr-btn" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4m12 0h-4v4m0 12v-4h4m-12 0H4v-4"></path></svg>
-                        Receber via QR Code
-                    </button>
-                    <a id="back-link" href="admin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
-                </div>
-            </div>
-            
-            <div id="donations-container" class="space-y-8">
-                <p id="no-donations-placeholder" class="hidden text-center text-gray-500 py-10 bg-white rounded-lg shadow">Nenhuma doação agendada encontrada.</p>
-            </div>
+        <!-- Indicador de Carregamento -->
+        <div id="loader" class="flex justify-center items-center py-10">
+            <div class="loader"></div>
+        </div>
+
+        <!-- Mensagem para quando não houver doações -->
+        <div id="no-donations-message" class="text-center py-10 hidden">
+            <i class="fas fa-box-open text-4xl text-gray-400 mb-4"></i>
+            <p class="text-gray-500">Nenhuma doação pendente no momento.</p>
         </div>
     </main>
+
+    <!-- Modal Genérico (para detalhes da campanha, doador e imagem) -->
+    <div id="details-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-1/2 max-h-[80vh] overflow-y-auto">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 id="modal-title" class="text-xl font-bold">Detalhes</h3>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-800">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            <div id="modal-content" class="p-6">
+                <!-- Conteúdo do modal será inserido aqui -->
+            </div>
+        </div>
+    </div>
     
-    <div id="app-modal"></div>
-    
-    <!-- Modal do Leitor de QR Code -->
-    <div id="qr-scanner-modal" class="hidden fixed z-50 inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 space-y-4 relative">
-            <button id="close-scanner-btn" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-            <h2 class="text-xl font-bold text-gray-800 text-center">Aponte para o QR Code do Item</h2>
-            <div id="qr-reader-container" class="w-full"></div>
-            <p id="qr-scanner-status" class="text-center text-sm text-gray-600 h-5"></p>
+    <!-- Modal para o Leitor de QR Code -->
+    <div id="qr-code-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-1/2">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-xl font-bold">Ler QR Code da Doação</h3>
+                <button onclick="closeQrModal()" class="text-gray-500 hover:text-gray-800">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div id="qr-reader" style="width: 100%;"></div>
+                <div id="qr-reader-results" class="mt-4 text-center"></div>
+            </div>
         </div>
     </div>
 
-    <script type="module">
-        import { db, paths } from './app-config.js';
-        import { collection, query, where, onSnapshot, doc, getDoc, runTransaction } from "./firebase-services.js";
-        import { injectHeader } from './app-header.js';
-        import { getCurrentUser } from './auth-service.js';
-        import { showAlertModal, showConfirmationModal } from './modal-handler.js';
 
-        const loadingView = document.getElementById('loading-view');
-        const receiveView = document.getElementById('receive-view');
+    <!-- Scripts Firebase e da Aplicação -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Script do leitor de QR Code -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <script src="app-config.js"></script>
+    <script src="auth-service.js"></script>
+    <script src="firebase-services.js"></script>
+    <script src="app-header.js"></script>
+
+    <script>
+        // Elementos da UI
         const donationsContainer = document.getElementById('donations-container');
-        const noDonationsPlaceholder = document.getElementById('no-donations-placeholder');
-        const pageHeading = document.getElementById('page-heading');
-        const backLink = document.getElementById('back-link');
-        const scanQrBtn = document.getElementById('scan-qr-btn');
-        
-        let currentUserSession = null;
-        let html5QrCode = null;
+        const loader = document.getElementById('loader');
+        const noDonationsMessage = document.getElementById('no-donations-message');
+        const detailsModal = document.getElementById('details-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContent = document.getElementById('modal-content');
+        const qrCodeModal = document.getElementById('qr-code-modal');
+        let html5QrCode;
 
-        async function initializeApp() {
-            const canProceed = await injectHeader();
-            if (!canProceed) {
-                loadingView.classList.add('hidden');
-                return;
-            }
-            
-            currentUserSession = await getCurrentUser();
-            if (currentUserSession && ['superadmin', 'entidade'].includes(currentUserSession.profile?.role)) {
-                setupUIForRole(currentUserSession.profile.role);
-                loadScheduledDonations(currentUserSession);
+
+        /**
+         * Inicializa o listener de autenticação e carrega as doações se o usuário for uma entidade.
+         */
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                const userProfile = await getDoc(doc(db, 'users', user.uid));
+                if (userProfile.exists() && userProfile.data().role === 'entidade') {
+                    loadPendingDonations(user.uid);
+                } else {
+                    // Se não for entidade, redireciona ou mostra mensagem de erro
+                    window.location.href = 'index.html';
+                }
             } else {
+                // Se não estiver logado, redireciona para o login
                 window.location.href = 'login.html';
             }
-        }
+        });
 
-        function setupUIForRole(role) {
-            if (role === 'superadmin') {
-                pageHeading.textContent = 'Receber Doações (App Faz Bem)';
-                backLink.href = 'superadmin.html';
-            }
-        }
-
-        function loadScheduledDonations(userSession) {
-            let q;
-            if (userSession.profile.role === 'superadmin') {
-                q = query(collection(db, paths.donations), where("entityId", "==", "app_faz_bem"), where("status", "==", "scheduled"));
-            } else {
-                q = query(collection(db, paths.donations), where("entityId", "==", userSession.auth.uid), where("status", "==", "scheduled"));
-            }
-
-            onSnapshot(q, (snapshot) => {
-                const donations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderDonations(donations);
-                loadingView.classList.add('hidden');
-                receiveView.classList.remove('hidden');
-            });
-        }
-
-        function renderDonations(donations) {
+        /**
+         * Carrega as doações com status 'agendado' para a entidade logada.
+         * @param {string} entityId - O ID da entidade logada.
+         */
+        async function loadPendingDonations(entityId) {
+            loader.style.display = 'flex';
             donationsContainer.innerHTML = '';
-            if (donations.length === 0) {
-                donationsContainer.appendChild(noDonationsPlaceholder);
-                noDonationsPlaceholder.classList.remove('hidden');
-                return;
-            }
-            noDonationsPlaceholder.classList.add('hidden');
 
-            const groupedByCampaign = donations.reduce((acc, d) => {
-                if (!acc[d.campaignId]) {
-                    acc[d.campaignId] = { title: d.campaignTitle, donations: [] };
-                }
-                acc[d.campaignId].donations.push(d);
-                return acc;
-            }, {});
+            try {
+                // Consulta para buscar doações destinadas à entidade e com status 'agendado'
+                const donationsQuery = query(
+                    collection(db, 'donations'),
+                    where('entityId', '==', entityId),
+                    where('status', '==', 'agendado')
+                );
 
-            Object.entries(groupedByCampaign).forEach(([campaignId, campaignGroup]) => {
-                const campaignSection = document.createElement('div');
-                campaignSection.className = 'bg-white rounded-xl shadow-lg p-6';
-                
-                const groupedByDonor = campaignGroup.donations.reduce((acc, d) => {
-                    if (!acc[d.donorId]) {
-                        acc[d.donorId] = { donorName: d.donorName, donorPhoto: d.donorPhoto, items: [] };
+                const querySnapshot = await getDocs(donationsQuery);
+
+                if (querySnapshot.empty) {
+                    noDonationsMessage.style.display = 'block';
+                } else {
+                    // Para cada doação, busca os dados completos e cria o card
+                    for (const donationDoc of querySnapshot.docs) {
+                        const donationData = { id: donationDoc.id, ...donationDoc.data() };
+                        
+                        // Busca dados do doador e da campanha em paralelo
+                        const [donor, campaign] = await Promise.all([
+                            getDoc(doc(db, 'users', donationData.donorId)),
+                            getDoc(doc(db, 'campaigns', donationData.campaignId))
+                        ]);
+                        
+                        const donorData = donor.exists() ? { id: donor.id, ...donor.data() } : null;
+                        const campaignData = campaign.exists() ? { id: campaign.id, ...campaign.data() } : null;
+
+                        donationsContainer.appendChild(createDonationCard(donationData, donorData, campaignData));
                     }
-                    acc[d.donorId].items.push(...d.items.map((item, index) => ({...item, donationId: d.id, itemIndex: index})));
-                    return acc;
-                }, {});
-
-                const donorsHtml = Object.entries(groupedByDonor).map(([donorId, donorData]) => `
-                    <div class="mt-4 border-t pt-4">
-                        <div class="flex items-center space-x-3">
-                            <img src="${donorData.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto'}" class="w-10 h-10 rounded-full object-cover">
-                            <h4 class="font-semibold text-gray-800">${donorData.donorName}</h4>
-                        </div>
-                        <div class="pl-4 mt-2 space-y-2">
-                            ${donorData.items.map(createItemRow).join('')}
-                        </div>
-                    </div>
-                `).join('');
-
-                campaignSection.innerHTML = `
-                    <h2 class="text-2xl font-bold text-gray-800"><a href="detalhes.html?id=${campaignId}" class="hover:underline">${campaignGroup.title}</a></h2>
-                    <div class="mt-4">${donorsHtml}</div>
-                `;
-                donationsContainer.appendChild(campaignSection);
-            });
+                }
+            } catch (error) {
+                console.error("Erro ao carregar doações pendentes: ", error);
+                donationsContainer.innerHTML = '<p class="text-red-500 text-center">Ocorreu um erro ao carregar as doações. Tente novamente mais tarde.</p>';
+            } finally {
+                loader.style.display = 'none';
+            }
         }
 
-        function createItemRow(item) {
-            const isReceived = item.status === 'received';
-            const canReceive = currentUserSession.profile.role === 'superadmin' ? item.entityId === 'app_faz_bem' : true;
+        /**
+         * Cria e retorna o elemento HTML para um card de doação.
+         * @param {object} donation - O objeto da doação.
+         * @param {object} donor - O objeto do doador.
+         * @param {object} campaign - O objeto da campanha.
+         * @returns {HTMLElement} O elemento do card.
+         */
+        function createDonationCard(donation, donor, campaign) {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500';
+            card.id = `donation-${donation.id}`;
 
-            let actionHtml = `<span class="font-bold text-sm text-green-600">✓ Recebido</span>`;
-            if (!isReceived) {
-                if (canReceive) {
-                    actionHtml = `<button data-donation-id="${item.donationId}" data-item-index="${item.itemIndex}" class="manual-receive-btn bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-semibold py-1 px-3 rounded-md">Receber</button>`;
-                } else {
-                    actionHtml = `<span class="text-sm text-gray-400">Apenas a entidade responsável pode receber.</span>`;
-                }
-            }
-            
-            return `
-                <div class="flex items-center justify-between p-2 rounded-md ${isReceived ? 'bg-green-50' : 'hover:bg-gray-50'}">
-                    <div class="flex items-center space-x-3">
-                        <img src="${item.photoURL}" class="w-12 h-12 rounded-md object-cover">
-                        <div>
-                            <p class="font-medium">${item.type}</p>
-                            <p class="text-sm text-gray-500">${item.details} (${item.condition})</p>
-                        </div>
+            // Converte o timestamp para uma data legível
+            const scheduledDate = donation.scheduledDate ? new Date(donation.scheduledDate.seconds * 1000).toLocaleString('pt-BR') : 'Data não definida';
+
+            // Gera o HTML para a lista de itens
+            const itemsHtml = donation.items.map(item => `
+                <div class="flex items-center space-x-3">
+                    <img src="${item.photoUrl || 'https://placehold.co/64x64/e2e8f0/e2e8f0?text=Item'}" 
+                         alt="${item.name}" 
+                         class="w-16 h-16 rounded-md object-cover cursor-pointer"
+                         onclick="showImageModal('${item.photoUrl}', '${item.name}')">
+                    <div>
+                        <p class="font-semibold">${item.name}</p>
+                        <p class="text-sm text-gray-600">Quantidade: ${item.quantity}</p>
                     </div>
-                    ${actionHtml}
+                </div>
+            `).join('');
+
+            card.innerHTML = `
+                <div class="flex flex-col md:flex-row justify-between md:items-center mb-4">
+                    <div>
+                        <p class="text-sm text-gray-500">Campanha:</p>
+                        <a href="#" class="text-lg font-bold text-blue-600 hover:underline" onclick="showCampaignDetails('${campaign.id}')">
+                            ${campaign ? campaign.title : 'Campanha não encontrada'}
+                        </a>
+                    </div>
+                    <div class="text-sm text-gray-600 mt-2 md:mt-0">Agendado para: ${scheduledDate}</div>
+                </div>
+
+                <div class="mb-4">
+                    <p class="text-sm text-gray-500">Doador:</p>
+                    <a href="#" class="font-semibold text-gray-800 hover:underline" onclick="showDonorDetails('${donor.id}')">
+                        ${donor ? donor.name : 'Doador não encontrado'}
+                    </a>
+                </div>
+
+                <div class="mb-6">
+                    <h4 class="font-semibold text-gray-700 mb-3">Itens Doados:</h4>
+                    <div class="space-y-4">${itemsHtml}</div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button onclick="openQrModal('${donation.id}')" class="flex-1 bg-gray-800 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300 flex items-center justify-center">
+                        <i class="fas fa-qrcode mr-2"></i> Receber via QR Code
+                    </button>
+                    <button onclick="confirmManualReception('${donation.id}')" class="flex-1 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition duration-300 flex items-center justify-center">
+                        <i class="fas fa-check-circle mr-2"></i> Confirmar Recebimento Manual
+                    </button>
                 </div>
             `;
+            return card;
+        }
+
+        // --- Funções dos Modais ---
+
+        function openModal() {
+            detailsModal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            detailsModal.style.display = 'none';
+            modalContent.innerHTML = ''; // Limpa o conteúdo ao fechar
         }
         
-        async function updateItemStatus(donationId, itemIndex) {
-            const donationRef = doc(db, paths.donationDoc(donationId));
+        async function showCampaignDetails(campaignId) {
+            modalTitle.innerText = 'Detalhes da Campanha';
+            modalContent.innerHTML = '<div class="loader mx-auto"></div>';
+            openModal();
+
+            const campaign = await getDoc(doc(db, 'campaigns', campaignId));
+            if (campaign.exists()) {
+                const data = campaign.data();
+                modalContent.innerHTML = `
+                    <p><strong>Título:</strong> ${data.title}</p>
+                    <p><strong>Descrição:</strong> ${data.description}</p>
+                    <p><strong>Meta:</strong> ${data.goal}</p>
+                    <p><strong>Status:</strong> <span class="capitalize">${data.status}</span></p>
+                `;
+            } else {
+                modalContent.innerHTML = '<p class="text-red-500">Campanha não encontrada.</p>';
+            }
+        }
+
+        async function showDonorDetails(donorId) {
+            modalTitle.innerText = 'Detalhes do Doador';
+            modalContent.innerHTML = '<div class="loader mx-auto"></div>';
+            openModal();
+
+            const donor = await getDoc(doc(db, 'users', donorId));
+            if (donor.exists()) {
+                const data = donor.data();
+                modalContent.innerHTML = `
+                    <div class="flex items-center space-x-4">
+                        <img src="${data.photoURL || 'https://placehold.co/80x80/e2e8f0/e2e8f0?text=Perfil'}" class="w-20 h-20 rounded-full object-cover">
+                        <div>
+                            <p><strong>Nome:</strong> ${data.name}</p>
+                            <p><strong>Email:</strong> ${data.email}</p>
+                            <p><strong>Telefone:</strong> ${data.phone || 'Não informado'}</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                modalContent.innerHTML = '<p class="text-red-500">Doador não encontrado.</p>';
+            }
+        }
+
+        function showImageModal(imageUrl, itemName) {
+            modalTitle.innerText = `Item: ${itemName}`;
+            modalContent.innerHTML = `
+                <img src="${imageUrl || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem'}" 
+                     alt="Foto de ${itemName}" 
+                     class="w-full h-auto rounded-md object-contain max-h-[60vh]">
+            `;
+            openModal();
+        }
+
+        // --- Funções de Ação ---
+        
+        /**
+         * Confirma o recebimento manual de uma doação.
+         * @param {string} donationId - O ID da doação a ser confirmada.
+         */
+        function confirmManualReception(donationId) {
+            // Usando um modal customizado para confirmação
+            modalTitle.innerText = 'Confirmar Recebimento';
+            modalContent.innerHTML = `
+                <p>Tem certeza que deseja confirmar o recebimento desta doação?</p>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button onclick="closeModal()" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">Cancelar</button>
+                    <button onclick="processReception('${donationId}')" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Sim, Confirmar</button>
+                </div>
+            `;
+            openModal();
+        }
+        
+        /**
+         * Processa a atualização do status da doação no Firebase.
+         * @param {string} donationId - O ID da doação.
+         */
+        async function processReception(donationId) {
+            modalContent.innerHTML = '<div class="loader mx-auto"></div><p class="text-center mt-2">Processando...</p>';
             try {
-                await runTransaction(db, async (transaction) => {
-                    const donationDoc = await transaction.get(donationRef);
-                    if (!donationDoc.exists()) throw "Doação não encontrada!";
-                    
-                    const currentDonation = donationDoc.data();
-                    if (currentDonation.items[itemIndex].status === 'received') return;
-
-                    const campaignRef = doc(db, paths.campaignDoc(currentDonation.campaignId));
-                    const campaignDoc = await transaction.get(campaignRef);
-                    if (!campaignDoc.exists()) throw "Campanha associada não encontrada!";
-
-                    const newAmount = (campaignDoc.data().currentAmount || 0) + 1;
-                    transaction.update(campaignRef, { currentAmount: newAmount });
-
-                    const newItems = [...currentDonation.items];
-                    newItems[itemIndex].status = 'received';
-                    
-                    const allItemsReceived = newItems.every(item => item.status === 'received');
-                    const updateData = { items: newItems };
-                    if (allItemsReceived) {
-                        updateData.status = 'completed';
-                    }
-                    updateData.receivedBy = currentUserSession.auth.uid;
-                    
-                    transaction.update(donationRef, updateData);
+                const donationRef = doc(db, 'donations', donationId);
+                await updateDoc(donationRef, {
+                    status: 'recebido',
+                    receivedDate: new Date() // Adiciona a data de recebimento
                 });
-                showAlertModal('Sucesso!', `Item confirmado com sucesso!`);
+
+                // Feedback visual de sucesso
+                const cardToRemove = document.getElementById(`donation-${donationId}`);
+                if(cardToRemove) {
+                    cardToRemove.style.transition = 'opacity 0.5s ease';
+                    cardToRemove.style.opacity = '0';
+                    setTimeout(() => {
+                        cardToRemove.remove();
+                        // Verifica se ainda há doações, se não, mostra a mensagem
+                        if(donationsContainer.children.length === 0) {
+                            noDonationsMessage.style.display = 'block';
+                        }
+                    }, 500);
+                }
+                
+                closeModal();
+
             } catch (error) {
-                console.error("Erro na transação: ", error);
-                showAlertModal("Erro", "Não foi possível confirmar o recebimento. Tente novamente.");
+                console.error("Erro ao confirmar recebimento: ", error);
+                modalContent.innerHTML = `<p class="text-red-500">Falha ao confirmar. Tente novamente.</p>`;
             }
         }
-
-        donationsContainer.addEventListener('click', (e) => {
-            const button = e.target.closest('.manual-receive-btn');
-            if (button) {
-                const donationId = button.dataset.donationId;
-                const itemIndex = parseInt(button.dataset.itemIndex, 10);
-                updateItemStatus(donationId, itemIndex);
-            }
-        });
         
-        scanQrBtn.addEventListener('click', () => {
-            // Lógica do QR Code aqui
-        });
+        // --- Funções do QR Code ---
 
-        initializeApp();
-    </script>
-
-    <!-- PWA Service Worker Registration -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js').then(registration => {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                }, err => {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
-            });
+        function openQrModal(donationId) {
+            qrCodeModal.style.display = 'flex';
+            startQrScanner(donationId);
         }
+
+        function closeQrModal() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    console.log("QR Code scanning stopped.");
+                }).catch(err => {
+                    console.error("Failed to stop QR Code scanning.", err);
+                });
+            }
+            qrCodeModal.style.display = 'none';
+            document.getElementById('qr-reader-results').innerHTML = '';
+        }
+
+        function startQrScanner(expectedDonationId) {
+            const qrReaderElement = document.getElementById('qr-reader');
+            const resultsElement = document.getElementById('qr-reader-results');
+            
+            // Limpa a div antes de iniciar um novo scanner
+            qrReaderElement.innerHTML = '';
+            resultsElement.innerHTML = 'Aponte a câmera para o QR Code do doador.';
+
+            html5QrCode = new Html5Qrcode("qr-reader");
+
+            const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+                // `decodedText` contém o ID da doação lido do QR Code
+                if (decodedText === expectedDonationId) {
+                    resultsElement.innerHTML = `<p class="text-green-600 font-bold">QR Code válido! Confirmando recebimento...</p>`;
+                    html5QrCode.stop();
+                    processReception(decodedText);
+                    setTimeout(closeQrModal, 2000); // Fecha o modal após 2s
+                } else {
+                    resultsElement.innerHTML = `<p class="text-red-500 font-bold">QR Code inválido! Este QR Code não corresponde a esta doação.</p>`;
+                }
+            };
+
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+            // Tenta usar a câmera traseira ('environment')
+            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+                .catch(err => {
+                    console.log("Não foi possível iniciar com a câmera traseira, tentando câmera frontal.", err);
+                    // Se falhar, tenta usar a câmera frontal ('user')
+                    html5QrCode.start({ facingMode: "user" }, config, qrCodeSuccessCallback)
+                        .catch(err => {
+                            resultsElement.innerHTML = `<p class="text-red-500">Erro ao iniciar a câmera. Verifique as permissões.</p>`;
+                            console.error("Erro ao iniciar o leitor de QR Code", err);
+                        });
+                });
+        }
+
     </script>
 </body>
+
 </html>
