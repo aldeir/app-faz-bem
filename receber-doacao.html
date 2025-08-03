@@ -91,23 +91,18 @@
     
     <!-- Scripts da Aplicação como MÓDULOS -->
     <script type="module">
-        // Importações necessárias dos MÓDULOS do Firebase (sem -compat)
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-        import { getFirestore, getDoc, doc, collection, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-        
-        // Importa a configuração do seu arquivo local
-        import { firebaseConfig } from './app-config.js';
+        // Importa os serviços JÁ INICIALIZADOS do seu arquivo de configuração central.
+        // Esta é a correção principal: não inicializamos mais o Firebase aqui.
+        import { auth, db } from './app-config.js';
 
-        // Importa outros módulos da sua aplicação
+        // Importa as FUNÇÕES necessárias do SDK do Firebase
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getDoc, doc, collection, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        
+        // Importa outros módulos da sua aplicação para garantir que sejam executados
         import './auth-service.js';
         import './firebase-services.js';
         import './app-header.js';
-
-        // Inicialização do Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
 
         // Elementos da UI
         const donationsContainer = document.getElementById('donations-container');
@@ -129,9 +124,14 @@
                 if (userProfile.exists() && userProfile.data().role === 'entidade') {
                     loadPendingDonations(user.uid);
                 } else {
+                    // Redireciona se o usuário não for uma entidade.
+                    // Isso pode acontecer brevemente se a verificação do perfil demorar.
+                    console.log('Usuário não é uma entidade ou perfil não encontrado. Redirecionando...');
                     window.location.href = 'index.html';
                 }
             } else {
+                // Redireciona se não houver usuário logado.
+                console.log('Nenhum usuário logado. Redirecionando para login...');
                 window.location.href = 'login.html';
             }
         });
@@ -398,7 +398,8 @@
         // --- Registro do Service Worker para PWA ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/app-faz-bem/service-worker.js')
+                // O caminho para o service-worker deve ser relativo à raiz do site no GitHub Pages
+                navigator.serviceWorker.register('/app-faz-bem/service-worker.js', { scope: '/app-faz-bem/' })
                     .then(registration => {
                         console.log('ServiceWorker registrado com sucesso no escopo: ', registration.scope);
                     })
