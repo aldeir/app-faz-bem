@@ -66,13 +66,11 @@
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
     <script type="module">
-        // CORREÇÃO: Importando dos seus módulos locais, seguindo o padrão do projeto.
         import { db, auth, paths } from './app-config.js';
         import { collection, query, where, getDocs, getDoc, doc, updateDoc } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
 
-        // --- Elementos da UI ---
         const loadingView = document.getElementById('loading-view');
         const donationsView = document.getElementById('donations-view');
         const donationsContainer = document.getElementById('donations-container');
@@ -83,7 +81,6 @@
         const qrCodeModal = document.getElementById('qr-code-modal');
         let html5QrCode;
 
-        // --- Função de Inicialização (Padrão do Projeto) ---
         async function initializeApp() {
             const canProceed = await injectHeader();
             if (!canProceed) {
@@ -93,9 +90,16 @@
             
             const userSession = await getCurrentUser();
             if (userSession && userSession.profile?.role === 'entidade') {
-                await loadPendingDonations(userSession.uid);
-                loadingView.classList.add('hidden');
-                donationsView.classList.remove('hidden');
+                // CORREÇÃO: Usar auth.currentUser.uid como a fonte definitiva do ID do usuário logado.
+                const entityId = auth.currentUser?.uid;
+                if (entityId) {
+                    await loadPendingDonations(entityId);
+                    loadingView.classList.add('hidden');
+                    donationsView.classList.remove('hidden');
+                } else {
+                    console.error("Erro crítico: Sessão de entidade detectada, mas o UID do usuário não foi encontrado no objeto de autenticação.");
+                    window.location.href = 'index.html';
+                }
             } else {
                 window.location.href = 'index.html';
             }
@@ -116,7 +120,7 @@
                     return;
                 }
 
-                donationsContainer.innerHTML = ''; // Limpa antes de adicionar
+                donationsContainer.innerHTML = '';
                 for (const donationDoc of querySnapshot.docs) {
                     const donationData = { id: donationDoc.id, ...donationDoc.data() };
                     
@@ -187,7 +191,6 @@
             return card;
         }
 
-        // --- Funções de Modal (Expostas globalmente) ---
         window.openModal = () => detailsModal.style.display = 'flex';
         window.closeModal = () => detailsModal.style.display = 'none';
         
@@ -223,7 +226,6 @@
             openModal();
         };
 
-        // --- Funções de Ação (Expostas globalmente) ---
         window.confirmManualReception = (donationId) => {
             modalTitle.innerText = 'Confirmar Recebimento';
             modalContent.innerHTML = `<p>Tem certeza que deseja confirmar o recebimento desta doação?</p><div class="mt-6 flex justify-end gap-3"><button onclick="window.closeModal()" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">Cancelar</button><button onclick="window.processReception('${donationId}')" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Sim, Confirmar</button></div>`;
@@ -251,7 +253,6 @@
             }
         };
         
-        // --- Funções do QR Code (Expostas globalmente) ---
         window.openQrModal = (donationId) => {
             qrCodeModal.style.display = 'flex';
             startQrScanner(donationId);
@@ -287,7 +288,6 @@
                 .catch(() => resultsElement.innerHTML = `<p class="text-red-500">Erro ao iniciar a câmera.</p>`));
         }
 
-        // --- Inicialização da Página e Service Worker ---
         initializeApp();
 
         if ('serviceWorker' in navigator) {
