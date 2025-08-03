@@ -41,12 +41,15 @@
                 </button>
             </div>
 
+            <!-- Totalizadores -->
+            <div id="stats-container" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8"></div>
+
             <!-- Abas de Navegação -->
             <div class="border-b border-gray-200 mb-6">
                 <nav id="tabs-container" class="-mb-px flex space-x-6" aria-label="Tabs">
                     <button data-tab="pending" class="tab-button active whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">Pendentes</button>
                     <button data-tab="overdue" class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Vencidos</button>
-                    <button data-tab="completed" class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Histórico (Recebidos)</button>
+                    <button data-tab="completed" class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Histórico</button>
                 </nav>
             </div>
 
@@ -106,6 +109,7 @@
         const qrCodeModal = document.getElementById('qr-code-modal');
         const tabsContainer = document.getElementById('tabs-container');
         const paginationContainer = document.getElementById('pagination-container');
+        const statsContainer = document.getElementById('stats-container');
         
         let html5QrCode;
         let allDonationsData = [];
@@ -137,6 +141,7 @@
                     allDonationsData.push({ id: donationDoc.id, ...donationDoc.data() });
                 }
 
+                updateStatusCounters();
                 await renderItemsByStatus();
             } catch (error) {
                 console.error("Erro ao carregar doações: ", error);
@@ -144,6 +149,40 @@
                 loadingView.classList.add('hidden');
                 donationsView.classList.remove('hidden');
             }
+        }
+
+        function updateStatusCounters() {
+            const now = new Date();
+            let pending = 0, overdue = 0, completed = 0;
+
+            allDonationsData.forEach(donation => {
+                donation.items.forEach(item => {
+                    if (item.status === 'pending') {
+                        if (donation.scheduledAt?.toDate() < now) {
+                            overdue++;
+                        } else {
+                            pending++;
+                        }
+                    } else {
+                        completed++;
+                    }
+                });
+            });
+
+            statsContainer.innerHTML = `
+                <div class="bg-blue-100 text-blue-800 p-4 rounded-xl shadow">
+                    <p class="text-sm font-medium">Pendentes</p>
+                    <p class="text-3xl font-bold">${pending}</p>
+                </div>
+                <div class="bg-red-100 text-red-800 p-4 rounded-xl shadow">
+                    <p class="text-sm font-medium">Vencidos</p>
+                    <p class="text-3xl font-bold">${overdue}</p>
+                </div>
+                <div class="bg-green-100 text-green-800 p-4 rounded-xl shadow">
+                    <p class="text-sm font-medium">Itens no Histórico</p>
+                    <p class="text-3xl font-bold">${completed}</p>
+                </div>
+            `;
         }
 
         async function renderItemsByStatus(filterDonationId = null) {
@@ -166,7 +205,7 @@
                 switch (activeTab) {
                     case 'pending': return item.status === 'pending' && !isOverdue;
                     case 'overdue': return item.status === 'pending' && isOverdue;
-                    case 'completed': return item.status !== 'pending'; // Mostra recebidos, cancelados, etc.
+                    case 'completed': return item.status !== 'pending';
                     default: return false;
                 }
             });
@@ -177,7 +216,6 @@
             }
             noDonationsMessage.style.display = 'none';
 
-            // Paginação para a aba de histórico
             const itemsForCurrentPage = (activeTab === 'completed') 
                 ? filteredItems.slice(0, completedItemsPage * ITEMS_PER_PAGE)
                 : filteredItems;
@@ -204,7 +242,6 @@
                 }
             }
 
-            // Renderiza o botão "Carregar Mais" se necessário
             if (activeTab === 'completed' && filteredItems.length > itemsForCurrentPage.length) {
                 const loadMoreBtn = document.createElement('button');
                 loadMoreBtn.textContent = 'Carregar Mais Itens';
@@ -219,7 +256,7 @@
 
         async function createCampaignCard(campaign, items) {
             const card = document.createElement('div');
-            card.className = 'bg-white rounded-lg shadow-md p-6';
+            card.className = 'bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500';
             
             const itemsHtml = await Promise.all(items.map(async item => {
                 let donorName = 'Doador Anônimo';
@@ -332,6 +369,7 @@
                 const cachedDonation = allDonationsData.find(d => d.id === donationId);
                 if (cachedDonation) cachedDonation.items[itemIndex].status = 'completed';
 
+                updateStatusCounters();
                 await renderItemsByStatus();
                 closeModal();
             } catch (error) {
@@ -381,7 +419,7 @@
             if (button) {
                 tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
-                completedItemsPage = 1; // Reseta a paginação ao trocar de aba
+                completedItemsPage = 1;
                 renderItemsByStatus();
             }
         });
