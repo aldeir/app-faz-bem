@@ -1,0 +1,68 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() { return request.auth != null; }
+    function isOwner(userId) { return isAuthenticated() && request.auth.uid == userId; }
+    function isSuperAdmin() { return isAuthenticated() && request.auth.token.email == 'aldeir@gmail.com'; }
+    function isVerifiedEntity(userId) {
+      let entityPath = /databases/$(database)/documents/artifacts/app-faz-bem-guacui/public/data/entidades/$(userId);
+      return isAuthenticated() && get(entityPath).data.status == 'ativo';
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && request.resource.data.role == 'doador';
+      allow update: if isOwner(userId) || isSuperAdmin();
+      allow delete: if false;
+    }
+
+    match /artifacts/{appId}/public/data {
+
+      // --- REGRA MOVIDA PARA O LOCAL CORRETO ---
+      // A regra de notificações agora está aninhada corretamente com as outras coleções de dados.
+      match /notifications/{notificationId} {
+        allow create: if isOwner(request.resource.data.userId);
+        allow read, update: if isOwner(resource.data.userId); // Permite marcar como lida
+        allow delete: if false;
+      }
+
+      match /entidades/{entityId} {
+        allow read: if isAuthenticated();
+        allow create: if isOwner(entityId) && 
+                       request.resource.data.status == 'pendente_aprovacao' && 
+                       request.resource.data.role == 'entidade' &&
+                       request.resource.data.cnpj is string &&
+                       request.resource.data.cnpj.size() == 14;
+        allow update: if (isOwner(entityId) && request.resource.data.status == resource.data.status) || isSuperAdmin();
+        allow delete: if false;
+      }
+      
+      match /campaigns/{campaignId} {
+        allow read: if true;
+        allow create: if (isVerifiedEntity(request.auth.uid) || isSuperAdmin()) && request.resource.data.creatorId == request.auth.uid;
+        allow update: if isOwner(resource.data.creatorId) || isSuperAdmin();
+        allow delete: if false;
+      }
+
+      match /configs/{configId} {
+        allow read: if true;
+        allow write: if isSuperAdmin();
+      }
+
+      match /donations/{donationId} {
+        allow read: if true;
+        allow create: if isOwner(request.resource.data.donorId);
+        allow update: if isOwner(resource.data.donorId) || isVerifiedEntity(resource.data.entityId);
+        allow delete: if isOwner(resource.data.donorId);
+      }
+      
+      match /likes/{likeId} {
+        allow read: if true;
+        allow create, delete: if isOwner(request.resource.data.likerId);
+        allow update: if false;
+      }
+    }
+  }
+}
