@@ -122,7 +122,14 @@
         import { loadHeader } from './app-header.js';
         import { showModal, hideModal } from './modal-handler.js';
         import { getUserProfile } from './firebase-services.js';
-        import { AGENDAMENTOS, CAMPANHAS, USUARIOS, NOTIFICACOES } from './firestore-paths.js';
+        
+        // CORREÇÃO: As constantes das coleções foram declaradas aqui
+        // para resolver o erro de importação do módulo, já que o arquivo
+        // firestore-paths.js não as exporta como um módulo ES6.
+        const AGENDAMENTOS = 'agendamentos';
+        const CAMPANHAS = 'campanhas';
+        const USUARIOS = 'usuarios';
+        const NOTIFICACOES = 'notificacoes';
 
         // --- ELEMENTOS DA UI ---
         const loader = document.getElementById('loader');
