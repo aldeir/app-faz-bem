@@ -91,24 +91,17 @@
     <!-- Modal Placeholder -->
     <div id="modal-placeholder"></div>
 
-    <!-- Scripts do Firebase (Compatibilidade) -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-    <!-- Scripts da Aplicação (Ordem correta) -->
-    <script src="app-config.js"></script>
-    <script src="firestore-paths.js"></script>
-    <script src="modal-handler.js"></script>
-    <script src="firebase-services.js"></script>
-    <script src="app-header.js"></script>
-    <script src="auth-service.js"></script>
-
-    <!-- Script principal da página -->
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // As funções e variáveis (db, auth, showModal, etc.) agora são acessadas globalmente
-        // porque os scripts foram carregados na ordem correta acima.
+    <!-- Script principal da página (como módulo) -->
+    <script type="module">
+        // Importações necessárias para a página
+        import { db, auth } from './app-config.js';
+        import { doc, getDoc, collection, writeBatch } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
+        
+        import { AGENDAMENTOS, CAMPANHAS, USUARIOS, NOTIFICACOES } from './firestore-paths.js';
+        import { showModal, hideModal } from './modal-handler.js';
+        import { getUserProfile } from './firebase-services.js';
+        import { loadHeader } from './app-header.js';
 
         const loader = document.getElementById('loader');
         const formContainer = document.getElementById('form-container');
@@ -123,10 +116,8 @@
         let agendamentoData = null;
         let currentUserProfile = null;
 
-        // Função para exibir erro e redirecionar
         function showErrorAndRedirect(message, redirectPage = 'index.html') {
             loader.classList.add('hidden');
-            // A função showModal vem de modal-handler.js
             showModal('Atenção', message, 'Ok', null, () => {
                 window.location.href = redirectPage;
             });
@@ -140,29 +131,27 @@
 
         if (!agendamentoId) {
             showErrorAndRedirect("ID do agendamento não encontrado na URL.");
-            return;
-        }
-
-        firebase.auth().onAuthStateChanged(async (user) => {
-            if (user) {
-                // A função getUserProfile vem de firebase-services.js
-                currentUserProfile = await getUserProfile(user.uid);
-                if (currentUserProfile && (currentUserProfile.role === 'entidade' || currentUserProfile.role === 'superadmin')) {
-                    await loadDonationDetails();
+        } else {
+             onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUserProfile = await getUserProfile(user.uid);
+                    if (currentUserProfile && (currentUserProfile.role === 'entidade' || currentUserProfile.role === 'superadmin')) {
+                        await loadDonationDetails();
+                    } else {
+                        showErrorAndRedirect("Acesso negado. Você não tem permissão para ver esta página.");
+                    }
                 } else {
-                    showErrorAndRedirect("Acesso negado. Você não tem permissão para ver esta página.");
+                    showErrorAndRedirect("Você precisa estar logado para acessar esta página.", "login.html");
                 }
-            } else {
-                showErrorAndRedirect("Você precisa estar logado para acessar esta página.", "login.html");
-            }
-        });
+            });
+        }
 
         async function loadDonationDetails() {
             try {
-                const agendamentoRef = db.collection(AGENDAMENTOS).doc(agendamentoId);
-                const agendamentoSnap = await agendamentoRef.get();
+                const agendamentoRef = doc(db, AGENDAMENTOS, agendamentoId);
+                const agendamentoSnap = await getDoc(agendamentoRef);
 
-                if (!agendamentoSnap.exists) {
+                if (!agendamentoSnap.exists()) {
                     showErrorAndRedirect("Agendamento não encontrado.");
                     return;
                 }
@@ -174,10 +163,10 @@
                     return;
                 }
 
-                const donorSnap = await db.collection(USUARIOS).doc(agendamentoData.doadorId).get();
-                const campaignSnap = await db.collection(CAMPANHAS).doc(agendamentoData.campanhaId).get();
+                const donorSnap = await getDoc(doc(db, USUARIOS, agendamentoData.doadorId));
+                const campaignSnap = await getDoc(doc(db, CAMPANHAS, agendamentoData.campanhaId));
 
-                if (!donorSnap.exists || !campaignSnap.exists) {
+                if (!donorSnap.exists() || !campaignSnap.exists()) {
                     showErrorAndRedirect("Não foi possível carregar os detalhes do doador ou da campanha.");
                     return;
                 }
@@ -229,8 +218,8 @@
             confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processando...';
 
             try {
-                const batch = db.batch();
-                const agendamentoRef = db.collection(AGENDAMENTOS).doc(agendamentoId);
+                const batch = writeBatch(db);
+                const agendamentoRef = doc(db, AGENDAMENTOS, agendamentoId);
                 const itensRecebidos = Array.from(itemsListEl.querySelectorAll('input[type="number"]')).map(input => ({
                     nome: input.dataset.itemName,
                     quantidade: parseInt(input.value, 10) || 0
@@ -242,14 +231,14 @@
                     observacoes: observationsEl.value,
                     itensRecebidos: itensRecebidos,
                     confirmadoPor: {
-                        uid: firebase.auth().currentUser.uid,
+                        uid: auth.currentUser.uid,
                         nome: currentUserProfile.nome,
                         role: currentUserProfile.role
                     }
                 });
 
-                const campanhaRef = db.collection(CAMPANHAS).doc(agendamentoData.campanhaId);
-                const campanhaSnap = await campanhaRef.get();
+                const campanhaRef = doc(db, CAMPANHAS, agendamentoData.campanhaId);
+                const campanhaSnap = await getDoc(campanhaRef);
                 const campanhaData = campanhaSnap.data();
                 
                 const novosItensCampanha = [...campanhaData.itens];
@@ -265,7 +254,7 @@
                     batch.update(campanhaRef, { itens: novosItensCampanha });
                 }
 
-                const notificacaoDoadorRef = db.collection(NOTIFICACOES).doc();
+                const notificacaoDoadorRef = doc(collection(db, NOTIFICACOES));
                 batch.set(notificacaoDoadorRef, {
                     userId: agendamentoData.doadorId,
                     titulo: "Doação Recebida!",
@@ -288,7 +277,6 @@
                 confirmButton.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Confirmar Recebimento';
             }
         }
-    });
     </script>
 </body>
 </html>
