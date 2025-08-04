@@ -117,11 +117,12 @@
     <script type="module">
         import { app, db, auth } from './app-config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { doc, getDoc, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { doc, getDoc, updateDoc, writeBatch, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         
         import { loadHeader } from './app-header.js';
         import { showModal, hideModal } from './modal-handler.js';
-        import { getUserProfile, AGENDAMENTOS, CAMPANHAS, USUARIOS, NOTIFICACOES } from './firebase-services.js';
+        import { getUserProfile } from './firebase-services.js';
+        import { AGENDAMENTOS, CAMPANHAS, USUARIOS, NOTIFICACOES } from './firestore-paths.js';
 
         // --- ELEMENTOS DA UI ---
         const loader = document.getElementById('loader');
