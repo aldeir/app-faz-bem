@@ -95,11 +95,9 @@
     <script type="module">
         import { db, auth } from './app-config.js';
         import { doc, getDoc, collection, writeBatch } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js';
-        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
         
-        import { AGENDAMENTOS, CAMPANHAS, USUARIOS, NOTIFICACOES } from './firestore-paths.js';
+        import { AGENDAMENTOS, CAMPANHAS, NOTIFICACOES } from './firestore-paths.js';
         import { showModal } from './modal-handler.js';
-        import { getUserProfile } from './firebase-services.js';
         import { loadHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
 
@@ -166,15 +164,11 @@
                     return;
                 }
 
-                // Busca o nome da campanha para exibição
-                const campaignSnap = await getDoc(doc(db, CAMPANHAS, agendamentoData.campanhaId));
-                const campaignTitle = campaignSnap.exists() ? campaignSnap.data().titulo : "Campanha não encontrada";
-
                 // Preenche os detalhes na UI
-                campaignNameEl.textContent = campaignTitle;
-                // CORREÇÃO: Lê o nome do doador diretamente do documento de agendamento
+                campaignNameEl.textContent = agendamentoData.campaignTitle || "Campanha não informada";
+                // CORREÇÃO: Lê o nome do doador diretamente do documento de agendamento, evitando o erro de permissão.
                 donorNameEl.textContent = agendamentoData.donorName || "Doador não informado";
-                scheduleDateEl.textContent = new Date(agendamentoData.dataAgendamento.seconds * 1000).toLocaleDateString('pt-BR', {
+                scheduleDateEl.textContent = new Date(agendamentoData.scheduledAt.seconds * 1000).toLocaleDateString('pt-BR', {
                     year: 'numeric', month: 'long', day: 'numeric'
                 });
 
@@ -191,13 +185,17 @@
 
         function renderItemsList(items) {
             itemsListEl.innerHTML = '';
+            // O campo de quantidade não existe no seu modelo de dados, então foi removido.
+            // A lógica agora foca em confirmar o recebimento dos itens listados.
             items.forEach((item, index) => {
                 const itemEl = document.createElement('div');
-                itemEl.className = 'grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-gray-100 p-3 rounded-lg border';
+                itemEl.className = 'flex items-center space-x-4 bg-gray-50 p-3 rounded-lg border';
                 itemEl.innerHTML = `
-                    <div class="md:col-span-5 font-semibold text-gray-800"><i class="fas fa-gift text-gray-500 mr-2"></i><span>${item.nome}</span></div>
-                    <div class="md:col-span-3"><label class="text-sm font-medium text-gray-600">Qtd. Prometida</label><p class="font-bold text-lg text-gray-800">${item.quantidade}</p></div>
-                    <div class="md:col-span-4"><label for="item-qty-${index}" class="text-sm font-medium text-gray-600">Qtd. Recebida</label><input type="number" id="item-qty-${index}" data-item-name="${item.nome}" value="${item.quantidade}" min="0" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"></div>
+                    <img src="${item.photoURL || 'https://placehold.co/64x64/e2e8f0/e2e8f0?text=Item'}" class="w-16 h-16 rounded-md object-cover">
+                    <div class="flex-grow">
+                        <p class="font-bold">${item.type}</p>
+                        <p class="text-sm text-gray-600">${item.details} (${item.condition})</p>
+                    </div>
                 `;
                 itemsListEl.appendChild(itemEl);
             });
@@ -206,7 +204,7 @@
         confirmButton.addEventListener('click', () => {
             showModal(
                 'Confirmação', 
-                'Você tem certeza que deseja confirmar o recebimento dos itens? Esta ação não pode ser desfeita.',
+                'Você tem certeza que deseja confirmar o recebimento de todos os itens listados? Esta ação não pode ser desfeita.',
                 'Confirmar', 'Cancelar', handleConfirmation
             );
         });
@@ -218,48 +216,44 @@
             try {
                 const batch = writeBatch(db);
                 const agendamentoRef = doc(db, AGENDAMENTOS, agendamentoId);
-                const itensRecebidos = Array.from(itemsListEl.querySelectorAll('input[type="number"]')).map(input => ({
-                    nome: input.dataset.itemName,
-                    quantidade: parseInt(input.value, 10) || 0
-                }));
+
+                // Atualiza o status de cada item para 'completed'
+                const updatedItems = agendamentoData.items.map(item => ({ ...item, status: 'completed' }));
 
                 batch.update(agendamentoRef, {
-                    status: 'recebido',
-                    dataRecebimento: new Date(),
-                    observacoes: observationsEl.value,
-                    itensRecebidos: itensRecebidos,
-                    confirmadoPor: {
-                        uid: auth.currentUser.uid,
-                        nome: currentUserProfile.nome,
-                        role: currentUserProfile.role
-                    }
+                    status: 'completed', // O status principal do agendamento também é atualizado
+                    items: updatedItems,
+                    receivedAt: new Date(),
+                    receivedBy: auth.currentUser.uid,
+                    observations: observationsEl.value
                 });
 
-                const campanhaRef = doc(db, CAMPANHAS, agendamentoData.campanhaId);
+                // Lógica para incrementar o total arrecadado na campanha (opcional, mas recomendado)
+                const campanhaRef = doc(db, CAMPANHAS, agendamentoData.campaignId);
                 const campanhaSnap = await getDoc(campanhaRef);
-                const campanhaData = campanhaSnap.data();
-                
-                const novosItensCampanha = [...campanhaData.itens];
-                let houveAlteracao = false;
-                itensRecebidos.forEach(itemRecebido => {
-                    const itemIndex = novosItensCampanha.findIndex(i => i.nome === itemRecebido.nome);
-                    if (itemIndex > -1) {
-                        novosItensCampanha[itemIndex].arrecadado = (novosItensCampanha[itemIndex].arrecadado || 0) + itemRecebido.quantidade;
-                        houveAlteracao = true;
-                    }
-                });
-                if(houveAlteracao) {
+                if (campanhaSnap.exists()) {
+                    const campanhaData = campanhaSnap.data();
+                    const novosItensCampanha = [...campanhaData.itens];
+                    
+                    agendamentoData.items.forEach(itemDoado => {
+                        const itemIndex = novosItensCampanha.findIndex(i => i.nome === itemDoado.type);
+                        if (itemIndex > -1) {
+                            // Assumindo que cada item doado tem quantidade 1
+                            novosItensCampanha[itemIndex].arrecadado = (novosItensCampanha[itemIndex].arrecadado || 0) + 1;
+                        }
+                    });
                     batch.update(campanhaRef, { itens: novosItensCampanha });
                 }
 
+                // Cria notificação para o doador
                 const notificacaoDoadorRef = doc(collection(db, NOTIFICACOES));
                 batch.set(notificacaoDoadorRef, {
-                    userId: agendamentoData.doadorId,
+                    userId: agendamentoData.donorId,
                     titulo: "Doação Recebida!",
-                    mensagem: `Sua doação para a campanha "${campanhaData.titulo}" foi recebida com sucesso. Muito obrigado!`,
+                    mensagem: `Sua doação para a campanha "${agendamentoData.campaignTitle}" foi recebida com sucesso. Muito obrigado!`,
                     data: new Date(),
                     lida: false,
-                    link: `/minhas-entregas.html?id=${agendamentoId}`
+                    link: `/minhas-entregas.html`
                 });
 
                 await batch.commit();
