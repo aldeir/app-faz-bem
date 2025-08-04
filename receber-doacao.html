@@ -24,6 +24,7 @@
         .loader { border-top-color: #3498db; -webkit-animation: spin 1s linear infinite; animation: spin 1s linear infinite; }
         @-webkit-keyframes spin { 0% { -webkit-transform: rotate(0deg); } 100% { -webkit-transform: rotate(360deg); } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #modal-placeholder { position: fixed; inset: 0; z-index: 50; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -91,22 +92,120 @@
     <!-- Modal Placeholder -->
     <div id="modal-placeholder"></div>
 
-    <!-- Script principal da página (como módulo) -->
-    <script type="module">
-        // Importações necessárias para a página
-        import { db, auth } from './app-config.js';
-        import { doc, getDoc, collection, writeBatch } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js';
-        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
-        
-        // CORREÇÃO: Constantes declaradas localmente para evitar erro de importação.
-        const AGENDAMENTOS = 'agendamentos';
-        const CAMPANHAS = 'campanhas';
+    <!-- Scripts do Firebase (versão de compatibilidade para acesso global) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <!-- Script principal da página -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- INICIALIZAÇÃO E FUNÇÕES ESSENCIAIS (INTEGRADAS PARA AUTOSSUFICIÊNCIA) ---
+
+        // 1. Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCGIBYXEhvGDfcpbzyOxPiRJkAixCGpmcE",
+            authDomain: "app-faz-bem-guacui.firebaseapp.com",
+            projectId: "app-faz-bem-guacui",
+            storageBucket: "app-faz-bem-guacui.appspot.com", // Corrigido para .appspot.com
+            messagingSenderId: "218995880923",
+            appId: "1:218995880923:web:ce8a371bc402904c0dedfe",
+            databaseURL: "https://app-faz-bem-guacui-default-rtdb.firebaseio.com"
+        };
+
+        // 2. Inicialização do Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // 3. Constantes de Coleções
         const USUARIOS = 'usuarios';
+        const CAMPANHAS = 'campanhas';
+        const AGENDAMENTOS = 'agendamentos';
         const NOTIFICACOES = 'notificacoes';
-        
-        import { showModal, hideModal } from './modal-handler.js';
-        import { getUserProfile } from './firebase-services.js';
-        import { loadHeader } from './app-header.js';
+
+        // 4. Funções de Utilidade (copiadas de outros módulos para evitar conflitos)
+        function showModal(title, message, confirmText = 'Ok', cancelText = null, onConfirm = null) {
+            const modalContainer = document.getElementById('modal-placeholder');
+            if (!modalContainer) return;
+            const modalId = 'feedback-modal';
+            
+            const modalHTML = `
+                <div id="${modalId}" class="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center p-4">
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+                        <div class="p-6 text-center">
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">${title}</h3>
+                            <p class="text-gray-600 mb-6">${message}</p>
+                        </div>
+                        <div class="flex justify-center gap-4 p-4 bg-gray-50 rounded-b-2xl">
+                            ${cancelText ? `<button id="modal-cancel-btn" class="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">${cancelText}</button>` : ''}
+                            <button id="modal-confirm-btn" class="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">${confirmText}</button>
+                        </div>
+                    </div>
+                </div>`;
+            modalContainer.innerHTML = modalHTML;
+
+            const confirmBtn = document.getElementById('modal-confirm-btn');
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+
+            const closeModal = () => {
+                const modalElement = document.getElementById(modalId);
+                if (modalElement) modalElement.remove();
+            };
+
+            confirmBtn.onclick = () => {
+                if (onConfirm) onConfirm();
+                closeModal();
+            };
+
+            if (cancelBtn) cancelBtn.onclick = closeModal;
+        }
+
+        async function getUserProfile(uid) {
+            if (!uid) return null;
+            try {
+                const userRef = db.collection(USUARIOS).doc(uid);
+                const userSnap = await userRef.get();
+                return userSnap.exists ? userSnap.data() : null;
+            } catch (error) {
+                console.error("Erro ao buscar perfil do usuário:", error);
+                return null;
+            }
+        }
+
+        async function loadHeader() {
+            const headerContainer = document.getElementById('app-header');
+            if (!headerContainer) return;
+
+            auth.onAuthStateChanged(async (user) => {
+                const profile = user ? await getUserProfile(user.uid) : null;
+                const role = profile?.role;
+
+                let navLinks = '<a href="index.html" class="text-gray-700 hover:text-blue-600 font-medium">Início</a>';
+                if (role === 'entidade') {
+                    navLinks += '<a href="admin.html" class="text-gray-700 hover:text-blue-600 font-medium">Painel</a>';
+                } else if (role === 'superadmin') {
+                    navLinks += '<a href="superadmin.html" class="text-gray-700 hover:text-blue-600 font-medium">Painel Geral</a>';
+                }
+
+                const headerHTML = `
+                    <nav class="bg-white shadow-md p-4">
+                        <div class="container mx-auto flex justify-between items-center">
+                            <a href="index.html" class="text-xl font-bold text-blue-600">App Faz Bem</a>
+                            <div class="hidden md:flex items-center space-x-6">${navLinks}</div>
+                            <div class="flex items-center space-x-4">
+                                ${user ? `<a href="configuracoes.html" class="text-gray-600 hover:text-blue-600"><i class="fas fa-cog"></i></a><button onclick="firebase.auth().signOut().then(() => window.location.href='index.html')" class="bg-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-600">Sair</button>` : `<a href="login.html" class="font-semibold text-blue-600 hover:text-blue-700">Entrar</a>`}
+                            </div>
+                        </div>
+                    </nav>`;
+                headerContainer.innerHTML = headerHTML;
+            });
+        }
+
+        // --- LÓGICA PRINCIPAL DA PÁGINA ---
 
         const loader = document.getElementById('loader');
         const formContainer = document.getElementById('form-container');
@@ -128,7 +227,6 @@
             });
         }
 
-        // Inicializa a página
         loadHeader();
         
         const urlParams = new URLSearchParams(window.location.search);
@@ -136,27 +234,28 @@
 
         if (!agendamentoId) {
             showErrorAndRedirect("ID do agendamento não encontrado na URL.");
-        } else {
-             onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUserProfile = await getUserProfile(user.uid);
-                    if (currentUserProfile && (currentUserProfile.role === 'entidade' || currentUserProfile.role === 'superadmin')) {
-                        await loadDonationDetails();
-                    } else {
-                        showErrorAndRedirect("Acesso negado. Você não tem permissão para ver esta página.");
-                    }
-                } else {
-                    showErrorAndRedirect("Você precisa estar logado para acessar esta página.", "login.html");
-                }
-            });
+            return;
         }
+
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUserProfile = await getUserProfile(user.uid);
+                if (currentUserProfile && (currentUserProfile.role === 'entidade' || currentUserProfile.role === 'superadmin')) {
+                    await loadDonationDetails();
+                } else {
+                    showErrorAndRedirect("Acesso negado. Você não tem permissão para ver esta página.");
+                }
+            } else {
+                showErrorAndRedirect("Você precisa estar logado para acessar esta página.", "login.html");
+            }
+        });
 
         async function loadDonationDetails() {
             try {
-                const agendamentoRef = doc(db, AGENDAMENTOS, agendamentoId);
-                const agendamentoSnap = await getDoc(agendamentoRef);
+                const agendamentoRef = db.collection(AGENDAMENTOS).doc(agendamentoId);
+                const agendamentoSnap = await agendamentoRef.get();
 
-                if (!agendamentoSnap.exists()) {
+                if (!agendamentoSnap.exists) {
                     showErrorAndRedirect("Agendamento não encontrado.");
                     return;
                 }
@@ -168,10 +267,10 @@
                     return;
                 }
 
-                const donorSnap = await getDoc(doc(db, USUARIOS, agendamentoData.doadorId));
-                const campaignSnap = await getDoc(doc(db, CAMPANHAS, agendamentoData.campanhaId));
+                const donorSnap = await db.collection(USUARIOS).doc(agendamentoData.doadorId).get();
+                const campaignSnap = await db.collection(CAMPANHAS).doc(agendamentoData.campanhaId).get();
 
-                if (!donorSnap.exists() || !campaignSnap.exists()) {
+                if (!donorSnap.exists || !campaignSnap.exists) {
                     showErrorAndRedirect("Não foi possível carregar os detalhes do doador ou da campanha.");
                     return;
                 }
@@ -223,8 +322,8 @@
             confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processando...';
 
             try {
-                const batch = writeBatch(db);
-                const agendamentoRef = doc(db, AGENDAMENTOS, agendamentoId);
+                const batch = db.batch();
+                const agendamentoRef = db.collection(AGENDAMENTOS).doc(agendamentoId);
                 const itensRecebidos = Array.from(itemsListEl.querySelectorAll('input[type="number"]')).map(input => ({
                     nome: input.dataset.itemName,
                     quantidade: parseInt(input.value, 10) || 0
@@ -242,8 +341,8 @@
                     }
                 });
 
-                const campanhaRef = doc(db, CAMPANHAS, agendamentoData.campanhaId);
-                const campanhaSnap = await getDoc(campanhaRef);
+                const campanhaRef = db.collection(CAMPANHAS).doc(agendamentoData.campanhaId);
+                const campanhaSnap = await campanhaRef.get();
                 const campanhaData = campanhaSnap.data();
                 
                 const novosItensCampanha = [...campanhaData.itens];
@@ -259,7 +358,7 @@
                     batch.update(campanhaRef, { itens: novosItensCampanha });
                 }
 
-                const notificacaoDoadorRef = doc(collection(db, NOTIFICACOES));
+                const notificacaoDoadorRef = db.collection(NOTIFICACOES).doc();
                 batch.set(notificacaoDoadorRef, {
                     userId: agendamentoData.doadorId,
                     titulo: "Doação Recebida!",
@@ -282,6 +381,7 @@
                 confirmButton.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Confirmar Recebimento';
             }
         }
+    });
     </script>
 </body>
 </html>
