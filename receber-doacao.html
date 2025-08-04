@@ -121,15 +121,24 @@
         
         import { loadHeader } from './app-header.js';
         import { showModal, hideModal } from './modal-handler.js';
-        import { getUserProfile } from './firebase-services.js';
         
-        // CORREÇÃO: As constantes das coleções foram declaradas aqui
-        // para resolver o erro de importação do módulo, já que o arquivo
-        // firestore-paths.js não as exporta como um módulo ES6.
+        // CORREÇÃO 1: Constantes das coleções declaradas localmente.
         const AGENDAMENTOS = 'agendamentos';
         const CAMPANHAS = 'campanhas';
         const USUARIOS = 'usuarios';
         const NOTIFICACOES = 'notificacoes';
+
+        // CORREÇÃO 2: Função getUserProfile movida para dentro do script para resolver o erro de importação.
+        async function getUserProfile(uid) {
+            const userRef = doc(db, USUARIOS, uid);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+                return userSnap.data();
+            } else {
+                console.error(`Perfil de usuário não encontrado para UID: ${uid}`);
+                return null;
+            }
+        }
 
         // --- ELEMENTOS DA UI ---
         const loader = document.getElementById('loader');
