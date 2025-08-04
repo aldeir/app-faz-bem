@@ -97,50 +97,63 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-    <!-- Configuração do App -->
-    <script src="app-config.js"></script>
-    <script src="firestore-paths.js"></script>
-
     <!-- Script principal da página -->
     <script>
     document.addEventListener('DOMContentLoaded', () => {
 
-        // --- FUNÇÕES ESSENCIAIS (COPIADAS PARA AUTOSSUFICIÊNCIA) ---
+        // --- CONFIGURAÇÃO E INICIALIZAÇÃO (INTEGRADAS) ---
+        // Cole aqui o conteúdo do seu arquivo firebaseConfig
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_AUTH_DOMAIN",
+            projectId: "SEU_PROJECT_ID",
+            storageBucket: "SEU_STORAGE_BUCKET",
+            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+            appId: "SEU_APP_ID"
+        };
 
-        /**
-         * Exibe um modal de feedback.
-         */
+        // Inicializa o Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // Constantes de coleções (integradas)
+        const USUARIOS = 'usuarios';
+        const CAMPANHAS = 'campanhas';
+        const AGENDAMENTOS = 'agendamentos';
+        const NOTIFICACOES = 'notificacoes';
+
+        // --- FUNÇÕES ESSENCIAIS (INTEGRADAS) ---
+
         function showModal(title, message, confirmText = 'Ok', cancelText = null, onConfirm = null) {
             const modalContainer = document.getElementById('modal-placeholder');
+            if (!modalContainer) return;
             const modalId = 'feedback-modal';
             
             const modalHTML = `
-                <div id="${modalId}" class="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center p-4 transition-opacity duration-300">
-                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95 transition-transform duration-300">
+                <div id="${modalId}" class="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center p-4">
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
                         <div class="p-6 text-center">
                             <h3 class="text-2xl font-bold text-gray-800 mb-3">${title}</h3>
                             <p class="text-gray-600 mb-6">${message}</p>
                         </div>
                         <div class="flex justify-center gap-4 p-4 bg-gray-50 rounded-b-2xl">
-                            ${cancelText ? `<button id="modal-cancel-btn" class="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition">${cancelText}</button>` : ''}
-                            <button id="modal-confirm-btn" class="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition">${confirmText}</button>
+                            ${cancelText ? `<button id="modal-cancel-btn" class="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">${cancelText}</button>` : ''}
+                            <button id="modal-confirm-btn" class="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">${confirmText}</button>
                         </div>
                     </div>
-                </div>
-            `;
+                </div>`;
             modalContainer.innerHTML = modalHTML;
 
-            const modalElement = document.getElementById(modalId);
             const confirmBtn = document.getElementById('modal-confirm-btn');
             const cancelBtn = document.getElementById('modal-cancel-btn');
 
-            setTimeout(() => {
-                modalElement.classList.remove('opacity-0');
-                modalElement.querySelector('div > div').classList.remove('scale-95');
-            }, 10);
-
             const closeModal = () => {
-                modalElement.remove();
+                const modalElement = document.getElementById(modalId);
+                if (modalElement) modalElement.remove();
             };
 
             confirmBtn.onclick = () => {
@@ -148,14 +161,9 @@
                 closeModal();
             };
 
-            if (cancelBtn) {
-                cancelBtn.onclick = closeModal;
-            }
+            if (cancelBtn) cancelBtn.onclick = closeModal;
         }
 
-        /**
-         * Busca o perfil de um usuário no Firestore.
-         */
         async function getUserProfile(uid) {
             if (!uid) return null;
             try {
@@ -168,19 +176,14 @@
             }
         }
 
-        /**
-         * Carrega o cabeçalho dinâmico da aplicação.
-         */
         async function loadHeader() {
             const headerContainer = document.getElementById('app-header');
             if (!headerContainer) return;
 
-            firebase.auth().onAuthStateChanged(async (user) => {
-                let headerHTML = '';
+            auth.onAuthStateChanged(async (user) => {
                 const profile = user ? await getUserProfile(user.uid) : null;
                 const role = profile?.role;
 
-                // Lógica de navegação baseada no papel do usuário
                 let navLinks = '<a href="index.html" class="text-gray-700 hover:text-blue-600 font-medium">Início</a>';
                 if (role === 'entidade') {
                     navLinks += '<a href="admin.html" class="text-gray-700 hover:text-blue-600 font-medium">Painel</a>';
@@ -189,17 +192,16 @@
                     navLinks += '<a href="superadmin.html" class="text-gray-700 hover:text-blue-600 font-medium">Painel Geral</a>';
                 }
 
-                headerHTML = `
+                const headerHTML = `
                     <nav class="bg-white shadow-md p-4">
                         <div class="container mx-auto flex justify-between items-center">
                             <a href="index.html" class="text-xl font-bold text-blue-600">App Faz Bem</a>
                             <div class="hidden md:flex items-center space-x-6">${navLinks}</div>
                             <div class="flex items-center space-x-4">
-                                ${user ? `<a href="configuracoes.html" class="text-gray-600 hover:text-blue-600"><i class="fas fa-cog"></i></a><button onclick="firebase.auth().signOut()" class="bg-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-600">Sair</button>` : `<a href="login.html" class="font-semibold text-blue-600 hover:text-blue-700">Entrar</a>`}
+                                ${user ? `<a href="configuracoes.html" class="text-gray-600 hover:text-blue-600"><i class="fas fa-cog"></i></a><button onclick="firebase.auth().signOut().then(() => window.location.href='index.html')" class="bg-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-600">Sair</button>` : `<a href="login.html" class="font-semibold text-blue-600 hover:text-blue-700">Entrar</a>`}
                             </div>
                         </div>
-                    </nav>
-                `;
+                    </nav>`;
                 headerContainer.innerHTML = headerHTML;
             });
         }
@@ -219,7 +221,6 @@
         let agendamentoData = null;
         let currentUserProfile = null;
 
-        // Inicializa a página
         loadHeader();
         
         const urlParams = new URLSearchParams(window.location.search);
@@ -230,7 +231,7 @@
             return;
         }
 
-        firebase.auth().onAuthStateChanged(async (user) => {
+        auth.onAuthStateChanged(async (user) => {
             if (user) {
                 currentUserProfile = await getUserProfile(user.uid);
                 if (currentUserProfile && (currentUserProfile.role === 'entidade' || currentUserProfile.role === 'superadmin')) {
@@ -328,7 +329,7 @@
                     observacoes: observationsEl.value,
                     itensRecebidos: itensRecebidos,
                     confirmadoPor: {
-                        uid: firebase.auth().currentUser.uid,
+                        uid: auth.currentUser.uid,
                         nome: currentUserProfile.nome,
                         role: currentUserProfile.role
                     }
@@ -338,11 +339,19 @@
                 const campanhaSnap = await campanhaRef.get();
                 const campanhaData = campanhaSnap.data();
                 
+                // Lógica de atualização de estoque mais robusta
+                const novosItensCampanha = [...campanhaData.itens];
+                let houveAlteracao = false;
                 itensRecebidos.forEach(itemRecebido => {
-                    const incremento = firebase.firestore.FieldValue.increment(itemRecebido.quantidade);
-                    const itemPath = `itens.${campanhaData.itens.findIndex(i => i.nome === itemRecebido.nome)}.arrecadado`;
-                    batch.update(campanhaRef, { [itemPath]: incremento });
+                    const itemIndex = novosItensCampanha.findIndex(i => i.nome === itemRecebido.nome);
+                    if (itemIndex > -1) {
+                        novosItensCampanha[itemIndex].arrecadado = (novosItensCampanha[itemIndex].arrecadado || 0) + itemRecebido.quantidade;
+                        houveAlteracao = true;
+                    }
                 });
+                if(houveAlteracao) {
+                    batch.update(campanhaRef, { itens: novosItensCampanha });
+                }
 
                 const notificacaoDoadorRef = db.collection(NOTIFICACOES).doc();
                 batch.set(notificacaoDoadorRef, {
