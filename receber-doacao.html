@@ -3,445 +3,367 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciar Doações Recebidas - App Faz Bem</title>
+    <title>Receber Doação - App Faz Bem</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="assets/icons/icon-192x192.png" type="image/png">
+    
     <style>
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .tab-button.active { border-color: #2563eb; color: #2563eb; background-color: #eff6ff; }
-        .item-row:hover { background-color: #f9fafb; }
-        .truncate-2-lines { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .stat-card { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
-        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        /* Estilo base para a fonte e animações */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+        /* Estilo para o loader */
+        .loader {
+            border-top-color: #3498db;
+            -webkit-animation: spin 1s linear infinite;
+            animation: spin 1s linear infinite;
+        }
+        @-webkit-keyframes spin {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
 
-    <div id="app-header"></div>
+    <!-- Cabeçalho (será carregado dinamicamente) -->
+    <header id="app-header"></header>
 
-    <main class="container mx-auto p-4">
-        <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
-            <div class="text-center">
-                <div class="loader mx-auto"></div>
-                <p class="mt-4 text-gray-600">A carregar as suas doações...</p>
-            </div>
+    <!-- Conteúdo Principal -->
+    <main class="container mx-auto p-4 md:p-6 max-w-4xl">
+
+        <!-- Loader Principal -->
+        <div id="loader" class="flex justify-center items-center h-64">
+            <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div>
         </div>
 
-        <div id="donations-view" class="hidden">
-            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-                <h1 class="text-2xl font-bold text-gray-800">Gerenciar Doações</h1>
-                <button onclick="window.openQrModal()" class="bg-gray-800 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300 flex items-center justify-center w-full sm:w-auto">
-                    <i class="fas fa-qrcode mr-2"></i> Ler QR Code da Doação
-                </button>
-            </div>
+        <!-- Container do Formulário (inicialmente oculto) -->
+        <div id="form-container" class="hidden">
+            <div class="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-gray-200">
+                
+                <!-- Título da Página -->
+                <div class="flex items-center mb-6 pb-4 border-b border-gray-200">
+                    <i class="fas fa-box-open text-3xl text-blue-600 mr-4"></i>
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Confirmar Recebimento de Doação</h1>
+                        <p class="text-gray-500">Verifique os itens e confirme as quantidades recebidas.</p>
+                    </div>
+                </div>
 
-            <!-- Totalizadores Clicáveis -->
-            <div id="stats-container" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8"></div>
+                <!-- Detalhes do Agendamento -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div>
+                        <h3 class="font-semibold text-gray-700"><i class="fas fa-bullhorn mr-2 text-blue-500"></i>Campanha</h3>
+                        <p id="campaign-name" class="text-gray-900 font-bold text-lg">-</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-700"><i class="fas fa-user-heart mr-2 text-blue-500"></i>Doador(a)</h3>
+                        <p id="donor-name" class="text-gray-900">-</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-700"><i class="fas fa-calendar-alt mr-2 text-blue-500"></i>Data do Agendamento</h3>
+                        <p id="schedule-date" class="text-gray-900">-</p>
+                    </div>
+                </div>
 
-            <!-- Filtro e Abas -->
-            <div class="bg-white p-4 rounded-xl shadow-md mb-6">
-                <input type="search" id="search-input" placeholder="Filtrar por item, doador ou campanha..." class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                <div class="border-b border-gray-200">
-                    <nav id="tabs-container" class="-mb-px flex space-x-6" aria-label="Tabs">
-                        <button data-tab="pending" class="tab-button active whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">Pendentes</button>
-                        <button data-tab="overdue" class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Vencidos</button>
-                        <button data-tab="completed" class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Histórico</button>
-                    </nav>
+                <!-- Lista de Itens -->
+                <div class="mb-8">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Itens da Doação</h2>
+                    <div id="items-list" class="space-y-4">
+                        <!-- Itens serão inseridos aqui dinamicamente -->
+                    </div>
+                </div>
+
+                <!-- Campo de Observações -->
+                <div class="mb-8">
+                    <label for="observations" class="block text-lg font-bold text-gray-800 mb-2">Observações (Opcional)</label>
+                    <textarea id="observations" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: O doador entregou um item extra, um dos produtos estava próximo do vencimento, etc."></textarea>
+                </div>
+
+                <!-- Ações -->
+                <div class="flex flex-col md:flex-row justify-end items-center gap-4 pt-6 border-t border-gray-200">
+                     <button onclick="window.history.back()" class="w-full md:w-auto px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-transform transform hover:scale-105">
+                        <i class="fas fa-arrow-left mr-2"></i>Voltar
+                    </button>
+                    <button id="confirm-button" class="w-full md:w-auto px-8 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition-transform transform hover:scale-105">
+                        <i class="fas fa-check-circle mr-2"></i>Confirmar Recebimento Total
+                    </button>
                 </div>
             </div>
-
-            <div id="donations-container" class="space-y-8"></div>
-            <div id="no-donations-message" class="text-center py-10 hidden">
-                <i class="fas fa-box-open text-4xl text-gray-400 mb-4"></i>
-                <p class="text-gray-500">Nenhum item encontrado nesta categoria.</p>
-            </div>
-            <div id="pagination-container" class="mt-8 text-center"></div>
         </div>
     </main>
 
-    <!-- Modal Genérico -->
-    <div id="details-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto">
-            <div class="p-4 border-b flex justify-between items-center">
-                <h3 id="modal-title" class="text-xl font-bold">Detalhes</h3>
-                <button onclick="window.closeModal()" class="text-gray-500 hover:text-gray-800"><i class="fas fa-times fa-lg"></i></button>
-            </div>
-            <div id="modal-content" class="p-6"></div>
-        </div>
-    </div>
-    
-    <!-- Modal QR Code -->
-    <div id="qr-code-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
-            <div class="p-4 border-b flex justify-between items-center">
-                <h3 class="text-xl font-bold">Ler QR Code da Doação</h3>
-                <button onclick="window.closeQrModal()" class="text-gray-500 hover:text-gray-800"><i class="fas fa-times fa-lg"></i></button>
-            </div>
-            <div class="p-6">
-                <div id="qr-reader" style="width: 100%;"></div>
-                <div id="qr-reader-results" class="mt-4 text-center"></div>
-            </div>
-        </div>
-    </div>
+    <!-- Modal (será carregado dinamicamente) -->
+    <div id="modal-placeholder"></div>
 
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    
+    <!-- Scripts -->
     <script type="module">
-        import { db, auth, paths } from './app-config.js';
-        import { collection, query, where, getDocs, getDoc, doc, updateDoc } from './firebase-services.js';
-        import { injectHeader } from './app-header.js';
-        import { getCurrentUser } from './auth-service.js';
-
-        const loadingView = document.getElementById('loading-view');
-        const donationsView = document.getElementById('donations-view');
-        const donationsContainer = document.getElementById('donations-container');
-        const noDonationsMessage = document.getElementById('no-donations-message');
-        const detailsModal = document.getElementById('details-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalContent = document.getElementById('modal-content');
-        const qrCodeModal = document.getElementById('qr-code-modal');
-        const tabsContainer = document.getElementById('tabs-container');
-        const paginationContainer = document.getElementById('pagination-container');
-        const statsContainer = document.getElementById('stats-container');
-        const searchInput = document.getElementById('search-input');
+        import { app, db, auth } from './app-config.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { doc, getDoc, updateDoc, writeBatch, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         
-        let html5QrCode;
-        let allDonationsData = [];
-        let profilesCache = new Map();
-        let campaignsCache = new Map();
-        let completedItemsPage = 1;
-        const ITEMS_PER_PAGE = 10;
+        import { loadHeader } from './app-header.js';
+        import { showModal, hideModal } from './modal-handler.js';
+        
+        // CORREÇÃO 1: Constantes das coleções declaradas localmente.
+        const AGENDAMENTOS = 'agendamentos';
+        const CAMPANHAS = 'campanhas';
+        const USUARIOS = 'usuarios';
+        const NOTIFICACOES = 'notificacoes';
 
-        async function initializeApp() {
-            await injectHeader();
-            const userSession = await getCurrentUser();
-            if (userSession?.profile?.role === 'entidade' && auth.currentUser) {
-                await loadAllDonationsForEntity(auth.currentUser.uid);
+        // CORREÇÃO 2: Função getUserProfile movida para dentro do script para resolver o erro de importação.
+        async function getUserProfile(uid) {
+            const userRef = doc(db, USUARIOS, uid);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+                return userSnap.data();
             } else {
-                window.location.href = 'index.html';
+                console.error(`Perfil de usuário não encontrado para UID: ${uid}`);
+                return null;
             }
         }
 
-        async function loadAllDonationsForEntity(entityId) {
-            loadingView.classList.remove('hidden');
-            donationsView.classList.add('hidden');
+        // --- ELEMENTOS DA UI ---
+        const loader = document.getElementById('loader');
+        const formContainer = document.getElementById('form-container');
+        const campaignNameEl = document.getElementById('campaign-name');
+        const donorNameEl = document.getElementById('donor-name');
+        const scheduleDateEl = document.getElementById('schedule-date');
+        const itemsListEl = document.getElementById('items-list');
+        const observationsEl = document.getElementById('observations');
+        const confirmButton = document.getElementById('confirm-button');
+
+        let agendamentoId = null;
+        let agendamentoData = null;
+        let currentUserProfile = null;
+
+        // --- INICIALIZAÇÃO DA PÁGINA ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadHeader(); // Carrega o cabeçalho
             
-            try {
-                const donationsQuery = query(collection(db, paths.donations), where('entityId', '==', entityId));
-                const querySnapshot = await getDocs(donationsQuery);
-                
-                allDonationsData = [];
-                for (const donationDoc of querySnapshot.docs) {
-                    allDonationsData.push({ id: donationDoc.id, ...donationDoc.data() });
-                }
-                allDonationsData.sort((a, b) => (b.scheduledAt?.toDate() || 0) - (a.scheduledAt?.toDate() || 0));
+            // Pega o ID do agendamento da URL
+            const urlParams = new URLSearchParams(window.location.search);
+            agendamentoId = urlParams.get('id');
 
-                updateStatusCounters();
-                await renderItemsByStatus();
-            } catch (error) {
-                console.error("Erro ao carregar doações: ", error);
-            } finally {
-                loadingView.classList.add('hidden');
-                donationsView.classList.remove('hidden');
-            }
-        }
-        
-        function getItemsByStatus() {
-            const now = new Date();
-            const allItems = allDonationsData.flatMap(donation => 
-                donation.items.map((item, index) => ({
-                    ...item,
-                    donationId: donation.id,
-                    itemIndex: index,
-                    donorId: donation.donorId,
-                    campaignId: donation.campaignId,
-                    scheduledAt: donation.scheduledAt?.toDate()
-                }))
-            );
-
-            const pending = allItems.filter(i => i.status === 'pending' && i.scheduledAt >= now);
-            const overdue = allItems.filter(i => i.status === 'pending' && i.scheduledAt < now);
-            const completed = allItems.filter(i => i.status !== 'pending');
-            
-            return { pending, overdue, completed };
-        }
-
-        function updateStatusCounters() {
-            const { pending, overdue, completed } = getItemsByStatus();
-            statsContainer.innerHTML = `
-                <div class="stat-card bg-blue-100 text-blue-800 p-4 rounded-xl shadow" data-tab="pending">
-                    <p class="text-sm font-medium"><i class="fas fa-clock mr-2"></i>Pendentes</p>
-                    <p class="text-3xl font-bold">${pending.length}</p>
-                </div>
-                <div class="stat-card bg-red-100 text-red-800 p-4 rounded-xl shadow" data-tab="overdue">
-                    <p class="text-sm font-medium"><i class="fas fa-exclamation-triangle mr-2"></i>Vencidos</p>
-                    <p class="text-3xl font-bold">${overdue.length}</p>
-                </div>
-                <div class="stat-card bg-green-100 text-green-800 p-4 rounded-xl shadow" data-tab="completed">
-                    <p class="text-sm font-medium"><i class="fas fa-check-circle mr-2"></i>Histórico</p>
-                    <p class="text-3xl font-bold">${completed.length}</p>
-                </div>
-            `;
-        }
-        
-        async function renderItemsByStatus(filterDonationId = null) {
-            donationsContainer.innerHTML = '';
-            paginationContainer.innerHTML = '';
-            const activeTab = tabsContainer.querySelector('.tab-button.active').dataset.tab;
-            const searchTerm = searchInput.value.toLowerCase();
-            const { pending, overdue, completed } = getItemsByStatus();
-
-            let itemsToFilter;
-            switch (activeTab) {
-                case 'pending': itemsToFilter = pending; break;
-                case 'overdue': itemsToFilter = overdue; break;
-                case 'completed': itemsToFilter = completed; break;
-                default: itemsToFilter = [];
-            }
-            
-            if (filterDonationId) {
-                itemsToFilter = itemsToFilter.filter(item => item.donationId === filterDonationId);
-            }
-
-            const itemsByCampaign = (await Promise.all(itemsToFilter.map(async item => {
-                let campaignData = campaignsCache.get(item.campaignId);
-                if (!campaignData) {
-                    const campaignDoc = await getDoc(doc(db, paths.campaignDoc(item.campaignId)));
-                    campaignData = campaignDoc.exists() ? {id: campaignDoc.id, ...campaignDoc.data()} : { id: item.campaignId, title: 'Campanha Desconhecida' };
-                    campaignsCache.set(item.campaignId, campaignData);
-                }
-                item.campaignTitle = campaignData.title;
-                item.campaignIsActive = (campaignData.expiresAt?.toDate() || new Date()) > new Date();
-
-                let donorName = profilesCache.get(item.donorId)?.displayName || 'Doador Anônimo';
-                if (!profilesCache.has(item.donorId)) {
-                    const donorDoc = await getDoc(doc(db, paths.userDoc(item.donorId)));
-                    if (donorDoc.exists()) {
-                        profilesCache.set(item.donorId, donorDoc.data());
-                        donorName = donorDoc.data().displayName;
-                    }
-                }
-                item.donorName = donorName;
-
-                return item;
-            }))).filter(item => 
-                !searchTerm ||
-                item.type.toLowerCase().includes(searchTerm) ||
-                item.donorName.toLowerCase().includes(searchTerm) ||
-                item.campaignTitle.toLowerCase().includes(searchTerm)
-            ).reduce((acc, item) => {
-                if (!acc[item.campaignId]) acc[item.campaignId] = [];
-                acc[item.campaignId].push(item);
-                return acc;
-            }, {});
-            
-            const itemsForPagination = Object.values(itemsByCampaign).flat();
-            const itemsForCurrentPage = (activeTab === 'completed') 
-                ? itemsForPagination.slice(0, completedItemsPage * ITEMS_PER_PAGE)
-                : itemsForPagination;
-
-            const finalItemsByCampaign = itemsForCurrentPage.reduce((acc, item) => {
-                if (!acc[item.campaignId]) acc[item.campaignId] = [];
-                acc[item.campaignId].push(item);
-                return acc;
-            }, {});
-
-            if (Object.keys(finalItemsByCampaign).length === 0) {
-                noDonationsMessage.style.display = 'block';
+            if (!agendamentoId) {
+                showErrorAndRedirect("ID do agendamento não encontrado na URL.");
                 return;
             }
-            noDonationsMessage.style.display = 'none';
-            
-            for (const campaignId in finalItemsByCampaign) {
-                const campaignData = campaignsCache.get(campaignId);
-                const items = finalItemsByCampaign[campaignId];
-                
-                const campaignCard = await createCampaignCard(campaignData, items, activeTab);
-                if (campaignCard) donationsContainer.appendChild(campaignCard);
-            }
 
-            if (activeTab === 'completed' && itemsForPagination.length > itemsForCurrentPage.length) {
-                const loadMoreBtn = document.createElement('button');
-                loadMoreBtn.textContent = 'Carregar Mais Itens';
-                loadMoreBtn.className = 'bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition';
-                loadMoreBtn.onclick = () => {
-                    completedItemsPage++;
-                    renderItemsByStatus();
-                };
-                paginationContainer.appendChild(loadMoreBtn);
+            // Observa o estado de autenticação
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUserProfile = await getUserProfile(user.uid);
+                    // Apenas 'entidade' ou 'superadmin' podem acessar
+                    if (currentUserProfile && (currentUserProfile.role === 'entidade' || currentUserProfile.role === 'superadmin')) {
+                        await loadDonationDetails();
+                    } else {
+                        showErrorAndRedirect("Acesso negado. Você não tem permissão para ver esta página.");
+                    }
+                } else {
+                    showErrorAndRedirect("Você precisa estar logado para acessar esta página.", "login.html");
+                }
+            });
+        });
+
+        // --- CARREGAMENTO DOS DADOS ---
+        async function loadDonationDetails() {
+            try {
+                const agendamentoRef = doc(db, AGENDAMENTOS, agendamentoId);
+                const agendamentoSnap = await getDoc(agendamentoRef);
+
+                if (!agendamentoSnap.exists()) {
+                    showErrorAndRedirect("Agendamento não encontrado.");
+                    return;
+                }
+
+                agendamentoData = agendamentoSnap.data();
+
+                // Verifica se a doação já foi recebida
+                if (agendamentoData.status === 'recebido') {
+                    showErrorAndRedirect("Esta doação já foi confirmada anteriormente.");
+                    return;
+                }
+
+                // Carrega dados do doador e da campanha em paralelo
+                const [donorSnap, campaignSnap] = await Promise.all([
+                    getDoc(doc(db, USUARIOS, agendamentoData.doadorId)),
+                    getDoc(doc(db, CAMPANHAS, agendamentoData.campanhaId))
+                ]);
+
+                if (!donorSnap.exists() || !campaignSnap.exists()) {
+                    showErrorAndRedirect("Não foi possível carregar os detalhes do doador ou da campanha.");
+                    return;
+                }
+                
+                const donorData = donorSnap.data();
+                const campaignData = campaignSnap.data();
+
+                // Preenche os detalhes na UI
+                campaignNameEl.textContent = campaignData.titulo;
+                donorNameEl.textContent = donorData.nome;
+                scheduleDateEl.textContent = new Date(agendamentoData.dataAgendamento.seconds * 1000).toLocaleDateString('pt-BR', {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                });
+
+                // Renderiza a lista de itens
+                renderItemsList(agendamentoData.itens);
+                
+                // Exibe o formulário e esconde o loader
+                loader.classList.add('hidden');
+                formContainer.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Erro ao carregar detalhes da doação: ", error);
+                showErrorAndRedirect("Ocorreu um erro ao carregar as informações. Tente novamente.");
             }
         }
+
+        // --- RENDERIZAÇÃO DA UI ---
+        function renderItemsList(items) {
+            itemsListEl.innerHTML = ''; // Limpa a lista
+            items.forEach((item, index) => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-gray-100 p-3 rounded-lg border';
+                itemEl.innerHTML = `
+                    <div class="md:col-span-5 font-semibold text-gray-800">
+                        <i class="fas fa-gift text-gray-500 mr-2"></i>
+                        <span>${item.nome}</span>
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="text-sm font-medium text-gray-600">Qtd. Prometida</label>
+                        <p class="font-bold text-lg text-gray-800">${item.quantidade}</p>
+                    </div>
+                    <div class="md:col-span-4">
+                         <label for="item-qty-${index}" class="text-sm font-medium text-gray-600">Qtd. Recebida</label>
+                         <input type="number" id="item-qty-${index}" data-item-name="${item.nome}" value="${item.quantidade}" min="0" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                    </div>
+                `;
+                itemsListEl.appendChild(itemEl);
+            });
+        }
+
+        // --- AÇÕES DO USUÁRIO ---
+        confirmButton.addEventListener('click', () => {
+            showModal(
+                'Confirmação', 
+                'Você tem certeza que deseja confirmar o recebimento de todos os itens listados? Esta ação não pode ser desfeita.',
+                'Confirmar',
+                'Cancelar',
+                handleConfirmation
+            );
+        });
         
-        async function createCampaignCard(campaign, items, activeTab) {
-            const card = document.createElement('div');
-            card.className = 'bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500';
+        async function handleConfirmation() {
+            hideModal();
+            confirmButton.disabled = true;
+            confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processando...';
 
-            const renderItemRow = async (item) => {
-                let donorName = item.donorName;
-                if (!profilesCache.has(item.donorId)) {
-                    const donorDoc = await getDoc(doc(db, paths.userDoc(item.donorId)));
-                    if (donorDoc.exists()) profilesCache.set(item.donorId, donorDoc.data());
-                    donorName = profilesCache.get(item.donorId)?.displayName || 'Doador Anônimo';
-                }
+            try {
+                const batch = writeBatch(db);
 
-                const uniqueItemId = `${item.donationId}_${item.itemIndex}`;
-                const isCompleted = item.status === 'completed';
+                // 1. Atualizar o documento de agendamento
+                const agendamentoRef = doc(db, AGENDAMENTOS, agendamentoId);
+                const itensRecebidos = [];
+                const inputs = itemsListEl.querySelectorAll('input[type="number"]');
+                
+                inputs.forEach(input => {
+                    itensRecebidos.push({
+                        nome: input.dataset.itemName,
+                        quantidade: parseInt(input.value, 10) || 0
+                    });
+                });
 
-                let dateInfo = '';
-                if (item.scheduledAt) {
-                    const dateStr = item.scheduledAt.toLocaleDateString('pt-BR');
-                    const timeStr = item.scheduledAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    dateInfo = `Agendado para: ${dateStr} às ${timeStr}`;
-                }
-                if (isCompleted && item.receivedDate) {
-                    let receiverName = 'N/A';
-                    if (item.receivedBy && profilesCache.has(item.receivedBy)) {
-                        receiverName = profilesCache.get(item.receivedBy).displayName;
-                    } else if (item.receivedBy) {
-                        const receiverDoc = await getDoc(doc(db, paths.userDoc(item.receivedBy)));
-                        if (receiverDoc.exists()) {
-                            profilesCache.set(item.receivedBy, receiverDoc.data());
-                            receiverName = receiverDoc.data().displayName;
+                batch.update(agendamentoRef, {
+                    status: 'recebido',
+                    dataRecebimento: new Date(),
+                    observacoes: observationsEl.value,
+                    itensRecebidos: itensRecebidos,
+                    confirmadoPor: {
+                        uid: auth.currentUser.uid,
+                        nome: currentUserProfile.nome,
+                        role: currentUserProfile.role
+                    }
+                });
+
+                // 2. Atualizar o estoque da campanha
+                const campanhaRef = doc(db, CAMPANHAS, agendamentoData.campanhaId);
+                const campanhaSnap = await getDoc(campanhaRef);
+                const campanhaData = campanhaSnap.data();
+                const novosItensCampanha = [...campanhaData.itens];
+
+                itensRecebidos.forEach(itemRecebido => {
+                    const itemIndex = novosItensCampanha.findIndex(i => i.nome === itemRecebido.nome);
+                    if (itemIndex > -1) {
+                        novosItensCampanha[itemIndex].arrecadado = (novosItensCampanha[itemIndex].arrecadado || 0) + itemRecebido.quantidade;
+                    }
+                });
+
+                batch.update(campanhaRef, { itens: novosItensCampanha });
+
+                // 3. Criar notificação para o doador
+                const notificacaoDoadorRef = doc(collection(db, NOTIFICACOES));
+                batch.set(notificacaoDoadorRef, {
+                    userId: agendamentoData.doadorId,
+                    titulo: "Doação Recebida!",
+                    mensagem: `Sua doação para a campanha "${campanhaData.titulo}" foi recebida com sucesso. Muito obrigado por sua generosidade!`,
+                    data: new Date(),
+                    lida: false,
+                    link: `/minhas-entregas.html?id=${agendamentoId}`
+                });
+
+                // Executa todas as operações em lote
+                await batch.commit();
+
+                // Sucesso!
+                showModal(
+                    'Sucesso!', 
+                    'A doação foi confirmada e o estoque da campanha foi atualizado.',
+                    'Ok',
+                    null,
+                    () => {
+                        // Redireciona para a página de gerenciamento apropriada
+                        if (currentUserProfile.role === 'superadmin') {
+                            window.location.href = 'gerenciar-agendamentos-global.html';
+                        } else {
+                            window.location.href = 'gerenciar-agendamentos.html';
                         }
                     }
-                    dateInfo = `Recebido em: ${item.receivedDate.toDate().toLocaleDateString('pt-BR')} por ${receiverName}`;
-                }
-                
-                const statusHtml = isCompleted ? `<p class="text-xs text-green-600 font-semibold">Recebido</p>` : `<button onclick="window.confirmItemReception('${item.donationId}', ${item.itemIndex})" class="bg-green-600 text-white text-sm font-bold py-2 px-3 rounded-lg hover:bg-green-700 transition">Receber</button>`;
+                );
 
-                return `
-                <div id="item-row-${uniqueItemId}" class="item-row flex items-center justify-between py-3">
-                    <div class="flex items-center space-x-4 flex-grow">
-                        <img src="${item.photoURL || 'https://placehold.co/64x64/e2e8f0/e2e8f0?text=Item'}" alt="${item.type}" class="w-16 h-16 rounded-md object-cover">
-                        <div>
-                            <p class="font-semibold text-gray-800">${item.type}</p>
-                            <p class="text-sm text-gray-600 flex items-center"><i class="fas fa-user-circle text-gray-400 mr-2"></i>Doador: ${donorName}</p>
-                            <p class="text-xs text-gray-500 mt-1">${dateInfo}</p>
-                        </div>
-                    </div>
-                    <div class="text-right">${statusHtml}</div>
-                </div>`;
-            };
-
-            let cardContentHtml;
-            if (activeTab === 'overdue') {
-                const activeCampaignItems = items.filter(i => i.campaignIsActive);
-                const expiredCampaignItems = items.filter(i => !i.campaignIsActive);
-                
-                const activeHtml = activeCampaignItems.length > 0 ? `<h4 class="font-semibold text-amber-600 mb-2 mt-4">Campanha Ativa</h4>` + (await Promise.all(activeCampaignItems.map(renderItemRow))).join('') : '';
-                const expiredHtml = expiredCampaignItems.length > 0 ? `<h4 class="font-semibold text-red-600 mb-2 mt-4">Campanha Encerrada</h4>` + (await Promise.all(expiredCampaignItems.map(renderItemRow))).join('') : '';
-                cardContentHtml = activeHtml + expiredHtml;
-            } else {
-                cardContentHtml = (await Promise.all(items.map(renderItemRow))).join('');
+            } catch (error) {
+                console.error("Erro ao confirmar recebimento: ", error);
+                showModal('Erro', 'Não foi possível confirmar o recebimento. Por favor, tente novamente.');
+                confirmButton.disabled = false;
+                confirmButton.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Confirmar Recebimento Total';
             }
-            
-            if (!cardContentHtml.trim()) return null;
-
-            card.innerHTML = `
-                <div class="border-b pb-4 mb-4">
-                    <div class="flex items-start space-x-4">
-                        <img src="${campaign.images?.[0] || 'https://placehold.co/80x80/e2e8f0/e2e8f0?text=Campanha'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
-                        <div>
-                            <h3 class="text-xl font-bold text-gray-800">${campaign.title}</h3>
-                            <p class="text-sm text-gray-600 mt-1 truncate-2-lines">${campaign.description || ''}</p>
-                            <button onclick="window.showCampaignDetails('${campaign.id}')" class="text-sm font-semibold text-blue-600 hover:underline mt-2">Ver Detalhes</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="pl-6 border-l-2 border-gray-200 space-y-2">${cardContentHtml}</div>`;
-            return card;
         }
 
-        window.openModal = () => detailsModal.style.display = 'flex';
-        window.closeModal = () => detailsModal.style.display = 'none';
-
-        statsContainer.addEventListener('click', e => {
-            const card = e.target.closest('.stat-card');
-            if (card?.dataset?.tab) {
-                const tabButton = tabsContainer.querySelector(`button[data-tab="${card.dataset.tab}"]`);
-                if(tabButton) tabButton.click();
-            }
-        });
-
-        window.showCampaignDetails = (campaignId) => {
-            const campaign = campaignsCache.get(campaignId);
-            if (!campaign) return;
-            modalTitle.innerText = 'Detalhes da Campanha';
-            modalContent.innerHTML = `<h3 class="font-bold text-lg text-gray-900">${campaign.title}</h3><p class="text-sm text-gray-500 mt-1">Organizado por: ${campaign.entityName || 'N/A'}</p><p class="mt-4 text-gray-700 whitespace-pre-wrap">${campaign.description}</p>`;
-            openModal();
-        };
-
-        window.confirmItemReception = (donationId, itemIndex) => {
-            const item = allDonationsData.find(d => d.id === donationId)?.items[itemIndex];
-            if (!item) return;
-            modalContent.innerHTML = `<div class="text-center"><img src="${item.photoURL || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem'}" class="w-full h-64 object-contain rounded-md mb-4 bg-gray-100"><p class="font-bold text-lg">${item.type}</p><p class="text-sm text-gray-600">${item.details} (${item.condition})</p><p class="mt-4">Confirmar recebimento?</p></div><div class="mt-6 flex justify-end gap-3"><button onclick="window.closeModal()" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">Cancelar</button><button id="confirm-reception-btn" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Sim, Recebido</button></div>`;
-            openModal();
-            document.getElementById('confirm-reception-btn').onclick = () => processItemReception(donationId, itemIndex);
-        };
-        
-        async function processItemReception(donationId, itemIndex) {
-            modalContent.innerHTML = '<div class="loader mx-auto"></div><p class="text-center mt-2">Processando...</p>';
-            const donationRef = doc(db, paths.donationDoc(donationId));
-            try {
-                const docSnap = await getDoc(donationRef);
-                const currentDonation = docSnap.data();
-                const updatedItems = [...currentDonation.items];
-                updatedItems[itemIndex] = { ...updatedItems[itemIndex], status: 'completed', receivedBy: auth.currentUser.uid, receivedDate: new Date() };
-                await updateDoc(donationRef, { items: updatedItems });
-                const cachedDonation = allDonationsData.find(d => d.id === donationId);
-                if (cachedDonation) cachedDonation.items[itemIndex].status = 'completed';
-                updateStatusCounters();
-                await renderItemsByStatus();
-                closeModal();
-            } catch (error) { console.error("Erro ao confirmar recebimento: ", error); }
-        }
-        
-        window.openQrModal = () => { qrCodeModal.style.display = 'flex'; startQrScanner(); };
-        window.closeQrModal = () => {
-            if (html5QrCode?.isScanning) html5QrCode.stop().catch(console.error);
-            qrCodeModal.style.display = 'none';
-            renderItemsByStatus();
-        };
-
-        function startQrScanner() {
-            const qrReaderElement = document.getElementById('qr-reader');
-            const resultsElement = document.getElementById('qr-reader-results');
-            qrReaderElement.innerHTML = '';
-            resultsElement.innerHTML = 'Aponte a câmera para o QR Code da doação.';
-            html5QrCode = new Html5Qrcode("qr-reader");
-            const qrCodeSuccessCallback = (decodedText) => {
-                html5QrCode.stop();
-                const donationExists = allDonationsData.some(d => d.id === decodedText);
-                if (donationExists) {
-                    resultsElement.innerHTML = `<p class="text-green-600 font-bold">Doação encontrada! Exibindo itens...</p>`;
-                    renderItemsByStatus(decodedText);
-                    setTimeout(window.closeQrModal, 1500);
-                } else {
-                    resultsElement.innerHTML = `<p class="text-red-500 font-bold">QR Code inválido ou doação não encontrada!</p>`;
-                }
-            };
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
-                .catch(() => html5QrCode.start({ facingMode: "user" }, config, qrCodeSuccessCallback)
-                .catch(() => resultsElement.innerHTML = `<p class="text-red-500">Erro ao iniciar a câmera.</p>`));
+        // --- FUNÇÕES UTILITÁRIAS ---
+        function showErrorAndRedirect(message, redirectPage = 'index.html') {
+            loader.classList.add('hidden');
+            showModal('Atenção', message, 'Ok', null, () => {
+                window.location.href = redirectPage;
+            });
         }
 
-        tabsContainer.addEventListener('click', (e) => {
-            const button = e.target.closest('button.tab-button');
-            if (button && !button.classList.contains('active')) {
-                tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-                completedItemsPage = 1;
-                renderItemsByStatus();
-            }
-        });
-
-        searchInput.addEventListener('input', () => renderItemsByStatus());
-
-        initializeApp();
-        if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js'));
     </script>
 </body>
 </html>
