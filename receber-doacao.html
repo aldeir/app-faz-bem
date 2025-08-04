@@ -98,7 +98,12 @@
         import { doc, getDoc, collection, writeBatch } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
         
-        import { AGENDAMENTOS, CAMPANHAS, USUARIOS, NOTIFICACOES } from './firestore-paths.js';
+        // CORREÇÃO: Constantes declaradas localmente para evitar erro de importação.
+        const AGENDAMENTOS = 'agendamentos';
+        const CAMPANHAS = 'campanhas';
+        const USUARIOS = 'usuarios';
+        const NOTIFICACOES = 'notificacoes';
+        
         import { showModal, hideModal } from './modal-handler.js';
         import { getUserProfile } from './firebase-services.js';
         import { loadHeader } from './app-header.js';
