@@ -114,48 +114,35 @@
     <div id="modal-placeholder"></div>
 
     <!-- Scripts -->
-    <script type="module">
-        import { app, db, auth } from './app-config.js';
-        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { doc, getDoc, updateDoc, writeBatch, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        
-        import { loadHeader } from './app-header.js';
-        import { showModal, hideModal } from './modal-handler.js';
-        
-        // CORREÇÃO 1: Constantes das coleções declaradas localmente.
-        const AGENDAMENTOS = 'agendamentos';
-        const CAMPANHAS = 'campanhas';
-        const USUARIOS = 'usuarios';
-        const NOTIFICACOES = 'notificacoes';
+    <!-- CORREÇÃO: Carregando scripts da maneira tradicional (global) para alinhar com a arquitetura do projeto -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    
+    <script src="app-config.js"></script>
+    <script src="firestore-paths.js"></script>
+    <script src="modal-handler.js"></script>
+    <script src="firebase-services.js"></script>
+    <script src="app-header.js"></script>
 
-        // CORREÇÃO 2: Função getUserProfile movida para dentro do script para resolver o erro de importação.
-        async function getUserProfile(uid) {
-            const userRef = doc(db, USUARIOS, uid);
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) {
-                return userSnap.data();
-            } else {
-                console.error(`Perfil de usuário não encontrado para UID: ${uid}`);
-                return null;
-            }
-        }
-
-        // --- ELEMENTOS DA UI ---
-        const loader = document.getElementById('loader');
-        const formContainer = document.getElementById('form-container');
-        const campaignNameEl = document.getElementById('campaign-name');
-        const donorNameEl = document.getElementById('donor-name');
-        const scheduleDateEl = document.getElementById('schedule-date');
-        const itemsListEl = document.getElementById('items-list');
-        const observationsEl = document.getElementById('observations');
-        const confirmButton = document.getElementById('confirm-button');
-
-        let agendamentoId = null;
-        let agendamentoData = null;
-        let currentUserProfile = null;
-
-        // --- INICIALIZAÇÃO DA PÁGINA ---
+    <!-- Script principal da página -->
+    <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- ELEMENTOS DA UI ---
+            const loader = document.getElementById('loader');
+            const formContainer = document.getElementById('form-container');
+            const campaignNameEl = document.getElementById('campaign-name');
+            const donorNameEl = document.getElementById('donor-name');
+            const scheduleDateEl = document.getElementById('schedule-date');
+            const itemsListEl = document.getElementById('items-list');
+            const observationsEl = document.getElementById('observations');
+            const confirmButton = document.getElementById('confirm-button');
+
+            let agendamentoId = null;
+            let agendamentoData = null;
+            let currentUserProfile = null;
+
+            // --- INICIALIZAÇÃO DA PÁGINA ---
             loadHeader(); // Carrega o cabeçalho
             
             // Pega o ID do agendamento da URL
@@ -168,7 +155,7 @@
             }
 
             // Observa o estado de autenticação
-            onAuthStateChanged(auth, async (user) => {
+            firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
                     currentUserProfile = await getUserProfile(user.uid);
                     // Apenas 'entidade' ou 'superadmin' podem acessar
@@ -181,189 +168,174 @@
                     showErrorAndRedirect("Você precisa estar logado para acessar esta página.", "login.html");
                 }
             });
-        });
 
-        // --- CARREGAMENTO DOS DADOS ---
-        async function loadDonationDetails() {
-            try {
-                const agendamentoRef = doc(db, AGENDAMENTOS, agendamentoId);
-                const agendamentoSnap = await getDoc(agendamentoRef);
+            // --- CARREGAMENTO DOS DADOS ---
+            async function loadDonationDetails() {
+                try {
+                    const agendamentoRef = db.collection(AGENDAMENTOS).doc(agendamentoId);
+                    const agendamentoSnap = await agendamentoRef.get();
 
-                if (!agendamentoSnap.exists()) {
-                    showErrorAndRedirect("Agendamento não encontrado.");
-                    return;
-                }
+                    if (!agendamentoSnap.exists) {
+                        showErrorAndRedirect("Agendamento não encontrado.");
+                        return;
+                    }
 
-                agendamentoData = agendamentoSnap.data();
+                    agendamentoData = agendamentoSnap.data();
 
-                // Verifica se a doação já foi recebida
-                if (agendamentoData.status === 'recebido') {
-                    showErrorAndRedirect("Esta doação já foi confirmada anteriormente.");
-                    return;
-                }
+                    if (agendamentoData.status === 'recebido') {
+                        showErrorAndRedirect("Esta doação já foi confirmada anteriormente.");
+                        return;
+                    }
 
-                // Carrega dados do doador e da campanha em paralelo
-                const [donorSnap, campaignSnap] = await Promise.all([
-                    getDoc(doc(db, USUARIOS, agendamentoData.doadorId)),
-                    getDoc(doc(db, CAMPANHAS, agendamentoData.campanhaId))
-                ]);
+                    const donorSnap = await db.collection(USUARIOS).doc(agendamentoData.doadorId).get();
+                    const campaignSnap = await db.collection(CAMPANHAS).doc(agendamentoData.campanhaId).get();
 
-                if (!donorSnap.exists() || !campaignSnap.exists()) {
-                    showErrorAndRedirect("Não foi possível carregar os detalhes do doador ou da campanha.");
-                    return;
-                }
-                
-                const donorData = donorSnap.data();
-                const campaignData = campaignSnap.data();
+                    if (!donorSnap.exists || !campaignSnap.exists) {
+                        showErrorAndRedirect("Não foi possível carregar os detalhes do doador ou da campanha.");
+                        return;
+                    }
+                    
+                    const donorData = donorSnap.data();
+                    const campaignData = campaignSnap.data();
 
-                // Preenche os detalhes na UI
-                campaignNameEl.textContent = campaignData.titulo;
-                donorNameEl.textContent = donorData.nome;
-                scheduleDateEl.textContent = new Date(agendamentoData.dataAgendamento.seconds * 1000).toLocaleDateString('pt-BR', {
-                    year: 'numeric', month: 'long', day: 'numeric'
-                });
-
-                // Renderiza a lista de itens
-                renderItemsList(agendamentoData.itens);
-                
-                // Exibe o formulário e esconde o loader
-                loader.classList.add('hidden');
-                formContainer.classList.remove('hidden');
-
-            } catch (error) {
-                console.error("Erro ao carregar detalhes da doação: ", error);
-                showErrorAndRedirect("Ocorreu um erro ao carregar as informações. Tente novamente.");
-            }
-        }
-
-        // --- RENDERIZAÇÃO DA UI ---
-        function renderItemsList(items) {
-            itemsListEl.innerHTML = ''; // Limpa a lista
-            items.forEach((item, index) => {
-                const itemEl = document.createElement('div');
-                itemEl.className = 'grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-gray-100 p-3 rounded-lg border';
-                itemEl.innerHTML = `
-                    <div class="md:col-span-5 font-semibold text-gray-800">
-                        <i class="fas fa-gift text-gray-500 mr-2"></i>
-                        <span>${item.nome}</span>
-                    </div>
-                    <div class="md:col-span-3">
-                        <label class="text-sm font-medium text-gray-600">Qtd. Prometida</label>
-                        <p class="font-bold text-lg text-gray-800">${item.quantidade}</p>
-                    </div>
-                    <div class="md:col-span-4">
-                         <label for="item-qty-${index}" class="text-sm font-medium text-gray-600">Qtd. Recebida</label>
-                         <input type="number" id="item-qty-${index}" data-item-name="${item.nome}" value="${item.quantidade}" min="0" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
-                    </div>
-                `;
-                itemsListEl.appendChild(itemEl);
-            });
-        }
-
-        // --- AÇÕES DO USUÁRIO ---
-        confirmButton.addEventListener('click', () => {
-            showModal(
-                'Confirmação', 
-                'Você tem certeza que deseja confirmar o recebimento de todos os itens listados? Esta ação não pode ser desfeita.',
-                'Confirmar',
-                'Cancelar',
-                handleConfirmation
-            );
-        });
-        
-        async function handleConfirmation() {
-            hideModal();
-            confirmButton.disabled = true;
-            confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processando...';
-
-            try {
-                const batch = writeBatch(db);
-
-                // 1. Atualizar o documento de agendamento
-                const agendamentoRef = doc(db, AGENDAMENTOS, agendamentoId);
-                const itensRecebidos = [];
-                const inputs = itemsListEl.querySelectorAll('input[type="number"]');
-                
-                inputs.forEach(input => {
-                    itensRecebidos.push({
-                        nome: input.dataset.itemName,
-                        quantidade: parseInt(input.value, 10) || 0
+                    campaignNameEl.textContent = campaignData.titulo;
+                    donorNameEl.textContent = donorData.nome;
+                    scheduleDateEl.textContent = new Date(agendamentoData.dataAgendamento.seconds * 1000).toLocaleDateString('pt-BR', {
+                        year: 'numeric', month: 'long', day: 'numeric'
                     });
-                });
 
-                batch.update(agendamentoRef, {
-                    status: 'recebido',
-                    dataRecebimento: new Date(),
-                    observacoes: observationsEl.value,
-                    itensRecebidos: itensRecebidos,
-                    confirmadoPor: {
-                        uid: auth.currentUser.uid,
-                        nome: currentUserProfile.nome,
-                        role: currentUserProfile.role
-                    }
-                });
+                    renderItemsList(agendamentoData.itens);
+                    
+                    loader.classList.add('hidden');
+                    formContainer.classList.remove('hidden');
 
-                // 2. Atualizar o estoque da campanha
-                const campanhaRef = doc(db, CAMPANHAS, agendamentoData.campanhaId);
-                const campanhaSnap = await getDoc(campanhaRef);
-                const campanhaData = campanhaSnap.data();
-                const novosItensCampanha = [...campanhaData.itens];
-
-                itensRecebidos.forEach(itemRecebido => {
-                    const itemIndex = novosItensCampanha.findIndex(i => i.nome === itemRecebido.nome);
-                    if (itemIndex > -1) {
-                        novosItensCampanha[itemIndex].arrecadado = (novosItensCampanha[itemIndex].arrecadado || 0) + itemRecebido.quantidade;
-                    }
-                });
-
-                batch.update(campanhaRef, { itens: novosItensCampanha });
-
-                // 3. Criar notificação para o doador
-                const notificacaoDoadorRef = doc(collection(db, NOTIFICACOES));
-                batch.set(notificacaoDoadorRef, {
-                    userId: agendamentoData.doadorId,
-                    titulo: "Doação Recebida!",
-                    mensagem: `Sua doação para a campanha "${campanhaData.titulo}" foi recebida com sucesso. Muito obrigado por sua generosidade!`,
-                    data: new Date(),
-                    lida: false,
-                    link: `/minhas-entregas.html?id=${agendamentoId}`
-                });
-
-                // Executa todas as operações em lote
-                await batch.commit();
-
-                // Sucesso!
-                showModal(
-                    'Sucesso!', 
-                    'A doação foi confirmada e o estoque da campanha foi atualizado.',
-                    'Ok',
-                    null,
-                    () => {
-                        // Redireciona para a página de gerenciamento apropriada
-                        if (currentUserProfile.role === 'superadmin') {
-                            window.location.href = 'gerenciar-agendamentos-global.html';
-                        } else {
-                            window.location.href = 'gerenciar-agendamentos.html';
-                        }
-                    }
-                );
-
-            } catch (error) {
-                console.error("Erro ao confirmar recebimento: ", error);
-                showModal('Erro', 'Não foi possível confirmar o recebimento. Por favor, tente novamente.');
-                confirmButton.disabled = false;
-                confirmButton.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Confirmar Recebimento Total';
+                } catch (error) {
+                    console.error("Erro ao carregar detalhes da doação: ", error);
+                    showErrorAndRedirect("Ocorreu um erro ao carregar as informações. Tente novamente.");
+                }
             }
-        }
 
-        // --- FUNÇÕES UTILITÁRIAS ---
-        function showErrorAndRedirect(message, redirectPage = 'index.html') {
-            loader.classList.add('hidden');
-            showModal('Atenção', message, 'Ok', null, () => {
-                window.location.href = redirectPage;
+            // --- RENDERIZAÇÃO DA UI ---
+            function renderItemsList(items) {
+                itemsListEl.innerHTML = '';
+                items.forEach((item, index) => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-gray-100 p-3 rounded-lg border';
+                    itemEl.innerHTML = `
+                        <div class="md:col-span-5 font-semibold text-gray-800">
+                            <i class="fas fa-gift text-gray-500 mr-2"></i>
+                            <span>${item.nome}</span>
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="text-sm font-medium text-gray-600">Qtd. Prometida</label>
+                            <p class="font-bold text-lg text-gray-800">${item.quantidade}</p>
+                        </div>
+                        <div class="md:col-span-4">
+                            <label for="item-qty-${index}" class="text-sm font-medium text-gray-600">Qtd. Recebida</label>
+                            <input type="number" id="item-qty-${index}" data-item-name="${item.nome}" value="${item.quantidade}" min="0" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    `;
+                    itemsListEl.appendChild(itemEl);
+                });
+            }
+
+            // --- AÇÕES DO USUÁRIO ---
+            confirmButton.addEventListener('click', () => {
+                showModal(
+                    'Confirmação', 
+                    'Você tem certeza que deseja confirmar o recebimento de todos os itens listados? Esta ação não pode ser desfeita.',
+                    'Confirmar',
+                    'Cancelar',
+                    handleConfirmation
+                );
             });
-        }
+            
+            async function handleConfirmation() {
+                hideModal();
+                confirmButton.disabled = true;
+                confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processando...';
 
+                try {
+                    const batch = db.batch();
+                    const agendamentoRef = db.collection(AGENDAMENTOS).doc(agendamentoId);
+                    const itensRecebidos = [];
+                    const inputs = itemsListEl.querySelectorAll('input[type="number"]');
+                    
+                    inputs.forEach(input => {
+                        itensRecebidos.push({
+                            nome: input.dataset.itemName,
+                            quantidade: parseInt(input.value, 10) || 0
+                        });
+                    });
+
+                    batch.update(agendamentoRef, {
+                        status: 'recebido',
+                        dataRecebimento: new Date(),
+                        observacoes: observationsEl.value,
+                        itensRecebidos: itensRecebidos,
+                        confirmadoPor: {
+                            uid: firebase.auth().currentUser.uid,
+                            nome: currentUserProfile.nome,
+                            role: currentUserProfile.role
+                        }
+                    });
+
+                    const campanhaRef = db.collection(CAMPANHAS).doc(agendamentoData.campanhaId);
+                    const campanhaSnap = await campanhaRef.get();
+                    const campanhaData = campanhaSnap.data();
+                    const novosItensCampanha = [...campanhaData.itens];
+
+                    itensRecebidos.forEach(itemRecebido => {
+                        const itemIndex = novosItensCampanha.findIndex(i => i.nome === itemRecebido.nome);
+                        if (itemIndex > -1) {
+                            novosItensCampanha[itemIndex].arrecadado = (novosItensCampanha[itemIndex].arrecadado || 0) + itemRecebido.quantidade;
+                        }
+                    });
+
+                    batch.update(campanhaRef, { itens: novosItensCampanha });
+
+                    const notificacaoDoadorRef = db.collection(NOTIFICACOES).doc();
+                    batch.set(notificacaoDoadorRef, {
+                        userId: agendamentoData.doadorId,
+                        titulo: "Doação Recebida!",
+                        mensagem: `Sua doação para a campanha "${campanhaData.titulo}" foi recebida com sucesso. Muito obrigado por sua generosidade!`,
+                        data: new Date(),
+                        lida: false,
+                        link: `/minhas-entregas.html?id=${agendamentoId}`
+                    });
+
+                    await batch.commit();
+
+                    showModal(
+                        'Sucesso!', 
+                        'A doação foi confirmada e o estoque da campanha foi atualizado.',
+                        'Ok',
+                        null,
+                        () => {
+                            if (currentUserProfile.role === 'superadmin') {
+                                window.location.href = 'gerenciar-agendamentos-global.html';
+                            } else {
+                                window.location.href = 'gerenciar-agendamentos.html';
+                            }
+                        }
+                    );
+
+                } catch (error) {
+                    console.error("Erro ao confirmar recebimento: ", error);
+                    showModal('Erro', 'Não foi possível confirmar o recebimento. Por favor, tente novamente.');
+                    confirmButton.disabled = false;
+                    confirmButton.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Confirmar Recebimento Total';
+                }
+            }
+
+            // --- FUNÇÕES UTILITÁRIAS ---
+            function showErrorAndRedirect(message, redirectPage = 'index.html') {
+                loader.classList.add('hidden');
+                showModal('Atenção', message, 'Ok', null, () => {
+                    window.location.href = redirectPage;
+                });
+            }
+        });
     </script>
 </body>
 </html>
