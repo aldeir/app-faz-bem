@@ -20,13 +20,17 @@ service cloud.firestore {
 
     match /artifacts/{appId}/public/data {
 
-      // --- REGRA MOVIDA PARA O LOCAL CORRETO ---
-      // A regra de notificações agora está aninhada corretamente com as outras coleções de dados.
+      // --- INÍCIO DA ALTERAÇÃO ---
       match /notifications/{notificationId} {
-        allow create: if isOwner(request.resource.data.userId);
-        allow read, update: if isOwner(resource.data.userId); // Permite marcar como lida
+        // PERMITE QUE QUALQUER UTILIZADOR AUTENTICADO CRIE UMA NOTIFICAÇÃO.
+        // A lógica da aplicação garante que ela é criada para o destinatário correto.
+        allow create: if isAuthenticated(); 
+        
+        // As regras de leitura e atualização permanecem restritas ao dono da notificação.
+        allow read, update: if isOwner(resource.data.userId); 
         allow delete: if false;
       }
+      // --- FIM DA ALTERAÇÃO ---
 
       match /entidades/{entityId} {
         allow read: if isAuthenticated();
