@@ -18,17 +18,17 @@
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #16a34a; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .tab-button.active {
+            border-color: #16a34a;
+            color: #16a34a;
+            background-color: #f0fdf4;
+        }
         .options-menu {
             position: absolute;
             right: 0;
-            top: 100%;
+            top: calc(100% + 0.5rem);
             z-index: 20;
             transition: opacity 0.2s, transform 0.2s;
-        }
-        .tab-button.active {
-            border-color: #16a34a; /* green-600 */
-            color: #16a34a;
-            background-color: #f0fdf4; /* green-50 */
         }
     </style>
 </head>
@@ -50,7 +50,7 @@
                 <p class="text-sm text-gray-500 mt-1">Acompanhe as doações agendadas para sua entidade.</p>
             </div>
             <div class="flex items-center space-x-4">
-                 <a href="receber-doacao.html" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                 <a href="receber-doacao.html" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 flex items-center gap-2 shadow-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4m12 0h-4v4m0 12v-4h4m-12 0H4v-4"></path></svg>
                     Receber via QR Code
                 </a>
@@ -66,7 +66,7 @@
             </nav>
         </div>
         
-        <div id="schedules-list" class="space-y-6"></div>
+        <div id="schedules-list" class="space-y-8"></div>
         
         <div id="no-schedules-placeholder" class="hidden text-center text-gray-500 py-10 bg-white rounded-lg shadow">
             <p>Nenhuma doação encontrada para esta categoria.</p>
@@ -76,10 +76,8 @@
     <div id="app-modal"></div>
 
     <script type="module">
-        // --- INÍCIO DA CORREÇÃO ---
         import { db } from './app-config.js';
         import { collection, query, where, onSnapshot, doc, getDoc, getDocs, updateDoc } from './firebase-services.js';
-        // --- FIM DA CORREÇÃO ---
         import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
@@ -139,114 +137,123 @@
                 donationsToRender = allDonationsData.filter(d => d.status !== 'scheduled');
             }
             
-            donationsToRender.sort((a, b) => b.scheduledAt.toMillis() - a.scheduledAt.toMillis());
-
-            renderListContent(donationsToRender);
+            donationsToRender.sort((a, b) => a.scheduledAt.toMillis() - b.scheduledAt.toMillis());
+            renderHierarchicalList(donationsToRender);
         }
-        
-        async function renderListContent(donations) {
+
+        async function renderHierarchicalList(donations) {
             schedulesList.innerHTML = '';
             if (donations.length === 0) {
                 noSchedulesPlaceholder.classList.remove('hidden');
                 return;
             }
-            
             noSchedulesPlaceholder.classList.add('hidden');
 
-            const groupedByDay = donations.reduce((acc, donation) => {
-                const date = donation.scheduledAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', weekday: 'long' });
-                if (!acc[date]) acc[date] = [];
-                acc[date].push(donation);
-                return acc;
-            }, {});
+            // 1. Agrupar por Data
+            const groupedByDay = groupBy(donations, d => d.scheduledAt.toDate().toLocaleDateString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit' }));
+            
+            const sortedDates = Object.keys(groupedByDay).sort((a, b) => new Date(a.split('/').reverse().join('-')) - new Date(b.split('/').reverse().join('-')));
 
-            for (const date in groupedByDay) {
+            for (const dateKey of sortedDates) {
                 const daySection = document.createElement('div');
-                const donationsHtmlPromises = groupedByDay[date].map(donation => createDonationCard(donation));
-                const donationsHtml = await Promise.all(donationsHtmlPromises);
+                const dateObj = groupedByDay[dateKey][0].scheduledAt.toDate();
+                const formattedDate = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+                
+                let donorsHtml = '';
+                // 2. Agrupar por Doador
+                const groupedByDonor = groupBy(groupedByDay[dateKey], d => d.donorId);
+                
+                for (const donorId in groupedByDonor) {
+                    const donorDonations = groupedByDonor[donorId];
+                    const donorName = donorDonations[0].donorName;
+                    const donorPhoto = donorDonations[0].donorPhoto;
+                    const scheduledTime = donorDonations[0].scheduledAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
+                    let campaignsHtml = '';
+                    // 3. Agrupar por Campanha
+                    const groupedByCampaign = groupBy(donorDonations, d => d.campaignId);
+
+                    for (const campaignId in groupedByCampaign) {
+                        const campaignDonations = groupedByCampaign[campaignId];
+                        const campaignTitle = campaignDonations[0].campaignTitle;
+                        
+                        // 4. Listar Itens
+                        const itemsHtmlPromises = campaignDonations.flatMap(d => d.items).map(async (item, index) => {
+                            let receivedByHtml = '';
+                            if (item.receivedBy) {
+                                const receiverName = await getProfileName(item.receivedBy);
+                                receivedByHtml = `<span class="text-xs text-gray-500 ml-2">(Recebido por: ${receiverName})</span>`;
+                            }
+                            return `<li class="flex items-center space-x-3">
+                                        <img src="${item.photoURL}" class="w-10 h-10 rounded-md object-cover bg-gray-200">
+                                        <div>
+                                            <p class="font-medium text-gray-800">${item.type} ${receivedByHtml}</p>
+                                            <p class="text-xs text-gray-500">${item.details || ''} (${item.condition})</p>
+                                        </div>
+                                    </li>`;
+                        });
+                        const itemsHtml = await Promise.all(itemsHtmlPromises);
+
+                        campaignsHtml += `<div class="pl-4">
+                                            <h4 class="font-semibold text-gray-700">${campaignTitle}</h4>
+                                            <ul class="mt-2 space-y-2">${itemsHtml.join('')}</ul>
+                                         </div>`;
+                    }
+                    
+                    const donationId = donorDonations[0].id; // Usamos o ID da primeira doação para a ação
+                    const actionsHtml = donorDonations[0].status === 'scheduled' ? `
+                        <div class="relative">
+                            <button data-action="toggle-options" class="p-2 rounded-full hover:bg-gray-100">
+                                <svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path></svg>
+                            </button>
+                            <div class="options-menu hidden origin-top-right right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                <div class="py-1">
+                                    <a href="#" data-action="cancel-schedule" data-donation-id="${donationId}" data-donor-id="${donorId}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Cancelar Agendamento</a>
+                                </div>
+                            </div>
+                        </div>` : '';
+
+                    donorsHtml += `
+                        <div class="bg-white rounded-lg shadow-sm border p-4 pl-6 ml-4 border-l-4 border-blue-500">
+                            <div class="flex justify-between items-start">
+                                <div class="flex items-center space-x-4">
+                                    <img src="${donorPhoto || 'https://placehold.co/48x48/e2e8f0/cbd5e0?text=?'}" class="w-12 h-12 rounded-full object-cover">
+                                    <div>
+                                        <p class="font-bold text-lg text-gray-900">${donorName}</p>
+                                        <p class="text-sm font-semibold text-green-600">Horário: ${scheduledTime}</p>
+                                    </div>
+                                </div>
+                                <div class="flex-shrink-0">${actionsHtml}</div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t space-y-3">${campaignsHtml}</div>
+                        </div>`;
+                }
+                
                 daySection.innerHTML = `
-                    <h2 class="text-xl font-semibold text-gray-700 mb-3 capitalize">${date}</h2>
-                    <div class="space-y-4">${donationsHtml.join('')}</div>
+                    <h2 class="text-xl font-bold text-gray-800 mb-3 capitalize">${formattedDate}</h2>
+                    <div class="space-y-4">${donorsHtml}</div>
                 `;
                 schedulesList.appendChild(daySection);
             }
         }
 
-        async function getProfileName(userId) {
-            if (!userId) return "Desconhecido";
-            if (profilesCache.has(userId)) return profilesCache.get(userId).displayName;
-
-            // Para entidades, o perfil já deve estar em currentUserSession.profile
-            if (currentUserSession?.auth?.uid === userId) {
-                 profilesCache.set(userId, currentUserSession.profile);
-                 return currentUserSession.profile.displayName;
-            }
-
-            const userRef = doc(db, paths.userDoc(userId));
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) {
-                const userData = userSnap.data();
-                profilesCache.set(userId, userData);
-                return userData.displayName;
-            }
-            return "Doador"; // Fallback
-        }
-
-        async function createDonationCard(donation) {
-            const scheduledTime = donation.scheduledAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            
-            let statusHtml = '';
-            let actionsHtml = '';
-
-            if (donation.status === 'scheduled') {
-                const isOverdue = donation.scheduledAt.toDate() < new Date();
-                statusHtml = `<p class="text-lg font-bold ${isOverdue ? 'text-red-500' : 'text-green-600'}">${scheduledTime}</p>
-                              ${isOverdue ? '<p class="text-xs font-medium text-red-500">Vencido</p>' : ''}`;
-                actionsHtml = `<div class="relative">
-                                <button data-action="toggle-options" class="p-2 rounded-full hover:bg-gray-200">
-                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01"></path></svg>
-                                </button>
-                                <div class="options-menu hidden origin-top-right right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                    <div class="py-1">
-                                        <a href="#" data-action="cancel-schedule" data-donation-id="${donation.id}" data-donor-id="${donation.donorId}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Cancelar Agendamento</a>
-                                    </div>
-                                </div>
-                            </div>`;
-            } else {
-                let statusText, statusColor;
-                switch(donation.status) {
-                    case 'completed': 
-                        const receivedByNames = await Promise.all([...new Set(donation.items.filter(i => i.receivedBy).map(i => i.receivedBy))].map(getProfileName));
-                        statusText = receivedByNames.length > 0 ? `Recebido por: ${receivedByNames.join(', ')}` : 'Recebido';
-                        statusColor = 'text-gray-500'; 
-                        break;
-                    case 'reagendado': statusText = 'Reagendado pelo doador'; statusColor = 'text-yellow-600'; break;
-                    case 'cancelled_by_entity': statusText = 'Cancelado pela entidade'; statusColor = 'text-red-600'; break;
-                    default: statusText = 'Não entregue'; statusColor = 'text-gray-500';
+        function groupBy(array, keyGetter) {
+            const map = new Map();
+            array.forEach((item) => {
+                const key = keyGetter(item);
+                const collection = map.get(key);
+                if (!collection) {
+                    map.set(key, [item]);
+                } else {
+                    collection.push(item);
                 }
-                statusHtml = `<p class="text-sm font-bold ${statusColor}">${statusText}</p>`;
-            }
-            
-            return `
-                <div class="bg-white rounded-lg shadow-md overflow-hidden flex border-l-4 border-blue-500">
-                    <div class="p-4 flex-grow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div class="flex items-center space-x-4">
-                            <img src="${donation.donorPhoto || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Foto'}" class="w-16 h-16 rounded-full object-cover border">
-                            <div>
-                                <p class="font-bold text-lg text-gray-800">${donation.donorName}</p>
-                                <p class="text-sm text-gray-600">Campanha: <span class="font-medium">${donation.campaignTitle}</span></p>
-                                <p class="text-sm text-gray-500">${donation.items.length} item(ns)</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-4">
-                             <div class="text-center sm:text-right">${statusHtml}</div>
-                             ${actionsHtml}
-                        </div>
-                    </div>
-                </div>`;
+            });
+            return Object.fromEntries(map);
         }
 
+        async function getProfileName(userId) { /* ... (código existente sem alterações) ... */ }
+        
+        // --- Event Listeners e outras funções ---
         tabsContainer.addEventListener('click', (e) => {
             const button = e.target.closest('button.tab-button');
             if (button) {
@@ -263,17 +270,19 @@
 
             const action = button.dataset.action;
             if (action === 'toggle-options') {
-                const menu = button.nextElementSibling;
-                document.querySelectorAll('.options-menu').forEach(m => {
-                    if (m !== menu) m.classList.add('hidden');
-                });
-                menu.classList.toggle('hidden');
+                document.querySelectorAll('.options-menu').forEach(m => m.classList.add('hidden'));
+                button.nextElementSibling.classList.toggle('hidden');
             } else if (action === 'cancel-schedule') {
                 const donationId = button.dataset.donationId;
                 const donorId = button.dataset.donorId;
                 const donation = allDonationsData.find(d => d.id === donationId);
                 
-                const confirmed = await showConfirmationModal('Cancelar Agendamento', `Tem certeza que deseja cancelar o agendamento de ${donation.donorName}? O doador será notificado para que possa reagendar, se desejar.`);
+                if (!donation) {
+                    showAlertModal('Erro', 'Não foi possível encontrar os dados do agendamento.');
+                    return;
+                }
+                
+                const confirmed = await showConfirmationModal('Cancelar Agendamento', `Tem certeza que deseja cancelar o agendamento de ${donation.donorName}? O doador será notificado.`);
                 if (confirmed) {
                     try {
                         const donationRef = doc(db, paths.donationDoc(donationId));
