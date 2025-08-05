@@ -13,13 +13,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
     <style>
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #16a34a; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #qr-reader-container { border-radius: 0.5rem; overflow: hidden; }
         .options-menu {
             position: absolute;
             right: 0;
@@ -77,9 +75,11 @@
 
     <div id="app-modal"></div>
 
-
     <script type="module">
-        import { db, collection, query, where, onSnapshot, doc, getDoc, updateDoc } from './app-config.js';
+        // --- INÍCIO DA CORREÇÃO ---
+        import { db } from './app-config.js';
+        import { collection, query, where, onSnapshot, doc, getDoc, getDocs, updateDoc } from './firebase-services.js';
+        // --- FIM DA CORREÇÃO ---
         import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
@@ -94,7 +94,7 @@
 
         let allDonationsData = [];
         let campaignsMap = new Map();
-        let profilesCache = new Map(); // Cache para perfis de doadores e membros da entidade
+        let profilesCache = new Map();
         let currentUserSession = null;
 
         async function initializeApp() {
@@ -177,6 +177,12 @@
             if (!userId) return "Desconhecido";
             if (profilesCache.has(userId)) return profilesCache.get(userId).displayName;
 
+            // Para entidades, o perfil já deve estar em currentUserSession.profile
+            if (currentUserSession?.auth?.uid === userId) {
+                 profilesCache.set(userId, currentUserSession.profile);
+                 return currentUserSession.profile.displayName;
+            }
+
             const userRef = doc(db, paths.userDoc(userId));
             const userSnap = await getDoc(userRef);
             if (userSnap.exists()) {
@@ -211,8 +217,8 @@
                 let statusText, statusColor;
                 switch(donation.status) {
                     case 'completed': 
-                        const receivedByNames = await Promise.all([...new Set(donation.items.map(i => i.receivedBy))].map(getProfileName));
-                        statusText = `Recebido por: ${receivedByNames.join(', ')}`;
+                        const receivedByNames = await Promise.all([...new Set(donation.items.filter(i => i.receivedBy).map(i => i.receivedBy))].map(getProfileName));
+                        statusText = receivedByNames.length > 0 ? `Recebido por: ${receivedByNames.join(', ')}` : 'Recebido';
                         statusColor = 'text-gray-500'; 
                         break;
                     case 'reagendado': statusText = 'Reagendado pelo doador'; statusColor = 'text-yellow-600'; break;
@@ -253,7 +259,6 @@
         schedulesList.addEventListener('click', async (e) => {
             const button = e.target.closest('[data-action]');
             if (!button) return;
-
             e.preventDefault();
 
             const action = button.dataset.action;
