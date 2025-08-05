@@ -5,23 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro de Entidade - Faz Bem</title>
     
-    <!-- PWA Tags -->
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
 
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- IMask JS for input masking -->
     <script src="https://unpkg.com/imask"></script>
 
-    <!-- Cropper.js for image cropping -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
     
@@ -49,15 +44,12 @@
     <main id="app-container">
         <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
             <div id="form-container" class="max-w-lg w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
-                <!-- FORM HEADER -->
                 <div>
                     <h1 class="text-center text-3xl font-bold text-green-600">Cadastre a sua Organização</h1>
                     <p class="mt-2 text-center text-gray-600">Preencha os dados abaixo para análise.</p>
                 </div>
 
-                <!-- FORM -->
                 <form id="signup-form" class="mt-8 space-y-6" novalidate>
-                    <!-- SEÇÃO: DADOS DA ENTIDADE -->
                     <div class="space-y-4">
                         <h3 class="text-lg font-semibold text-gray-700 border-b pb-2">Dados da Entidade</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -66,7 +58,6 @@
                         </div>
                         <input id="entity-cnpj" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="CNPJ*">
                         
-                        <!-- CAMPO UPLOAD LOGO -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Logotipo da Entidade*</label>
                             <div class="flex items-center space-x-4">
@@ -80,7 +71,6 @@
                         <textarea id="entity-description" rows="3" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Sobre a Entidade (missão, histórico, etc.)"></textarea>
                     </div>
                     
-                    <!-- SEÇÃO: CONTATO E ENDEREÇO -->
                     <div class="space-y-4">
                         <h3 class="text-lg font-semibold text-gray-700 border-b pb-2 pt-4">Dados de Contato e Endereço</h3>
                         <input id="responsible-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Nome do Responsável*">
@@ -93,7 +83,6 @@
                         </div>
                     </div>
                     
-                    <!-- SEÇÃO: DADOS DE ACESSO -->
                     <div class="space-y-4">
                         <h3 class="text-lg font-semibold text-gray-700 border-b pb-2 pt-4">Dados de Acesso</h3>
                         <p class="text-sm text-gray-500 -mt-2">Este será o seu login para aceder à plataforma.</p>
@@ -113,7 +102,20 @@
                             </div>
                         </div>
                     </div>
-                    
+
+                    <div class="flex items-start pt-4">
+                        <div class="flex items-center h-5">
+                            <input id="terms-agree" name="terms-agree" type="checkbox" required class="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 rounded">
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="terms-agree" class="font-medium text-gray-700">
+                                Eu li e concordo com os 
+                                <a href="termos-de-servico.html" target="_blank" class="text-green-600 hover:underline">Termos de Serviço</a> 
+                                e a 
+                                <a href="politica-de-privacidade.html" target="_blank" class="text-green-600 hover:underline">Política de Privacidade</a>.
+                            </label>
+                        </div>
+                    </div>
                     <div id="signup-error" class="text-red-500 text-sm hidden pt-2"></div>
                     
                     <button type="submit" id="submit-btn" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
@@ -126,9 +128,8 @@
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
-    <!-- MODAL PARA RECORTE DA IMAGEM -->
     <div id="cropper-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 space-y-4">
             <h2 class="text-xl font-bold text-gray-800">Ajuste o seu Logotipo</h2>
@@ -150,170 +151,4 @@
 
         const signupForm = document.getElementById('signup-form');
         const errorDiv = document.getElementById('signup-error');
-        const submitBtn = document.getElementById('submit-btn');
-        const submitBtnText = document.getElementById('submit-btn-text');
-        const submitBtnSpinner = document.getElementById('submit-btn-spinner');
-        
-        const logoUploadInput = document.getElementById('entity-logo-upload');
-        const logoPreview = document.getElementById('logo-preview');
-        const fileInputLabel = document.getElementById('file-input-label');
-        const fileInputLabelText = document.getElementById('file-input-label-text');
-
-        const cnpjInput = document.getElementById('entity-cnpj');
-        const phoneInput = document.getElementById('signup-phone');
-
-        const cropperModal = document.getElementById('cropper-modal');
-        const imageToCrop = document.getElementById('image-to-crop');
-        const cancelCropBtn = document.getElementById('cancel-crop-btn');
-        const confirmCropBtn = document.getElementById('confirm-crop-btn');
-        
-        let cropper;
-        let croppedImageBlob = null;
-
-        const cnpjMask = IMask(cnpjInput, { mask: '00.000.000/0000-00', lazy: false });
-        const phoneMask = IMask(phoneInput, { mask: [ { mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' } ], lazy: false });
-
-        async function initializeApp() {
-            await injectHeader();
-            const userSession = await getCurrentUser();
-            // Se o usuário já estiver logado, redireciona para o painel apropriado
-            if (userSession) {
-                window.location.href = userSession.profile?.role === 'entidade' ? 'admin.html' : 'index.html';
-            }
-        }
-
-        logoUploadInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file || !file.type.startsWith('image/')) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                imageToCrop.src = event.target.result;
-                cropperModal.classList.remove('hidden');
-                if (cropper) cropper.destroy();
-                cropper = new Cropper(imageToCrop, { aspectRatio: 1, viewMode: 1 });
-            };
-            reader.readAsDataURL(file);
-            logoUploadInput.value = '';
-        });
-
-        cancelCropBtn.addEventListener('click', () => cropperModal.classList.add('hidden'));
-
-        confirmCropBtn.addEventListener('click', () => {
-            if (!cropper) return;
-            const canvas = cropper.getCroppedCanvas({ width: 256, height: 256 });
-            canvas.toBlob((blob) => {
-                croppedImageBlob = blob;
-                logoPreview.src = URL.createObjectURL(blob);
-                fileInputLabelText.textContent = 'Imagem Confirmada ✓';
-                fileInputLabel.classList.replace('bg-green-50', 'bg-blue-100');
-                fileInputLabel.classList.replace('text-green-800', 'text-blue-800');
-                cropperModal.classList.add('hidden');
-            }, 'image/webp', 0.9);
-        });
-
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            errorDiv.classList.add('hidden');
-            const password = document.getElementById('signup-password').value;
-            const passwordConfirm = document.getElementById('signup-password-confirm').value;
-
-            if (password !== passwordConfirm) {
-                errorDiv.textContent = "As senhas não coincidem.";
-                errorDiv.classList.remove('hidden'); return;
-            }
-            if (!croppedImageBlob) {
-                errorDiv.textContent = "Por favor, selecione e confirme um logotipo.";
-                errorDiv.classList.remove('hidden'); return;
-            }
-            if (cnpjMask.unmaskedValue.length !== 14) {
-                errorDiv.textContent = "O CNPJ está incompleto.";
-                errorDiv.classList.remove('hidden'); return;
-            }
-
-            submitBtn.disabled = true;
-            submitBtnText.classList.add('hidden');
-            submitBtnSpinner.classList.remove('hidden');
-
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, document.getElementById('signup-email').value, password);
-                const user = userCredential.user;
-                await updateProfile(user, { displayName: document.getElementById('entity-name').value });
-                await sendEmailVerification(user);
-
-                const fileName = `logo_${user.uid}.webp`;
-                const fileRef = storageRef(storage, `logos/${fileName}`);
-                await uploadBytes(fileRef, croppedImageBlob);
-                const logoUrl = await getDownloadURL(fileRef);
-
-                const profileData = {
-                    publicName: document.getElementById('entity-public-name').value,
-                    cnpj: cnpjMask.unmaskedValue,
-                    phone: phoneMask.unmaskedValue,
-                    logoUrl: logoUrl,
-                    description: document.getElementById('entity-description').value,
-                    responsibleName: document.getElementById('responsible-name').value,
-                    address: {
-                        street: document.getElementById('address-street').value,
-                        number: document.getElementById('address-number').value,
-                        district: document.getElementById('address-district').value,
-                        city: document.getElementById('address-city').value,
-                    },
-                    role: 'entidade',
-                    status: 'pendente_aprovacao',
-                    email: user.email
-                };
-                await setDoc(doc(db, paths.entidadeDoc(user.uid)), profileData);
-
-                submitBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
-                submitBtn.classList.add('bg-blue-500');
-                submitBtnText.textContent = 'Sucesso! Redirecionando...';
-                submitBtnSpinner.classList.add('hidden');
-                submitBtnText.classList.remove('hidden');
-                
-                setTimeout(() => {
-                    window.location.href = 'verificar-email.html';
-                }, 2000);
-
-            } catch (error) {
-                errorDiv.textContent = `Erro: ${error.code} - ${error.message}`;
-                submitBtn.disabled = false;
-                submitBtnText.classList.remove('hidden');
-                submitBtnSpinner.classList.add('hidden');
-                errorDiv.classList.remove('hidden');
-            }
-        });
-
-        document.querySelectorAll('[data-toggle-password]').forEach(button => {
-            button.addEventListener('click', () => {
-                const inputId = button.dataset.togglePassword;
-                const input = document.getElementById(inputId);
-                const icon = button.querySelector('svg');
-                
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .946-3.11 3.56-5.448 6.804-6.304M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.582 17.582A10.012 10.012 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .946-3.11 3.56-5.448 6.804-6.304m.02-3.65A12.01 12.01 0 0112 5c4.478 0 8.268 2.943 9.542 7a12.01 12.01 0 01-2.008 3.934M1 1l22 22"></path>`;
-                } else {
-                    input.type = 'password';
-                    icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>`;
-                }
-            });
-        });
-
-        initializeApp();
-    </script>
-    
-    <!-- PWA Service Worker Registration -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js').then(registration => {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                }, err => {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
-            });
-        }
-    </script>
-</body>
-</html>
+        const submitBtn = document.getElementById('submit
