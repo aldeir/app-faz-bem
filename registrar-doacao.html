@@ -63,7 +63,6 @@
             <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
                 <h2 id="schedule-section-title" class="text-xl font-bold text-gray-800">2. Agendar Entrega</h2>
                 <p class="text-sm text-gray-600 mt-1">Selecione um dia e, em seguida, um horário disponível para levar sua doação.</p>
-                
                 <div class="mt-4 space-y-4">
                     <div>
                         <label for="schedule-date-select" class="block text-sm font-medium text-gray-700">Selecione o dia</label>
@@ -73,8 +72,7 @@
                     </div>
                     <div id="schedule-slots-container" class="hidden">
                         <p class="block text-sm font-medium text-gray-700">Selecione o horário</p>
-                        <div id="schedule-slots-grid" class="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
-                            </div>
+                        <div id="schedule-slots-grid" class="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2"></div>
                     </div>
                 </div>
             </div>
@@ -120,7 +118,6 @@
         const submitDonationBtn = document.getElementById('submit-donation-btn');
         const formError = document.getElementById('form-error');
         const addItemError = document.getElementById('add-item-error');
-        
         const scheduleDateSelect = document.getElementById('schedule-date-select');
         const scheduleSlotsContainer = document.getElementById('schedule-slots-container');
         const scheduleSlotsGrid = document.getElementById('schedule-slots-grid');
@@ -131,11 +128,8 @@
         let donatedItems = [];
         let selectedScheduleSlot = null;
         let existingAppointments = {};
-        
-        // <-- INÍCIO DA ALTERAÇÃO 1: Variáveis para controlar o modo de reagendamento -->
         let isRescheduleMode = false;
         let rescheduleData = null;
-        // <-- FIM DA ALTERAÇÃO 1 -->
 
         async function initializeApp() {
             const canProceed = await injectHeader();
@@ -146,27 +140,23 @@
             if (currentUserSession) {
                 const params = new URLSearchParams(window.location.search);
                 campaignId = params.get('id');
-                // <-- INÍCIO DA ALTERAÇÃO 2: Verificar se estamos em modo de reagendamento -->
                 isRescheduleMode = params.has('reschedule');
-                // <-- FIM DA ALTERAÇÃO 2 -->
 
                 if (!campaignId) {
                     loadingView.innerHTML = '<p class="text-red-500">Erro: ID da campanha não encontrado.</p>';
                     return;
                 }
                 
-                // <-- INÍCIO DA ALTERAÇÃO 3: Lógica para setup do reagendamento -->
                 if (isRescheduleMode) {
                     const data = localStorage.getItem('rescheduleData');
                     if (!data) {
-                        showAlertModal('Erro', 'Dados de reagendamento não encontrados. Por favor, tente novamente a partir da página "Minhas Entregas".')
+                        showAlertModal('Erro', 'Dados de reagendamento não encontrados.')
                             .then(() => window.location.href = 'minhas-entregas.html');
                         return;
                     }
                     rescheduleData = JSON.parse(data);
                     setupRescheduleMode();
                 }
-                // <-- FIM DA ALTERAÇÃO 3 -->
                 
                 await loadInitialData();
             } else {
@@ -174,22 +164,18 @@
             }
         }
         
-        // <-- INÍCIO DA ALTERAÇÃO 4: Nova função para configurar a UI para reagendamento -->
         function setupRescheduleMode() {
             document.title = "Reagendar Entrega - Faz Bem";
             document.getElementById('items-section-title').textContent = "1. Itens para Reagendar";
             document.getElementById('schedule-section-title').textContent = "2. Escolha a Nova Data de Entrega";
             document.getElementById('submit-btn-text').textContent = "Confirmar Reagendamento";
             
-            // Oculta e desativa a secção de adicionar novos itens
             document.getElementById('add-item-container').classList.add('hidden');
             document.getElementById('privacy-section').classList.add('hidden');
 
-            // Pré-carrega os itens. Como não temos os ficheiros originais, mostramos apenas os dados.
-            donatedItems = rescheduleData.items; // Guarda os itens para a submissão
-            renderDonatedItems(true); // O 'true' indica que é um reagendamento
+            donatedItems = rescheduleData.items;
+            renderDonatedItems(true);
         }
-        // <-- FIM DA ALTERAÇÃO 4 -->
         
         async function loadInitialData() {
             try {
@@ -203,29 +189,19 @@
                 const itemSubtypes = subtypesConfigSnap.exists() ? subtypesConfigSnap.data() : {};
 
                 populateCampaignHeader();
-                populateSubItemTypes(itemSubtypes[campaignData.type] || []);
+                if (!isRescheduleMode) {
+                    populateSubItemTypes(itemSubtypes[campaignData.type] || []);
+                }
                 await generateScheduleDays();
 
                 loadingView.classList.add('hidden');
                 donationView.classList.remove('hidden');
             } catch (error) {
-                console.error("Error loading initial data:", error);
+                console.error("Erro fatal no carregamento inicial:", error);
                 loadingView.innerHTML = `<p class="text-red-500 text-center p-8">${error.message}.</p>`;
             }
         }
-
-        function populateCampaignHeader() {
-            const actionText = isRescheduleMode ? "Você está reagendando para:" : "Você está doando para:";
-            campaignHeader.innerHTML = `
-                <img src="${campaignData.images?.[0] || 'https://placehold.co/100x100/e2e8f0/e2e8f0'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
-                <div>
-                    <p class="text-sm text-gray-500">${actionText}</p>
-                    <h1 class="text-2xl font-bold text-gray-800">${campaignData.title}</h1>
-                    <p class="text-sm font-medium text-gray-600">Organizado por: ${campaignData.entityName}</p>
-                </div>`;
-        }
         
-        // <-- INÍCIO DA ALTERAÇÃO 5: A função agora aceita um parâmetro para modo de reagendamento -->
         function renderDonatedItems(isReschedule = false) {
             donatedItemsList.innerHTML = '';
             if (donatedItems.length === 0) {
@@ -235,7 +211,6 @@
             donatedItems.forEach((item, index) => {
                 const itemEl = document.createElement('div');
                 itemEl.className = 'flex items-center space-x-4 bg-gray-50 p-3 rounded-lg border';
-                // No modo de reagendamento, a foto vem de uma URL, não de um ficheiro local.
                 const photoSrc = isReschedule ? item.photoURL : URL.createObjectURL(item.photoFile);
                 
                 itemEl.innerHTML = `
@@ -249,14 +224,95 @@
                 donatedItemsList.appendChild(itemEl);
             });
         }
-        // <-- FIM DA ALTERAÇÃO 5 -->
 
-        function populateSubItemTypes(subtypes) { /* ... (sem alterações) ... */ }
-        async function generateScheduleDays() { /* ... (sem alterações) ... */ }
-        function renderTimeSlotsForDate(selectedDateStr) { /* ... (sem alterações) ... */ }
+        function populateCampaignHeader() {
+            const actionText = isRescheduleMode ? "Você está reagendando para:" : "Você está doando para:";
+            campaignHeader.innerHTML = `
+                <img src="${campaignData.images?.[0] || 'https://placehold.co/100x100/e2e8f0/e2e8f0'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
+                <div>
+                    <p class="text-sm text-gray-500">${actionText}</p>
+                    <h1 class="text-2xl font-bold text-gray-800">${campaignData.title}</h1>
+                    <p class="text-sm font-medium text-gray-600">Organizado por: ${campaignData.entityName}</p>
+                </div>`;
+        }
+        
+        function populateSubItemTypes(subtypes) {
+            itemSubtypeSelect.innerHTML = '<option value="">Selecione o item...</option>';
+            subtypes.forEach(subtype => {
+                itemSubtypeSelect.innerHTML += `<option value="${subtype}">${subtype}</option>`;
+            });
+            itemSubtypeSelect.innerHTML += '<option value="outro">Outro</option>';
+        }
 
-        scheduleDateSelect.addEventListener('change', (e) => { /* ... (sem alterações) ... */ });
-        itemSubtypeSelect.addEventListener('change', (e) => { /* ... (sem alterações) ... */ });
+        async function generateScheduleDays() {
+            scheduleDateSelect.innerHTML = '<option value="">Carregando...</option>';
+            const q = query(collection(db, paths.donations), where("campaignId", "==", campaignId));
+            const querySnapshot = await getDocs(q);
+            existingAppointments = {};
+            querySnapshot.forEach(doc => {
+                const scheduleTime = doc.data().scheduledAt.toDate().getTime();
+                existingAppointments[scheduleTime] = (existingAppointments[scheduleTime] || 0) + 1;
+            });
+            const now = new Date();
+            const campaignStart = campaignData.startsAt.toDate();
+            const campaignEnd = campaignData.expiresAt.toDate();
+            let currentDate = now > campaignStart ? new Date(now) : new Date(campaignStart);
+            let optionsHtml = '<option value="">Selecione uma data</option>';
+            let daysFound = 0;
+            while (currentDate <= campaignEnd && daysFound < 30) {
+                const dateValue = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+                const dateLabel = currentDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+                optionsHtml += `<option value="${dateValue}">${dateLabel}</option>`;
+                currentDate.setDate(currentDate.getDate() + 1);
+                daysFound++;
+            }
+            scheduleDateSelect.innerHTML = optionsHtml;
+            if (daysFound === 0) {
+                scheduleDateSelect.innerHTML = '<option value="">Nenhum dia disponível</option>';
+            }
+        }
+
+        function renderTimeSlotsForDate(selectedDateStr) {
+            scheduleSlotsGrid.innerHTML = '';
+            scheduleSlotsContainer.classList.remove('hidden');
+            selectedScheduleSlot = null;
+            const [year, month, day] = selectedDateStr.split('-').map(Number);
+            const selectedDate = new Date(year, month - 1, day);
+            const startHour = parseInt((campaignData.operation?.hoursStart || '08:00').split(':')[0]);
+            const endHour = parseInt((campaignData.operation?.hoursEnd || '18:00').split(':')[0]);
+            const maxDonorsPerSlot = campaignData.slots || 1;
+            const now = new Date();
+            for (let hour = startHour; hour < endHour; hour++) {
+                for (let minute of [0, 30]) {
+                    const slotTime = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), hour, minute);
+                    if (slotTime < now) continue;
+                    const occupiedSlots = existingAppointments[slotTime.getTime()] || 0;
+                    const isFull = occupiedSlots >= maxDonorsPerSlot;
+                    const slotBtn = document.createElement('button');
+                    const timeLabel = slotTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    slotBtn.className = `schedule-slot p-2 border rounded-md text-sm ${isFull ? 'bg-gray-200 text-gray-400' : 'bg-green-50 text-green-800 hover:bg-green-100'}`;
+                    slotBtn.textContent = timeLabel;
+                    slotBtn.disabled = isFull;
+                    if (!isFull) {
+                        slotBtn.onclick = () => {
+                            document.querySelectorAll('.schedule-slot.selected').forEach(s => s.classList.remove('selected', 'bg-green-600', 'text-white'));
+                            slotBtn.classList.add('selected', 'bg-green-600', 'text-white');
+                            selectedScheduleSlot = slotTime;
+                        };
+                    }
+                    scheduleSlotsGrid.appendChild(slotBtn);
+                }
+            }
+        }
+
+        scheduleDateSelect.addEventListener('change', (e) => {
+            if (e.target.value) { renderTimeSlotsForDate(e.target.value); } 
+            else { scheduleSlotsContainer.classList.add('hidden'); scheduleSlotsGrid.innerHTML = ''; selectedScheduleSlot = null; }
+        });
+
+        itemSubtypeSelect.addEventListener('change', (e) => {
+            itemOtherSubtypeInput.classList.toggle('hidden', e.target.value !== 'outro');
+        });
 
         addItemBtn.addEventListener('click', () => {
             addItemError.textContent = '';
@@ -268,18 +324,24 @@
                 addItemError.textContent = 'Por favor, selecione um item e uma foto.';
                 return;
             }
-            donatedItems.push({ type, details, condition, photoFile, isNew: true });
+            donatedItems.push({ type, details, condition, photoFile });
             renderDonatedItems();
             addItemForm.reset();
             itemOtherSubtypeInput.classList.add('hidden');
         });
 
-        donatedItemsList.addEventListener('click', (e) => { /* ... (sem alterações) ... */ });
+        donatedItemsList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-item-btn')) {
+                const index = e.target.dataset.index;
+                donatedItems.splice(index, 1);
+                renderDonatedItems();
+            }
+        });
 
         submitDonationBtn.addEventListener('click', async () => {
             formError.textContent = '';
             if (donatedItems.length === 0) {
-                formError.textContent = 'Você precisa adicionar pelo menos um item para doar.';
+                formError.textContent = 'Você precisa de ter pelo menos um item para doar.';
                 return;
             }
             if (!selectedScheduleSlot) {
@@ -294,11 +356,8 @@
             submitBtnSpinner.classList.remove('hidden');
 
             try {
-                const userId = currentUserSession?.auth?.uid;
-                if (!userId) throw new Error("ID do usuário não encontrado.");
-
-                // <-- INÍCIO DA ALTERAÇÃO 6: Lógica de submissão dupla -->
-                // Se for um reagendamento, os itens já têm URL de foto e não precisam de upload.
+                const userId = currentUserSession.auth.uid;
+                
                 const itemsToSave = isRescheduleMode 
                     ? donatedItems 
                     : await Promise.all(donatedItems.map(async (item) => {
@@ -318,25 +377,19 @@
                     entityId: campaignData.entityId,
                     items: itemsToSave,
                     status: 'scheduled',
-                    privacy: document.querySelector('input[name="privacy"]:checked').value,
+                    privacy: isRescheduleMode ? rescheduleData.privacy : document.querySelector('input[name="privacy"]:checked').value,
                     createdAt: Timestamp.now(),
                     scheduledAt: Timestamp.fromDate(selectedScheduleSlot)
                 };
                 
                 if (isRescheduleMode) {
                     const batch = writeBatch(db);
-                    
-                    // 1. Cria a nova doação agendada
                     const newDonationRef = doc(collection(db, paths.donations));
                     batch.set(newDonationRef, newDonationData);
-                    
-                    // 2. Atualiza a doação antiga para 'reagendado'
                     const oldDonationRef = doc(db, paths.donationDoc(rescheduleData.oldDonationId));
                     batch.update(oldDonationRef, { status: 'reagendado' });
-                    
                     await batch.commit();
-                    localStorage.removeItem('rescheduleData'); // Limpa os dados
-                    
+                    localStorage.removeItem('rescheduleData');
                 } else {
                     await addDoc(collection(db, paths.donations), newDonationData);
                 }
@@ -347,7 +400,6 @@
                 const successMessage = isRescheduleMode ? 'Sua doação foi reagendada com sucesso!' : 'Sua doação foi registrada com sucesso! Obrigado por fazer o bem!';
                 await showAlertModal('Sucesso!', successMessage);
                 window.location.href = 'minhas-entregas.html';
-                // <-- FIM DA ALTERAÇÃO 6 -->
 
             } catch (error) {
                 console.error("ERRO DETALHADO AO REGISTRAR DOAÇÃO:", error);
@@ -358,10 +410,8 @@
                 submitBtnSpinner.classList.add('hidden');
             }
         });
-        
-        // Funções auxiliares sem alteração...
-        // ...
+
+        initializeApp();
     </script>
-    
-    </body>
+</body>
 </html>
