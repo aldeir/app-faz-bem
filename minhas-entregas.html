@@ -70,14 +70,12 @@
         import { collection, query, where, onSnapshot, doc, getDoc, updateDoc } from "./firebase-services.js";
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
-        import { showAlertModal } from './modal-handler.js';
 
         const loadingView = document.getElementById('loading-view');
         const deliveriesView = document.getElementById('deliveries-view');
         const deliveriesList = document.getElementById('deliveries-list');
         const noDeliveriesPlaceholder = document.getElementById('no-deliveries-placeholder');
         const tabsContainer = document.getElementById('tabs-container');
-        
         const itemFocusModal = document.getElementById('item-focus-modal');
         const closeModalBtn = document.getElementById('close-modal-btn');
         const modalItemTitle = document.getElementById('modal-item-title');
@@ -89,10 +87,7 @@
 
         async function initializeApp() {
             const canProceed = await injectHeader();
-            if (!canProceed) {
-                loadingView.classList.add('hidden');
-                return;
-            }
+            if (!canProceed) { return; }
 
             const userSession = await getCurrentUser();
             if (userSession) {
@@ -104,10 +99,8 @@
 
         function loadUserDeliveries(userId) {
             const q = query(collection(db, paths.donations), where("donorId", "==", userId));
-
             onSnapshot(q, async (snapshot) => {
                 allUserDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
                 const campaignIds = [...new Set(allUserDonations.map(d => d.campaignId))];
                 for (const id of campaignIds) {
                     if (!campaignsCache.has(id)) {
@@ -118,13 +111,9 @@
                         }
                     }
                 }
-                
                 renderActiveTabData();
                 loadingView.classList.add('hidden');
                 deliveriesView.classList.remove('hidden');
-            }, (error) => {
-                console.error("Erro ao buscar doações:", error);
-                deliveriesList.innerHTML = `<p class="text-red-500 text-center">Ocorreu um erro ao carregar suas doações.</p>`;
             });
         }
 
@@ -136,10 +125,8 @@
             if (activeTab === 'scheduled') {
                 donationsToRender = allUserDonations.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() >= now);
             } else if (activeTab === 'overdue') {
-                // Inclui apenas agendadas vencidas que não tiveram tentativa de reagendamento
                 donationsToRender = allUserDonations.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() < now);
             } else if (activeTab === 'history') {
-                // O histórico agora inclui todos os status que não são 'scheduled'
                 donationsToRender = allUserDonations.filter(d => d.status !== 'scheduled');
             }
 
@@ -163,7 +150,6 @@
         function createDeliveryCard(donation, campaign, tab) {
             const card = document.createElement('div');
             card.className = 'bg-white rounded-xl shadow-lg overflow-hidden';
-
             const scheduledDate = donation.scheduledAt.toDate();
             const formattedDate = scheduledDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
             const formattedTime = scheduledDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -174,50 +160,41 @@
             if (tab === 'scheduled') {
                 statusHtml = `<p class="mt-1">Agendado para: <span class="font-semibold">${formattedDate} às ${formattedTime}</span></p>`;
             } else if (tab === 'overdue') {
-                let actionButton = '';
-                if (isCampaignActive) {
-                    // O status 'reagendado' (que vamos implementar) indicará que a chance já foi usada.
-                    actionButton = `<button data-action="reschedule" data-donation-id="${donation.id}" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Reagendar Entrega (1ª vez)</button>`;
-                } else {
-                    actionButton = `<p class="mt-4 text-sm font-semibold text-gray-600 bg-gray-200 px-4 py-2 rounded-lg inline-block">Campanha Encerrada</p>`;
-                }
+                let actionButton = isCampaignActive 
+                    ? `<button data-action="reschedule" data-donation-id="${donation.id}" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Reagendar Entrega (1ª vez)</button>`
+                    : `<p class="mt-4 text-sm font-semibold text-gray-600 bg-gray-200 px-4 py-2 rounded-lg inline-block">Campanha Encerrada</p>`;
+                
                 statusHtml = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-r-md">
                                 <p class="font-bold">Entrega Vencida</p>
                                 <p>Esta entrega estava agendada para ${formattedDate} às ${formattedTime}.</p>
                                 ${actionButton}
                               </div>`;
             } else if (tab === 'history') {
-                let historyStatusText = 'Status Desconhecido';
+                let historyStatusText = 'Não entregue (campanha encerrada)';
                 if (donation.status === 'completed') historyStatusText = `Entregue com sucesso em ${formattedDate}`;
                 else if (donation.status === 'cancelled_by_entity') historyStatusText = 'Cancelado pela entidade';
                 else if (donation.status === 'reagendado') historyStatusText = 'Reagendado com sucesso';
-                else if (donation.status === 'nao_entregue') historyStatusText = 'Não entregue (campanha encerrada)';
-                else historyStatusText = `Não entregue (agendado para ${formattedDate})`;
-
-
+                
                 statusHtml = `<p class="mt-1 font-semibold text-gray-700">${historyStatusText}</p>`;
             }
 
-            let itemsHtml = '';
-            donation.items.forEach((item, index) => {
-                itemsHtml += `
-                    <div class="item-card flex items-center space-x-4 p-3 bg-gray-50 rounded-md border ${tab === 'scheduled' ? 'cursor-pointer' : ''} transition-all" 
-                         ${tab === 'scheduled' ? `data-donation-id="${donation.id}"` : ''} 
-                         data-item-index="${index}"
-                         data-item-title="${item.type}"
-                         data-item-photo="${item.photoURL}">
-                        <img src="${item.photoURL}" class="w-16 h-16 rounded-md object-cover pointer-events-none">
-                        <div class="flex-grow pointer-events-none">
-                            <p class="font-bold">${item.type}</p>
-                            <p class="text-sm text-gray-600">${item.details} (${item.condition})</p>
-                        </div>
-                        <div id="qr-${donation.id}-${index}" class="w-20 h-20 pointer-events-none"></div>
+            let itemsHtml = donation.items.map((item, index) => `
+                <div class="item-card flex items-center space-x-4 p-3 bg-gray-50 rounded-md border ${tab === 'scheduled' ? 'cursor-pointer' : ''} transition-all" 
+                     ${tab === 'scheduled' ? `data-donation-id="${donation.id}"` : ''} 
+                     data-item-index="${index}" data-item-title="${item.type}" data-item-photo="${item.photoURL}">
+                    <img src="${item.photoURL}" class="w-16 h-16 rounded-md object-cover pointer-events-none">
+                    <div class="flex-grow pointer-events-none">
+                        <p class="font-bold">${item.type}</p>
+                        <p class="text-sm text-gray-600">${item.details} (${item.condition})</p>
                     </div>
-                `;
-                if (tab === 'scheduled') {
+                    <div id="qr-${donation.id}-${index}" class="w-20 h-20 pointer-events-none"></div>
+                </div>`).join('');
+
+            if (tab === 'scheduled') {
+                donation.items.forEach((item, index) => {
                     setTimeout(() => generateQRCode(`qr-${donation.id}-${index}`, `${donation.id}|${index}`, 4), 0);
-                }
-            });
+                });
+            }
 
             card.innerHTML = `
                 <div class="p-6 bg-green-600 text-white">
@@ -227,8 +204,7 @@
                 <div class="p-6">
                     <h3 class="font-bold text-lg text-gray-800 mb-4">Itens da Doação</h3>
                     <div class="space-y-3">${itemsHtml}</div>
-                </div>
-            `;
+                </div>`;
             return card;
         }
 
@@ -240,8 +216,6 @@
             qr.make();
             element.innerHTML = qr.createImgTag(size, 4);
         }
-
-        // --- Event Listeners ---
 
         tabsContainer.addEventListener('click', (e) => {
             const button = e.target.closest('button.tab-button');
@@ -265,22 +239,21 @@
                 itemFocusModal.classList.remove('hidden');
             }
             
-            // <-- INÍCIO DA ALTERAÇÃO: Lógica de reagendamento simplificada -->
             if (rescheduleBtn) {
                 const donationId = rescheduleBtn.dataset.donationId;
                 const donationData = allUserDonations.find(d => d.id === donationId);
                 
-                // Armazena os dados necessários para o reagendamento
+                // --- INÍCIO DA ALTERAÇÃO: Adicionar o campo 'privacy' ---
                 localStorage.setItem('rescheduleData', JSON.stringify({
-                    oldDonationId: donationId, // Guarda o ID da doação vencida
+                    oldDonationId: donationId,
                     campaignId: donationData.campaignId,
-                    items: donationData.items
+                    items: donationData.items,
+                    privacy: donationData.privacy // <-- CAMPO ADICIONADO AQUI
                 }));
+                // --- FIM DA ALTERAÇÃO ---
                 
-                // Redireciona imediatamente para a página de registro
                 window.location.href = `registrar-doacao.html?id=${donationData.campaignId}&reschedule=true`;
             }
-            // <-- FIM DA ALTERAÇÃO -->
         });
 
         closeModalBtn.addEventListener('click', () => itemFocusModal.classList.add('hidden'));
@@ -289,18 +262,6 @@
         });
 
         initializeApp();
-    </script>
-    
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js').then(registration => {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                }, err => {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
-            });
-        }
     </script>
 </body>
 </html>
