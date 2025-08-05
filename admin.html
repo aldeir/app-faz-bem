@@ -38,10 +38,13 @@
         
         <div id="dashboard-view" class="hidden max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
             <div class="px-4 py-6 sm:px-0">
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
                     <h2 class="text-2xl font-semibold text-gray-800">Resumo da Entidade</h2>
-                    <a href="criar-campanha.html" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">+ Criar Nova Campanha</a>
-                </div>
+                    <div class="flex items-center space-x-2">
+                        <a href="receber-doacao.html" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">Receber Doação</a>
+                        <a href="criar-campanha.html" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">+ Criar Campanha</a>
+                    </div>
+                    </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-lg shadow">
@@ -53,8 +56,8 @@
                         <p id="upcoming-campaigns-count" class="mt-1 text-3xl font-semibold text-blue-600">0</p>
                     </div>
                     
-                    <a href="receber-doacao.html" class="block bg-yellow-50 p-6 rounded-lg shadow border border-yellow-200 hover:shadow-md">
-                    <h3 class="text-sm font-medium text-yellow-700">Doações Agendadas</h3>
+                    <a href="gerenciar-agendamentos.html" class="block bg-yellow-50 p-6 rounded-lg shadow border border-yellow-200 hover:shadow-md">
+                        <h3 class="text-sm font-medium text-yellow-700">Doações Agendadas</h3>
                         <p id="scheduled-donations-count" class="mt-1 text-3xl font-semibold text-yellow-800">0</p>
                     </a>
                     <div class="bg-white p-6 rounded-lg shadow">
@@ -65,8 +68,8 @@
 
                 <div class="border-b border-gray-200">
                     <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                        <a href="gerenciar-campanhas.html" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-green-500 text-green-600">Minhas Campanhas</a>
-                        <a href="gerenciar-agendamentos.html" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Gerenciar Agendamentos</a>
+                        <a href="gerenciar-campanhas.html" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Minhas Campanhas</a>
+                        <a href="gerenciar-agendamentos.html" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-green-500 text-green-600">Gerenciar Agendamentos</a>
                     </nav>
                 </div>
 
@@ -80,6 +83,7 @@
     <div id="app-modal"></div>
 
     <script type="module">
+        // ... (O JavaScript permanece o mesmo)
         import { db, logout } from './app-config.js';
         import { collection, query, where, onSnapshot, doc, updateDoc, Timestamp } from "./firebase-services.js";
         import { showConfirmationModal, showAlertModal } from './modal-handler.js';
@@ -225,18 +229,5 @@
 
         initializeApp();
     </script>
-    
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js').then(registration => {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                }, err => {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
-            });
-        }
-    </script>
 </body>
 </html>
-
