@@ -151,4 +151,178 @@
 
         const signupForm = document.getElementById('signup-form');
         const errorDiv = document.getElementById('signup-error');
-        const submitBtn = document.getElementById('submit
+        const submitBtn = document.getElementById('submit-btn');
+        const submitBtnText = document.getElementById('submit-btn-text');
+        const submitBtnSpinner = document.getElementById('submit-btn-spinner');
+        
+        const logoUploadInput = document.getElementById('entity-logo-upload');
+        const logoPreview = document.getElementById('logo-preview');
+        const fileInputLabel = document.getElementById('file-input-label');
+        const fileInputLabelText = document.getElementById('file-input-label-text');
+
+        const cnpjInput = document.getElementById('entity-cnpj');
+        const phoneInput = document.getElementById('signup-phone');
+
+        const cropperModal = document.getElementById('cropper-modal');
+        const imageToCrop = document.getElementById('image-to-crop');
+        const cancelCropBtn = document.getElementById('cancel-crop-btn');
+        const confirmCropBtn = document.getElementById('confirm-crop-btn');
+        
+        const termsAgreeCheckbox = document.getElementById('terms-agree'); // <-- INÍCIO DA ALTERAÇÃO: Referência à checkbox
+        
+        let cropper;
+        let croppedImageBlob = null;
+
+        const cnpjMask = IMask(cnpjInput, { mask: '00.000.000/0000-00', lazy: false });
+        const phoneMask = IMask(phoneInput, { mask: [ { mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' } ], lazy: false });
+
+        async function initializeApp() {
+            await injectHeader();
+            const userSession = await getCurrentUser();
+            // Se o usuário já estiver logado, redireciona para o painel apropriado
+            if (userSession) {
+                window.location.href = userSession.profile?.role === 'entidade' ? 'admin.html' : 'index.html';
+            }
+        }
+
+        logoUploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file || !file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                imageToCrop.src = event.target.result;
+                cropperModal.classList.remove('hidden');
+                if (cropper) cropper.destroy();
+                cropper = new Cropper(imageToCrop, { aspectRatio: 1, viewMode: 1 });
+            };
+            reader.readAsDataURL(file);
+            logoUploadInput.value = '';
+        });
+
+        cancelCropBtn.addEventListener('click', () => cropperModal.classList.add('hidden'));
+
+        confirmCropBtn.addEventListener('click', () => {
+            if (!cropper) return;
+            const canvas = cropper.getCroppedCanvas({ width: 256, height: 256 });
+            canvas.toBlob((blob) => {
+                croppedImageBlob = blob;
+                logoPreview.src = URL.createObjectURL(blob);
+                fileInputLabelText.textContent = 'Imagem Confirmada ✓';
+                fileInputLabel.classList.replace('bg-green-50', 'bg-blue-100');
+                fileInputLabel.classList.replace('text-green-800', 'text-blue-800');
+                cropperModal.classList.add('hidden');
+            }, 'image/webp', 0.9);
+        });
+
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            errorDiv.classList.add('hidden');
+            const password = document.getElementById('signup-password').value;
+            const passwordConfirm = document.getElementById('signup-password-confirm').value;
+
+            if (password !== passwordConfirm) {
+                errorDiv.textContent = "As senhas não coincidem.";
+                errorDiv.classList.remove('hidden'); return;
+            }
+            if (!croppedImageBlob) {
+                errorDiv.textContent = "Por favor, selecione e confirme um logotipo.";
+                errorDiv.classList.remove('hidden'); return;
+            }
+            if (cnpjMask.unmaskedValue.length !== 14) {
+                errorDiv.textContent = "O CNPJ está incompleto.";
+                errorDiv.classList.remove('hidden'); return;
+            }
+            // <-- INÍCIO DA ALTERAÇÃO: Validação da checkbox -->
+            if (!termsAgreeCheckbox.checked) {
+                errorDiv.textContent = "Você precisa de aceitar os Termos de Serviço e a Política de Privacidade para continuar.";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            // <-- FIM DA ALTERAÇÃO -->
+
+            submitBtn.disabled = true;
+            submitBtnText.classList.add('hidden');
+            submitBtnSpinner.classList.remove('hidden');
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, document.getElementById('signup-email').value, password);
+                const user = userCredential.user;
+                await updateProfile(user, { displayName: document.getElementById('entity-name').value });
+                await sendEmailVerification(user);
+
+                const fileName = `logo_${user.uid}.webp`;
+                const fileRef = storageRef(storage, `logos/${fileName}`);
+                await uploadBytes(fileRef, croppedImageBlob);
+                const logoUrl = await getDownloadURL(fileRef);
+
+                const profileData = {
+                    publicName: document.getElementById('entity-public-name').value,
+                    cnpj: cnpjMask.unmaskedValue,
+                    phone: phoneMask.unmaskedValue,
+                    logoUrl: logoUrl,
+                    description: document.getElementById('entity-description').value,
+                    responsibleName: document.getElementById('responsible-name').value,
+                    address: {
+                        street: document.getElementById('address-street').value,
+                        number: document.getElementById('address-number').value,
+                        district: document.getElementById('address-district').value,
+                        city: document.getElementById('address-city').value,
+                    },
+                    role: 'entidade',
+                    status: 'pendente_aprovacao',
+                    email: user.email
+                };
+                await setDoc(doc(db, paths.entidadeDoc(user.uid)), profileData);
+
+                submitBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                submitBtn.classList.add('bg-blue-500');
+                submitBtnText.textContent = 'Sucesso! Redirecionando...';
+                submitBtnSpinner.classList.add('hidden');
+                submitBtnText.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    window.location.href = 'verificar-email.html';
+                }, 2000);
+
+            } catch (error) {
+                errorDiv.textContent = `Erro: ${error.code} - ${error.message}`;
+                submitBtn.disabled = false;
+                submitBtnText.classList.remove('hidden');
+                submitBtnSpinner.classList.add('hidden');
+                errorDiv.classList.remove('hidden');
+            }
+        });
+
+        document.querySelectorAll('[data-toggle-password]').forEach(button => {
+            button.addEventListener('click', () => {
+                const inputId = button.dataset.togglePassword;
+                const input = document.getElementById(inputId);
+                const icon = button.querySelector('svg');
+                
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .946-3.11 3.56-5.448 6.804-6.304M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.582 17.582A10.012 10.012 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .946-3.11 3.56-5.448 6.804-6.304m.02-3.65A12.01 12.01 0 0112 5c4.478 0 8.268 2.943 9.542 7a12.01 12.01 0 01-2.008 3.934M1 1l22 22"></path>`;
+                } else {
+                    input.type = 'password';
+                    icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>`;
+                }
+            });
+        });
+
+        initializeApp();
+    </script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
