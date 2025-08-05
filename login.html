@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entrar ou Cadastrar - Faz Bem</title>
     
-    <!-- PWA Tags -->
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
@@ -33,6 +32,14 @@
                         <div class="rounded-md shadow-sm -space-y-px">
                             <input id="login-email" type="email" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 rounded-t-md focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Seu e-mail">
                             <input id="login-password" type="password" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 rounded-b-md focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Sua senha">
+                        </div>
+
+                        <div class="flex items-center justify-end">
+                            <div class="text-sm">
+                                <a href="recuperar-senha.html" class="font-medium text-green-600 hover:text-green-500">
+                                    Esqueceu a sua senha?
+                                </a>
+                            </div>
                         </div>
                         <p id="login-error" class="text-red-500 text-sm mt-4 text-center hidden"></p>
                         <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">Entrar</button>
@@ -151,7 +158,6 @@
         });
     </script>
     
-    <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
