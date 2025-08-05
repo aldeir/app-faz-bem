@@ -122,7 +122,7 @@
                     }
                 }
                 
-                currentPage = 1; // Reseta a paginação
+                currentPage = 1;
                 renderActiveTabData();
                 loadingView.classList.add('hidden');
                 deliveriesView.classList.remove('hidden');
@@ -150,7 +150,7 @@
 
             filteredDonations.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
             
-            if (filteredDonations.length === 0) {
+            if (filteredDonations.length === 0 && !append) {
                 deliveriesList.appendChild(noDeliveriesPlaceholder);
                 noDeliveriesPlaceholder.classList.remove('hidden');
                 loadMoreContainer.classList.add('hidden');
@@ -169,7 +169,6 @@
                 deliveriesList.appendChild(card);
             });
 
-            // Controla a visibilidade do botão "Carregar Mais"
             if (filteredDonations.length > endIndex) {
                 loadMoreContainer.classList.remove('hidden');
             } else {
@@ -255,7 +254,14 @@
             return card;
         }
 
-        function generateQRCode(elementId, text, size) { /* ... (código existente sem alterações) ... */ }
+        function generateQRCode(elementId, text, size) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            const qr = qrcode(0, 'L');
+            qr.addData(text);
+            qr.make();
+            element.innerHTML = qr.createImgTag(size, 4);
+        }
 
         tabsContainer.addEventListener('click', (e) => {
             const button = e.target.closest('button.tab-button');
@@ -269,14 +275,21 @@
 
         loadMoreBtn.addEventListener('click', () => {
             currentPage++;
-            renderActiveTabData(true); // 'true' para apendar em vez de limpar
+            renderActiveTabData(true);
         });
 
         deliveriesList.addEventListener('click', async (e) => {
             const itemCard = e.target.closest('.item-card');
             const rescheduleBtn = e.target.closest('[data-action="reschedule"]');
 
-            if (itemCard && itemCard.dataset.donationId) { /* ... (código existente sem alterações) ... */ }
+            if (itemCard && itemCard.dataset.donationId) {
+                const { donationId, itemIndex, itemTitle, itemPhoto } = itemCard.dataset;
+                modalItemTitle.textContent = itemTitle;
+                modalItemPhoto.src = itemPhoto;
+                modalItemQrcode.innerHTML = '';
+                generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`, 8);
+                itemFocusModal.classList.remove('hidden');
+            }
             
             if (rescheduleBtn) {
                 const donationId = rescheduleBtn.dataset.donationId;
@@ -297,24 +310,6 @@
         itemFocusModal.addEventListener('click', (e) => {
             if (e.target === itemFocusModal) itemFocusModal.classList.add('hidden');
         });
-        
-        // --- CÓDIGO ORIGINAL DAS FUNÇÕES NÃO MODIFICADAS ---
-        function generateQRCode(elementId, text, size) {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-            const qr = qrcode(0, 'L');
-            qr.addData(text);
-            qr.make();
-            element.innerHTML = qr.createImgTag(size, 4);
-        }
-        if (itemCard && itemCard.dataset.donationId) {
-            const { donationId, itemIndex, itemTitle, itemPhoto } = itemCard.dataset;
-            modalItemTitle.textContent = itemTitle;
-            modalItemPhoto.src = itemPhoto;
-            modalItemQrcode.innerHTML = '';
-            generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`, 8);
-            itemFocusModal.classList.remove('hidden');
-        }
 
         initializeApp();
     </script>
