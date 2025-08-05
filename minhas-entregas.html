@@ -108,7 +108,6 @@
             onSnapshot(q, async (snapshot) => {
                 allUserDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                // Pré-carrega os dados das campanhas para evitar múltiplas chamadas
                 const campaignIds = [...new Set(allUserDonations.map(d => d.campaignId))];
                 for (const id of campaignIds) {
                     if (!campaignsCache.has(id)) {
@@ -137,8 +136,10 @@
             if (activeTab === 'scheduled') {
                 donationsToRender = allUserDonations.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() >= now);
             } else if (activeTab === 'overdue') {
+                // Inclui apenas agendadas vencidas que não tiveram tentativa de reagendamento
                 donationsToRender = allUserDonations.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() < now);
             } else if (activeTab === 'history') {
+                // O histórico agora inclui todos os status que não são 'scheduled'
                 donationsToRender = allUserDonations.filter(d => d.status !== 'scheduled');
             }
 
@@ -167,7 +168,6 @@
             const formattedDate = scheduledDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
             const formattedTime = scheduledDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-            // Lógica de Status e Ações
             let statusHtml = '';
             const isCampaignActive = campaign && campaign.expiresAt.toDate() > new Date();
 
@@ -175,9 +175,10 @@
                 statusHtml = `<p class="mt-1">Agendado para: <span class="font-semibold">${formattedDate} às ${formattedTime}</span></p>`;
             } else if (tab === 'overdue') {
                 let actionButton = '';
-                if (isCampaignActive && donation.status !== 'reagendamento_pendente') {
-                    actionButton = `<button data-action="reschedule" data-donation-id="${donation.id}" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Reagendar (1ª vez)</button>`;
-                } else if (!isCampaignActive) {
+                if (isCampaignActive) {
+                    // O status 'reagendado' (que vamos implementar) indicará que a chance já foi usada.
+                    actionButton = `<button data-action="reschedule" data-donation-id="${donation.id}" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Reagendar Entrega (1ª vez)</button>`;
+                } else {
                     actionButton = `<p class="mt-4 text-sm font-semibold text-gray-600 bg-gray-200 px-4 py-2 rounded-lg inline-block">Campanha Encerrada</p>`;
                 }
                 statusHtml = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-r-md">
@@ -189,8 +190,10 @@
                 let historyStatusText = 'Status Desconhecido';
                 if (donation.status === 'completed') historyStatusText = `Entregue com sucesso em ${formattedDate}`;
                 else if (donation.status === 'cancelled_by_entity') historyStatusText = 'Cancelado pela entidade';
-                else if (donation.status === 'reagendamento_pendente') historyStatusText = 'Não entregue (tentativa de reagendamento usada)';
-                else historyStatusText = 'Não entregue';
+                else if (donation.status === 'reagendado') historyStatusText = 'Reagendado com sucesso';
+                else if (donation.status === 'nao_entregue') historyStatusText = 'Não entregue (campanha encerrada)';
+                else historyStatusText = `Não entregue (agendado para ${formattedDate})`;
+
 
                 statusHtml = `<p class="mt-1 font-semibold text-gray-700">${historyStatusText}</p>`;
             }
@@ -262,30 +265,22 @@
                 itemFocusModal.classList.remove('hidden');
             }
             
+            // <-- INÍCIO DA ALTERAÇÃO: Lógica de reagendamento simplificada -->
             if (rescheduleBtn) {
                 const donationId = rescheduleBtn.dataset.donationId;
-                const donationRef = doc(db, paths.donationDoc(donationId));
-                try {
-                    // Marca a doação para que não possa ser reagendada novamente
-                    await updateDoc(donationRef, { status: "reagendamento_pendente" });
-                    
-                    // Armazena os dados no localStorage para a página de registro
-                    const donationData = allUserDonations.find(d => d.id === donationId);
-                    localStorage.setItem('rescheduleData', JSON.stringify({
-                        campaignId: donationData.campaignId,
-                        items: donationData.items
-                    }));
-                    
-                    showAlertModal('Reagendamento', 'Você será redirecionado para registrar um novo agendamento para estes itens.')
-                        .then(() => {
-                            window.location.href = `registrar-doacao.html?id=${donationData.campaignId}`;
-                        });
-
-                } catch (error) {
-                    console.error("Erro ao tentar reagendar:", error);
-                    showAlertModal('Erro', 'Ocorreu um problema ao tentar reagendar. Por favor, tente novamente.');
-                }
+                const donationData = allUserDonations.find(d => d.id === donationId);
+                
+                // Armazena os dados necessários para o reagendamento
+                localStorage.setItem('rescheduleData', JSON.stringify({
+                    oldDonationId: donationId, // Guarda o ID da doação vencida
+                    campaignId: donationData.campaignId,
+                    items: donationData.items
+                }));
+                
+                // Redireciona imediatamente para a página de registro
+                window.location.href = `registrar-doacao.html?id=${donationData.campaignId}&reschedule=true`;
             }
+            // <-- FIM DA ALTERAÇÃO -->
         });
 
         closeModalBtn.addEventListener('click', () => itemFocusModal.classList.add('hidden'));
