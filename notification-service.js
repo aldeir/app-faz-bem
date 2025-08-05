@@ -1,7 +1,10 @@
 // Arquivo: notification-service.js
 // Responsabilidade: Centralizar a lógica de criação de notificações.
 
-import { db, collection, addDoc, serverTimestamp } from './app-config.js';
+// <-- INÍCIO DA ALTERAÇÃO: Corrigimos de onde as funções são importadas -->
+import { db } from './app-config.js';
+import { collection, addDoc, serverTimestamp } from './firebase-services.js';
+// <-- FIM DA ALTERAÇÃO -->
 import { paths } from './firestore-paths.js';
 
 /**
