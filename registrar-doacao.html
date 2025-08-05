@@ -129,9 +129,7 @@
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal } from './modal-handler.js';
-        // <-- INÍCIO DA ALTERAÇÃO 1: Importar o serviço de notificação -->
         import { createNotification } from './notification-service.js';
-        // <-- FIM DA ALTERAÇÃO 1 -->
 
         const loadingView = document.getElementById('loading-view');
         const donationView = document.getElementById('donation-view');
@@ -392,10 +390,11 @@
                     return { type: item.type, details: item.details, condition: item.condition, photoURL: photoURL, status: 'pending' };
                 }));
 
+                // <-- INÍCIO DA ALTERAÇÃO: Lógica de fallback para dados do doador -->
                 const donationData = {
                     donorId: userId,
-                    donorName: currentUserSession.profile.displayName,
-                    donorPhoto: currentUserSession.profile.photoURL || null,
+                    donorName: currentUserSession.profile?.displayName ?? currentUserSession.auth?.displayName ?? "Doador Anônimo",
+                    donorPhoto: currentUserSession.profile?.photoURL ?? currentUserSession.auth?.photoURL ?? null,
                     campaignId: campaignId,
                     campaignTitle: campaignData.title,
                     entityId: campaignData.entityId,
@@ -405,13 +404,12 @@
                     createdAt: Timestamp.now(),
                     scheduledAt: Timestamp.fromDate(selectedScheduleSlot)
                 };
+                // <-- FIM DA ALTERAÇÃO -->
                 
                 await addDoc(collection(db, paths.donations), donationData);
                 
-                // <-- INÍCIO DA ALTERAÇÃO 2: Criar a notificação para a entidade -->
                 const notificationMessage = `O doador ${donationData.donorName} agendou uma nova entrega para a campanha "${donationData.campaignTitle}".`;
                 await createNotification(donationData.entityId, notificationMessage, 'gerenciar-agendamentos.html');
-                // <-- FIM DA ALTERAÇÃO 2 -->
 
                 await showAlertModal('Sucesso!', 'Sua doação foi registrada com sucesso! Obrigado por fazer o bem!');
                 window.location.href = 'minhas-entregas.html';
