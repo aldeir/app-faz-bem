@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minhas Entregas - Faz Bem</title>
     
-    <!-- PWA Tags -->
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
@@ -21,6 +20,7 @@
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #22c55e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .item-card:hover { transform: scale(1.02); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .tab-button.active { border-color: #16a34a; color: #16a34a; background-color: #f0fdf4; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -36,14 +36,21 @@
         </div>
 
         <div id="deliveries-view" class="hidden container mx-auto max-w-4xl p-4 sm:p-6 my-8">
-            <h1 class="text-3xl font-bold text-gray-800 mb-6">Minhas Entregas Agendadas</h1>
-            <div id="deliveries-list" class="space-y-8">
-                <p id="no-deliveries-placeholder" class="text-center text-gray-500 py-10 bg-white rounded-lg shadow">Você não possui nenhuma entrega agendada no momento.</p>
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Minhas Doações</h1>
+            
+            <div class="border-b border-gray-200 mb-6">
+                <nav id="tabs-container" class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button data-tab="scheduled" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Agendadas</button>
+                    <button data-tab="overdue" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Vencidas / Reagendar</button>
+                    <button data-tab="history" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Histórico</button>
+                </nav>
             </div>
+            
+            <div id="deliveries-list" class="space-y-8"></div>
+            <p id="no-deliveries-placeholder" class="hidden text-center text-gray-500 py-10 bg-white rounded-lg shadow">Nenhuma doação encontrada para esta categoria.</p>
         </div>
     </main>
 
-    <!-- Modal para Foco no Item -->
     <div id="item-focus-modal" class="hidden fixed z-50 inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center relative">
             <button id="close-modal-btn" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
@@ -55,23 +62,30 @@
             <p class="text-sm text-gray-500 mt-4">Apresente este QR Code para a entidade confirmar o recebimento.</p>
         </div>
     </div>
+    
+    <div id="app-modal"></div>
 
     <script type="module">
         import { db, paths } from './app-config.js';
-        import { collection, query, where, onSnapshot } from "./firebase-services.js";
+        import { collection, query, where, onSnapshot, doc, getDoc, updateDoc } from "./firebase-services.js";
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
+        import { showAlertModal } from './modal-handler.js';
 
         const loadingView = document.getElementById('loading-view');
         const deliveriesView = document.getElementById('deliveries-view');
         const deliveriesList = document.getElementById('deliveries-list');
         const noDeliveriesPlaceholder = document.getElementById('no-deliveries-placeholder');
+        const tabsContainer = document.getElementById('tabs-container');
         
         const itemFocusModal = document.getElementById('item-focus-modal');
         const closeModalBtn = document.getElementById('close-modal-btn');
         const modalItemTitle = document.getElementById('modal-item-title');
         const modalItemPhoto = document.getElementById('modal-item-photo');
         const modalItemQrcode = document.getElementById('modal-item-qrcode');
+
+        let allUserDonations = [];
+        let campaignsCache = new Map();
 
         async function initializeApp() {
             const canProceed = await injectHeader();
@@ -89,34 +103,63 @@
         }
 
         function loadUserDeliveries(userId) {
-            const q = query(collection(db, paths.donations), where("donorId", "==", userId), where("status", "==", "scheduled"));
+            const q = query(collection(db, paths.donations), where("donorId", "==", userId));
 
-            onSnapshot(q, (snapshot) => {
-                if (snapshot.empty) {
-                    noDeliveriesPlaceholder.classList.remove('hidden');
-                    deliveriesList.innerHTML = '';
-                    deliveriesList.appendChild(noDeliveriesPlaceholder);
-                } else {
-                    noDeliveriesPlaceholder.classList.add('hidden');
-                    deliveriesList.innerHTML = '';
-                    const donations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    donations.sort((a, b) => a.scheduledAt.toMillis() - b.scheduledAt.toMillis());
-                    donations.forEach(donation => {
-                        const card = createDeliveryCard(donation);
-                        deliveriesList.appendChild(card);
-                    });
+            onSnapshot(q, async (snapshot) => {
+                allUserDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Pré-carrega os dados das campanhas para evitar múltiplas chamadas
+                const campaignIds = [...new Set(allUserDonations.map(d => d.campaignId))];
+                for (const id of campaignIds) {
+                    if (!campaignsCache.has(id)) {
+                        const campaignRef = doc(db, paths.campaignDoc(id));
+                        const campaignSnap = await getDoc(campaignRef);
+                        if (campaignSnap.exists()) {
+                            campaignsCache.set(id, campaignSnap.data());
+                        }
+                    }
                 }
+                
+                renderActiveTabData();
                 loadingView.classList.add('hidden');
                 deliveriesView.classList.remove('hidden');
             }, (error) => {
                 console.error("Erro ao buscar doações:", error);
                 deliveriesList.innerHTML = `<p class="text-red-500 text-center">Ocorreu um erro ao carregar suas doações.</p>`;
-                loadingView.classList.add('hidden');
-                deliveriesView.classList.remove('hidden');
             });
         }
 
-        function createDeliveryCard(donation) {
+        function renderActiveTabData() {
+            const activeTab = tabsContainer.querySelector('.tab-button.active').dataset.tab;
+            const now = new Date();
+            let donationsToRender = [];
+
+            if (activeTab === 'scheduled') {
+                donationsToRender = allUserDonations.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() >= now);
+            } else if (activeTab === 'overdue') {
+                donationsToRender = allUserDonations.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() < now);
+            } else if (activeTab === 'history') {
+                donationsToRender = allUserDonations.filter(d => d.status !== 'scheduled');
+            }
+
+            donationsToRender.sort((a, b) => b.scheduledAt.toMillis() - a.scheduledAt.toMillis());
+            
+            deliveriesList.innerHTML = '';
+            if (donationsToRender.length === 0) {
+                deliveriesList.appendChild(noDeliveriesPlaceholder);
+                noDeliveriesPlaceholder.classList.remove('hidden');
+                return;
+            }
+
+            noDeliveriesPlaceholder.classList.add('hidden');
+            donationsToRender.forEach(donation => {
+                const campaign = campaignsCache.get(donation.campaignId);
+                const card = createDeliveryCard(donation, campaign, activeTab);
+                deliveriesList.appendChild(card);
+            });
+        }
+
+        function createDeliveryCard(donation, campaign, tab) {
             const card = document.createElement('div');
             card.className = 'bg-white rounded-xl shadow-lg overflow-hidden';
 
@@ -124,12 +167,39 @@
             const formattedDate = scheduledDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
             const formattedTime = scheduledDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
+            // Lógica de Status e Ações
+            let statusHtml = '';
+            const isCampaignActive = campaign && campaign.expiresAt.toDate() > new Date();
+
+            if (tab === 'scheduled') {
+                statusHtml = `<p class="mt-1">Agendado para: <span class="font-semibold">${formattedDate} às ${formattedTime}</span></p>`;
+            } else if (tab === 'overdue') {
+                let actionButton = '';
+                if (isCampaignActive && donation.status !== 'reagendamento_pendente') {
+                    actionButton = `<button data-action="reschedule" data-donation-id="${donation.id}" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Reagendar (1ª vez)</button>`;
+                } else if (!isCampaignActive) {
+                    actionButton = `<p class="mt-4 text-sm font-semibold text-gray-600 bg-gray-200 px-4 py-2 rounded-lg inline-block">Campanha Encerrada</p>`;
+                }
+                statusHtml = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-r-md">
+                                <p class="font-bold">Entrega Vencida</p>
+                                <p>Esta entrega estava agendada para ${formattedDate} às ${formattedTime}.</p>
+                                ${actionButton}
+                              </div>`;
+            } else if (tab === 'history') {
+                let historyStatusText = 'Status Desconhecido';
+                if (donation.status === 'completed') historyStatusText = `Entregue com sucesso em ${formattedDate}`;
+                else if (donation.status === 'cancelled_by_entity') historyStatusText = 'Cancelado pela entidade';
+                else if (donation.status === 'reagendamento_pendente') historyStatusText = 'Não entregue (tentativa de reagendamento usada)';
+                else historyStatusText = 'Não entregue';
+
+                statusHtml = `<p class="mt-1 font-semibold text-gray-700">${historyStatusText}</p>`;
+            }
+
             let itemsHtml = '';
             donation.items.forEach((item, index) => {
-                const qrId = `qr-${donation.id}-${index}`;
                 itemsHtml += `
-                    <div class="item-card flex items-center space-x-4 p-3 bg-gray-50 rounded-md border cursor-pointer transition-all" 
-                         data-donation-id="${donation.id}" 
+                    <div class="item-card flex items-center space-x-4 p-3 bg-gray-50 rounded-md border ${tab === 'scheduled' ? 'cursor-pointer' : ''} transition-all" 
+                         ${tab === 'scheduled' ? `data-donation-id="${donation.id}"` : ''} 
                          data-item-index="${index}"
                          data-item-title="${item.type}"
                          data-item-photo="${item.photoURL}">
@@ -138,25 +208,22 @@
                             <p class="font-bold">${item.type}</p>
                             <p class="text-sm text-gray-600">${item.details} (${item.condition})</p>
                         </div>
-                        <div id="${qrId}" class="w-20 h-20 pointer-events-none"></div>
+                        <div id="qr-${donation.id}-${index}" class="w-20 h-20 pointer-events-none"></div>
                     </div>
                 `;
-                setTimeout(() => generateQRCode(qrId, `${donation.id}|${index}`, 4), 0);
+                if (tab === 'scheduled') {
+                    setTimeout(() => generateQRCode(`qr-${donation.id}-${index}`, `${donation.id}|${index}`, 4), 0);
+                }
             });
 
             card.innerHTML = `
                 <div class="p-6 bg-green-600 text-white">
                     <h2 class="text-2xl font-bold">${donation.campaignTitle}</h2>
-                    <p class="mt-1">Agendado para: <span class="font-semibold">${formattedDate} às ${formattedTime}</span></p>
+                    ${statusHtml}
                 </div>
                 <div class="p-6">
-                    <h3 class="font-bold text-lg text-gray-800 mb-4">Itens para Entregar</h3>
-                    <div class="space-y-3">
-                        ${itemsHtml}
-                    </div>
-                    <div class="mt-6 pt-4 border-t">
-                        <p class="text-sm text-gray-600">Clique em um item para ampliar o QR Code e facilitar a leitura no momento da entrega.</p>
-                    </div>
+                    <h3 class="font-bold text-lg text-gray-800 mb-4">Itens da Doação</h3>
+                    <div class="space-y-3">${itemsHtml}</div>
                 </div>
             `;
             return card;
@@ -171,35 +238,64 @@
             element.innerHTML = qr.createImgTag(size, 4);
         }
 
-        deliveriesList.addEventListener('click', (e) => {
-            const itemCard = e.target.closest('.item-card');
-            if (!itemCard) return;
+        // --- Event Listeners ---
 
-            const { donationId, itemIndex, itemTitle, itemPhoto } = itemCard.dataset;
-            
-            modalItemTitle.textContent = itemTitle;
-            modalItemPhoto.src = itemPhoto;
-            
-            modalItemQrcode.innerHTML = '';
-            generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`, 8);
-
-            itemFocusModal.classList.remove('hidden');
-        });
-
-        closeModalBtn.addEventListener('click', () => {
-            itemFocusModal.classList.add('hidden');
-        });
-
-        itemFocusModal.addEventListener('click', (e) => {
-            if (e.target === itemFocusModal) {
-                itemFocusModal.classList.add('hidden');
+        tabsContainer.addEventListener('click', (e) => {
+            const button = e.target.closest('button.tab-button');
+            if (button) {
+                tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                renderActiveTabData();
             }
+        });
+
+        deliveriesList.addEventListener('click', async (e) => {
+            const itemCard = e.target.closest('.item-card');
+            const rescheduleBtn = e.target.closest('[data-action="reschedule"]');
+
+            if (itemCard && itemCard.dataset.donationId) {
+                const { donationId, itemIndex, itemTitle, itemPhoto } = itemCard.dataset;
+                modalItemTitle.textContent = itemTitle;
+                modalItemPhoto.src = itemPhoto;
+                modalItemQrcode.innerHTML = '';
+                generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`, 8);
+                itemFocusModal.classList.remove('hidden');
+            }
+            
+            if (rescheduleBtn) {
+                const donationId = rescheduleBtn.dataset.donationId;
+                const donationRef = doc(db, paths.donationDoc(donationId));
+                try {
+                    // Marca a doação para que não possa ser reagendada novamente
+                    await updateDoc(donationRef, { status: "reagendamento_pendente" });
+                    
+                    // Armazena os dados no localStorage para a página de registro
+                    const donationData = allUserDonations.find(d => d.id === donationId);
+                    localStorage.setItem('rescheduleData', JSON.stringify({
+                        campaignId: donationData.campaignId,
+                        items: donationData.items
+                    }));
+                    
+                    showAlertModal('Reagendamento', 'Você será redirecionado para registrar um novo agendamento para estes itens.')
+                        .then(() => {
+                            window.location.href = `registrar-doacao.html?id=${donationData.campaignId}`;
+                        });
+
+                } catch (error) {
+                    console.error("Erro ao tentar reagendar:", error);
+                    showAlertModal('Erro', 'Ocorreu um problema ao tentar reagendar. Por favor, tente novamente.');
+                }
+            }
+        });
+
+        closeModalBtn.addEventListener('click', () => itemFocusModal.classList.add('hidden'));
+        itemFocusModal.addEventListener('click', (e) => {
+            if (e.target === itemFocusModal) itemFocusModal.classList.add('hidden');
         });
 
         initializeApp();
     </script>
-
-    <!-- PWA Service Worker Registration -->
+    
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
