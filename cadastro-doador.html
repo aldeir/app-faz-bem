@@ -5,18 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro de Doador - Faz Bem</title>
     
-    <!-- PWA Tags -->
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
 
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- IMask JS for input masks -->
     <script src="https://unpkg.com/imask"></script>
 
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -52,7 +48,6 @@
                         </button>
                     </div>
                     
-                    <!-- Campos de Endereço Opcionais -->
                     <div class="pt-4 border-t space-y-4">
                         <p class="text-sm text-gray-600">Endereço (opcional, para facilitar doações futuras)</p>
                         <input id="signup-cep" type="text" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="CEP">
@@ -62,7 +57,20 @@
                             <input id="signup-district" type="text" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 col-span-2" placeholder="Bairro">
                         </div>
                     </div>
-
+                    
+                    <div class="flex items-start pt-4">
+                        <div class="flex items-center h-5">
+                            <input id="terms-agree" name="terms-agree" type="checkbox" required class="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 rounded">
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="terms-agree" class="font-medium text-gray-700">
+                                Eu li e concordo com os 
+                                <a href="termos-de-servico.html" target="_blank" class="text-green-600 hover:underline">Termos de Serviço</a> 
+                                e a 
+                                <a href="politica-de-privacidade.html" target="_blank" class="text-green-600 hover:underline">Política de Privacidade</a>.
+                            </label>
+                        </div>
+                    </div>
                     <div id="signup-error" class="text-red-500 text-sm hidden pt-2"></div>
                     
                     <button type="submit" id="submit-btn" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
@@ -85,6 +93,7 @@
         const submitBtn = document.getElementById('submit-btn');
         const phoneInput = document.getElementById('signup-phone');
         const cepInput = document.getElementById('signup-cep');
+        const termsAgreeCheckbox = document.getElementById('terms-agree'); // <-- INÍCIO DA ALTERAÇÃO: Referência à checkbox
 
         IMask(phoneInput, { mask: [{ mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' }] });
         IMask(cepInput, { mask: '00000-000' });
@@ -113,6 +122,14 @@
                 errorDiv.classList.remove('hidden');
                 return;
             }
+
+            // <-- INÍCIO DA ALTERAÇÃO: Validação da checkbox -->
+            if (!termsAgreeCheckbox.checked) {
+                errorDiv.textContent = "Você precisa de aceitar os Termos de Serviço e a Política de Privacidade para continuar.";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            // <-- FIM DA ALTERAÇÃO -->
 
             submitBtn.disabled = true;
             submitBtn.textContent = 'A registar...';
@@ -164,7 +181,6 @@
         });
     </script>
 
-    <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
