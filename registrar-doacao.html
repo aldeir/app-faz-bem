@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrar Doação - Faz Bem</title>
     
-    <!-- PWA Tags -->
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
@@ -37,10 +36,8 @@
         </div>
 
         <div id="donation-view" class="hidden container mx-auto max-w-4xl p-4 sm:p-6 my-8">
-            <!-- Campaign Header -->
             <div id="campaign-header" class="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex items-center space-x-4 mb-8 border-l-4 border-green-500"></div>
 
-            <!-- Items Section -->
             <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
                 <h2 class="text-xl font-bold text-gray-800">1. Itens para Doar</h2>
                 <div id="donated-items-list" class="mt-4 space-y-4">
@@ -63,7 +60,6 @@
                 </div>
             </div>
 
-            <!-- Schedule Section -->
             <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
                 <h2 class="text-xl font-bold text-gray-800">2. Agendar Entrega</h2>
                 <p class="text-sm text-gray-600 mt-1">Selecione um dia e, em seguida, um horário disponível para levar sua doação.</p>
@@ -78,13 +74,11 @@
                     <div id="schedule-slots-container" class="hidden">
                         <p class="block text-sm font-medium text-gray-700">Selecione o horário</p>
                         <div id="schedule-slots-grid" class="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
-                            <!-- Os horários serão inseridos aqui -->
-                        </div>
+                            </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Privacy Section -->
             <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
                 <h2 class="text-xl font-bold text-gray-800">3. Privacidade</h2>
                 <div class="mt-2 flex items-center space-x-8">
@@ -135,6 +129,9 @@
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal } from './modal-handler.js';
+        // <-- INÍCIO DA ALTERAÇÃO 1: Importar o serviço de notificação -->
+        import { createNotification } from './notification-service.js';
+        // <-- FIM DA ALTERAÇÃO 1 -->
 
         const loadingView = document.getElementById('loading-view');
         const donationView = document.getElementById('donation-view');
@@ -410,6 +407,11 @@
                 };
                 
                 await addDoc(collection(db, paths.donations), donationData);
+                
+                // <-- INÍCIO DA ALTERAÇÃO 2: Criar a notificação para a entidade -->
+                const notificationMessage = `O doador ${donationData.donorName} agendou uma nova entrega para a campanha "${donationData.campaignTitle}".`;
+                await createNotification(donationData.entityId, notificationMessage, 'gerenciar-agendamentos.html');
+                // <-- FIM DA ALTERAÇÃO 2 -->
 
                 await showAlertModal('Sucesso!', 'Sua doação foi registrada com sucesso! Obrigado por fazer o bem!');
                 window.location.href = 'minhas-entregas.html';
@@ -427,7 +429,6 @@
         initializeApp();
     </script>
 
-    <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
