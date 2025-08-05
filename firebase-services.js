@@ -11,7 +11,8 @@ export {
     signInWithEmailAndPassword, 
     GoogleAuthProvider, 
     signInWithPopup, 
-    getAdditionalUserInfo 
+    getAdditionalUserInfo,
+    sendPasswordResetEmail // <-- LINHA ADICIONADA AQUI
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 // Firestore
@@ -32,7 +33,7 @@ export {
     orderBy,
     Timestamp,
     addDoc,
-    runTransaction // <-- CORREÇÃO: Função 'runTransaction' adicionada à lista de exportação.
+    runTransaction
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Storage (com alias para 'ref')
