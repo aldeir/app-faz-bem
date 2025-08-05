@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Agendamentos - Faz Bem</title>
     
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,64 +52,34 @@
                 <p class="text-sm text-gray-500 mt-1">Acompanhe as doações agendadas para sua entidade.</p>
             </div>
             <div class="flex items-center space-x-4">
-                 <button id="scan-qr-btn" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                 <a href="receber-doacao.html" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4m12 0h-4v4m0 12v-4h4m-12 0H4v-4"></path></svg>
                     Receber via QR Code
-                </button>
+                </a>
                 <a href="admin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
             </div>
         </div>
 
-        <!-- Abas de Navegação -->
         <div class="border-b border-gray-200 mb-6">
             <nav id="tabs-container" class="-mb-px flex space-x-8" aria-label="Tabs">
-                <button data-tab="upcoming" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Próximos</button>
+                <button data-tab="scheduled" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Próximos</button>
                 <button data-tab="overdue" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Vencidos</button>
-                <button data-tab="completed" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Recebidos</button>
+                <button data-tab="history" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Histórico</button>
             </nav>
         </div>
         
-        <!-- Conteúdo das Abas -->
-        <div id="upcoming-list" class="tab-content space-y-6"></div>
-        <div id="overdue-list" class="tab-content hidden space-y-6"></div>
-        <div id="completed-list" class="tab-content hidden space-y-6"></div>
+        <div id="schedules-list" class="space-y-6"></div>
         
         <div id="no-schedules-placeholder" class="hidden text-center text-gray-500 py-10 bg-white rounded-lg shadow">
             <p>Nenhuma doação encontrada para esta categoria.</p>
         </div>
     </main>
 
-    <!-- Modals (QR Scanner, Item Confirm, App Modal) permanecem os mesmos -->
-    <div id="qr-scanner-modal" class="hidden fixed z-50 inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 space-y-4 relative">
-            <button id="close-scanner-btn" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-            <h2 class="text-xl font-bold text-gray-800 text-center">Aponte para o QR Code do Item</h2>
-            <div id="qr-reader-container" class="w-full"></div>
-            <p id="qr-scanner-status" class="text-center text-sm text-gray-600 h-5"></p>
-        </div>
-    </div>
-    <div id="item-confirm-modal" class="hidden fixed z-50 inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center relative">
-            <h3 class="text-xl font-bold text-gray-800 mb-2">Confirmar Recebimento</h3>
-            <p id="modal-warning-message" class="text-sm text-yellow-600 bg-yellow-100 p-2 rounded-md mb-4 hidden"></p>
-            <img id="modal-item-photo" src="" class="w-full h-64 object-contain rounded-md mb-4 bg-gray-100">
-            <p id="modal-item-title" class="font-bold text-lg text-gray-900"></p>
-            <p id="modal-item-details" class="text-sm text-gray-600"></p>
-            <p class="text-xs text-gray-500 mt-2">Campanha: <span id="modal-campaign-title"></span></p>
-            <p class="text-xs text-gray-500">Doador(a): <span id="modal-donor-name"></span></p>
-            <div class="flex justify-center space-x-4 mt-6">
-                <button id="cancel-receive-btn" class="px-6 py-2 rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300">Cancelar</button>
-                <button id="confirm-receive-btn" class="px-6 py-2 rounded-md text-white bg-green-600 hover:bg-green-700">Confirmar</button>
-            </div>
-        </div>
-    </div>
     <div id="app-modal"></div>
 
 
     <script type="module">
-        import { db, collection, query, where, onSnapshot, doc, getDoc, getDocs, runTransaction, Timestamp, updateDoc } from './app-config.js';
+        import { db, collection, query, where, onSnapshot, doc, getDoc, updateDoc } from './app-config.js';
         import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
@@ -116,25 +90,11 @@
         const schedulesView = document.getElementById('schedules-view');
         const noSchedulesPlaceholder = document.getElementById('no-schedules-placeholder');
         const tabsContainer = document.getElementById('tabs-container');
-        
-        const listContainers = {
-            upcoming: document.getElementById('upcoming-list'),
-            overdue: document.getElementById('overdue-list'),
-            completed: document.getElementById('completed-list'),
-        };
-        
-        const scanQrBtn = document.getElementById('scan-qr-btn');
-        const qrScannerModal = document.getElementById('qr-scanner-modal');
-        const closeScannerBtn = document.getElementById('close-scanner-btn');
-        const qrScannerStatus = document.getElementById('qr-scanner-status');
-        const itemConfirmModal = document.getElementById('item-confirm-modal');
-        const cancelReceiveBtn = document.getElementById('cancel-receive-btn');
-        const confirmReceiveBtn = document.getElementById('confirm-receive-btn');
+        const schedulesList = document.getElementById('schedules-list');
 
         let allDonationsData = [];
         let campaignsMap = new Map();
-        let campaignTypes = {};
-        let html5QrCode = null;
+        let profilesCache = new Map(); // Cache para perfis de doadores e membros da entidade
         let currentUserSession = null;
 
         async function initializeApp() {
@@ -149,18 +109,14 @@
 
         async function loadInitialData(entityId) {
             try {
-                const typesDocRef = doc(db, paths.configDoc('campaignTypes'));
-                const typesSnap = await getDoc(typesDocRef);
-                campaignTypes = typesSnap.exists() ? typesSnap.data() : {};
-
                 const campaignsQuery = query(collection(db, paths.campaigns), where("entityId", "==", entityId));
                 const campaignsSnapshot = await getDocs(campaignsQuery);
                 campaignsSnapshot.forEach(doc => campaignsMap.set(doc.id, { id: doc.id, ...doc.data() }));
 
-                const donationsQuery = query(collection(db, paths.donations), where("entityId", "==", entityId), where("status", "in", ["scheduled", "completed"]));
+                const donationsQuery = query(collection(db, paths.donations), where("entityId", "==", entityId));
                 onSnapshot(donationsQuery, (snapshot) => {
                     allDonationsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderAllLists();
+                    renderActiveTabData();
                     loadingView.classList.add('hidden');
                     schedulesView.classList.remove('hidden');
                 });
@@ -170,109 +126,104 @@
             }
         }
 
-        function renderAllLists() {
+        function renderActiveTabData() {
+            const activeTab = tabsContainer.querySelector('.tab-button.active').dataset.tab;
             const now = new Date();
-            const upcoming = [];
-            const overdue = [];
-            const completed = [];
+            let donationsToRender = [];
 
-            allDonationsData.forEach(donation => {
-                if (donation.status === 'completed') {
-                    completed.push(donation);
-                } else if (donation.status === 'scheduled') {
-                    if (donation.scheduledAt.toDate() < now) {
-                        overdue.push(donation);
-                    } else {
-                        upcoming.push(donation);
-                    }
-                }
-            });
+            if (activeTab === 'scheduled') {
+                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() >= now);
+            } else if (activeTab === 'overdue') {
+                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() < now);
+            } else if (activeTab === 'history') {
+                donationsToRender = allDonationsData.filter(d => d.status !== 'scheduled');
+            }
             
-            upcoming.sort((a, b) => a.scheduledAt.toMillis() - b.scheduledAt.toMillis());
-            overdue.sort((a, b) => a.scheduledAt.toMillis() - b.scheduledAt.toMillis());
-            completed.sort((a, b) => b.scheduledAt.toMillis() - a.scheduledAt.toMillis());
+            donationsToRender.sort((a, b) => b.scheduledAt.toMillis() - a.scheduledAt.toMillis());
 
-            renderListContent(upcoming, 'upcoming');
-            renderListContent(overdue, 'overdue');
-            renderListContent(completed, 'completed');
-            
-            updateActiveTabContent();
+            renderListContent(donationsToRender);
         }
         
-        function renderListContent(donations, key) {
-            const container = listContainers[key];
-            container.innerHTML = '';
-            if (donations.length > 0) {
-                const groupedByDay = donations.reduce((acc, donation) => {
-                    const date = donation.scheduledAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', weekday: 'long' });
-                    if (!acc[date]) acc[date] = [];
-                    acc[date].push(donation);
-                    return acc;
-                }, {});
+        async function renderListContent(donations) {
+            schedulesList.innerHTML = '';
+            if (donations.length === 0) {
+                noSchedulesPlaceholder.classList.remove('hidden');
+                return;
+            }
+            
+            noSchedulesPlaceholder.classList.add('hidden');
 
-                for (const date in groupedByDay) {
-                    const daySection = document.createElement('div');
-                    let donationsHtml = groupedByDay[date].map(donation => createDonationCard(donation, key)).join('');
-                    daySection.innerHTML = `
-                        <h2 class="text-xl font-semibold text-gray-700 mb-3 capitalize">${date}</h2>
-                        <div class="space-y-4">${donationsHtml}</div>
-                    `;
-                    container.appendChild(daySection);
-                }
+            const groupedByDay = donations.reduce((acc, donation) => {
+                const date = donation.scheduledAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', weekday: 'long' });
+                if (!acc[date]) acc[date] = [];
+                acc[date].push(donation);
+                return acc;
+            }, {});
+
+            for (const date in groupedByDay) {
+                const daySection = document.createElement('div');
+                const donationsHtmlPromises = groupedByDay[date].map(donation => createDonationCard(donation));
+                const donationsHtml = await Promise.all(donationsHtmlPromises);
+
+                daySection.innerHTML = `
+                    <h2 class="text-xl font-semibold text-gray-700 mb-3 capitalize">${date}</h2>
+                    <div class="space-y-4">${donationsHtml.join('')}</div>
+                `;
+                schedulesList.appendChild(daySection);
             }
         }
 
-        function updateActiveTabContent() {
-            const activeTab = tabsContainer.querySelector('.tab-button.active').dataset.tab;
-            let hasContent = false;
-            
-            Object.entries(listContainers).forEach(([key, container]) => {
-                if (key === activeTab) {
-                    container.classList.remove('hidden');
-                    if (container.innerHTML.trim() !== '') {
-                        hasContent = true;
-                    }
-                } else {
-                    container.classList.add('hidden');
-                }
-            });
+        async function getProfileName(userId) {
+            if (!userId) return "Desconhecido";
+            if (profilesCache.has(userId)) return profilesCache.get(userId).displayName;
 
-            noSchedulesPlaceholder.classList.toggle('hidden', hasContent);
+            const userRef = doc(db, paths.userDoc(userId));
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+                profilesCache.set(userId, userData);
+                return userData.displayName;
+            }
+            return "Doador"; // Fallback
         }
 
-        function createDonationCard(donation, type) {
-            const campaign = campaignsMap.get(donation.campaignId);
-            const campaignType = campaign ? (campaignTypes[campaign.type] || { label: 'Campanha', color: 'gray' }) : { label: 'Campanha', color: 'gray' };
-            const colors = { green: 'border-l-green-500', blue: 'border-l-blue-500', yellow: 'border-l-yellow-500', red: 'border-l-red-500', purple: 'border-l-purple-500', gray: 'border-l-gray-500' }[campaignType.color] || 'border-l-gray-500';
+        async function createDonationCard(donation) {
             const scheduledTime = donation.scheduledAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             
             let statusHtml = '';
             let actionsHtml = '';
 
-            if (type === 'completed') {
-                statusHtml = `<p class="text-lg font-bold text-gray-500">Recebido</p>`;
-            } else {
-                const isOverdue = type === 'overdue';
+            if (donation.status === 'scheduled') {
+                const isOverdue = donation.scheduledAt.toDate() < new Date();
                 statusHtml = `<p class="text-lg font-bold ${isOverdue ? 'text-red-500' : 'text-green-600'}">${scheduledTime}</p>
                               ${isOverdue ? '<p class="text-xs font-medium text-red-500">Vencido</p>' : ''}`;
-                actionsHtml = `
-                    <a href="receber-doacao.html?id=${donation.id}" class="w-full sm:w-auto text-center bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">
-                        Manual
-                    </a>
-                    <div class="relative">
-                        <button data-action="toggle-options" class="p-2 rounded-full hover:bg-gray-200">
-                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01"></path></svg>
-                        </button>
-                        <div class="options-menu hidden origin-top-right right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
-                            <div class="py-1" role="menu" aria-orientation="vertical">
-                                <a href="#" data-action="cancel-schedule" data-donation-id="${donation.id}" data-donor-id="${donation.donorId}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Cancelar Horário</a>
-                            </div>
-                        </div>
-                    </div>`;
+                actionsHtml = `<div class="relative">
+                                <button data-action="toggle-options" class="p-2 rounded-full hover:bg-gray-200">
+                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01"></path></svg>
+                                </button>
+                                <div class="options-menu hidden origin-top-right right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                    <div class="py-1">
+                                        <a href="#" data-action="cancel-schedule" data-donation-id="${donation.id}" data-donor-id="${donation.donorId}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Cancelar Agendamento</a>
+                                    </div>
+                                </div>
+                            </div>`;
+            } else {
+                let statusText, statusColor;
+                switch(donation.status) {
+                    case 'completed': 
+                        const receivedByNames = await Promise.all([...new Set(donation.items.map(i => i.receivedBy))].map(getProfileName));
+                        statusText = `Recebido por: ${receivedByNames.join(', ')}`;
+                        statusColor = 'text-gray-500'; 
+                        break;
+                    case 'reagendado': statusText = 'Reagendado pelo doador'; statusColor = 'text-yellow-600'; break;
+                    case 'cancelled_by_entity': statusText = 'Cancelado pela entidade'; statusColor = 'text-red-600'; break;
+                    default: statusText = 'Não entregue'; statusColor = 'text-gray-500';
+                }
+                statusHtml = `<p class="text-sm font-bold ${statusColor}">${statusText}</p>`;
             }
-
+            
             return `
-                <div class="bg-white rounded-lg shadow-md overflow-hidden flex border-l-4 ${colors}">
+                <div class="bg-white rounded-lg shadow-md overflow-hidden flex border-l-4 border-blue-500">
                     <div class="p-4 flex-grow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div class="flex items-center space-x-4">
                             <img src="${donation.donorPhoto || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Foto'}" class="w-16 h-16 rounded-full object-cover border">
@@ -282,7 +233,7 @@
                                 <p class="text-sm text-gray-500">${donation.items.length} item(ns)</p>
                             </div>
                         </div>
-                        <div class="flex items-center space-x-2 w-full sm:w-auto">
+                        <div class="flex items-center space-x-4">
                              <div class="text-center sm:text-right">${statusHtml}</div>
                              ${actionsHtml}
                         </div>
@@ -295,117 +246,19 @@
             if (button) {
                 tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
-                updateActiveTabContent();
+                renderActiveTabData();
             }
         });
 
-        function startScanner() {
-            if (!html5QrCode) html5QrCode = new Html5Qrcode("qr-reader-container");
-            qrScannerModal.classList.remove('hidden');
-            qrScannerStatus.textContent = "Iniciando câmera...";
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {})
-            .catch(err => { qrScannerStatus.textContent = "Erro ao acessar a câmera."; console.error(err); });
-        }
-
-        function stopScanner() {
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().catch(err => console.error("Erro ao parar scanner.", err));
-            }
-            qrScannerModal.classList.add('hidden');
-        }
-
-        async function onScanSuccess(decodedText) {
-            qrScannerStatus.textContent = `Código lido. A processar...`;
-            stopScanner();
-
-            const [donationId, itemIndexStr] = decodedText.split('|');
-            const itemIndex = parseInt(itemIndexStr, 10);
-            
-            const donationRef = doc(db, paths.donationDoc(donationId));
-            const donationSnap = await getDoc(donationRef);
-
-            if (!donationSnap.exists() || isNaN(itemIndex) || itemIndex >= donationSnap.data().items.length) {
-                showAlertModal('Erro', 'QR Code inválido ou não pertence a um agendamento ativo.');
-                return;
-            }
-
-            const donation = { id: donationSnap.id, ...donationSnap.data() };
-            const item = donation.items[itemIndex];
-            const campaign = campaignsMap.get(donation.campaignId);
-            
-            if (item.status === 'received') {
-                showAlertModal('Aviso', 'Este item já foi recebido anteriormente.');
-                return;
-            }
-
-            const now = new Date();
-            const isOverdue = donation.scheduledAt.toDate() < now;
-            const isCampaignOver = campaign && campaign.expiresAt.toDate() < now;
-            const warningMessage = document.getElementById('modal-warning-message');
-            warningMessage.classList.add('hidden');
-
-            if(isOverdue || isCampaignOver) {
-                warningMessage.textContent = isCampaignOver ? 'Atenção: A campanha já encerrou.' : 'Atenção: O agendamento está vencido.';
-                warningMessage.classList.remove('hidden');
-            }
-
-            document.getElementById('modal-item-photo').src = item.photoURL;
-            document.getElementById('modal-item-title').textContent = item.type;
-            document.getElementById('modal-item-details').textContent = `${item.details} (${item.condition})`;
-            document.getElementById('modal-campaign-title').textContent = donation.campaignTitle;
-            document.getElementById('modal-donor-name').textContent = donation.donorName;
-            itemConfirmModal.classList.remove('hidden');
-
-            confirmReceiveBtn.onclick = () => {
-                updateItemStatus(donationId, itemIndex);
-                itemConfirmModal.classList.add('hidden');
-            };
-        }
-        
-        async function updateItemStatus(donationId, itemIndex) {
-            const donationRef = doc(db, paths.donationDoc(donationId));
-            try {
-                await runTransaction(db, async (transaction) => {
-                    const donationDoc = await transaction.get(donationRef);
-                    if (!donationDoc.exists()) throw "Doação não encontrada!";
-                    
-                    const currentDonation = donationDoc.data();
-                    const campaignRef = doc(db, paths.campaignDoc(currentDonation.campaignId));
-                    const campaignDoc = await transaction.get(campaignRef);
-                    if (!campaignDoc.exists()) throw "Campanha associada não encontrada!";
-
-                    const newItems = [...currentDonation.items];
-                    if (newItems[itemIndex].status === 'received') return;
-                    
-                    newItems[itemIndex].status = 'received';
-                    const allItemsReceived = newItems.every(item => item.status === 'received');
-                    
-                    const updateData = { items: newItems };
-                    if (allItemsReceived) updateData.status = 'completed';
-                    
-                    transaction.update(donationRef, updateData);
-                    transaction.update(campaignRef, { currentAmount: (campaignDoc.data().currentAmount || 0) + 1 });
-                });
-                showAlertModal('Sucesso!', `Item confirmado com sucesso!`);
-            } catch (error) {
-                console.error("Erro na transação: ", error);
-                showAlertModal("Erro", "Não foi possível confirmar o recebimento. Tente novamente.");
-            }
-        }
-
-        scanQrBtn.addEventListener('click', startScanner);
-        closeScannerBtn.addEventListener('click', stopScanner);
-        cancelReceiveBtn.addEventListener('click', () => itemConfirmModal.classList.add('hidden'));
-
-        // CORREÇÃO: O listener de cliques agora é adicionado ao elemento <main>
-        schedulesView.addEventListener('click', async (e) => {
+        schedulesList.addEventListener('click', async (e) => {
             const button = e.target.closest('[data-action]');
             if (!button) return;
+
+            e.preventDefault();
 
             const action = button.dataset.action;
             if (action === 'toggle-options') {
                 const menu = button.nextElementSibling;
-                // Fecha outros menus abertos
                 document.querySelectorAll('.options-menu').forEach(m => {
                     if (m !== menu) m.classList.add('hidden');
                 });
@@ -415,13 +268,13 @@
                 const donorId = button.dataset.donorId;
                 const donation = allDonationsData.find(d => d.id === donationId);
                 
-                const confirmed = await showConfirmationModal('Cancelar Agendamento', `Tem certeza que deseja cancelar o agendamento de ${donation.donorName}? O doador será notificado.`);
+                const confirmed = await showConfirmationModal('Cancelar Agendamento', `Tem certeza que deseja cancelar o agendamento de ${donation.donorName}? O doador será notificado para que possa reagendar, se desejar.`);
                 if (confirmed) {
                     try {
                         const donationRef = doc(db, paths.donationDoc(donationId));
                         await updateDoc(donationRef, { status: 'cancelled_by_entity' });
                         
-                        const message = `Seu agendamento para a campanha "${donation.campaignTitle}" foi cancelado pela entidade. Por favor, acesse a área "Minhas Entregas" para reagendar.`;
+                        const message = `Seu agendamento para a campanha "${donation.campaignTitle}" foi cancelado pela entidade. Por favor, acesse a área "Minhas Entregas" para reagendar, se a campanha ainda estiver ativa.`;
                         await createNotification(donorId, message, 'minhas-entregas.html');
                         
                         showAlertModal('Sucesso!', 'O agendamento foi cancelado e o doador notificado.');
