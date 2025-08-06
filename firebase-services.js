@@ -31,8 +31,9 @@ export {
     Timestamp,
     addDoc,
     runTransaction,
-    arrayUnion, // <-- FUNÇÃO ADICIONADA AQUI
-    arrayRemove  // <-- Adicionei também a de remover, para o futuro
+    arrayUnion,
+    arrayRemove,
+    deleteField // <-- FUNÇÃO ADICIONADA AQUI
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Storage (com alias para 'ref')
