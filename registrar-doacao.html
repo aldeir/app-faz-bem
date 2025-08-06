@@ -125,15 +125,11 @@
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
                         <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
                         <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
                             <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
-                            <div class="mt-2">
-                                <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
-                            </div>
+                            <div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div>
                         </div>
                     </div>
                 </div>
@@ -254,21 +250,27 @@
             dynamicFieldsContainer.innerHTML = '';
             const typeConfig = campaignTypeSettings[campaignType];
             if (!typeConfig || !typeConfig.fields) return;
+
             const fields = typeConfig.fields;
             for (const fieldId in fields) {
                 const field = fields[fieldId];
                 let fieldHtml = '';
                 const label = `<label for="field-${fieldId}" class="block text-sm font-medium text-gray-700">${field.label}</label>`;
+                const required = 'required';
+
                 switch (field.type) {
                     case 'text':
-                        fieldHtml = `<div class="col-span-1">${label}<input type="text" id="field-${fieldId}" name="${fieldId}" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>`;
+                        fieldHtml = `<div class="col-span-1">${label}<input type="text" id="field-${fieldId}" name="${fieldId}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>`;
                         break;
                     case 'select':
                         const optionsHtml = field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
-                        fieldHtml = `<div class="col-span-1">${label}<select id="field-${fieldId}" name="${fieldId}" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"><option value="">Selecione...</option>${optionsHtml}</select></div>`;
+                        fieldHtml = `<div class="col-span-1">${label}<select id="field-${fieldId}" name="${fieldId}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"><option value="">Selecione...</option>${optionsHtml}</select></div>`;
+                        break;
+                    case 'date':
+                        fieldHtml = `<div class="col-span-1">${label}<input type="date" id="field-${fieldId}" name="${fieldId}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>`;
                         break;
                     case 'file':
-                        fieldHtml = `<div class="col-span-1 md:col-span-2">${label}<input type="file" id="field-${fieldId}" name="${fieldId}" required class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"></div>`;
+                        fieldHtml = `<div class="col-span-1 md:col-span-2">${label}<input type="file" id="field-${fieldId}" name="${fieldId}" ${required} class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"></div>`;
                         break;
                 }
                 dynamicFieldsContainer.innerHTML += fieldHtml;
@@ -288,7 +290,8 @@
                 
                 let customDetailsHtml = Object.entries(item.customFields || {}).map(([key, value]) => {
                     const fieldConfig = campaignTypeSettings[campaignData.type]?.fields?.[key];
-                    return `<span class="text-xs text-gray-500">${fieldConfig?.label || key}: <strong>${value}</strong></span>`;
+                    const fieldValue = (value instanceof File) ? value.name : value;
+                    return `<span class="text-xs text-gray-500">${fieldConfig?.label || key}: <strong>${fieldValue}</strong></span>`;
                 }).join('; ');
 
                 itemEl.innerHTML = `
@@ -387,9 +390,9 @@
             const dynamicInputs = dynamicFieldsContainer.querySelectorAll('input, select');
             let allFieldsValid = true;
             dynamicInputs.forEach(input => {
-                if (!input.value) allFieldsValid = false;
+                if (!input.value && input.required) allFieldsValid = false;
                 if (input.type === 'file') {
-                    customFieldsData[input.name] = input.files[0]; // Guarda o ficheiro
+                    customFieldsData[input.name] = input.files[0];
                 } else {
                     customFieldsData[input.name] = input.value;
                 }
@@ -425,20 +428,24 @@
 
             try {
                 const userId = currentUserSession.auth.uid;
-                const itemsToSave = await Promise.all(donatedItems.map(async (item) => {
-                    const filePath = `donated_items/${userId}/${Date.now()}_${item.photoFile.name}`;
-                    const photoURL = await uploadBytes(storageRef(storage, filePath), item.photoFile).then(snap => getDownloadURL(snap.ref));
-                    
-                    const customFieldsWithUrls = { ...item.customFields };
-                    for (const key in item.customFields) {
-                        if (item.customFields[key] instanceof File) {
-                            const customFilePath = `donated_items/${userId}/custom_${Date.now()}_${item.customFields[key].name}`;
-                            customFieldsWithUrls[key] = await uploadBytes(storageRef(storage, customFilePath), item.customFields[key]).then(snap => getDownloadURL(snap.ref));
+                
+                const itemsToSave = isRescheduleMode 
+                    ? donatedItems 
+                    : await Promise.all(donatedItems.map(async (item) => {
+                        const filePath = `donated_items/${userId}/${Date.now()}_${item.photoFile.name}`;
+                        const photoURL = await uploadBytes(storageRef(storage, filePath), item.photoFile).then(snap => getDownloadURL(snap.ref));
+                        
+                        const customFieldsWithUrls = { ...item.customFields };
+                        for (const key in item.customFields) {
+                            if (item.customFields[key] instanceof File) {
+                                const customFilePath = `donated_items/${userId}/custom_${Date.now()}_${item.customFields[key].name}`;
+                                const fileToUpload = item.customFields[key];
+                                customFieldsWithUrls[key] = await uploadBytes(storageRef(storage, customFilePath), fileToUpload).then(snap => getDownloadURL(snap.ref));
+                            }
                         }
-                    }
 
-                    return { type: item.type, condition: item.condition, photoURL, status: 'pending', customFields: customFieldsWithUrls };
-                }));
+                        return { type: item.type, condition: item.condition, photoURL, status: 'pending', customFields: customFieldsWithUrls };
+                    }));
 
                 const newDonationData = {
                     donorId: userId,
