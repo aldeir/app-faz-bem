@@ -43,14 +43,14 @@
                     <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Tipos de Campanha</h2>
                     <div id="campaign-types-list" class="space-y-2 mb-6"></div>
                     <form id="campaign-type-form" class="space-y-4 pt-4 border-t">
-                        <h3 id="campaign-form-title" class="font-medium text-gray-700">Adicionar Novo Tipo</h3>
+                        <h3 id="campaign-form-title" class="font-medium text-gray-700">Adicionar/Editar Tipo</h3>
                         <input type="hidden" id="campaign-type-id-hidden">
                         <div>
-                            <label for="campaign-type-id" class="block text-sm font-medium text-gray-600">ID (ex: agasalho, alimento)</label>
+                            <label for="campaign-type-id" class="block text-sm font-medium text-gray-600">ID (ex: agasalho)</label>
                             <input type="text" id="campaign-type-id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                         </div>
                         <div>
-                            <label for="campaign-type-label" class="block text-sm font-medium text-gray-600">Rótulo (ex: Agasalhos, Alimentos)</label>
+                            <label for="campaign-type-label" class="block text-sm font-medium text-gray-600">Rótulo (ex: Agasalhos)</label>
                             <input type="text" id="campaign-type-label" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                         </div>
                         <div>
@@ -70,16 +70,15 @@
                 <div class="bg-white p-6 rounded-lg shadow">
                     <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Campos Personalizados dos Itens</h2>
                     <div class="mb-4">
-                        <label for="field-campaign-type-select" class="block text-sm font-medium text-gray-600">Gerir campos para o tipo de campanha:</label>
+                        <label for="field-campaign-type-select" class="block text-sm font-medium text-gray-600">Gerir campos para o tipo:</label>
                         <select id="field-campaign-type-select" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></select>
                     </div>
-
                     <div id="custom-fields-editor" class="hidden">
                         <div id="custom-fields-list" class="space-y-2 mb-6"></div>
                         <form id="custom-field-form" class="space-y-4 pt-4 border-t">
                             <h3 class="font-medium text-gray-700">Adicionar Novo Campo</h3>
                             <div>
-                                <label for="field-id" class="block text-sm font-medium text-gray-600">ID do Campo (ex: data_validade)</label>
+                                <label for="field-id" class="block text-sm font-medium text-gray-600">ID (ex: data_validade)</label>
                                 <input type="text" id="field-id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                             </div>
                             <div>
@@ -94,7 +93,7 @@
                                     <option value="date">Data</option>
                                     <option value="file">Upload de Ficheiro</option>
                                 </select>
-                                </div>
+                            </div>
                             <div id="field-options-container" class="hidden">
                                 <label for="field-options" class="block text-sm font-medium text-gray-600">Opções (separadas por vírgula)</label>
                                 <input type="text" id="field-options" placeholder="P, M, G, GG" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
@@ -132,12 +131,11 @@
 
     <script type="module">
         import { db, paths } from './app-config.js';
-        import { doc, getDoc, updateDoc } from './firebase-services.js';
+        import { doc, getDoc, updateDoc, deleteField } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal, showConfirmationModal } from './modal-handler.js';
 
-        // --- (O JavaScript permanece o mesmo da versão anterior, pois a lógica de salvar já é genérica) ---
         const loadingView = document.getElementById('loading-view');
         const configView = document.getElementById('config-view');
         const campaignTypesList = document.getElementById('campaign-types-list');
@@ -320,6 +318,27 @@
                 
             } catch (error) {
                 showAlertModal('Erro', `Não foi possível adicionar o campo: ${error.message}`);
+            }
+        });
+        
+        customFieldsList.addEventListener('click', async (e) => {
+            const button = e.target.closest('button[data-action="delete-field"]');
+            if (!button) return;
+
+            const { typeId, fieldId } = button.dataset;
+            const confirmed = await showConfirmationModal('Excluir Campo', `Tem a certeza de que deseja excluir o campo "${fieldId}"? Esta ação não pode ser desfeita.`);
+            if (confirmed) {
+                const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
+                const fieldPath = `${typeId}.fields.${fieldId}`;
+                try {
+                    await updateDoc(campaignTypesRef, { [fieldPath]: deleteField() });
+                    showAlertModal('Sucesso!', 'Campo excluído.');
+                    
+                    delete campaignTypesData[typeId].fields[fieldId];
+                    renderCustomFields(typeId);
+                } catch (error) {
+                    showAlertModal('Erro', `Não foi possível excluir o campo: ${error.message}`);
+                }
             }
         });
         
