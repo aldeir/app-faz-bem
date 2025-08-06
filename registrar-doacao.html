@@ -250,14 +250,12 @@
             dynamicFieldsContainer.innerHTML = '';
             const typeConfig = campaignTypeSettings[campaignType];
             if (!typeConfig || !typeConfig.fields) return;
-
             const fields = typeConfig.fields;
             for (const fieldId in fields) {
                 const field = fields[fieldId];
                 let fieldHtml = '';
                 const label = `<label for="field-${fieldId}" class="block text-sm font-medium text-gray-700">${field.label}</label>`;
                 const required = 'required';
-
                 switch (field.type) {
                     case 'text':
                         fieldHtml = `<div class="col-span-1">${label}<input type="text" id="field-${fieldId}" name="${fieldId}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>`;
