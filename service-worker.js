@@ -1,47 +1,29 @@
-// service-worker.js
+// service-worker.js (v2.0 - com Estratégia Stale-While-Revalidate)
 
-// Altere a versão do cache sempre que fizer alterações nos arquivos cacheados.
-const CACHE_NAME = 'faz-bem-cache-v4'; 
+// A versão do cache é crucial. Mude-a sempre que fizer deploy de novos ficheiros.
+const CACHE_NAME = 'faz-bem-cache-v5'; 
 const urlsToCache = [
-  // Adicione aqui os caminhos completos e corretos dos seus arquivos essenciais.
   '/app-faz-bem/',
   '/app-faz-bem/index.html',
-  '/app-faz-bem/login.html',
-  '/app-faz-bem/receber-doacao.html',
-  '/app-faz-bem/manifest.json',
-  '/app-faz-bem/app-config.js',
-  '/app-faz-bem/auth-service.js',
-  '/app-faz-bem/firebase-services.js',
-  '/app-faz-bem/app-header.js',
-  // URLs externas também podem ser cacheadas
-  'https://cdn.tailwindcss.com',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'
+  'https://cdn.tailwindcss.com'
+  // Outros assets essenciais podem ser adicionados aqui para o primeiro load.
+  // A nova estratégia de fetch irá cachear as páginas à medida que são visitadas.
 ];
 
-// Evento de Instalação: Salva os assets essenciais no cache.
+// Evento de Instalação: O Service Worker é instalado.
 self.addEventListener('install', event => {
   console.log('Service Worker: Instalando...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Service Worker: Adicionando assets ao cache...');
-        // CORREÇÃO: Trata requisições externas com 'no-cors' para evitar erros de CORS.
-        const cachePromises = urlsToCache.map(url => {
-          const request = new Request(url, { mode: 'no-cors' });
-          return fetch(request).then(response => cache.put(url, response));
-        });
-        return Promise.all(cachePromises);
+        console.log('Service Worker: Cache aberto, adicionando URLs essenciais.');
+        return cache.addAll(urlsToCache);
       })
-      .then(() => {
-        return self.skipWaiting(); 
-      })
-      .catch(error => {
-        console.error('Service Worker: Falha na instalação -', error);
-      })
+      .then(() => self.skipWaiting()) // Força o novo service worker a ativar-se mais rápido
   );
 });
 
-// Evento de Ativação: Limpa caches antigos para evitar conflitos.
+// Evento de Ativação: Limpa caches antigos.
 self.addEventListener('activate', event => {
   console.log('Service Worker: Ativando...');
   event.waitUntil(
@@ -54,46 +36,41 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    }).then(() => {
-      return self.clients.claim();
-    })
+    }).then(() => self.clients.claim()) // Torna-se o service worker ativo para todas as abas
   );
 });
 
-// Evento Fetch: Implementa a estratégia "Network First" para páginas HTML
-// e "Cache First" para outros assets (CSS, JS, imagens).
+// Evento Fetch: Interceta todos os pedidos de rede.
 self.addEventListener('fetch', event => {
-  // Ignora requisições que não são GET (como POST para o Firestore)
+  // Ignora pedidos que não são GET (como POSTs para o Firestore) ou de extensões do Chrome.
   if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
     return;
   }
 
-  // Estratégia "Network First" para páginas HTML (navigation requests)
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .then(networkResponse => {
-          // Se a rede funcionar, clona a resposta para o cache e a retorna
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseClone);
-          });
-          return networkResponse;
-        })
-        .catch(() => {
-          // Se a rede falhar, tenta servir do cache
-          return caches.match(event.request);
-        })
-    );
-    return;
-  }
-
-  // Estratégia "Cache First" para todos os outros assets (CSS, JS, imagens, etc.)
+  // --- ESTRATÉGIA: STALE-WHILE-REVALIDATE ---
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Retorna do cache se encontrar, senão busca na rede
-        return response || fetch(event.request);
-      })
+    caches.open(CACHE_NAME).then(cache => {
+      // 1. Tenta ir ao cache primeiro para uma resposta rápida.
+      return cache.match(event.request).then(cachedResponse => {
+        // 2. Em paralelo, vai à rede para buscar a versão mais recente.
+        const fetchPromise = fetch(event.request).then(networkResponse => {
+          // Se a resposta da rede for bem-sucedida, atualiza o cache.
+          // Apenas para respostas 'basic' (do mesmo domínio) ou 'cors' para evitar cache de respostas opacas.
+          if (networkResponse && networkResponse.status === 200 && (networkResponse.type === 'basic' || networkResponse.type === 'cors')) {
+            cache.put(event.request, networkResponse.clone());
+          }
+          return networkResponse;
+        }).catch(err => {
+            // O fetch pode falhar se o utilizador estiver offline.
+            // Neste caso, se tivermos uma resposta do cache, está tudo bem.
+            // Se não, o erro de rede será propagado.
+            console.log('Service Worker: Fetch falhou; a app está provavelmente offline.', err);
+        });
+
+        // 3. Retorna a resposta do cache imediatamente (se existir), 
+        // ou espera pela resposta da rede se não houver nada no cache.
+        return cachedResponse || fetchPromise;
+      });
+    })
   );
 });
