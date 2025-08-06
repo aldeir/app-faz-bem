@@ -1,6 +1,5 @@
 // Arquivo: firebase-services.js
 // Responsabilidade: Único ponto de importação para todas as funções do SDK do Firebase.
-// Resolve conflitos de nome e centraliza as dependências.
 
 // Auth
 export { 
@@ -12,7 +11,7 @@ export {
     GoogleAuthProvider, 
     signInWithPopup, 
     getAdditionalUserInfo,
-    sendPasswordResetEmail // <-- LINHA ADICIONADA AQUI
+    sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 // Firestore
@@ -29,11 +28,11 @@ export {
     getDocs, 
     updateDoc, 
     writeBatch, 
-    FieldValue,
-    orderBy,
     Timestamp,
     addDoc,
-    runTransaction
+    runTransaction,
+    arrayUnion, // <-- FUNÇÃO ADICIONADA AQUI
+    arrayRemove  // <-- Adicionei também a de remover, para o futuro
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Storage (com alias para 'ref')
