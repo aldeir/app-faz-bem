@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configurações Gerais - Faz Bem</title>
     
-    <!-- PWA Tags -->
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
@@ -33,14 +32,13 @@
             </div>
         </div>
 
-        <div id="config-view" class="hidden container mx-auto max-w-5xl p-4 sm:p-6 my-8">
+        <div id="config-view" class="hidden container mx-auto max-w-7xl p-4 sm:p-6 my-8">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-3xl font-bold text-gray-800">Configurações Gerais</h1>
                 <a href="superadmin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Seção de Tipos de Campanha -->
                 <div class="bg-white p-6 rounded-lg shadow">
                     <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Tipos de Campanha</h2>
                     <div id="campaign-types-list" class="space-y-2 mb-6"></div>
@@ -58,12 +56,8 @@
                         <div>
                             <label for="campaign-type-color" class="block text-sm font-medium text-gray-600">Cor</label>
                             <select id="campaign-type-color" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                                <option value="green">Verde</option>
-                                <option value="blue">Azul</option>
-                                <option value="yellow">Amarelo</option>
-                                <option value="red">Vermelho</option>
-                                <option value="purple">Roxo</option>
-                                <option value="gray">Cinza</option>
+                                <option value="green">Verde</option><option value="blue">Azul</option><option value="yellow">Amarelo</option>
+                                <option value="red">Vermelho</option><option value="purple">Roxo</option><option value="gray">Cinza</option>
                             </select>
                         </div>
                         <div class="flex justify-end space-x-3">
@@ -73,49 +67,77 @@
                     </form>
                 </div>
 
-                <!-- Seção de Tipos de Itens -->
                 <div class="bg-white p-6 rounded-lg shadow">
-                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Tipos de Itens por Campanha</h2>
-                    <div>
-                        <label for="item-type-select" class="block text-sm font-medium text-gray-600">Selecione um Tipo de Campanha para editar</label>
-                        <select id="item-type-select" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></select>
+                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Campos Personalizados dos Itens</h2>
+                    <div class="mb-4">
+                        <label for="field-campaign-type-select" class="block text-sm font-medium text-gray-600">Gerir campos para o tipo de campanha:</label>
+                        <select id="field-campaign-type-select" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></select>
                     </div>
-                    <div id="item-subtypes-editor" class="hidden mt-4">
-                        <div id="item-subtypes-list" class="space-y-2 mb-4"></div>
-                        <form id="item-subtype-form" class="flex gap-3 pt-4 border-t">
-                            <input type="text" id="item-subtype-input" placeholder="Adicionar novo tipo de item" class="flex-grow block w-full border-gray-300 rounded-md shadow-sm">
-                            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Adicionar</button>
+
+                    <div id="custom-fields-editor" class="hidden">
+                        <div id="custom-fields-list" class="space-y-2 mb-6"></div>
+                        <form id="custom-field-form" class="space-y-4 pt-4 border-t">
+                            <h3 class="font-medium text-gray-700">Adicionar Novo Campo</h3>
+                            <div>
+                                <label for="field-id" class="block text-sm font-medium text-gray-600">ID do Campo (ex: tamanho_roupa)</label>
+                                <input type="text" id="field-id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            </div>
+                            <div>
+                                <label for="field-label" class="block text-sm font-medium text-gray-600">Rótulo (ex: Tamanho da Roupa)</label>
+                                <input type="text" id="field-label" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            </div>
+                            <div>
+                                <label for="field-type" class="block text-sm font-medium text-gray-600">Tipo de Campo</label>
+                                <select id="field-type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                    <option value="text">Texto Curto</option>
+                                    <option value="select">Lista de Opções</option>
+                                    <option value="file">Upload de Ficheiro</option>
+                                </select>
+                            </div>
+                            <div id="field-options-container" class="hidden">
+                                <label for="field-options" class="block text-sm font-medium text-gray-600">Opções (separadas por vírgula)</label>
+                                <input type="text" id="field-options" placeholder="P, M, G, GG" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Adicionar Campo</button>
+                            </div>
                         </form>
                     </div>
                 </div>
             </div>
-
-            <!-- PAINEL: Usuários Online -->
-            <div class="mt-8 bg-white p-6 rounded-lg shadow">
-                <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Usuários Online Agora</h2>
-                <div class="flex items-center">
-                    <span id="online-users-count" class="text-2xl font-bold text-green-600 mr-4">0</span>
-                    <div id="online-users-list" class="flex -space-x-2">
-                        <!-- Fotos dos usuários online serão inseridas aqui -->
-                    </div>
-                </div>
-                <p id="no-online-users" class="text-sm text-gray-500 mt-2">Nenhum usuário autenticado online no momento.</p>
-            </div>
         </div>
     </main>
-
-    <div id="app-modal"></div>
+    
+    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
+                            <div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
-        import { db, rtdb, paths } from './app-config.js';
-        import { doc, getDoc, updateDoc, FieldValue, onValue, databaseRef } from './firebase-services.js';
+        import { db, paths } from './app-config.js';
+        import { doc, getDoc, updateDoc } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
-        import { showConfirmationModal, showAlertModal } from './modal-handler.js';
+        import { showAlertModal } from './modal-handler.js';
 
         const loadingView = document.getElementById('loading-view');
         const configView = document.getElementById('config-view');
-        
         const campaignTypesList = document.getElementById('campaign-types-list');
         const campaignTypeForm = document.getElementById('campaign-type-form');
         const campaignFormTitle = document.getElementById('campaign-form-title');
@@ -124,75 +146,38 @@
         const campaignTypeColorSelect = document.getElementById('campaign-type-color');
         const cancelEditBtn = document.getElementById('cancel-edit-btn');
         const campaignTypeIdHidden = document.getElementById('campaign-type-id-hidden');
-
-        const itemTypeSelect = document.getElementById('item-type-select');
-        const itemSubtypesEditor = document.getElementById('item-subtypes-editor');
-        const itemSubtypesList = document.getElementById('item-subtypes-list');
-        const itemSubtypeForm = document.getElementById('item-subtype-form');
-        const itemSubtypeInput = document.getElementById('item-subtype-input');
-
-        const onlineUsersCount = document.getElementById('online-users-count');
-        const onlineUsersList = document.getElementById('online-users-list');
-        const noOnlineUsers = document.getElementById('no-online-users');
+        const fieldCampaignTypeSelect = document.getElementById('field-campaign-type-select');
+        const customFieldsEditor = document.getElementById('custom-fields-editor');
+        const customFieldsList = document.getElementById('custom-fields-list');
+        const customFieldForm = document.getElementById('custom-field-form');
+        const fieldTypeSelect = document.getElementById('field-type');
+        const fieldOptionsContainer = document.getElementById('field-options-container');
 
         let campaignTypesData = {};
-        let itemSubtypesData = {};
 
         async function initializeApp() {
             const canProceed = await injectHeader();
-            if (!canProceed) {
-                loadingView.classList.add('hidden');
-                return;
-            }
-
+            if (!canProceed) { return; }
             const userSession = await getCurrentUser();
             if (!userSession || userSession.profile?.role !== 'superadmin') {
                 window.location.href = 'index.html';
                 return;
             }
             await loadConfigs();
-            listenForOnlineUsers();
             loadingView.classList.add('hidden');
             configView.classList.remove('hidden');
         }
 
         async function loadConfigs() {
             const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-            const itemSubtypesRef = doc(db, paths.configDoc('itemSubtypes'));
-
-            const [campaignTypesSnap, itemSubtypesSnap] = await Promise.all([getDoc(campaignTypesRef), getDoc(itemSubtypesRef)]);
-
+            const campaignTypesSnap = await getDoc(campaignTypesRef);
             campaignTypesData = campaignTypesSnap.exists() ? campaignTypesSnap.data() : {};
-            itemSubtypesData = itemSubtypesSnap.exists() ? itemSubtypesSnap.data() : {};
-            
             renderCampaignTypes();
-        }
-
-        function listenForOnlineUsers() {
-            const statusRef = databaseRef(rtdb, 'status');
-            onValue(statusRef, (snapshot) => {
-                const users = snapshot.val();
-                if (users) {
-                    const userList = Object.values(users);
-                    onlineUsersCount.textContent = userList.length;
-                    onlineUsersList.innerHTML = userList.slice(0, 10).map(user => `
-                        <img class="inline-block h-8 w-8 rounded-full ring-2 ring-white" 
-                             src="${user.photoURL || 'https://placehold.co/32x32/e2e8f0/cbd5e0?text=?'}" 
-                             title="${user.name}">
-                    `).join('');
-                    noOnlineUsers.classList.add('hidden');
-                } else {
-                    onlineUsersCount.textContent = '0';
-                    onlineUsersList.innerHTML = '';
-                    noOnlineUsers.classList.remove('hidden');
-                }
-            });
+            populateFieldCampaignTypeSelect();
         }
 
         function renderCampaignTypes() {
             campaignTypesList.innerHTML = '';
-            itemTypeSelect.innerHTML = '<option value="">Selecione...</option>';
-            
             Object.entries(campaignTypesData).forEach(([id, data]) => {
                 const colorClass = `bg-${data.color}-500`;
                 const item = document.createElement('div');
@@ -205,51 +190,50 @@
                     </div>
                     <div class="space-x-3">
                         <button data-action="edit-type" data-id="${id}" class="text-sm text-blue-600 hover:underline">Editar</button>
-                        <button data-action="delete-type" data-id="${id}" class="text-sm text-red-600 hover:underline">Excluir</button>
-                    </div>
-                `;
+                    </div>`;
                 campaignTypesList.appendChild(item);
-                itemTypeSelect.innerHTML += `<option value="${id}">${data.label}</option>`;
+            });
+        }
+
+        function populateFieldCampaignTypeSelect() {
+            fieldCampaignTypeSelect.innerHTML = '<option value="">Selecione um tipo...</option>';
+            Object.entries(campaignTypesData).forEach(([id, data]) => {
+                fieldCampaignTypeSelect.innerHTML += `<option value="${id}">${data.label}</option>`;
             });
         }
         
-        function renderItemSubtypes(mainType) {
-            itemSubtypesList.innerHTML = '';
-            const subtypes = itemSubtypesData[mainType] || [];
-            if (subtypes.length === 0) {
-                itemSubtypesList.innerHTML = '<p class="text-sm text-gray-500 text-center p-2">Nenhum tipo de item cadastrado.</p>';
-                return;
+        function renderCustomFields(campaignTypeId) {
+            customFieldsList.innerHTML = '';
+            const typeData = campaignTypesData[campaignTypeId] || {};
+            const fields = typeData.fields || {};
+            if (Object.keys(fields).length === 0) {
+                customFieldsList.innerHTML = '<p class="text-sm text-gray-500 text-center p-2">Nenhum campo personalizado.</p>';
             }
-            subtypes.forEach(subtype => {
+            Object.entries(fields).forEach(([id, data]) => {
                 const item = document.createElement('div');
                 item.className = 'flex items-center justify-between p-2 rounded-md hover:bg-gray-50';
                 item.innerHTML = `
-                    <span class="font-medium">${subtype}</span>
-                    <button data-action="delete-subtype" data-maintype="${mainType}" data-subtype="${subtype}" class="text-sm text-red-600 hover:underline">Remover</button>
-                `;
-                itemSubtypesList.appendChild(item);
+                    <div>
+                        <p class="font-medium">${data.label} <span class="text-xs text-gray-500">(${id})</span></p>
+                        <p class="text-xs text-gray-400">Tipo: ${data.type}</p>
+                    </div>
+                    <button data-action="delete-field" data-type-id="${campaignTypeId}" data-field-id="${id}" class="text-sm text-red-600 hover:underline">Excluir</button>`;
+                customFieldsList.appendChild(item);
             });
         }
-
+        
         campaignTypesList.addEventListener('click', (e) => {
-            const button = e.target.closest('button[data-action]');
+            const button = e.target.closest('button[data-action="edit-type"]');
             if (!button) return;
-
             const id = button.dataset.id;
-            const action = button.dataset.action;
-
-            if (action === 'edit-type') {
-                const data = campaignTypesData[id];
-                campaignFormTitle.textContent = 'Editar Tipo de Campanha';
-                campaignTypeIdHidden.value = id;
-                campaignTypeIdInput.value = id;
-                campaignTypeIdInput.disabled = true;
-                campaignTypeLabelInput.value = data.label;
-                campaignTypeColorSelect.value = data.color;
-                cancelEditBtn.classList.remove('hidden');
-            } else if (action === 'delete-type') {
-                // Lógica de exclusão
-            }
+            const data = campaignTypesData[id];
+            campaignFormTitle.textContent = 'Editar Tipo de Campanha';
+            campaignTypeIdHidden.value = id;
+            campaignTypeIdInput.value = id;
+            campaignTypeIdInput.disabled = true;
+            campaignTypeLabelInput.value = data.label;
+            campaignTypeColorSelect.value = data.color;
+            cancelEditBtn.classList.remove('hidden');
         });
 
         cancelEditBtn.addEventListener('click', () => {
@@ -265,99 +249,79 @@
             const id = campaignTypeIdInput.value.trim().toLowerCase();
             const label = campaignTypeLabelInput.value.trim();
             const color = campaignTypeColorSelect.value;
-
-            if (!id || !label) {
-                showAlertModal('Erro', 'ID e Rótulo são obrigatórios.');
-                return;
-            }
+            if (!id || !label) { showAlertModal('Erro', 'ID e Rótulo são obrigatórios.'); return; }
             
             const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
+            const fieldPathPrefix = `${id}`;
             const updateData = {
-                [`${id}.label`]: label,
-                [`${id}.color`]: color
+                [`${fieldPathPrefix}.label`]: label,
+                [`${fieldPathPrefix}.color`]: color
             };
 
             try {
-                await updateDoc(campaignTypesRef, updateData);
+                await updateDoc(campaignTypesRef, updateData, { merge: true });
                 showAlertModal('Sucesso!', 'Tipo de campanha salvo com sucesso.');
                 await loadConfigs();
                 cancelEditBtn.click();
             } catch (error) {
-                showAlertModal('Erro', 'Não foi possível salvar o tipo de campanha.');
-                console.error(error);
+                showAlertModal('Erro', `Não foi possível salvar: ${error.message}`);
             }
         });
         
-        itemTypeSelect.addEventListener('change', (e) => {
-            const mainType = e.target.value;
-            if (mainType) {
-                itemSubtypesEditor.classList.remove('hidden');
-                renderItemSubtypes(mainType);
-            } else {
-                itemSubtypesEditor.classList.add('hidden');
+        fieldCampaignTypeSelect.addEventListener('change', (e) => {
+            const selectedType = e.target.value;
+            customFieldsEditor.classList.toggle('hidden', !selectedType);
+            if (selectedType) {
+                renderCustomFields(selectedType);
             }
         });
 
-        itemSubtypeForm.addEventListener('submit', async (e) => {
+        fieldTypeSelect.addEventListener('change', (e) => {
+            fieldOptionsContainer.classList.toggle('hidden', e.target.value !== 'select');
+        });
+
+        customFieldForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const mainType = itemTypeSelect.value;
-            const newSubtype = itemSubtypeInput.value.trim();
+            const campaignTypeId = fieldCampaignTypeSelect.value;
+            const fieldId = document.getElementById('field-id').value.trim().toLowerCase().replace(/\s+/g, '_');
+            const fieldLabel = document.getElementById('field-label').value.trim();
+            const fieldType = fieldTypeSelect.value;
+            
+            if (!campaignTypeId || !fieldId || !fieldLabel) {
+                showAlertModal('Erro', 'Todos os campos são obrigatórios.');
+                return;
+            }
 
-            if (!mainType || !newSubtype) return;
-
-            const itemSubtypesRef = doc(db, paths.configDoc('itemSubtypes'));
-            const updateData = {
-                [mainType]: FieldValue.arrayUnion(newSubtype)
-            };
+            const newFieldData = { label: fieldLabel, type: fieldType };
+            if (fieldType === 'select') {
+                const options = document.getElementById('field-options').value.split(',').map(opt => opt.trim()).filter(Boolean);
+                if (options.length === 0) {
+                    showAlertModal('Erro', 'Para "Lista de Opções", forneça as opções separadas por vírgula.');
+                    return;
+                }
+                newFieldData.options = options;
+            }
+            
+            const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
+            const fieldPath = `${campaignTypeId}.fields.${fieldId}`;
 
             try {
-                await updateDoc(itemSubtypesRef, updateData);
-                itemSubtypeInput.value = '';
-                itemSubtypesData[mainType] = [...(itemSubtypesData[mainType] || []), newSubtype];
-                renderItemSubtypes(mainType);
+                await updateDoc(campaignTypesRef, { [fieldPath]: newFieldData });
+                showAlertModal('Sucesso!', 'Campo personalizado adicionado.');
+                
+                if (!campaignTypesData[campaignTypeId].fields) campaignTypesData[campaignTypeId].fields = {};
+                campaignTypesData[campaignTypeId].fields[fieldId] = newFieldData;
+                
+                renderCustomFields(campaignTypeId);
+                customFieldForm.reset();
+                fieldOptionsContainer.classList.add('hidden');
+                
             } catch (error) {
-                showAlertModal('Erro', 'Não foi possível adicionar o tipo de item.');
-                console.error(error);
+                showAlertModal('Erro', `Não foi possível adicionar o campo: ${error.message}`);
             }
         });
-
-        itemSubtypesList.addEventListener('click', async (e) => {
-            const button = e.target.closest('button[data-action="delete-subtype"]');
-            if (!button) return;
-
-            const { maintype, subtype } = button.dataset;
-            const confirmed = await showConfirmationModal('Excluir Tipo de Item', `Tem certeza que deseja excluir "${subtype}"?`);
-
-            if (confirmed) {
-                const itemSubtypesRef = doc(db, paths.configDoc('itemSubtypes'));
-                const updateData = {
-                    [maintype]: FieldValue.arrayRemove(subtype)
-                };
-                try {
-                    await updateDoc(itemSubtypesRef, updateData);
-                    itemSubtypesData[maintype] = itemSubtypesData[maintype].filter(s => s !== subtype);
-                    renderItemSubtypes(maintype);
-                } catch (error) {
-                    showAlertModal('Erro', 'Não foi possível remover o tipo de item.');
-                    console.error(error);
-                }
-            }
-        });
-
+        
         initializeApp();
-    </script>
-
-    <!-- PWA Service Worker Registration -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js').then(registration => {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                }, err => {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
-            });
-        }
     </script>
 </body>
 </html>
