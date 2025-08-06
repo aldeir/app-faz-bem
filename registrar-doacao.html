@@ -67,7 +67,9 @@
                     <form id="add-item-form" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                         <select id="item-subtype" class="border-gray-300 rounded-md shadow-sm w-full col-span-1 md:col-span-2"><option value="">Selecione o item...</option></select>
                         <input type="text" id="item-other-subtype" placeholder="Descreva o item específico" class="hidden border-gray-300 rounded-md shadow-sm w-full col-span-1 md:col-span-2">
-                        <input type="text" id="item-details" placeholder="Detalhes (ex: Tamanho G, azul)" class="border-gray-300 rounded-md shadow-sm">
+                        
+                        <div id="dynamic-fields-container" class="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
                         <select id="item-condition" class="border-gray-300 rounded-md shadow-sm"><option value="novo">Novo</option><option value="usado">Usado</option></select>
                         <div class="col-span-1 md:col-span-2">
                             <label for="item-photo" class="text-sm font-medium text-gray-700">Foto do Item (obrigatório)</label>
@@ -139,6 +141,7 @@
             </div>
         </div>
     </div>
+
     <script type="module">
         import { db, storage, paths } from './app-config.js';
         import { doc, getDoc, collection, addDoc, Timestamp, query, where, getDocs, storageRef, uploadBytes, getDownloadURL, writeBatch } from './firebase-services.js';
@@ -156,6 +159,7 @@
         const addItemBtn = document.getElementById('add-item-btn');
         const itemSubtypeSelect = document.getElementById('item-subtype');
         const itemOtherSubtypeInput = document.getElementById('item-other-subtype');
+        const dynamicFieldsContainer = document.getElementById('dynamic-fields-container');
         const submitDonationBtn = document.getElementById('submit-donation-btn');
         const formError = document.getElementById('form-error');
         const addItemError = document.getElementById('add-item-error');
@@ -171,34 +175,29 @@
         let isRescheduleMode = false;
         let rescheduleData = null;
         let existingAppointments = {};
+        let campaignTypeSettings = {};
 
         async function initializeApp() {
             const canProceed = await injectHeader();
             if (!canProceed) { return; }
-
             currentUserSession = await getCurrentUser();
-
             if (currentUserSession) {
                 const params = new URLSearchParams(window.location.search);
                 campaignId = params.get('id');
                 isRescheduleMode = params.has('reschedule');
-
                 if (!campaignId) {
                     loadingView.innerHTML = '<p class="text-red-500">Erro: ID da campanha não encontrado.</p>';
                     return;
                 }
-                
                 if (isRescheduleMode) {
                     const data = localStorage.getItem('rescheduleData');
                     if (!data) {
-                        showAlertModal('Erro', 'Dados de reagendamento não encontrados.')
-                            .then(() => window.location.href = 'minhas-entregas.html');
+                        showAlertModal('Erro', 'Dados de reagendamento não encontrados.').then(() => window.location.href = 'minhas-entregas.html');
                         return;
                     }
                     rescheduleData = JSON.parse(data);
                     setupRescheduleMode();
                 }
-                
                 await loadInitialData();
             } else {
                 window.location.href = 'login.html';
@@ -210,10 +209,8 @@
             document.getElementById('items-section-title').textContent = "1. Itens para Reagendar";
             document.getElementById('schedule-section-title').textContent = "2. Escolha a Nova Data de Entrega";
             document.getElementById('submit-btn-text').textContent = "Confirmar Reagendamento";
-            
             document.getElementById('add-item-container').classList.add('hidden');
             document.getElementById('privacy-section').classList.add('hidden');
-
             donatedItems = rescheduleData.items;
             renderDonatedItems(true);
         }
@@ -233,22 +230,48 @@
                     existingAppointments[scheduledAt] = (existingAppointments[scheduledAt] || 0) + 1;
                 });
 
-                const subtypesConfigRef = doc(db, paths.configDoc('itemSubtypes'));
-                const subtypesConfigSnap = await getDoc(subtypesConfigRef);
-                const itemSubtypes = subtypesConfigSnap.exists() ? subtypesConfigSnap.data() : {};
+                const [typesSnap, subtypesSnap] = await Promise.all([
+                    getDoc(doc(db, paths.configDoc('campaignTypes'))),
+                    getDoc(doc(db, paths.configDoc('itemSubtypes')))
+                ]);
+                campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
+                const itemSubtypes = subtypesSnap.exists() ? subtypesSnap.data() : {};
 
                 populateCampaignHeader();
                 if (!isRescheduleMode) {
                     populateSubItemTypes(itemSubtypes[campaignData.type] || []);
                 }
-                
                 generateScheduleDays();
-
                 loadingView.classList.add('hidden');
                 donationView.classList.remove('hidden');
             } catch (error) {
                 console.error("Erro fatal no carregamento inicial:", error);
                 loadingView.innerHTML = `<p class="text-red-500 text-center p-8">${error.message}.</p>`;
+            }
+        }
+
+        function renderDynamicFields(campaignType) {
+            dynamicFieldsContainer.innerHTML = '';
+            const typeConfig = campaignTypeSettings[campaignType];
+            if (!typeConfig || !typeConfig.fields) return;
+            const fields = typeConfig.fields;
+            for (const fieldId in fields) {
+                const field = fields[fieldId];
+                let fieldHtml = '';
+                const label = `<label for="field-${fieldId}" class="block text-sm font-medium text-gray-700">${field.label}</label>`;
+                switch (field.type) {
+                    case 'text':
+                        fieldHtml = `<div class="col-span-1">${label}<input type="text" id="field-${fieldId}" name="${fieldId}" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>`;
+                        break;
+                    case 'select':
+                        const optionsHtml = field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                        fieldHtml = `<div class="col-span-1">${label}<select id="field-${fieldId}" name="${fieldId}" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"><option value="">Selecione...</option>${optionsHtml}</select></div>`;
+                        break;
+                    case 'file':
+                        fieldHtml = `<div class="col-span-1 md:col-span-2">${label}<input type="file" id="field-${fieldId}" name="${fieldId}" required class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"></div>`;
+                        break;
+                }
+                dynamicFieldsContainer.innerHTML += fieldHtml;
             }
         }
         
@@ -263,11 +286,16 @@
                 itemEl.className = 'flex items-center space-x-4 bg-gray-50 p-3 rounded-lg border';
                 const photoSrc = isReschedule ? item.photoURL : URL.createObjectURL(item.photoFile);
                 
+                let customDetailsHtml = Object.entries(item.customFields || {}).map(([key, value]) => {
+                    const fieldConfig = campaignTypeSettings[campaignData.type]?.fields?.[key];
+                    return `<span class="text-xs text-gray-500">${fieldConfig?.label || key}: <strong>${value}</strong></span>`;
+                }).join('; ');
+
                 itemEl.innerHTML = `
                     <img src="${photoSrc}" class="w-16 h-16 rounded-md object-cover">
                     <div class="flex-grow">
-                        <p class="font-bold">${item.type}</p>
-                        <p class="text-sm text-gray-600">${item.details} (${item.condition})</p>
+                        <p class="font-bold">${item.type} (${item.condition})</p>
+                        <p class="text-sm text-gray-600">${customDetailsHtml}</p>
                     </div>
                     ${!isReschedule ? `<button data-index="${index}" class="remove-item-btn text-red-500 hover:text-red-700 font-semibold">Remover</button>` : ''}
                 `;
@@ -277,79 +305,55 @@
 
         function populateCampaignHeader() {
             const actionText = isRescheduleMode ? "Você está reagendando para:" : "Você está doando para:";
-            campaignHeader.innerHTML = `
-                <img src="${campaignData.images?.[0] || 'https://placehold.co/100x100/e2e8f0/e2e8f0'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
-                <div>
-                    <p class="text-sm text-gray-500">${actionText}</p>
-                    <h1 class="text-2xl font-bold text-gray-800">${campaignData.title}</h1>
-                    <p class="text-sm font-medium text-gray-600">Organizado por: ${campaignData.entityName}</p>
-                </div>`;
+            campaignHeader.innerHTML = `<img src="${campaignData.images?.[0] || 'https://placehold.co/100x100/e2e8f0/e2e8f0'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
+                <div><p class="text-sm text-gray-500">${actionText}</p><h1 class="text-2xl font-bold text-gray-800">${campaignData.title}</h1><p class="text-sm font-medium text-gray-600">Organizado por: ${campaignData.entityName}</p></div>`;
         }
         
         function populateSubItemTypes(subtypes) {
             itemSubtypeSelect.innerHTML = '<option value="">Selecione o item...</option>';
-            subtypes.forEach(subtype => {
-                itemSubtypeSelect.innerHTML += `<option value="${subtype}">${subtype}</option>`;
-            });
+            subtypes.forEach(subtype => { itemSubtypeSelect.innerHTML += `<option value="${subtype}">${subtype}</option>`; });
             itemSubtypeSelect.innerHTML += '<option value="outro">Outro</option>';
         }
 
         function generateScheduleDays() {
             scheduleDateSelect.innerHTML = '<option value="">Carregando...</option>';
-            
             const availableDates = Object.keys(campaignData.disponibilidade || {}).sort();
             const now = new Date();
             now.setHours(0,0,0,0);
-
             let optionsHtml = '<option value="">Selecione uma data</option>';
             let daysFound = 0;
-
             availableDates.forEach(dateString => {
                 const date = new Date(dateString + 'T00:00:00');
                 if (date >= now) {
-                    const dateLabel = date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
-                    optionsHtml += `<option value="${dateString}">${dateLabel}</option>`;
+                    optionsHtml += `<option value="${dateString}">${date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</option>`;
                     daysFound++;
                 }
             });
-
             scheduleDateSelect.innerHTML = optionsHtml;
-            if (daysFound === 0) {
-                scheduleDateSelect.innerHTML = '<option value="">Nenhum dia disponível nesta campanha.</option>';
-            }
+            if (daysFound === 0) { scheduleDateSelect.innerHTML = '<option value="">Nenhum dia disponível nesta campanha.</option>'; }
         }
 
         function renderTimeSlotsForDate(selectedDateStr) {
             scheduleSlotsGrid.innerHTML = '';
             scheduleSlotsContainer.classList.remove('hidden');
             selectedScheduleSlot = null;
-
             const availableTimes = campaignData.disponibilidade[selectedDateStr] || [];
             const maxSlots = campaignData.slots || 1;
             const now = new Date();
-
             if (availableTimes.length === 0) {
                 scheduleSlotsGrid.innerHTML = '<p class="col-span-full text-center text-gray-500">Nenhum horário disponível para esta data.</p>';
                 return;
             }
-
             availableTimes.forEach(time => {
-                const [hour, minute] = time.split(':').map(Number);
                 const slotDateTime = new Date(selectedDateStr + 'T' + time);
-
                 if (slotDateTime < now) return;
-
                 const occupiedSlots = existingAppointments[slotDateTime.getTime()] || 0;
                 const remainingSlots = maxSlots - occupiedSlots;
-                
                 const slotBtn = document.createElement('button');
                 slotBtn.className = 'schedule-slot p-2 rounded-md text-center';
                 slotBtn.disabled = remainingSlots <= 0;
-                
                 const vagasText = remainingSlots === 1 ? '1 vaga' : `${remainingSlots} vagas`;
-                slotBtn.innerHTML = `<span class="font-bold block">${time}</span>
-                                     <span class="text-xs">${vagasText}</span>`;
-
+                slotBtn.innerHTML = `<span class="font-bold block">${time}</span><span class="text-xs">${vagasText}</span>`;
                 slotBtn.onclick = () => {
                     document.querySelectorAll('.schedule-slot.selected').forEach(s => s.classList.remove('selected'));
                     slotBtn.classList.add('selected');
@@ -365,23 +369,40 @@
         });
 
         itemSubtypeSelect.addEventListener('change', (e) => {
-            itemOtherSubtypeInput.classList.toggle('hidden', e.target.value !== 'outro');
+            const isOther = e.target.value === 'outro';
+            itemOtherSubtypeInput.classList.toggle('hidden', !isOther);
+            renderDynamicFields(campaignData.type);
         });
 
         addItemBtn.addEventListener('click', () => {
             addItemError.textContent = '';
             const type = itemSubtypeSelect.value === 'outro' ? itemOtherSubtypeInput.value.trim() : itemSubtypeSelect.value;
-            const details = document.getElementById('item-details').value.trim();
             const condition = document.getElementById('item-condition').value;
             const photoFile = document.getElementById('item-photo').files[0];
             if (!type || !photoFile) {
                 addItemError.textContent = 'Por favor, selecione um item e uma foto.';
                 return;
             }
-            donatedItems.push({ type, details, condition, photoFile });
+            const customFieldsData = {};
+            const dynamicInputs = dynamicFieldsContainer.querySelectorAll('input, select');
+            let allFieldsValid = true;
+            dynamicInputs.forEach(input => {
+                if (!input.value) allFieldsValid = false;
+                if (input.type === 'file') {
+                    customFieldsData[input.name] = input.files[0]; // Guarda o ficheiro
+                } else {
+                    customFieldsData[input.name] = input.value;
+                }
+            });
+            if (!allFieldsValid) {
+                addItemError.textContent = 'Por favor, preencha todos os campos adicionais.';
+                return;
+            }
+            donatedItems.push({ type, condition, photoFile, customFields: customFieldsData });
             renderDonatedItems();
             addItemForm.reset();
             itemOtherSubtypeInput.classList.add('hidden');
+            dynamicFieldsContainer.innerHTML = '';
         });
 
         donatedItemsList.addEventListener('click', (e) => {
@@ -394,15 +415,8 @@
 
         submitDonationBtn.addEventListener('click', async () => {
             formError.textContent = '';
-            if (donatedItems.length === 0) {
-                formError.textContent = 'Você precisa de ter pelo menos um item para doar.';
-                return;
-            }
-            if (!selectedScheduleSlot) {
-                formError.textContent = 'Por favor, selecione um dia e um horário para a entrega.';
-                return;
-            }
-
+            if (donatedItems.length === 0) { formError.textContent = 'Adicione pelo menos um item.'; return; }
+            if (!selectedScheduleSlot) { formError.textContent = 'Selecione um dia e horário.'; return; }
             const submitBtnText = document.getElementById('submit-btn-text');
             const submitBtnSpinner = document.getElementById('submit-btn-spinner');
             submitDonationBtn.disabled = true;
@@ -411,16 +425,20 @@
 
             try {
                 const userId = currentUserSession.auth.uid;
-                
-                const itemsToSave = isRescheduleMode 
-                    ? donatedItems 
-                    : await Promise.all(donatedItems.map(async (item) => {
-                        const filePath = `donated_items/${userId}/${Date.now()}_${item.photoFile.name}`;
-                        const fileRef = storageRef(storage, filePath);
-                        const snapshot = await uploadBytes(fileRef, item.photoFile);
-                        const photoURL = await getDownloadURL(snapshot.ref);
-                        return { type: item.type, details: item.details, condition: item.condition, photoURL: photoURL, status: 'pending' };
-                    }));
+                const itemsToSave = await Promise.all(donatedItems.map(async (item) => {
+                    const filePath = `donated_items/${userId}/${Date.now()}_${item.photoFile.name}`;
+                    const photoURL = await uploadBytes(storageRef(storage, filePath), item.photoFile).then(snap => getDownloadURL(snap.ref));
+                    
+                    const customFieldsWithUrls = { ...item.customFields };
+                    for (const key in item.customFields) {
+                        if (item.customFields[key] instanceof File) {
+                            const customFilePath = `donated_items/${userId}/custom_${Date.now()}_${item.customFields[key].name}`;
+                            customFieldsWithUrls[key] = await uploadBytes(storageRef(storage, customFilePath), item.customFields[key]).then(snap => getDownloadURL(snap.ref));
+                        }
+                    }
+
+                    return { type: item.type, condition: item.condition, photoURL, status: 'pending', customFields: customFieldsWithUrls };
+                }));
 
                 const newDonationData = {
                     donorId: userId,
@@ -454,7 +472,6 @@
                 const successMessage = isRescheduleMode ? 'Sua doação foi reagendada com sucesso!' : 'Sua doação foi registrada com sucesso! Obrigado por fazer o bem!';
                 await showAlertModal('Sucesso!', successMessage);
                 window.location.href = 'minhas-entregas.html';
-
             } catch (error) {
                 console.error("ERRO DETALHADO AO REGISTRAR DOAÇÃO:", error);
                 formError.textContent = `Erro ao registrar doação: ${error.message}`;
