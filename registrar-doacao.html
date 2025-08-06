@@ -370,7 +370,7 @@
 
         addItemBtn.addEventListener('click', () => {
             addItemError.textContent = '';
-            const type = itemSubtypeSelect.value === 'outro' ? itemOtherSubtypeInput.value.trim() : itemOtherSubtypeInput.value;
+            const type = itemSubtypeSelect.value === 'outro' ? itemOtherSubtypeInput.value.trim() : itemSubtypeSelect.value;
             const details = document.getElementById('item-details').value.trim();
             const condition = document.getElementById('item-condition').value;
             const photoFile = document.getElementById('item-photo').files[0];
