@@ -18,7 +18,6 @@
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #22c55e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* ESTILO DAS "CAIXINHAS" DE HORÁRIO */
         .schedule-slot {
             transition: all 0.2s ease-in-out;
             cursor: pointer;
@@ -29,15 +28,15 @@
             transform: translateY(-2px);
         }
         .schedule-slot.selected {
-            background-color: #16a34a; /* green-600 */
+            background-color: #16a34a;
             color: white;
-            border-color: #15803d; /* green-700 */
+            border-color: #15803d;
             transform: translateY(-2px);
             box-shadow: 0 4px 10px rgba(34, 197, 94, 0.4);
         }
         .schedule-slot:disabled {
-            background-color: #e5e7eb; /* gray-200 */
-            color: #9ca3af; /* gray-400 */
+            background-color: #e5e7eb;
+            color: #9ca3af;
             cursor: not-allowed;
             border-color: #d1d5db;
         }
@@ -83,7 +82,6 @@
             <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
                 <h2 id="schedule-section-title" class="text-xl font-bold text-gray-800">2. Agendar Entrega</h2>
                 <p class="text-sm text-gray-600 mt-1">Selecione um dia e, em seguida, um horário disponível para levar sua doação.</p>
-                
                 <div class="mt-4 space-y-4">
                     <div>
                         <label for="schedule-date-select" class="block text-sm font-medium text-gray-700">Selecione o dia</label>
@@ -93,8 +91,7 @@
                     </div>
                     <div id="schedule-slots-container" class="hidden mt-4">
                         <p class="block text-sm font-medium text-gray-700 mb-2">Selecione o horário</p>
-                        <div id="schedule-slots-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-3">
-                            </div>
+                        <div id="schedule-slots-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-3"></div>
                     </div>
                 </div>
             </div>
@@ -128,10 +125,21 @@
         import { showAlertModal } from './modal-handler.js';
         import { createNotification } from './notification-service.js';
 
-        // --- (Declarações de variáveis DOM permanecem as mesmas) ---
         const loadingView = document.getElementById('loading-view');
         const donationView = document.getElementById('donation-view');
-        // ... (etc.)
+        const campaignHeader = document.getElementById('campaign-header');
+        const donatedItemsList = document.getElementById('donated-items-list');
+        const noItemsPlaceholder = document.getElementById('no-items-placeholder');
+        const addItemForm = document.getElementById('add-item-form');
+        const addItemBtn = document.getElementById('add-item-btn');
+        const itemSubtypeSelect = document.getElementById('item-subtype');
+        const itemOtherSubtypeInput = document.getElementById('item-other-subtype');
+        const submitDonationBtn = document.getElementById('submit-donation-btn');
+        const formError = document.getElementById('form-error');
+        const addItemError = document.getElementById('add-item-error');
+        const scheduleDateSelect = document.getElementById('schedule-date-select');
+        const scheduleSlotsContainer = document.getElementById('schedule-slots-container');
+        const scheduleSlotsGrid = document.getElementById('schedule-slots-grid');
 
         let currentUserSession = null;
         let campaignId = null;
@@ -142,8 +150,52 @@
         let rescheduleData = null;
         let existingAppointments = {};
 
-        // --- (initializeApp e lógica de reagendamento permanecem os mesmos) ---
+        async function initializeApp() {
+            const canProceed = await injectHeader();
+            if (!canProceed) { return; }
 
+            currentUserSession = await getCurrentUser();
+
+            if (currentUserSession) {
+                const params = new URLSearchParams(window.location.search);
+                campaignId = params.get('id');
+                isRescheduleMode = params.has('reschedule');
+
+                if (!campaignId) {
+                    loadingView.innerHTML = '<p class="text-red-500">Erro: ID da campanha não encontrado.</p>';
+                    return;
+                }
+                
+                if (isRescheduleMode) {
+                    const data = localStorage.getItem('rescheduleData');
+                    if (!data) {
+                        showAlertModal('Erro', 'Dados de reagendamento não encontrados.')
+                            .then(() => window.location.href = 'minhas-entregas.html');
+                        return;
+                    }
+                    rescheduleData = JSON.parse(data);
+                    setupRescheduleMode();
+                }
+                
+                await loadInitialData();
+            } else {
+                window.location.href = 'login.html';
+            }
+        }
+        
+        function setupRescheduleMode() {
+            document.title = "Reagendar Entrega - Faz Bem";
+            document.getElementById('items-section-title').textContent = "1. Itens para Reagendar";
+            document.getElementById('schedule-section-title').textContent = "2. Escolha a Nova Data de Entrega";
+            document.getElementById('submit-btn-text').textContent = "Confirmar Reagendamento";
+            
+            document.getElementById('add-item-container').classList.add('hidden');
+            document.getElementById('privacy-section').classList.add('hidden');
+
+            donatedItems = rescheduleData.items;
+            renderDonatedItems(true);
+        }
+        
         async function loadInitialData() {
             try {
                 const campaignRef = doc(db, paths.campaignDoc(campaignId));
@@ -151,7 +203,6 @@
                 if (!campaignSnap.exists()) throw new Error("Campanha não encontrada.");
                 campaignData = campaignSnap.data();
 
-                // Busca todos os agendamentos existentes para ESTA campanha para calcular vagas
                 const appointmentsQuery = query(collection(db, paths.donations), where("campaignId", "==", campaignId), where("status", "==", "scheduled"));
                 const appointmentsSnapshot = await getDocs(appointmentsQuery);
                 existingAppointments = {};
@@ -169,7 +220,7 @@
                     populateSubItemTypes(itemSubtypes[campaignData.type] || []);
                 }
                 
-                generateScheduleDays(); // NOVA LÓGICA AQUI
+                generateScheduleDays();
 
                 loadingView.classList.add('hidden');
                 donationView.classList.remove('hidden');
@@ -179,9 +230,49 @@
             }
         }
         
-        // --- FUNÇÃO REESCRITA ---
+        function renderDonatedItems(isReschedule = false) {
+            donatedItemsList.innerHTML = '';
+            if (donatedItems.length === 0) {
+                donatedItemsList.appendChild(noItemsPlaceholder);
+                return;
+            }
+            donatedItems.forEach((item, index) => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'flex items-center space-x-4 bg-gray-50 p-3 rounded-lg border';
+                const photoSrc = isReschedule ? item.photoURL : URL.createObjectURL(item.photoFile);
+                
+                itemEl.innerHTML = `
+                    <img src="${photoSrc}" class="w-16 h-16 rounded-md object-cover">
+                    <div class="flex-grow">
+                        <p class="font-bold">${item.type}</p>
+                        <p class="text-sm text-gray-600">${item.details} (${item.condition})</p>
+                    </div>
+                    ${!isReschedule ? `<button data-index="${index}" class="remove-item-btn text-red-500 hover:text-red-700 font-semibold">Remover</button>` : ''}
+                `;
+                donatedItemsList.appendChild(itemEl);
+            });
+        }
+
+        function populateCampaignHeader() {
+            const actionText = isRescheduleMode ? "Você está reagendando para:" : "Você está doando para:";
+            campaignHeader.innerHTML = `
+                <img src="${campaignData.images?.[0] || 'https://placehold.co/100x100/e2e8f0/e2e8f0'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
+                <div>
+                    <p class="text-sm text-gray-500">${actionText}</p>
+                    <h1 class="text-2xl font-bold text-gray-800">${campaignData.title}</h1>
+                    <p class="text-sm font-medium text-gray-600">Organizado por: ${campaignData.entityName}</p>
+                </div>`;
+        }
+        
+        function populateSubItemTypes(subtypes) {
+            itemSubtypeSelect.innerHTML = '<option value="">Selecione o item...</option>';
+            subtypes.forEach(subtype => {
+                itemSubtypeSelect.innerHTML += `<option value="${subtype}">${subtype}</option>`;
+            });
+            itemSubtypeSelect.innerHTML += '<option value="outro">Outro</option>';
+        }
+
         function generateScheduleDays() {
-            const scheduleDateSelect = document.getElementById('schedule-date-select');
             scheduleDateSelect.innerHTML = '<option value="">Carregando...</option>';
             
             const availableDates = Object.keys(campaignData.disponibilidade || {}).sort();
@@ -206,11 +297,7 @@
             }
         }
 
-        // --- FUNÇÃO REESCRITA ---
         function renderTimeSlotsForDate(selectedDateStr) {
-            const scheduleSlotsGrid = document.getElementById('schedule-slots-grid');
-            const scheduleSlotsContainer = document.getElementById('schedule-slots-container');
-
             scheduleSlotsGrid.innerHTML = '';
             scheduleSlotsContainer.classList.remove('hidden');
             selectedScheduleSlot = null;
@@ -226,10 +313,9 @@
 
             availableTimes.forEach(time => {
                 const [hour, minute] = time.split(':').map(Number);
-                const slotDateTime = new Date(selectedDateStr);
-                slotDateTime.setHours(hour, minute);
+                const slotDateTime = new Date(selectedDateStr + 'T' + time);
 
-                if (slotDateTime < now) return; // Não mostra horários que já passaram no dia de hoje
+                if (slotDateTime < now) return;
 
                 const occupiedSlots = existingAppointments[slotDateTime.getTime()] || 0;
                 const remainingSlots = maxSlots - occupiedSlots;
@@ -251,9 +337,113 @@
             });
         }
 
-        // --- (O restante do código JS permanece o mesmo da versão anterior, limpa e funcional) ---
-        
-        // ... (Resto do JS sem alterações, incluindo initializeApp, populateHeader, addItem, submit, etc.)
+        scheduleDateSelect.addEventListener('change', (e) => {
+            if (e.target.value) { renderTimeSlotsForDate(e.target.value); } 
+            else { scheduleSlotsContainer.classList.add('hidden'); scheduleSlotsGrid.innerHTML = ''; selectedScheduleSlot = null; }
+        });
+
+        itemSubtypeSelect.addEventListener('change', (e) => {
+            itemOtherSubtypeInput.classList.toggle('hidden', e.target.value !== 'outro');
+        });
+
+        addItemBtn.addEventListener('click', () => {
+            addItemError.textContent = '';
+            const type = itemSubtypeSelect.value === 'outro' ? itemOtherSubtypeInput.value.trim() : itemSubtypeSelect.value;
+            const details = document.getElementById('item-details').value.trim();
+            const condition = document.getElementById('item-condition').value;
+            const photoFile = document.getElementById('item-photo').files[0];
+            if (!type || !photoFile) {
+                addItemError.textContent = 'Por favor, selecione um item e uma foto.';
+                return;
+            }
+            donatedItems.push({ type, details, condition, photoFile });
+            renderDonatedItems();
+            addItemForm.reset();
+            itemOtherSubtypeInput.classList.add('hidden');
+        });
+
+        donatedItemsList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-item-btn')) {
+                const index = e.target.dataset.index;
+                donatedItems.splice(index, 1);
+                renderDonatedItems();
+            }
+        });
+
+        submitDonationBtn.addEventListener('click', async () => {
+            formError.textContent = '';
+            if (donatedItems.length === 0) {
+                formError.textContent = 'Você precisa de ter pelo menos um item para doar.';
+                return;
+            }
+            if (!selectedScheduleSlot) {
+                formError.textContent = 'Por favor, selecione um dia e um horário para a entrega.';
+                return;
+            }
+
+            const submitBtnText = document.getElementById('submit-btn-text');
+            const submitBtnSpinner = document.getElementById('submit-btn-spinner');
+            submitDonationBtn.disabled = true;
+            submitBtnText.classList.add('hidden');
+            submitBtnSpinner.classList.remove('hidden');
+
+            try {
+                const userId = currentUserSession.auth.uid;
+                
+                const itemsToSave = isRescheduleMode 
+                    ? donatedItems 
+                    : await Promise.all(donatedItems.map(async (item) => {
+                        const filePath = `donated_items/${userId}/${Date.now()}_${item.photoFile.name}`;
+                        const fileRef = storageRef(storage, filePath);
+                        const snapshot = await uploadBytes(fileRef, item.photoFile);
+                        const photoURL = await getDownloadURL(snapshot.ref);
+                        return { type: item.type, details: item.details, condition: item.condition, photoURL: photoURL, status: 'pending' };
+                    }));
+
+                const newDonationData = {
+                    donorId: userId,
+                    donorName: currentUserSession.profile?.displayName ?? currentUserSession.auth?.displayName ?? "Doador Anônimo",
+                    donorPhoto: currentUserSession.profile?.photoURL ?? currentUserSession.auth?.photoURL ?? null,
+                    campaignId: campaignId,
+                    campaignTitle: campaignData.title,
+                    entityId: campaignData.entityId,
+                    items: itemsToSave,
+                    status: 'scheduled',
+                    privacy: isRescheduleMode ? (rescheduleData.privacy || 'public') : document.querySelector('input[name="privacy"]:checked').value,
+                    createdAt: Timestamp.now(),
+                    scheduledAt: Timestamp.fromDate(selectedScheduleSlot)
+                };
+                
+                if (isRescheduleMode) {
+                    const batch = writeBatch(db);
+                    const newDonationRef = doc(collection(db, paths.donations));
+                    batch.set(newDonationRef, newDonationData);
+                    const oldDonationRef = doc(db, paths.donationDoc(rescheduleData.oldDonationId));
+                    batch.update(oldDonationRef, { status: 'reagendado' });
+                    await batch.commit();
+                    localStorage.removeItem('rescheduleData');
+                } else {
+                    await addDoc(collection(db, paths.donations), newDonationData);
+                }
+                
+                const notificationMessage = `O doador ${newDonationData.donorName} ${isRescheduleMode ? 'reagendou' : 'agendou'} uma entrega para a campanha "${newDonationData.campaignTitle}".`;
+                await createNotification(newDonationData.entityId, notificationMessage, 'gerenciar-agendamentos.html');
+                
+                const successMessage = isRescheduleMode ? 'Sua doação foi reagendada com sucesso!' : 'Sua doação foi registrada com sucesso! Obrigado por fazer o bem!';
+                await showAlertModal('Sucesso!', successMessage);
+                window.location.href = 'minhas-entregas.html';
+
+            } catch (error) {
+                console.error("ERRO DETALHADO AO REGISTRAR DOAÇÃO:", error);
+                formError.textContent = `Erro ao registrar doação: ${error.message}`;
+            } finally {
+                submitDonationBtn.disabled = false;
+                submitBtnText.classList.remove('hidden');
+                submitBtnSpinner.classList.add('hidden');
+            }
+        });
+
+        initializeApp();
     </script>
-    </body>
+</body>
 </html>
