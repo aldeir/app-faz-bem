@@ -161,6 +161,12 @@
         const fieldIdInput = document.getElementById('field-id');
         const fieldTypeSelect = document.getElementById('field-type');
         const fieldOptionsContainer = document.getElementById('field-options-container');
+        const cancelFieldEditBtn = document.getElementById('cancel-field-edit-btn');
+        const originalFieldIdInput = document.getElementById('original-field-id');
+        const submitFieldBtn = document.getElementById('submit-field-btn');
+        const customFieldFormTitle = document.getElementById('custom-field-form-title');
+        const fieldRequiredCheckbox = document.getElementById('field-required');
+        const fieldOptionsInput = document.getElementById('field-options');
 
         let campaignTypesData = {};
 
@@ -243,11 +249,11 @@
 
         function resetCustomFieldForm() {
             customFieldForm.reset();
-            document.getElementById('custom-field-form-title').textContent = 'Adicionar Novo Campo';
-            document.getElementById('submit-field-btn').textContent = 'Adicionar Campo';
-            document.getElementById('original-field-id').value = '';
+            customFieldFormTitle.textContent = 'Adicionar Novo Campo';
+            submitFieldBtn.textContent = 'Adicionar Campo';
+            originalFieldIdInput.value = '';
             fieldIdInput.readOnly = true;
-            document.getElementById('cancel-field-edit-btn').classList.add('hidden');
+            cancelFieldEditBtn.classList.add('hidden');
             fieldOptionsContainer.classList.add('hidden');
         }
         
@@ -311,7 +317,7 @@
         });
         
         fieldLabelInput.addEventListener('input', () => {
-            if (!document.getElementById('original-field-id').value) {
+            if (!originalFieldIdInput.value) {
                 fieldIdInput.value = generateSlug(fieldLabelInput.value);
             }
         });
@@ -324,21 +330,21 @@
 
             if (button.dataset.action === 'edit-field') {
                 const fieldData = campaignTypesData[typeId].fields[fieldId];
-                document.getElementById('custom-field-form-title').textContent = 'Editar Campo';
-                document.getElementById('submit-field-btn').textContent = 'Salvar Alterações';
-                document.getElementById('original-field-id').value = fieldId;
+                customFieldFormTitle.textContent = 'Editar Campo';
+                submitFieldBtn.textContent = 'Salvar Alterações';
+                originalFieldIdInput.value = fieldId;
                 
                 fieldLabelInput.value = fieldData.label;
                 fieldIdInput.value = fieldId;
-                fieldIdInput.readOnly = false; // Permite editar o ID
+                fieldIdInput.readOnly = false;
                 fieldTypeSelect.value = fieldData.type;
-                document.getElementById('field-required').checked = fieldData.required || false;
+                fieldRequiredCheckbox.checked = fieldData.required || false;
 
                 fieldOptionsContainer.classList.toggle('hidden', fieldData.type !== 'select');
                 if (fieldData.type === 'select') {
-                    document.getElementById('field-options').value = fieldData.options.join(', ');
+                    fieldOptionsInput.value = fieldData.options.join(', ');
                 }
-                document.getElementById('cancel-field-edit-btn').classList.remove('hidden');
+                cancelFieldEditBtn.classList.remove('hidden');
                 
             } else if (button.dataset.action === 'delete-field') {
                 const confirmed = await showConfirmationModal('Excluir Campo', `Tem a certeza de que deseja excluir o campo "${fieldId}"?`);
@@ -358,7 +364,7 @@
             }
         });
 
-        document.getElementById('cancel-field-edit-btn').addEventListener('click', resetCustomFieldForm);
+        cancelFieldEditBtn.addEventListener('click', resetCustomFieldForm);
 
         customFieldForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -366,8 +372,12 @@
             const fieldId = fieldIdInput.value.trim();
             const fieldLabel = fieldLabelInput.value.trim();
             const fieldType = fieldTypeSelect.value;
-            const isRequired = document.getElementById('field-required').checked;
-            const originalFieldId = document.getElementById('original-field-id').value;
+            const isRequired = fieldRequiredCheckbox.checked;
+            const originalFieldId = originalFieldIdInput.value;
+
+            // --- INÍCIO DA ADIÇÃO DA LINHA DE DEPURAÇÃO ---
+            console.log('[DEBUG] Valores no momento da submissão:', { campaignTypeId, fieldId, fieldLabel });
+            // --- FIM DA ADIÇÃO DA LINHA DE DEPURAÇÃO ---
 
             if (!campaignTypeId || !fieldId || !fieldLabel) {
                 showAlertModal('Erro', 'Rótulo e ID são obrigatórios.');
@@ -376,7 +386,7 @@
 
             const newFieldData = { label: fieldLabel, type: fieldType, required: isRequired };
             if (fieldType === 'select') {
-                const options = document.getElementById('field-options').value.split(',').map(opt => opt.trim()).filter(Boolean);
+                const options = fieldOptionsInput.value.split(',').map(opt => opt.trim()).filter(Boolean);
                 if (options.length === 0) {
                     showAlertModal('Erro', 'Para "Lista de Opções", forneça as opções separadas por vírgula.');
                     return;
@@ -388,7 +398,6 @@
             
             try {
                 let updateData = {};
-                // Se o ID mudou durante a edição, remove o antigo campo primeiro
                 if (originalFieldId && originalFieldId !== fieldId) {
                     updateData[`${campaignTypeId}.fields.${originalFieldId}`] = deleteField();
                 }
@@ -398,6 +407,8 @@
                 showAlertModal('Sucesso!', 'Campo salvo com sucesso.');
                 
                 await loadConfigs();
+                fieldCampaignTypeSelect.value = campaignTypeId;
+                customFieldsEditor.classList.remove('hidden');
                 renderCustomFields(campaignTypeId);
                 resetCustomFieldForm();
 
