@@ -33,7 +33,8 @@ export {
     runTransaction,
     arrayUnion,
     arrayRemove,
-    deleteField // <-- FUNÇÃO ADICIONADA AQUI
+    deleteField,
+    orderBy // <-- FUNÇÃO ADICIONADA AQUI
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Storage (com alias para 'ref')
