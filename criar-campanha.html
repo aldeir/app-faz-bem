@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="page-title">Criar Nova Campanha - Faz Bem</title>
     
-    <!-- PWA Tags -->
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
@@ -21,6 +20,29 @@
         #submit-campaign-btn:disabled { background-color: #9ca3af; cursor: not-allowed; }
         .loader { border: 3px solid #f3f3f3; border-top: 3px solid #16a34a; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .time-slot-checkbox { display: none; }
+        .time-slot-label {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            border: 1px solid #d1d5db;
+        }
+        .time-slot-checkbox:checked + .time-slot-label {
+            background-color: #16a34a; /* green-600 */
+            color: white;
+            border-color: #15803d; /* green-700 */
+            transform: scale(1.05);
+        }
+        .time-slot-checkbox:disabled + .time-slot-label {
+            background-color: #e5e7eb; /* gray-200 */
+            color: #9ca3af; /* gray-400 */
+            cursor: not-allowed;
+            border-color: #d1d5db;
+        }
+        .time-slot-checkbox:disabled:checked + .time-slot-label {
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+            border-color: #2563eb;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -57,22 +79,16 @@
                                     <option value="normal">Normal</option>
                                     <option value="high">Alta</option>
                                 </select>
-                                <p class="text-xs text-gray-500 mt-1">Campanhas de alta urgência podem receber mais destaque.</p>
                             </div>
-                            <div>
-                                <label for="campaign-starts-at" class="block text-sm font-medium text-gray-700">Data de Início (Opcional)</label>
-                                <input type="datetime-local" id="campaign-starts-at" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
-                                <p class="text-xs text-gray-500 mt-1">Se deixado em branco, a campanha começa imediatamente.</p>
-                            </div>
-                            <div><label for="campaign-duration" class="block text-sm font-medium text-gray-700">Duração*</label><select id="campaign-duration" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="86400">1 dia</option><option value="259200">3 dias</option><option value="604800">7 dias</option><option value="1296000">15 dias</option><option value="2592000">30 dias</option></select></div>
-                            <div>
+                            <div><label for="campaign-duration" class="block text-sm font-medium text-gray-700">Duração*</label><select id="campaign-duration" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="1">1 dia</option><option value="3">3 dias</option><option value="7">7 dias</option><option value="15">15 dias</option><option value="30">30 dias</option></select></div>
+                             <div>
                                 <label for="campaign-slots" class="block text-sm font-medium text-gray-700">Doadores por Horário</label>
                                 <input type="number" id="campaign-slots" value="1" min="1" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                                <p class="text-xs text-gray-500 mt-1">Quantas pessoas podem agendar no mesmo intervalo de 30 min.</p>
+                                <p class="text-xs text-gray-500 mt-1">Quantas pessoas podem agendar no mesmo intervalo.</p>
                             </div>
                         </div>
                         <div class="space-y-4">
-                             <div>
+                            <div>
                                 <label for="campaign-media-upload" class="block text-sm font-medium text-gray-700">Imagens da Campanha (até 5)</label>
                                 <input type="file" id="campaign-media-upload" accept="image/jpeg, image/png, image/webp" multiple class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
                             </div>
@@ -86,34 +102,21 @@
                                     <p id="video-file-name" class="text-sm text-gray-500 mt-1"></p>
                                 </div>
                             </div>
-                            
-                            <div class="pt-4 border-t">
-                                <h4 class="text-lg font-medium text-gray-800 mb-2">Local da Ação (se aplicável)</h4>
-                                <div class="space-y-3">
-                                    <div>
-                                        <label for="campaign-address-cep" class="block text-sm font-medium text-gray-700">CEP</label>
-                                        <input type="text" id="campaign-address-cep" placeholder="00000-000" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
-                                    </div>
-                                    <input type="text" id="campaign-address-street" placeholder="Rua, Av." class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
-                                    <div class="grid grid-cols-3 gap-3">
-                                        <input type="text" id="campaign-address-number" placeholder="Nº *" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
-                                        <input type="text" id="campaign-address-district" placeholder="Bairro" class="block w-full col-span-2 border-gray-300 rounded-md shadow-sm py-2 px-3">
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label for="campaign-hours-start" class="block text-sm font-medium text-gray-700">Início do Atendimento</label>
-                                            <select id="campaign-hours-start" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></select>
-                                        </div>
-                                        <div>
-                                            <label for="campaign-hours-end" class="block text-sm font-medium text-gray-700">Fim do Atendimento</label>
-                                            <select id="campaign-hours-end" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></select>
-                                        </div>
-                                    </div>
-                                    <textarea id="campaign-docs" rows="2" placeholder="Documentos necessários ou outras instruções" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></textarea>
-                                </div>
-                            </div>
                         </div>
                     </div>
+                    
+                    <div id="availability-section" class="mt-8 pt-6 border-t">
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h3 class="text-xl font-semibold">Disponibilidade para Recebimento</h3>
+                                <p class="text-sm text-gray-500">Selecione os dias e horários em que poderá receber as doações.</p>
+                            </div>
+                            <button type="button" id="replicate-hours-btn" class="hidden bg-blue-100 text-blue-800 text-xs font-semibold py-2 px-3 rounded-lg hover:bg-blue-200">Replicar para todos os dias</button>
+                        </div>
+                        <div id="availability-days-container" class="space-y-6">
+                            </div>
+                    </div>
+
                     <div id="form-error" class="text-red-600 text-sm mt-4 hidden"></div>
                     <div class="mt-8 pt-6 border-t flex justify-end items-center">
                         <span id="submit-feedback" class="text-sm text-green-700 mr-4"></span>
@@ -130,314 +133,130 @@
     <div id="app-modal"></div>
 
     <script type="module">
-        import { auth, db, storage, ADMIN_EMAIL, paths } from './app-config.js';
+        import { db, storage, paths } from './app-config.js';
         import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, Timestamp, storageRef, uploadBytes, getDownloadURL } from "./firebase-services.js";
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
-        import { showAlertModal } from './modal-handler.js';
 
-        const pageTitle = document.getElementById('page-title');
-        const loadingView = document.getElementById('loading-view');
-        const formView = document.getElementById('form-view');
-        const entityInfoContainer = document.getElementById('entity-info-container');
-        const createCampaignForm = document.getElementById('create-campaign-form');
-        const formError = document.getElementById('form-error');
-        const submitCampaignBtn = document.getElementById('submit-campaign-btn');
-        const mediaUploadInput = document.getElementById('campaign-media-upload');
-        const mediaPreviewContainer = document.getElementById('media-preview-container');
-        const videoUploadInput = document.getElementById('campaign-video-upload');
-        const videoPreviewContainer = document.getElementById('video-preview-container');
-        const videoPreview = document.getElementById('video-preview');
-        const videoFileName = document.getElementById('video-file-name');
-        const cepInput = document.getElementById('campaign-address-cep');
-        const streetInput = document.getElementById('campaign-address-street');
-        const districtInput = document.getElementById('campaign-address-district');
-        const numberInput = document.getElementById('campaign-address-number');
-        const campaignTypeSelect = document.getElementById('campaign-type');
-        const hoursStartSelect = document.getElementById('campaign-hours-start');
-        const hoursEndSelect = document.getElementById('campaign-hours-end');
+        // ... (referências DOM existentes)
+        const durationSelect = document.getElementById('campaign-duration');
+        const availabilityContainer = document.getElementById('availability-days-container');
+        const replicateBtn = document.getElementById('replicate-hours-btn');
 
-        IMask(cepInput, { mask: '00000-000' });
+        // (Restante do JavaScript existente)
+        // ...
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const campaignIdToEdit = urlParams.get('editId');
-        const isEditMode = !!campaignIdToEdit;
-        let campaignMediaFiles = [];
-        let campaignVideoFile = null;
-        let allEntities = [];
-        
-        const renderEntityHeader = (profile) => {
-            entityInfoContainer.innerHTML = `
-                <div class="p-4 bg-green-50 rounded-lg border-l-4 border-green-400 flex items-center space-x-4">
-                    <img src="${profile.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border-2 border-green-200 flex-shrink-0">
-                    <div>
-                        <p class="font-bold text-lg text-green-800">${profile.publicName}</p>
-                        <p class="text-sm text-green-700">Publicando/Editando como Entidade Verificada.</p>
-                    </div>
-                </div>`;
-        };
-
-        const setupEditModeUI = () => {
-            pageTitle.textContent = "Editar Campanha - Faz Bem";
-            document.getElementById('form-title').textContent = "Editar Detalhes da Campanha";
-            document.getElementById('submit-btn-text').textContent = "Salvar Alterações";
-        };
-
-        const showLoadingButton = (isLoading) => {
-            document.getElementById('submit-btn-text').classList.toggle('hidden', isLoading);
-            document.getElementById('submit-btn-spinner').classList.toggle('hidden', !isLoading);
-            submitCampaignBtn.disabled = isLoading;
-        };
-        
-        const renderMediaPreview = (imageUrls) => {
-            mediaPreviewContainer.innerHTML = '';
-            imageUrls.forEach(url => {
-                const img = document.createElement('img');
-                img.src = url;
-                img.className = 'w-full h-24 object-cover rounded-md border';
-                mediaPreviewContainer.appendChild(img);
-            });
-        };
-
-        const populateForm = (data) => {
-            document.getElementById('campaign-title').value = data.title || '';
-            document.getElementById('campaign-description').value = data.description || '';
-            campaignTypeSelect.value = data.type || 'default';
-            document.getElementById('campaign-goal').value = data.goal || '';
-            document.getElementById('campaign-priority').value = data.priority || 'normal';
-            document.getElementById('campaign-slots').value = data.slots || '1';
-            if (data.startsAt) {
-                const date = data.startsAt.toDate();
-                const formattedDate = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + 'T' + ('0' + date.getHours()).slice(-2) + ':' + ('0' + date.getMinutes()).slice(-2);
-                document.getElementById('campaign-starts-at').value = formattedDate;
+        // NOVA FUNÇÃO: Gera os horários de 30 em 30 min
+        function generateTimeSlots() {
+            let slots = [];
+            for (let hour = 7; hour < 20; hour++) {
+                slots.push(`${String(hour).padStart(2, '0')}:00`);
+                slots.push(`${String(hour).padStart(2, '0')}:30`);
             }
-            if (data.startsAt && data.expiresAt) {
-                const durationInSeconds = data.expiresAt.seconds - data.startsAt.seconds;
-                const durationSelect = document.getElementById('campaign-duration');
-                const closestOption = [...durationSelect.options].reduce((prev, curr) => {
-                    return (Math.abs(curr.value - durationInSeconds) < Math.abs(prev.value - durationInSeconds) ? curr : prev);
-                });
-                durationSelect.value = closestOption.value;
-            }
-            cepInput.value = data.address?.cep || '';
-            streetInput.value = data.address?.street || '';
-            numberInput.value = data.address?.number || '';
-            districtInput.value = data.address?.district || '';
-            hoursStartSelect.value = data.operation?.hoursStart || '08:00';
-            updateEndTimeOptions(hoursStartSelect.value);
-            hoursEndSelect.value = data.operation?.hoursEnd || '17:00';
-            document.getElementById('campaign-docs').value = data.operation?.requiredDocs || '';
-            if (data.images && data.images.length > 0) { renderMediaPreview(data.images); }
-            if (data.videoUrl) {
-                videoPreviewContainer.classList.remove('hidden');
-                videoPreview.src = data.videoUrl;
-                videoFileName.textContent = "Vídeo atual. Envie um novo para substituir.";
-            }
-        };
-
-        const loadCampaignTypes = async () => {
-            const typesDocRef = doc(db, paths.configDoc('campaignTypes'));
-            const docSnap = await getDoc(typesDocRef);
-            if (docSnap.exists()) {
-                const types = docSnap.data();
-                campaignTypeSelect.innerHTML = '';
-                for (const id in types) {
-                    campaignTypeSelect.innerHTML += `<option value="${id}">${types[id].label}</option>`;
-                }
-            }
-        };
-
-        const generateTimeOptions = () => {
-            let options = '';
-            for (let i = 7; i <= 18; i++) {
-                const hour = String(i).padStart(2, '0');
-                options += `<option value="${hour}:00">${hour}:00</option>`;
-            }
-            return options;
-        };
-
-        const updateEndTimeOptions = (startTime) => {
-            let options = '';
-            const startHour = parseInt(startTime.split(':')[0]);
-            for (let i = startHour + 1; i <= 18; i++) {
-                const hour = String(i).padStart(2, '0');
-                options += `<option value="${hour}:00">${hour}:00</option>`;
-            }
-            hoursEndSelect.innerHTML = options;
-        };
-
-        async function initializeApp() {
-            const canProceed = await injectHeader();
-            if (!canProceed) {
-                loadingView.classList.add('hidden');
-                return;
-            }
-
-            const userSession = await getCurrentUser();
-            if (!userSession || !['superadmin', 'entidade'].includes(userSession.profile?.role)) {
-                window.location.href = 'index.html';
-                return;
-            }
-
-            const user = userSession.auth;
-            hoursStartSelect.innerHTML = generateTimeOptions();
-            updateEndTimeOptions(hoursStartSelect.value);
-            
-            await loadCampaignTypes();
-            let campaignDataForEdit = null;
-            if (isEditMode) {
-                setupEditModeUI();
-                document.getElementById('loading-text').textContent = "A carregar dados da campanha...";
-                const campaignRef = doc(db, paths.campaignDoc(campaignIdToEdit));
-                const campaignSnap = await getDoc(campaignRef);
-                if (!campaignSnap.exists()) { alert("Erro: Campanha não encontrada."); window.location.href = 'index.html'; return; }
-                campaignDataForEdit = campaignSnap.data();
-                if (user.uid !== campaignDataForEdit.creatorId && user.email !== ADMIN_EMAIL) { alert("Erro: Você não tem permissão para editar esta campanha."); window.location.href = 'index.html'; return; }
-                populateForm(campaignDataForEdit);
-            }
-            if (user.email === ADMIN_EMAIL) {
-                const q = query(collection(db, paths.entidades), where("status", "==", "ativo"));
-                const querySnapshot = await getDocs(q);
-                allEntities = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                let optionsHtml = '<option value="app_faz_bem">App Faz Bem (Campanha Geral)</option>';
-                allEntities.forEach(entity => { optionsHtml += `<option value="${entity.id}">${entity.publicName}</option>`; });
-                entityInfoContainer.innerHTML = `<label for="entity-selector" class="block text-sm font-medium text-gray-700 mb-2">Publicar campanha em nome de:</label><select id="entity-selector" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 bg-yellow-50">${optionsHtml}</select>`;
-                const entitySelector = document.getElementById('entity-selector');
-                if (isEditMode) { entitySelector.value = campaignDataForEdit.entityId; entitySelector.disabled = true; }
-            } else if (userSession.profile?.status === 'ativo') {
-                renderEntityHeader(userSession.profile);
-            } else {
-                alert('Acesso negado. Você precisa ser uma entidade aprovada.'); window.location.href = 'index.html'; 
-            }
-            loadingView.classList.add('hidden');
-            formView.classList.remove('hidden');
+            return slots;
         }
 
-        mediaUploadInput.addEventListener('change', (e) => {
-            campaignMediaFiles = Array.from(e.target.files).slice(0, 5);
-            if (e.target.files.length > 5) { alert("Você pode selecionar no máximo 5 imagens. Apenas as 5 primeiras foram consideradas."); }
-            const previewUrls = campaignMediaFiles.map(file => URL.createObjectURL(file));
-            renderMediaPreview(previewUrls);
+        // NOVA FUNÇÃO: Renderiza a grelha de horários para os dias
+        function renderAvailabilityGrid() {
+            const duration = parseInt(durationSelect.value, 10);
+            availabilityContainer.innerHTML = ''; // Limpa a área
+            
+            if (isNaN(duration) || duration <= 0) return;
+
+            const timeSlots = generateTimeSlots();
+            const today = new Date();
+
+            for (let i = 0; i < duration; i++) {
+                const dayDate = new Date(today);
+                dayDate.setDate(today.getDate() + i);
+                const dateString = dayDate.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+                const formattedDate = dayDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' });
+
+                const timeSlotsHtml = timeSlots.map(time => `
+                    <div>
+                        <input type="checkbox" id="time-${dateString}-${time}" value="${time}" class="time-slot-checkbox" data-day="${i}">
+                        <label for="time-${dateString}-${time}" class="time-slot-label block text-center py-2 px-1 rounded-md text-sm">${time}</label>
+                    </div>
+                `).join('');
+
+                const dayHtml = `
+                    <div class="bg-gray-50 p-4 rounded-lg border">
+                        <p class="font-semibold text-gray-800 mb-3">${formattedDate}</p>
+                        <div class="grid grid-cols-5 sm:grid-cols-8 gap-2">
+                            ${timeSlotsHtml}
+                        </div>
+                    </div>
+                `;
+                availabilityContainer.innerHTML += dayHtml;
+            }
+            replicateBtn.classList.toggle('hidden', duration <= 1);
+        }
+
+        // NOVA FUNÇÃO: Lógica do botão de replicar
+        replicateBtn.addEventListener('click', () => {
+            const firstDayCheckboxes = document.querySelectorAll('.time-slot-checkbox[data-day="0"]');
+            const otherCheckboxes = document.querySelectorAll('.time-slot-checkbox:not([data-day="0"])');
+            
+            const firstDaySelections = new Set();
+            firstDayCheckboxes.forEach(cb => {
+                if (cb.checked) {
+                    firstDaySelections.add(cb.value);
+                }
+            });
+
+            otherCheckboxes.forEach(cb => {
+                cb.checked = firstDaySelections.has(cb.value);
+            });
         });
+
+        // Event listener para gerar a grelha quando a duração mudar
+        durationSelect.addEventListener('change', renderAvailabilityGrid);
         
-        videoUploadInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) { campaignVideoFile = null; videoPreviewContainer.classList.add('hidden'); return; }
-            campaignVideoFile = file;
-            videoPreview.src = URL.createObjectURL(file);
-            videoFileName.textContent = file.name;
-            videoPreviewContainer.classList.remove('hidden');
-        });
-
-        hoursStartSelect.addEventListener('change', (e) => {
-            updateEndTimeOptions(e.target.value);
-        });
-
+        // --- LÓGICA DE SUBMISSÃO ATUALIZADA ---
         createCampaignForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            formError.classList.add('hidden');
-            showLoadingButton(true);
-            const user = auth.currentUser;
-            try {
-                let imageUrls;
-                if (campaignMediaFiles.length > 0) {
-                    const uploadPromises = campaignMediaFiles.map(file => {
-                        const fileRef = storageRef(storage, `campaigns/${user.uid}_${Date.now()}_${file.name}`);
-                        return uploadBytes(fileRef, file).then(snapshot => getDownloadURL(snapshot.ref));
-                    });
-                    imageUrls = await Promise.all(uploadPromises);
-                }
-                let videoUrl;
-                if (campaignVideoFile) {
-                    const videoRef = storageRef(storage, `campaigns/${user.uid}_${Date.now()}_${campaignVideoFile.name}`);
-                    const uploadResult = await uploadBytes(videoRef, campaignVideoFile);
-                    videoUrl = await getDownloadURL(uploadResult.ref); 
-                }
-                
-                const startsAtInput = document.getElementById('campaign-starts-at').value;
-                const durationInSeconds = parseInt(document.getElementById('campaign-duration').value, 10);
-                const startsAt = startsAtInput ? Timestamp.fromDate(new Date(startsAtInput)) : Timestamp.now();
-                const expiresAt = new Timestamp(startsAt.seconds + durationInSeconds, startsAt.nanoseconds);
-                const status = startsAt.toMillis() > Date.now() ? 'upcoming' : 'active';
+            // ... (código existente para validação, upload de imagens, etc)
 
-                const dataToSave = {
-                    title: document.getElementById('campaign-title').value,
-                    description: document.getElementById('campaign-description').value,
-                    type: document.getElementById('campaign-type').value,
-                    goal: document.getElementById('campaign-goal').value || null,
-                    priority: document.getElementById('campaign-priority').value,
-                    slots: parseInt(document.getElementById('campaign-slots').value, 10) || 1,
-                    address: {
-                        cep: cepInput.value,
-                        street: streetInput.value || null,
-                        number: numberInput.value || null,
-                        district: districtInput.value || null,
-                    },
-                    operation: {
-                        hoursStart: hoursStartSelect.value,
-                        hoursEnd: hoursEndSelect.value,
-                        requiredDocs: document.getElementById('campaign-docs').value || null,
-                    },
-                    ...(imageUrls && { images: imageUrls }),
-                    ...(videoUrl && { videoUrl: videoUrl }),
-                };
+            // NOVA LÓGICA PARA CAPTURAR DISPONIBILIDADE
+            const availability = {};
+            const allCheckboxes = document.querySelectorAll('.time-slot-checkbox:checked');
+            allCheckboxes.forEach(cb => {
+                const dayIndex = parseInt(cb.dataset.day, 10);
+                const date = new Date();
+                date.setDate(date.getDate() + dayIndex);
+                const dateString = date.toISOString().split('T')[0];
 
-                if (isEditMode) {
-                    if (videoUrl === undefined) delete dataToSave.videoUrl;
-                    dataToSave.startsAt = startsAt;
-                    dataToSave.expiresAt = expiresAt;
-                    dataToSave.status = status;
-
-                    const campaignRef = doc(db, paths.campaignDoc(campaignIdToEdit));
-                    await updateDoc(campaignRef, dataToSave);
-                    document.getElementById('submit-feedback').textContent = 'Campanha atualizada com sucesso!';
-                } else {
-                    let entityInfo;
-                    const entitySelector = document.getElementById('entity-selector');
-                    if (entitySelector) {
-                        const selectedId = entitySelector.value;
-                        entityInfo = (selectedId === 'app_faz_bem') ? 
-                            { name: "App Faz Bem", uid: "app_faz_bem" } :
-                            { name: allEntities.find(e => e.id === selectedId).publicName, uid: selectedId };
-                    } else {
-                        const userSession = await getCurrentUser();
-                        entityInfo = { name: userSession.profile.publicName, uid: user.uid };
-                    }
-                    
-                    const finalData = {
-                        ...dataToSave,
-                        entityName: entityInfo.name, creatorId: user.uid, entityId: entityInfo.uid,
-                        progress: 0, currentAmount: 0, createdAt: Timestamp.now(),
-                        startsAt: startsAt, expiresAt: expiresAt, status: status,
-                        videoUrl: videoUrl || null,
-                    };
-                    await addDoc(collection(db, paths.campaigns), finalData);
-                    document.getElementById('submit-feedback').textContent = 'Campanha publicada com sucesso!';
+                if (!availability[dateString]) {
+                    availability[dateString] = [];
                 }
-                setTimeout(() => { window.location.href = user.email === ADMIN_EMAIL ? 'superadmin.html' : 'admin.html'; }, 2000);
-            } catch (error) {
-                console.error("Erro ao salvar campanha: ", error);
-                formError.textContent = `Erro ao salvar: ${error.message}`;
-                formError.classList.remove('hidden');
-            } finally {
-                showLoadingButton(false);
+                availability[dateString].push(cb.value);
+            });
+            // Ordena os horários para cada dia
+            for (const date in availability) {
+                availability[date].sort();
             }
+
+            const dataToSave = {
+                // ... (outros campos: title, description, etc.)
+                disponibilidade: availability, // NOVO CAMPO
+                // ... (outros campos: creatorId, createdAt, etc.)
+            };
+
+            // ... (resto da lógica para salvar no Firestore)
         });
 
-        initializeApp();
-    </script>
-    
-    <!-- PWA Service Worker Registration -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js').then(registration => {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                }, err => {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
-            });
-        }
+
+        // Simular a inicialização para que a grelha seja renderizada na primeira vez
+        document.addEventListener('DOMContentLoaded', () => {
+            // ... (initializeApp() seria chamado aqui)
+            renderAvailabilityGrid(); // Renderiza a grelha inicial com base na duração padrão
+        });
+
+        // O resto do seu script...
+        // ... (initializeApp, listeners de upload, etc.)
+        // Lembre-se de substituir a captura de horários antiga pela nova `availability`
+        // dentro da sua função de `submit` original.
+
     </script>
 </body>
 </html>
