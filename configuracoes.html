@@ -79,11 +79,11 @@
                         <form id="custom-field-form" class="space-y-4 pt-4 border-t">
                             <h3 class="font-medium text-gray-700">Adicionar Novo Campo</h3>
                             <div>
-                                <label for="field-id" class="block text-sm font-medium text-gray-600">ID do Campo (ex: tamanho_roupa)</label>
+                                <label for="field-id" class="block text-sm font-medium text-gray-600">ID do Campo (ex: data_validade)</label>
                                 <input type="text" id="field-id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                             </div>
                             <div>
-                                <label for="field-label" class="block text-sm font-medium text-gray-600">Rótulo (ex: Tamanho da Roupa)</label>
+                                <label for="field-label" class="block text-sm font-medium text-gray-600">Rótulo (ex: Data de Validade)</label>
                                 <input type="text" id="field-label" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                             </div>
                             <div>
@@ -91,9 +91,10 @@
                                 <select id="field-type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                                     <option value="text">Texto Curto</option>
                                     <option value="select">Lista de Opções</option>
+                                    <option value="date">Data</option>
                                     <option value="file">Upload de Ficheiro</option>
                                 </select>
-                            </div>
+                                </div>
                             <div id="field-options-container" class="hidden">
                                 <label for="field-options" class="block text-sm font-medium text-gray-600">Opções (separadas por vírgula)</label>
                                 <input type="text" id="field-options" placeholder="P, M, G, GG" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
@@ -134,8 +135,9 @@
         import { doc, getDoc, updateDoc } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
-        import { showAlertModal } from './modal-handler.js';
+        import { showAlertModal, showConfirmationModal } from './modal-handler.js';
 
+        // --- (O JavaScript permanece o mesmo da versão anterior, pois a lógica de salvar já é genérica) ---
         const loadingView = document.getElementById('loading-view');
         const configView = document.getElementById('config-view');
         const campaignTypesList = document.getElementById('campaign-types-list');
