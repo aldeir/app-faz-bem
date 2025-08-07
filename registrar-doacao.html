@@ -280,7 +280,6 @@
             });
         }
         
-        // --- INÍCIO DA CORREÇÃO: Função renderDonatedItems refatorada ---
         function renderDonatedItems(isReschedule = false) {
             donatedItemsList.innerHTML = '';
             if (donatedItems.length === 0) {
@@ -300,16 +299,15 @@
                         : 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Item';
                 }
 
+                // --- INÍCIO DA CORREÇÃO: Lógica de exibição de detalhes ---
                 let detailsHtml = '';
                 const fieldsToRender = isReschedule ? item : item.customFields;
                 const fieldsConfig = campaignTypeSettings[campaignData.type]?.fields || [];
 
-                // Cria uma lista de detalhes com rótulo e valor
                 fieldsConfig.forEach(fieldConfig => {
                     const key = fieldConfig.id;
                     const value = fieldsToRender[key];
                     
-                    // Não mostra o campo se estiver vazio ou se for a foto principal (já exibida)
                     if (!value || key === item.mainPhotoId) {
                         return;
                     }
@@ -330,10 +328,10 @@
                     </div>
                     ${!isReschedule ? `<button data-index="${index}" class="remove-item-btn text-red-500 hover:text-red-700 font-semibold flex-shrink-0">Remover</button>` : ''}
                 `;
+                // --- FIM DA CORREÇÃO ---
                 donatedItemsList.appendChild(itemEl);
             });
         }
-        // --- FIM DA CORREÇÃO ---
 
         function populateCampaignHeader() {
             const actionText = isRescheduleMode ? "Você está reagendando para:" : "Você está doando para:";
@@ -402,7 +400,7 @@
             let allFieldsValid = true;
             let mainPhotoFile = null;
             let mainPhotoId = null;
-            let itemType = campaignData.title;
+            let itemType = '';
 
             const fieldsConfig = campaignTypeSettings[campaignData.type]?.fields || [];
             const activeImageFields = fieldsConfig.filter(f => f.type === 'image' && f.active !== false);
@@ -410,6 +408,10 @@
             if (activeImageFields.length > 0) {
                 mainPhotoId = activeImageFields[0].id;
             }
+
+            // --- INÍCIO DA CORREÇÃO: Lógica para definir o nome do item (type) ---
+            const firstTextField = fieldsConfig.find(f => f.type === 'text' || f.type === 'select');
+            // --- FIM DA CORREÇÃO ---
 
             dynamicInputs.forEach(input => {
                 if (input.required && ((input.type === 'file' && input.files.length === 0) || !input.value)) {
@@ -422,11 +424,14 @@
                     mainPhotoFile = file;
                 }
                 
-                const firstTextField = fieldsConfig.find(f => f.type === 'text' || f.type === 'select');
                 if (firstTextField && input.name === firstTextField.id && input.value) {
                     itemType = input.value;
                 }
             });
+
+            if (!itemType) { // Se não encontrou um campo de texto, usa o título da campanha como fallback
+                itemType = campaignData.title;
+            }
 
             if (!allFieldsValid) {
                 addItemError.textContent = 'Por favor, preencha todos os campos obrigatórios.';
