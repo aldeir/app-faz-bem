@@ -69,7 +69,8 @@
                     <div id="add-item-container" class="pt-6 border-t">
                         <h3 class="text-lg font-medium text-gray-900">Adicionar Novo Item</h3>
                         <form id="add-item-form" class="space-y-4 mt-3">
-                            <div id="dynamic-fields-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+                            <div id="dynamic-fields-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                </div>
                         </form>
                         <div id="add-item-error" class="text-red-600 text-sm font-semibold mt-3"></div>
                         <button id="add-item-btn" class="mt-4 w-full bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">Adicionar Item à Lista</button>
@@ -443,7 +444,7 @@
                 const itemsToSave = isRescheduleMode 
                     ? donatedItems 
                     : await Promise.all(donatedItems.map(async (item) => {
-                        const mainPhotoUrl = await uploadBytes(storageRef(storage, `donated_items/${userId}/${Date.now()}_${item.mainPhotoFile.name}`), item.mainPhotoFile).then(snap => getDownloadURL(snap.ref));
+                        const mainPhotoUrl = item.mainPhotoFile ? await uploadBytes(storageRef(storage, `donated_items/${userId}/${Date.now()}_${item.mainPhotoFile.name}`), item.mainPhotoFile).then(snap => getDownloadURL(snap.ref)) : null;
                         
                         const customFieldsWithUrls = { ...item.customFields };
                         for (const key in item.customFields) {
