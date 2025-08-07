@@ -124,7 +124,7 @@
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
                         <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
                         <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
                             <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
@@ -296,7 +296,7 @@
             donatedItems.forEach((item, index) => {
                 const itemEl = document.createElement('div');
                 itemEl.className = 'flex items-center space-x-4 bg-gray-50 p-3 rounded-lg border';
-                const photoSrc = isReschedule ? item.photoURL : URL.createObjectURL(item.photoFile);
+                const photoSrc = isReschedule ? item.mainPhotoUrl : URL.createObjectURL(item.mainPhotoFile);
                 
                 let customDetailsHtml = Object.entries(item.customFields || {}).map(([key, value]) => {
                     const fieldConfig = campaignTypeSettings[campaignData.type]?.fields?.find(f => f.id === key);
@@ -398,21 +398,32 @@
             const customFieldsData = {};
             const dynamicInputs = dynamicFieldsContainer.querySelectorAll('input, select');
             let allFieldsValid = true;
+            let mainPhotoFile = null;
+
+            const imageFields = (campaignTypeSettings[campaignData.type]?.fields || []).filter(f => f.type === 'image');
+            
             dynamicInputs.forEach(input => {
                 if (input.required && ((input.type === 'file' && input.files.length === 0) || !input.value)) {
                     allFieldsValid = false;
                 }
-                if (input.type === 'file') {
-                    customFieldsData[input.name] = input.files[0];
-                } else {
-                    customFieldsData[input.name] = input.value;
+                const file = input.type === 'file' ? input.files[0] : null;
+                customFieldsData[input.name] = file || input.value; 
+
+                if (file && imageFields.length > 0 && input.name === imageFields[0].id) {
+                    mainPhotoFile = file;
                 }
             });
+
             if (!allFieldsValid) {
                 addItemError.textContent = 'Por favor, preencha todos os campos obrigatórios.';
                 return;
             }
-            donatedItems.push({ type, customFields: customFieldsData });
+            if (!mainPhotoFile && imageFields.length > 0) {
+                 addItemError.textContent = `Por favor, adicione uma "${imageFields[0].label}".`;
+                 return;
+            }
+
+            donatedItems.push({ type, mainPhotoFile, customFields: customFieldsData });
             renderDonatedItems();
             addItemForm.reset();
             itemOtherSubtypeInput.classList.add('hidden');
@@ -443,6 +454,8 @@
                 const itemsToSave = isRescheduleMode 
                     ? donatedItems 
                     : await Promise.all(donatedItems.map(async (item) => {
+                        const mainPhotoUrl = await uploadBytes(storageRef(storage, `donated_items/${userId}/${Date.now()}_${item.mainPhotoFile.name}`), item.mainPhotoFile).then(snap => getDownloadURL(snap.ref));
+                        
                         const customFieldsWithUrls = { ...item.customFields };
                         for (const key in item.customFields) {
                             if (item.customFields[key] instanceof File) {
@@ -450,7 +463,8 @@
                                 customFieldsWithUrls[key] = await uploadBytes(storageRef(storage, customFilePath), item.customFields[key]).then(snap => getDownloadURL(snap.ref));
                             }
                         }
-                        return { type: item.type, status: 'pending', customFields: customFieldsWithUrls };
+
+                        return { type: item.type, mainPhotoUrl, status: 'pending', customFields: customFieldsWithUrls };
                     }));
 
                 const newDonationData = {
