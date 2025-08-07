@@ -255,18 +255,33 @@
             }
             
             const fieldsConfig = campaignTypeSettings[campaignType]?.fields || [];
-            const mediaFieldIds = new Set(fieldsConfig.filter(f => f.type === 'image' || f.type === 'video').map(f => f.id));
+            const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
 
             let itemsHtml = donation.items.map((item, index) => {
                 let itemDetailsHtml = '<div class="space-y-1 mt-1">';
+                
+                // --- INÍCIO DA CORREÇÃO E LÓGICA DE EXIBIÇÃO ---
+                let detailsFound = false;
                 fieldsConfig.forEach(field => {
                     const key = field.id;
                     const value = item[key];
                     if (value && !mediaFieldIds.has(key) && key !== 'type' && key !== 'photoURL') {
                         itemDetailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
+                        detailsFound = true;
                     }
                 });
+
+                // Se nenhuma detalhe foi encontrado com a nova estrutura, tenta a antiga.
+                if (!detailsFound) {
+                    if (item.details) {
+                        itemDetailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">Detalhes:</span> ${item.details}</div>`;
+                    }
+                    if (item.condition) {
+                        itemDetailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">Condição:</span> ${item.condition}</div>`;
+                    }
+                }
                 itemDetailsHtml += '</div>';
+                // --- FIM DA CORREÇÃO ---
 
                 return `
                 <div class="item-card flex items-start space-x-4 p-3 bg-gray-50 rounded-md border ${tab === 'scheduled' ? 'cursor-pointer' : ''} transition-all" 
