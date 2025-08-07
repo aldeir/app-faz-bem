@@ -289,9 +289,7 @@
             donatedItems.forEach((item, index) => {
                 const itemEl = document.createElement('div');
                 itemEl.className = 'flex items-center space-x-4 bg-gray-50 p-3 rounded-lg border';
-                
-                const photoFile = item.mainPhotoFile;
-                const photoSrc = isReschedule ? item.mainPhotoUrl : (photoFile ? URL.createObjectURL(photoFile) : 'https://placehold.co/64x64/e2e8f0/e2e8f0?text=Sem+Foto');
+                const photoSrc = isReschedule ? item.mainPhotoUrl : URL.createObjectURL(item.mainPhotoFile);
                 
                 let customDetailsHtml = Object.entries(item.customFields || {})
                     .filter(([key]) => key !== item.mainPhotoId)
