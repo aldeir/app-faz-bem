@@ -289,11 +289,14 @@
             donatedItems.forEach((item, index) => {
                 const itemEl = document.createElement('div');
                 itemEl.className = 'flex items-center space-x-4 bg-gray-50 p-3 rounded-lg border';
-                const photoSrc = isReschedule ? item.mainPhotoUrl : URL.createObjectURL(item.mainPhotoFile);
                 
-                let customDetailsHtml = Object.entries(item.customFields || {})
-                    .filter(([key]) => key !== item.mainPhotoId)
+                // --- INÍCIO DA CORREÇÃO: Usa photoURL para reagendamento e objectURL para novos itens ---
+                const photoSrc = isReschedule ? item.photoURL : URL.createObjectURL(item.mainPhotoFile);
+                
+                let customDetailsHtml = Object.entries(item.customFields || item)
+                    .filter(([key]) => !['type', 'photoURL', 'mainPhotoId', 'mainPhotoFile', 'status'].includes(key) && item[key])
                     .map(([key, value]) => {
+                // --- FIM DA CORREÇÃO ---
                         const fieldConfig = campaignTypeSettings[campaignData.type]?.fields?.find(f => f.id === key);
                         const fieldValue = (value instanceof File) ? value.name : value;
                         return `<span class="text-xs text-gray-500">${fieldConfig?.label || key}: <strong>${fieldValue}</strong></span>`;
@@ -418,7 +421,11 @@
             renderDonatedItems();
             
             addItemForm.reset();
-            renderDynamicFields(campaignData.type);
+            // Limpa os nomes de ficheiro dos inputs de ficheiro
+            dynamicFieldsContainer.querySelectorAll('input[type="file"]').forEach(input => {
+                const label = document.getElementById(`file-label-${input.name}`);
+                if (label) label.textContent = 'Selecionar ficheiro';
+            });
         });
 
         donatedItemsList.addEventListener('click', (e) => {
@@ -445,17 +452,32 @@
                 const itemsToSave = isRescheduleMode 
                     ? donatedItems 
                     : await Promise.all(donatedItems.map(async (item) => {
-                        const mainPhotoUrl = item.mainPhotoFile ? await uploadBytes(storageRef(storage, `donated_items/${userId}/${Date.now()}_${item.mainPhotoFile.name}`), item.mainPhotoFile).then(snap => getDownloadURL(snap.ref)) : null;
-                        
+                        // --- INÍCIO DA CORREÇÃO E OTIMIZAÇÃO ---
                         const customFieldsWithUrls = { ...item.customFields };
+                        
+                        // Processa todos os uploads de ficheiro (incluindo a foto principal)
                         for (const key in item.customFields) {
                             if (item.customFields[key] instanceof File) {
-                                const customFilePath = `donated_items/${userId}/custom_${Date.now()}_${item.customFields[key].name}`;
-                                customFieldsWithUrls[key] = await uploadBytes(storageRef(storage, customFilePath), item.customFields[key]).then(snap => getDownloadURL(snap.ref));
+                                const file = item.customFields[key];
+                                const customFilePath = `donated_items/${userId}/${Date.now()}_${file.name}`;
+                                const url = await uploadBytes(storageRef(storage, customFilePath), file).then(snap => getDownloadURL(snap.ref));
+                                customFieldsWithUrls[key] = url;
                             }
                         }
 
-                        return { type: item.type, mainPhotoUrl, status: 'pending', customFields: customFieldsWithUrls };
+                        // Define a photoURL principal a partir do campo de imagem correspondente
+                        const photoURL = item.mainPhotoId ? customFieldsWithUrls[item.mainPhotoId] : null;
+
+                        // Combina todos os campos num único objeto (flat)
+                        const finalItemObject = {
+                            ...customFieldsWithUrls,
+                            type: item.type,
+                            photoURL: photoURL,
+                            status: 'pending'
+                        };
+
+                        return finalItemObject;
+                        // --- FIM DA CORREÇÃO E OTIMIZAÇÃO ---
                     }));
 
                 const newDonationData = {
