@@ -192,6 +192,14 @@
             const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
             const campaignTypesSnap = await getDoc(campaignTypesRef);
             campaignTypesData = campaignTypesSnap.exists() ? campaignTypesSnap.data() : {};
+            
+            for(const typeId in campaignTypesData) {
+                const fieldsObject = campaignTypesData[typeId].fields;
+                if(fieldsObject && !Array.isArray(fieldsObject)) {
+                    campaignTypesData[typeId].fields = Object.values(fieldsObject);
+                }
+            }
+
             renderCampaignTypes();
             populateFieldCampaignTypeSelect();
         }
@@ -233,7 +241,7 @@
 
             fields.forEach((field, index) => {
                 const item = document.createElement('div');
-                item.className = `flex items-center justify-between p-2 rounded-md hover:bg-gray-50 ${field.active ? '' : 'opacity-50'}`;
+                item.className = `flex items-center justify-between p-2 rounded-md hover:bg-gray-50 ${field.active === false ? 'opacity-50' : ''}`;
                 item.innerHTML = `
                     <div class="flex items-center space-x-4">
                         <div class="flex flex-col">
@@ -247,7 +255,7 @@
                     </div>
                     <div class="flex items-center space-x-4">
                         <label class="switch" title="${field.active ? 'Desativar' : 'Ativar'}">
-                            <input type="checkbox" data-action="toggle-active" data-index="${index}" ${field.active ? 'checked' : ''}>
+                            <input type="checkbox" data-action="toggle-active" data-index="${index}" ${field.active === false ? '' : 'checked'}>
                             <span class="slider"></span>
                         </label>
                         <button data-action="edit-field" data-index="${index}" class="text-sm text-blue-600 hover:underline">Editar</button>
@@ -389,7 +397,7 @@
                     renderCustomFields(campaignTypeId);
                 } catch (error) {
                     showAlertModal('Erro', `Não foi possível salvar a alteração: ${error.message}`);
-                    await loadConfigs(); // Recarrega para reverter visualmente
+                    await loadConfigs();
                 }
             }
         });
@@ -423,12 +431,12 @@
             const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
             const fields = campaignTypesData[campaignTypeId]?.fields || [];
 
-            if (originalFieldId) { // Modo Edição
+            if (originalFieldId) {
                 const fieldIndex = fields.findIndex(f => f.id === originalFieldId);
                 if (fieldIndex > -1) fields[fieldIndex] = newFieldData;
-            } else { // Modo Adição
+            } else {
                 if (fields.some(f => f.id === fieldId)) {
-                    showAlertModal('Erro', `O ID de campo "${fieldId}" já existe para este tipo de campanha.`);
+                    showAlertModal('Erro', `O ID de campo "${fieldId}" já existe.`);
                     return;
                 }
                 fields.push(newFieldData);
