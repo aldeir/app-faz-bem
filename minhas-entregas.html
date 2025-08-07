@@ -9,6 +9,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
     <link rel="icon" href="images/icons/icon-72x72.png" type="image/png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -253,36 +254,32 @@
                     break;
             }
             
-            // --- INÍCIO DA CORREÇÃO NA EXIBIÇÃO DE DETALHES ---
             const fieldsConfig = campaignTypeSettings[campaignType]?.fields || [];
-            // Cria um Set com os IDs dos campos que são de imagem/vídeo para fácil consulta
             const mediaFieldIds = new Set(fieldsConfig.filter(f => f.type === 'image' || f.type === 'video').map(f => f.id));
 
             let itemsHtml = donation.items.map((item, index) => {
-                let itemDetailsHtml = '';
-                
+                let itemDetailsHtml = '<div class="space-y-1 mt-1">';
                 fieldsConfig.forEach(field => {
                     const key = field.id;
                     const value = item[key];
-                    // NÃO exibe o campo se: não houver valor, for um campo de mídia, ou for o campo 'type' (já exibido como título)
-                    if (value && !mediaFieldIds.has(key) && key !== 'type') {
+                    if (value && !mediaFieldIds.has(key) && key !== 'type' && key !== 'photoURL') {
                         itemDetailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
                     }
                 });
+                itemDetailsHtml += '</div>';
 
                 return `
                 <div class="item-card flex items-start space-x-4 p-3 bg-gray-50 rounded-md border ${tab === 'scheduled' ? 'cursor-pointer' : ''} transition-all" 
-                     ${tab === 'scheduled' ? `data-donation-id="${donation.id}"` : ''} 
-                     data-item-index="${index}" data-item-title="${item.type}" data-item-photo="${item.photoURL}">
+                     ${tab === 'scheduled' ? `data-donation-id="${donation.id}" data-item-index="${index}"` : ''} 
+                     data-item-title="${item.type}" data-item-photo="${item.photoURL}">
                     <img src="${item.photoURL || 'https://placehold.co/64x64/e2e8f0/e2e8f0?text=Item'}" class="w-16 h-16 rounded-md object-cover flex-shrink-0">
-                    <div class="flex-grow space-y-1">
+                    <div class="flex-grow">
                         <p class="font-bold">${item.type}</p>
                         ${itemDetailsHtml}
                     </div>
                     <div id="qr-${donation.id}-${index}" class="w-20 h-20 pointer-events-none flex-shrink-0"></div>
                 </div>`;
             }).join('');
-            // --- FIM DA CORREÇÃO ---
             
             if (tab === 'scheduled') {
                 donation.items.forEach((item, index) => {
@@ -328,15 +325,15 @@
         });
 
         deliveriesList.addEventListener('click', async (e) => {
-            const itemCard = e.target.closest('.item-card');
+            const itemCard = e.target.closest('.item-card[data-donation-id]');
             const rescheduleBtn = e.target.closest('[data-action="reschedule"]');
 
-            if (itemCard && itemCard.dataset.donationId) {
+            if (itemCard) {
                 const { donationId, itemIndex, itemTitle, itemPhoto } = itemCard.dataset;
                 modalItemTitle.textContent = itemTitle;
                 modalItemPhoto.src = itemPhoto || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem';
                 modalItemQrcode.innerHTML = '';
-                generateQRCode('modal-item-qrcode', `${donationId}|${index}`);
+                generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`);
                 itemFocusModal.classList.remove('hidden');
             }
             
