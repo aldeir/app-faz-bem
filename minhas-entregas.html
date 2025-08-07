@@ -91,6 +91,7 @@
 
         let allUserDonations = [];
         let campaignsCache = new Map();
+        let campaignTypeSettings = {}; // Para guardar as cores
         let currentPage = 1;
         const DONATIONS_PER_PAGE = 5;
 
@@ -100,6 +101,9 @@
 
             const userSession = await getCurrentUser();
             if (userSession) {
+                // Carrega as configurações de tipos de campanha primeiro
+                const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
+                campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
                 loadUserDeliveries(userSession.auth.uid);
             } else {
                 window.location.href = 'login.html';
@@ -145,7 +149,6 @@
             } else if (activeTab === 'cancelled') {
                 filteredDonations = allUserDonations.filter(d => d.status === 'cancelled_by_entity');
             } else if (activeTab === 'history') {
-                // Histórico agora inclui doações concluídas, reagendadas e aquelas cujo agendamento expirou com a campanha já encerrada.
                 filteredDonations = allUserDonations.filter(d => {
                     const campaign = campaignsCache.get(d.campaignId);
                     const isCampaignOver = campaign ? campaign.expiresAt.toDate() < now : true;
@@ -157,7 +160,7 @@
             filteredDonations.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
             
             if (filteredDonations.length === 0 && !append) {
-                deliveriesList.innerHTML = ''; // Limpa a lista antes de adicionar o placeholder
+                deliveriesList.innerHTML = '';
                 deliveriesList.appendChild(noDeliveriesPlaceholder);
                 noDeliveriesPlaceholder.classList.remove('hidden');
                 loadMoreContainer.classList.add('hidden');
@@ -185,7 +188,12 @@
 
         function createDeliveryCard(donation, campaign, tab) {
             const card = document.createElement('div');
-            card.className = 'bg-white rounded-xl shadow-lg overflow-hidden';
+            // --- INÍCIO DA MELHORIA VISUAL: Adiciona a cor da campanha ---
+            const campaignType = campaign?.type || 'default';
+            const typeSettings = campaignTypeSettings[campaignType] || { color: 'gray' };
+            const borderColorClass = `border-${typeSettings.color}-500`;
+            card.className = `bg-white rounded-xl shadow-lg overflow-hidden border-l-4 ${borderColorClass}`;
+            // --- FIM DA MELHORIA VISUAL ---
 
             const scheduledDate = donation.scheduledAt.toDate();
             const formattedDate = scheduledDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
@@ -195,20 +203,22 @@
             const now = new Date();
             const isCampaignActive = campaign && campaign.expiresAt.toDate() > now;
             
-            // --- INÍCIO DA LÓGICA DE REAGENDAMENTO ---
-            // Verifica se a doação já foi reagendada anteriormente
-            const hasBeenRescheduled = allUserDonations.some(d => d.status === 'reagendado' && d.items.some(item => donation.items.map(i => i.photoURL).includes(i.photoURL)));
-            // --- FIM DA LÓGICA DE REAGENDAMENTO ---
+            // --- INÍCIO DA CORREÇÃO DO ERRO ---
+            const photoURLsInThisDonation = new Set(donation.items.map(item => item.photoURL).filter(Boolean));
+            const hasBeenRescheduled = allUserDonations.some(d => 
+                d.status === 'reagendado' &&
+                d.items.some(item => photoURLsInThisDonation.has(item.photoURL))
+            );
+            // --- FIM DA CORREÇÃO DO ERRO ---
 
             switch(tab) {
                 case 'scheduled':
-                    headerHtml = `<div class="bg-green-600 text-white p-6">
-                                    <h2 class="text-2xl font-bold">${donation.campaignTitle}</h2>
-                                    <p class="mt-1">Agendado para: <span class="font-semibold">${formattedDate} às ${formattedTime}</span></p>
+                    headerHtml = `<div class="bg-green-50 p-6">
+                                    <h2 class="text-2xl font-bold text-green-800">${donation.campaignTitle}</h2>
+                                    <p class="mt-1 text-green-700">Agendado para: <span class="font-semibold">${formattedDate} às ${formattedTime}</span></p>
                                   </div>`;
                     break;
                 case 'overdue':
-                    // --- LÓGICA DO BOTÃO REAGENDAR ---
                     const rescheduleBtn = (isCampaignActive && !hasBeenRescheduled)
                         ? `<button data-action="reschedule" data-donation-id="${donation.id}" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Reagendar Entrega</button>`
                         : (hasBeenRescheduled ? `<p class="mt-4 text-sm font-semibold text-gray-600 bg-gray-200 px-4 py-2 rounded-lg inline-block">Reagendamento já utilizado</p>` : `<p class="mt-4 text-sm font-semibold text-gray-600 bg-gray-200 px-4 py-2 rounded-lg inline-block">Campanha Encerrada</p>`);
@@ -244,11 +254,10 @@
                     break;
             }
 
-            // --- INÍCIO DA CORREÇÃO NA EXIBIÇÃO DE DETALHES ---
             let itemsHtml = donation.items.map((item, index) => {
                 const itemDetailsHtml = Object.entries(item)
                     .filter(([key]) => !['type', 'photoURL', 'status'].includes(key) && item[key])
-                    .map(([key, value]) => `<span class="text-xs text-gray-500 capitalize">${key.replace('_', ' ')}: <strong>${value}</strong></span>`)
+                    .map(([key, value]) => `<span class="text-xs text-gray-500 capitalize">${key.replace(/_/g, ' ')}: <strong>${value}</strong></span>`)
                     .join('; ');
 
                 return `
@@ -263,7 +272,6 @@
                     <div id="qr-${donation.id}-${index}" class="w-20 h-20 pointer-events-none"></div>
                 </div>`;
             }).join('');
-            // --- FIM DA CORREÇÃO ---
             
             if (tab === 'scheduled') {
                 donation.items.forEach((item, index) => {
@@ -282,10 +290,14 @@
         function generateQRCode(elementId, text, size) {
             const element = document.getElementById(elementId);
             if (!element) return;
-            const qr = qrcode(0, 'L');
-            qr.addData(text);
-            qr.make();
-            element.innerHTML = qr.createImgTag(size, 4);
+            try {
+                const qr = qrcode(0, 'L');
+                qr.addData(text);
+                qr.make();
+                element.innerHTML = qr.createImgTag(size, 4);
+            } catch (e) {
+                console.error(`Erro ao gerar QR code para ${elementId}:`, e);
+            }
         }
 
         tabsContainer.addEventListener('click', (e) => {
@@ -310,7 +322,7 @@
             if (itemCard && itemCard.dataset.donationId) {
                 const { donationId, itemIndex, itemTitle, itemPhoto } = itemCard.dataset;
                 modalItemTitle.textContent = itemTitle;
-                modalItemPhoto.src = itemPhoto;
+                modalItemPhoto.src = itemPhoto || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem';
                 modalItemQrcode.innerHTML = '';
                 generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`, 8);
                 itemFocusModal.classList.remove('hidden');
