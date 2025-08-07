@@ -20,17 +20,19 @@ service cloud.firestore {
 
     match /artifacts/{appId}/public/data {
 
-      // --- INÍCIO DA ALTERAÇÃO ---
+      // --- INÍCIO DA CORREÇÃO DE SEGURANÇA ---
       match /notifications/{notificationId} {
-        // PERMITE QUE QUALQUER UTILIZADOR AUTENTICADO CRIE UMA NOTIFICAÇÃO.
-        // A lógica da aplicação garante que ela é criada para o destinatário correto.
-        allow create: if isAuthenticated(); 
+        // PERMITE a criação apenas se o 'userId' do documento que está a ser criado
+        // for o mesmo do utilizador autenticado. Isso impede que um utilizador crie
+        // notificações para outros.
+        allow create: if isOwner(request.resource.data.userId); 
         
-        // As regras de leitura e atualização permanecem restritas ao dono da notificação.
+        // As regras de leitura e atualização permanecem, permitindo que um utilizador
+        // apenas leia e atualize as suas próprias notificações.
         allow read, update: if isOwner(resource.data.userId); 
         allow delete: if false;
       }
-      // --- FIM DA ALTERAÇÃO ---
+      // --- FIM DA CORREÇÃO DE SEGURANÇA ---
 
       match /entidades/{entityId} {
         allow read: if isAuthenticated();
