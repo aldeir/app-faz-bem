@@ -299,36 +299,45 @@
                         : 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Item';
                 }
 
-                // --- INÍCIO DA CORREÇÃO: Lógica de exibição de detalhes ---
-                let detailsHtml = '';
                 const fieldsToRender = isReschedule ? item : item.customFields;
                 const fieldsConfig = campaignTypeSettings[campaignData.type]?.fields || [];
+                
+                let itemTitle = 'Item Adicionado';
+                let detailsHtml = '';
 
-                fieldsConfig.forEach(fieldConfig => {
-                    const key = fieldConfig.id;
-                    const value = fieldsToRender[key];
-                    
-                    if (!value || key === item.mainPhotoId) {
-                        return;
+                // --- INÍCIO DA CORREÇÃO: Lógica de exibição de detalhes ---
+                if (fieldsConfig.length > 0) {
+                    // Tenta usar o primeiro campo da configuração como título
+                    const titleFieldKey = fieldsConfig[0].id;
+                    const titleValue = fieldsToRender[titleFieldKey];
+                    if (titleValue) {
+                        itemTitle = titleValue;
                     }
 
-                    const displayValue = (value instanceof File) ? value.name : value;
-                    detailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium text-gray-700">${fieldConfig.label}:</span> ${displayValue}</div>`;
-                });
-                
-                if (!detailsHtml) {
-                    detailsHtml = '<p class="text-xs text-gray-500">Detalhes não informados.</p>';
+                    // Percorre todos os campos para criar a lista de detalhes
+                    fieldsConfig.forEach(fieldConfig => {
+                        const key = fieldConfig.id;
+                        const value = fieldsToRender[key];
+                        
+                        // Não mostra o campo se estiver vazio, se for o campo de título, ou se for a foto principal
+                        if (!value || key === titleFieldKey || key === item.mainPhotoId) {
+                            return;
+                        }
+
+                        const displayValue = (value instanceof File) ? value.name : value;
+                        detailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium text-gray-700">${fieldConfig.label}:</span> ${displayValue}</div>`;
+                    });
                 }
+                // --- FIM DA CORREÇÃO ---
 
                 itemEl.innerHTML = `
                     <img src="${photoSrc}" class="w-16 h-16 rounded-md object-cover flex-shrink-0">
                     <div class="flex-grow space-y-1">
-                        <p class="font-bold">${item.type}</p>
+                        <p class="font-bold">${itemTitle}</p>
                         ${detailsHtml}
                     </div>
                     ${!isReschedule ? `<button data-index="${index}" class="remove-item-btn text-red-500 hover:text-red-700 font-semibold flex-shrink-0">Remover</button>` : ''}
                 `;
-                // --- FIM DA CORREÇÃO ---
                 donatedItemsList.appendChild(itemEl);
             });
         }
@@ -400,18 +409,13 @@
             let allFieldsValid = true;
             let mainPhotoFile = null;
             let mainPhotoId = null;
-            let itemType = '';
-
+            
             const fieldsConfig = campaignTypeSettings[campaignData.type]?.fields || [];
             const activeImageFields = fieldsConfig.filter(f => f.type === 'image' && f.active !== false);
             
             if (activeImageFields.length > 0) {
                 mainPhotoId = activeImageFields[0].id;
             }
-
-            // --- INÍCIO DA CORREÇÃO: Lógica para definir o nome do item (type) ---
-            const firstTextField = fieldsConfig.find(f => f.type === 'text' || f.type === 'select');
-            // --- FIM DA CORREÇÃO ---
 
             dynamicInputs.forEach(input => {
                 if (input.required && ((input.type === 'file' && input.files.length === 0) || !input.value)) {
@@ -423,15 +427,7 @@
                 if (file && mainPhotoId && input.name === mainPhotoId) {
                     mainPhotoFile = file;
                 }
-                
-                if (firstTextField && input.name === firstTextField.id && input.value) {
-                    itemType = input.value;
-                }
             });
-
-            if (!itemType) { // Se não encontrou um campo de texto, usa o título da campanha como fallback
-                itemType = campaignData.title;
-            }
 
             if (!allFieldsValid) {
                 addItemError.textContent = 'Por favor, preencha todos os campos obrigatórios.';
@@ -442,8 +438,8 @@
                  addItemError.textContent = `Por favor, adicione uma "${firstRequiredImageField.label}".`;
                  return;
             }
-
-            donatedItems.push({ type: itemType, mainPhotoFile, mainPhotoId, customFields: customFieldsData });
+            // Usa um objeto simples para passar para a renderização, sem o 'type' que estava a causar confusão
+            donatedItems.push({ mainPhotoFile, mainPhotoId, customFields: customFieldsData });
             renderDonatedItems();
             
             addItemForm.reset();
@@ -490,9 +486,20 @@
 
                         const photoURL = item.mainPhotoId ? customFieldsWithUrls[item.mainPhotoId] : null;
 
+                        // --- INÍCIO DA CORREÇÃO: Define o 'type' do item antes de guardar ---
+                        const fieldsConfig = campaignTypeSettings[campaignData.type]?.fields || [];
+                        let itemType = campaignData.title; // Fallback
+                        if (fieldsConfig.length > 0) {
+                            const titleFieldKey = fieldsConfig[0].id;
+                            if(customFieldsWithUrls[titleFieldKey]) {
+                                itemType = customFieldsWithUrls[titleFieldKey];
+                            }
+                        }
+                        // --- FIM DA CORREÇÃO ---
+
                         const finalItemObject = {
                             ...customFieldsWithUrls,
-                            type: item.type,
+                            type: itemType,
                             photoURL: photoURL,
                             status: 'pending'
                         };
