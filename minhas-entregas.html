@@ -91,7 +91,7 @@
 
         let allUserDonations = [];
         let campaignsCache = new Map();
-        let campaignTypeSettings = {}; // Para guardar as cores
+        let campaignTypeSettings = {};
         let currentPage = 1;
         const DONATIONS_PER_PAGE = 5;
 
@@ -101,7 +101,6 @@
 
             const userSession = await getCurrentUser();
             if (userSession) {
-                // Carrega as configurações de tipos de campanha primeiro
                 const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
                 campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
                 loadUserDeliveries(userSession.auth.uid);
@@ -188,12 +187,10 @@
 
         function createDeliveryCard(donation, campaign, tab) {
             const card = document.createElement('div');
-            // --- INÍCIO DA MELHORIA VISUAL: Adiciona a cor da campanha ---
             const campaignType = campaign?.type || 'default';
             const typeSettings = campaignTypeSettings[campaignType] || { color: 'gray' };
             const borderColorClass = `border-${typeSettings.color}-500`;
             card.className = `bg-white rounded-xl shadow-lg overflow-hidden border-l-4 ${borderColorClass}`;
-            // --- FIM DA MELHORIA VISUAL ---
 
             const scheduledDate = donation.scheduledAt.toDate();
             const formattedDate = scheduledDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
@@ -203,13 +200,11 @@
             const now = new Date();
             const isCampaignActive = campaign && campaign.expiresAt.toDate() > now;
             
-            // --- INÍCIO DA CORREÇÃO DO ERRO ---
             const photoURLsInThisDonation = new Set(donation.items.map(item => item.photoURL).filter(Boolean));
             const hasBeenRescheduled = allUserDonations.some(d => 
                 d.status === 'reagendado' &&
                 d.items.some(item => photoURLsInThisDonation.has(item.photoURL))
             );
-            // --- FIM DA CORREÇÃO DO ERRO ---
 
             switch(tab) {
                 case 'scheduled':
@@ -245,7 +240,7 @@
                     break;
                 case 'history':
                     let historyStatusText = 'Não entregue (campanha encerrada)';
-                    if (donation.status === 'completed') historyStatusText = `Entregue com sucesso em ${formattedDate}`;
+                    if (donation.status === 'completed') historyStatusText = `Entregue com sucesso em ${donation.items[0].receivedDate ? donation.items[0].receivedDate.toDate().toLocaleDateString('pt-BR') : formattedDate}`;
                     else if (donation.status === 'reagendado') historyStatusText = 'Esta doação foi reagendada com sucesso.';
                     headerHtml = `<div class="bg-gray-100 p-6">
                                     <h2 class="text-2xl font-bold text-gray-800">${donation.campaignTitle}</h2>
@@ -253,29 +248,39 @@
                                   </div>`;
                     break;
             }
-
+            
+            // --- INÍCIO DA CORREÇÃO NA EXIBIÇÃO DE DETALHES ---
+            const fieldsConfig = campaignTypeSettings[campaignType]?.fields || [];
             let itemsHtml = donation.items.map((item, index) => {
-                const itemDetailsHtml = Object.entries(item)
-                    .filter(([key]) => !['type', 'photoURL', 'status'].includes(key) && item[key])
-                    .map(([key, value]) => `<span class="text-xs text-gray-500 capitalize">${key.replace(/_/g, ' ')}: <strong>${value}</strong></span>`)
-                    .join('; ');
+                let itemDetailsHtml = '';
+                if (fieldsConfig.length > 0) {
+                    fieldsConfig.forEach(field => {
+                        const key = field.id;
+                        const value = item[key];
+                        // Não exibe se não houver valor, se for a foto principal ou o 'type'
+                        if (value && key !== 'photoURL' && key !== fieldsConfig[0].id) {
+                            itemDetailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
+                        }
+                    });
+                }
 
                 return `
-                <div class="item-card flex items-center space-x-4 p-3 bg-gray-50 rounded-md border ${tab === 'scheduled' ? 'cursor-pointer' : ''} transition-all" 
+                <div class="item-card flex items-start space-x-4 p-3 bg-gray-50 rounded-md border ${tab === 'scheduled' ? 'cursor-pointer' : ''} transition-all" 
                      ${tab === 'scheduled' ? `data-donation-id="${donation.id}"` : ''} 
                      data-item-index="${index}" data-item-title="${item.type}" data-item-photo="${item.photoURL}">
-                    <img src="${item.photoURL || 'https://placehold.co/64x64/e2e8f0/e2e8f0?text=Item'}" class="w-16 h-16 rounded-md object-cover pointer-events-none">
-                    <div class="flex-grow pointer-events-none">
+                    <img src="${item.photoURL || 'https://placehold.co/64x64/e2e8f0/e2e8f0?text=Item'}" class="w-16 h-16 rounded-md object-cover flex-shrink-0">
+                    <div class="flex-grow space-y-1">
                         <p class="font-bold">${item.type}</p>
-                        <p class="text-sm text-gray-600">${itemDetailsHtml}</p>
+                        ${itemDetailsHtml}
                     </div>
-                    <div id="qr-${donation.id}-${index}" class="w-20 h-20 pointer-events-none"></div>
+                    <div id="qr-${donation.id}-${index}" class="w-20 h-20 pointer-events-none flex-shrink-0"></div>
                 </div>`;
             }).join('');
+            // --- FIM DA CORREÇÃO ---
             
             if (tab === 'scheduled') {
                 donation.items.forEach((item, index) => {
-                    setTimeout(() => generateQRCode(`qr-${donation.id}-${index}`, `${donation.id}|${index}`, 4), 0);
+                    setTimeout(() => generateQRCode(`qr-${donation.id}-${index}`, `${donation.id}|${index}`), 0);
                 });
             }
 
@@ -287,16 +292,17 @@
             return card;
         }
 
-        function generateQRCode(elementId, text, size) {
+        function generateQRCode(elementId, text) {
             const element = document.getElementById(elementId);
             if (!element) return;
             try {
                 const qr = qrcode(0, 'L');
                 qr.addData(text);
                 qr.make();
-                element.innerHTML = qr.createImgTag(size, 4);
+                element.innerHTML = qr.createImgTag(4, 4); // size, margin
             } catch (e) {
                 console.error(`Erro ao gerar QR code para ${elementId}:`, e);
+                element.innerHTML = '<p class="text-xs text-red-500">Erro QR</p>';
             }
         }
 
@@ -324,7 +330,7 @@
                 modalItemTitle.textContent = itemTitle;
                 modalItemPhoto.src = itemPhoto || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem';
                 modalItemQrcode.innerHTML = '';
-                generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`, 8);
+                generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`);
                 itemFocusModal.classList.remove('hidden');
             }
             
