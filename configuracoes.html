@@ -18,6 +18,12 @@
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #16a34a; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .switch { position: relative; display: inline-block; width: 40px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #22c55e; }
+        input:checked + .slider:before { transform: translateX(16px); }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -152,7 +158,6 @@
         const campaignTypeLabelInput = document.getElementById('campaign-type-label');
         const campaignTypeColorSelect = document.getElementById('campaign-type-color');
         const cancelEditBtn = document.getElementById('cancel-edit-btn');
-        const campaignTypeIdHidden = document.getElementById('campaign-type-id-hidden');
         const fieldCampaignTypeSelect = document.getElementById('field-campaign-type-select');
         const customFieldsEditor = document.getElementById('custom-fields-editor');
         const customFieldsList = document.getElementById('custom-fields-list');
@@ -161,12 +166,12 @@
         const fieldIdInput = document.getElementById('field-id');
         const fieldTypeSelect = document.getElementById('field-type');
         const fieldOptionsContainer = document.getElementById('field-options-container');
+        const fieldOptionsInput = document.getElementById('field-options');
+        const fieldRequiredCheckbox = document.getElementById('field-required');
         const cancelFieldEditBtn = document.getElementById('cancel-field-edit-btn');
-        const originalFieldIdInput = document.getElementById('original-field-id');
         const submitFieldBtn = document.getElementById('submit-field-btn');
         const customFieldFormTitle = document.getElementById('custom-field-form-title');
-        const fieldRequiredCheckbox = document.getElementById('field-required');
-        const fieldOptionsInput = document.getElementById('field-options');
+        const originalFieldIdInput = document.getElementById('original-field-id');
 
         let campaignTypesData = {};
 
@@ -220,21 +225,33 @@
         function renderCustomFields(campaignTypeId) {
             customFieldsList.innerHTML = '';
             const typeData = campaignTypesData[campaignTypeId] || {};
-            const fields = typeData.fields || {};
-            if (Object.keys(fields).length === 0) {
+            const fields = typeData.fields || [];
+
+            if (fields.length === 0) {
                 customFieldsList.innerHTML = '<p class="text-sm text-gray-500 text-center p-2">Nenhum campo personalizado.</p>';
             }
-            Object.entries(fields).forEach(([id, data]) => {
+
+            fields.forEach((field, index) => {
                 const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-2 rounded-md hover:bg-gray-50';
+                item.className = `flex items-center justify-between p-2 rounded-md hover:bg-gray-50 ${field.active ? '' : 'opacity-50'}`;
                 item.innerHTML = `
-                    <div>
-                        <p class="font-medium">${data.label} <span class="text-xs text-gray-500">(${id})</span></p>
-                        <p class="text-xs text-gray-400">Tipo: ${data.type} ${data.required ? ' (Obrigatório)' : ''}</p>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex flex-col">
+                            <button data-action="move-field" data-direction="up" data-index="${index}" ${index === 0 ? 'disabled' : ''} class="disabled:opacity-20"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg></button>
+                            <button data-action="move-field" data-direction="down" data-index="${index}" ${index === fields.length - 1 ? 'disabled' : ''} class="disabled:opacity-20"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg></button>
+                        </div>
+                        <div>
+                            <p class="font-medium">${field.label} <span class="text-xs text-gray-500">(${field.id})</span></p>
+                            <p class="text-xs text-gray-400">Tipo: ${field.type}${field.required ? ' (Obrigatório)' : ''}</p>
+                        </div>
                     </div>
-                    <div class="space-x-3">
-                        <button data-action="edit-field" data-type-id="${campaignTypeId}" data-field-id="${id}" class="text-sm text-blue-600 hover:underline">Editar</button>
-                        <button data-action="delete-field" data-type-id="${campaignTypeId}" data-field-id="${id}" class="text-sm text-red-600 hover:underline">Excluir</button>
+                    <div class="flex items-center space-x-4">
+                        <label class="switch" title="${field.active ? 'Desativar' : 'Ativar'}">
+                            <input type="checkbox" data-action="toggle-active" data-index="${index}" ${field.active ? 'checked' : ''}>
+                            <span class="slider"></span>
+                        </label>
+                        <button data-action="edit-field" data-index="${index}" class="text-sm text-blue-600 hover:underline">Editar</button>
+                        <button data-action="delete-field" data-index="${index}" class="text-sm text-red-600 hover:underline">Excluir</button>
                     </div>`;
                 customFieldsList.appendChild(item);
             });
@@ -263,7 +280,6 @@
             const id = button.dataset.id;
             const data = campaignTypesData[id];
             campaignFormTitle.textContent = 'Editar Tipo de Campanha';
-            campaignTypeIdHidden.value = id;
             campaignTypeIdInput.value = id;
             campaignTypeIdInput.disabled = true;
             campaignTypeLabelInput.value = data.label;
@@ -275,7 +291,6 @@
             campaignTypeForm.reset();
             campaignFormTitle.textContent = 'Adicionar Novo Tipo';
             campaignTypeIdInput.disabled = false;
-            campaignTypeIdHidden.value = '';
             cancelEditBtn.classList.add('hidden');
         });
 
@@ -323,19 +338,23 @@
         });
 
         customFieldsList.addEventListener('click', async (e) => {
-            const button = e.target.closest('button[data-action]');
+            const button = e.target.closest('button, input[type="checkbox"]');
             if (!button) return;
 
-            const { typeId, fieldId } = button.dataset;
+            const campaignTypeId = fieldCampaignTypeSelect.value;
+            const index = parseInt(button.dataset.index, 10);
+            const fields = campaignTypesData[campaignTypeId].fields || [];
+            
+            const action = button.dataset.action;
 
-            if (button.dataset.action === 'edit-field') {
-                const fieldData = campaignTypesData[typeId].fields[fieldId];
+            if (action === 'edit-field') {
+                const fieldData = fields[index];
                 customFieldFormTitle.textContent = 'Editar Campo';
                 submitFieldBtn.textContent = 'Salvar Alterações';
-                originalFieldIdInput.value = fieldId;
+                originalFieldIdInput.value = fieldData.id;
                 
                 fieldLabelInput.value = fieldData.label;
-                fieldIdInput.value = fieldId;
+                fieldIdInput.value = fieldData.id;
                 fieldIdInput.readOnly = false;
                 fieldTypeSelect.value = fieldData.type;
                 fieldRequiredCheckbox.checked = fieldData.required || false;
@@ -346,20 +365,31 @@
                 }
                 cancelFieldEditBtn.classList.remove('hidden');
                 
-            } else if (button.dataset.action === 'delete-field') {
-                const confirmed = await showConfirmationModal('Excluir Campo', `Tem a certeza de que deseja excluir o campo "${fieldId}"?`);
-                if (confirmed) {
-                    const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-                    const fieldPath = `${typeId}.fields.${fieldId}`;
-                    try {
-                        await updateDoc(campaignTypesRef, { [fieldPath]: deleteField() });
-                        showAlertModal('Sucesso!', 'Campo excluído.');
-                        
-                        delete campaignTypesData[typeId].fields[fieldId];
-                        renderCustomFields(typeId);
-                    } catch (error) {
-                        showAlertModal('Erro', `Não foi possível excluir o campo: ${error.message}`);
+            } else if (action === 'delete-field' || action === 'move-field' || action === 'toggle-active') {
+                if (action === 'delete-field') {
+                    const confirmed = await showConfirmationModal('Excluir Campo', `Tem a certeza?`);
+                    if (!confirmed) return;
+                    fields.splice(index, 1);
+                } else if (action === 'move-field') {
+                    const direction = button.dataset.direction;
+                    if (direction === 'up' && index > 0) {
+                        [fields[index], fields[index - 1]] = [fields[index - 1], fields[index]];
+                    } else if (direction === 'down' && index < fields.length - 1) {
+                        [fields[index], fields[index + 1]] = [fields[index + 1], fields[index]];
                     }
+                } else if (action === 'toggle-active') {
+                    fields[index].active = button.checked;
+                }
+
+                const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
+                const fieldPath = `${campaignTypeId}.fields`;
+                try {
+                    await updateDoc(campaignTypesRef, { [fieldPath]: fields });
+                    if(action !== 'toggle-active') showAlertModal('Sucesso!', 'Operação concluída.');
+                    renderCustomFields(campaignTypeId);
+                } catch (error) {
+                    showAlertModal('Erro', `Não foi possível salvar a alteração: ${error.message}`);
+                    await loadConfigs(); // Recarrega para reverter visualmente
                 }
             }
         });
@@ -375,16 +405,12 @@
             const isRequired = fieldRequiredCheckbox.checked;
             const originalFieldId = originalFieldIdInput.value;
 
-            // --- INÍCIO DA ADIÇÃO DA LINHA DE DEPURAÇÃO ---
-            console.log('[DEBUG] Valores no momento da submissão:', { campaignTypeId, fieldId, fieldLabel });
-            // --- FIM DA ADIÇÃO DA LINHA DE DEPURAÇÃO ---
-
             if (!campaignTypeId || !fieldId || !fieldLabel) {
                 showAlertModal('Erro', 'Rótulo e ID são obrigatórios.');
                 return;
             }
 
-            const newFieldData = { label: fieldLabel, type: fieldType, required: isRequired };
+            const newFieldData = { id: fieldId, label: fieldLabel, type: fieldType, required: isRequired, active: true };
             if (fieldType === 'select') {
                 const options = fieldOptionsInput.value.split(',').map(opt => opt.trim()).filter(Boolean);
                 if (options.length === 0) {
@@ -395,15 +421,21 @@
             }
             
             const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-            
-            try {
-                let updateData = {};
-                if (originalFieldId && originalFieldId !== fieldId) {
-                    updateData[`${campaignTypeId}.fields.${originalFieldId}`] = deleteField();
-                }
-                updateData[`${campaignTypeId}.fields.${fieldId}`] = newFieldData;
+            const fields = campaignTypesData[campaignTypeId]?.fields || [];
 
-                await updateDoc(campaignTypesRef, updateData);
+            if (originalFieldId) { // Modo Edição
+                const fieldIndex = fields.findIndex(f => f.id === originalFieldId);
+                if (fieldIndex > -1) fields[fieldIndex] = newFieldData;
+            } else { // Modo Adição
+                if (fields.some(f => f.id === fieldId)) {
+                    showAlertModal('Erro', `O ID de campo "${fieldId}" já existe para este tipo de campanha.`);
+                    return;
+                }
+                fields.push(newFieldData);
+            }
+
+            try {
+                await updateDoc(campaignTypesRef, { [`${campaignTypeId}.fields`]: fields });
                 showAlertModal('Sucesso!', 'Campo salvo com sucesso.');
                 
                 await loadConfigs();
