@@ -32,6 +32,7 @@
         <div id="donations-view" class="hidden">
             <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">Gerenciar Doações</h1>
+                <a href="admin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
                 <button onclick="window.openQrModal()" class="bg-gray-800 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300 flex items-center justify-center w-full sm:w-auto">
                     <i class="fas fa-qrcode mr-2"></i> Ler QR Code da Doação
                 </button>
@@ -131,8 +132,7 @@
                 for (const donationDoc of querySnapshot.docs) {
                     allDonationsData.push({ id: donationDoc.id, ...donationDoc.data() });
                 }
-                allDonationsData.sort((a, b) => (b.scheduledAt?.toDate() || 0) - (a.scheduledAt?.toDate() || 0));
-
+                
                 updateStatusCounters();
                 await renderItemsByStatus();
 
@@ -204,154 +204,135 @@
                 itemsToFilter = itemsToFilter.filter(item => item.donationId === filterDonationId);
             }
 
-            const itemsByCampaign = (await Promise.all(itemsToFilter.map(async item => {
-                let campaignData = campaignsCache.get(item.campaignId);
-                if (!campaignData) {
-                    const campaignDoc = await getDoc(doc(db, paths.campaignDoc(item.campaignId)));
-                    campaignData = campaignDoc.exists() ? {id: campaignDoc.id, ...campaignDoc.data()} : { id: item.campaignId, title: 'Campanha Desconhecida' };
-                    campaignsCache.set(item.campaignId, campaignData);
-                }
-                item.campaignTitle = campaignData.title;
-                item.campaignIsActive = (campaignData.expiresAt?.toDate() || new Date()) > new Date();
+            const getCampaignData = async (campaignId) => {
+                if (campaignsCache.has(campaignId)) return campaignsCache.get(campaignId);
+                const campaignDoc = await getDoc(doc(db, paths.campaignDoc(campaignId)));
+                const data = campaignDoc.exists() ? {id: campaignDoc.id, ...campaignDoc.data()} : { id: campaignId, title: 'Campanha Desconhecida', expiresAt: { toDate: () => new Date(0) } };
+                campaignsCache.set(campaignId, data);
+                return data;
+            };
 
-                let donorName = profilesCache.get(item.donorId)?.displayName || 'Doador Anônimo';
-                if (!profilesCache.has(item.donorId)) {
-                    const donorDoc = await getDoc(doc(db, paths.userDoc(item.donorId)));
-                    if (donorDoc.exists()) {
-                        profilesCache.set(item.donorId, donorDoc.data());
-                        donorName = donorDoc.data().displayName;
-                    }
+            const getDonorName = async (donorId) => {
+                if (profilesCache.has(donorId)) return profilesCache.get(donorId).displayName;
+                const donorDoc = await getDoc(doc(db, paths.userDoc(donorId)));
+                if (donorDoc.exists()) {
+                    profilesCache.set(donorId, donorDoc.data());
+                    return donorDoc.data().displayName;
                 }
-                item.donorName = donorName;
+                return 'Doador Anônimo';
+            };
 
-                return item;
+            const enrichedItems = (await Promise.all(itemsToFilter.map(async item => {
+                const campaignData = await getCampaignData(item.campaignId);
+                const donorName = await getDonorName(item.donorId);
+                return {
+                    ...item,
+                    campaignTitle: campaignData.title,
+                    campaignIsActive: (campaignData.expiresAt.toDate() || new Date()) > new Date(),
+                    donorName: donorName
+                };
             }))).filter(item => 
                 !searchTerm ||
                 item.type.toLowerCase().includes(searchTerm) ||
                 item.donorName.toLowerCase().includes(searchTerm) ||
                 item.campaignTitle.toLowerCase().includes(searchTerm)
-            ).reduce((acc, item) => {
-                if (!acc[item.campaignId]) acc[item.campaignId] = [];
-                acc[item.campaignId].push(item);
-                return acc;
-            }, {});
+            );
             
-            const itemsForPagination = Object.values(itemsByCampaign).flat();
-            const itemsForCurrentPage = (activeTab === 'completed') 
-                ? itemsForPagination.slice(0, completedItemsPage * ITEMS_PER_PAGE)
-                : itemsForPagination;
-
-            const finalItemsByCampaign = itemsForCurrentPage.reduce((acc, item) => {
-                if (!acc[item.campaignId]) acc[item.campaignId] = [];
-                acc[item.campaignId].push(item);
-                return acc;
-            }, {});
-
-            if (Object.keys(finalItemsByCampaign).length === 0) {
+            if (enrichedItems.length === 0) {
                 noDonationsMessage.style.display = 'block';
                 return;
             }
             noDonationsMessage.style.display = 'none';
             
-            for (const campaignId in finalItemsByCampaign) {
-                const campaignData = campaignsCache.get(campaignId);
-                const items = finalItemsByCampaign[campaignId];
-                
-                const campaignCard = await createCampaignCard(campaignData, items, activeTab);
-                if (campaignCard) donationsContainer.appendChild(campaignCard);
-            }
+            // --- NOVA LÓGICA DE AGRUPAMENTO HIERÁRQUICO ---
+            const groupedByDay = enrichedItems.reduce((acc, item) => {
+                const dateKey = item.scheduledAt.toISOString().split('T')[0];
+                if (!acc[dateKey]) acc[dateKey] = [];
+                acc[dateKey].push(item);
+                return acc;
+            }, {});
 
-            if (activeTab === 'completed' && itemsForPagination.length > itemsForCurrentPage.length) {
-                const loadMoreBtn = document.createElement('button');
-                loadMoreBtn.textContent = 'Carregar Mais Itens';
-                loadMoreBtn.className = 'bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition';
-                loadMoreBtn.onclick = () => {
-                    completedItemsPage++;
-                    renderItemsByStatus();
-                };
-                paginationContainer.appendChild(loadMoreBtn);
-            }
+            const sortedDays = Object.keys(groupedByDay).sort((a, b) => new Date(a) - new Date(b));
+
+            sortedDays.forEach(dateKey => {
+                const dayItems = groupedByDay[dateKey];
+                const dayElement = document.createElement('div');
+                const dateObj = new Date(dateKey + 'T00:00:00');
+                const formattedDate = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+                
+                let dayContentHtml = `<h2 class="text-xl font-bold text-gray-800 mb-3 capitalize">${formattedDate}</h2>`;
+                
+                const groupedByTime = dayItems.reduce((acc, item) => {
+                    const timeKey = item.scheduledAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit'});
+                    if (!acc[timeKey]) acc[timeKey] = [];
+                    acc[timeKey].push(item);
+                    return acc;
+                }, {});
+
+                const sortedTimes = Object.keys(groupedByTime).sort();
+                
+                sortedTimes.forEach(timeKey => {
+                    const timeItems = groupedByTime[timeKey];
+                    const donorsInSlot = timeItems.reduce((acc, item) => {
+                         if (!acc[item.donorId]) {
+                            acc[item.donorId] = {
+                                donorName: item.donorName,
+                                items: []
+                            }
+                        }
+                        acc[item.donorId].items.push(item);
+                        return acc;
+                    }, {});
+
+                    let slotHtml = `<div class="bg-white rounded-lg shadow-sm border p-4 pl-6 ml-4 border-l-4 border-blue-500">
+                                        <div class="flex justify-between items-center">
+                                            <p class="text-lg font-bold text-green-600">Horário: ${timeKey}</p>
+                                            <p class="text-sm font-semibold text-gray-600">${Object.keys(donorsInSlot).length} Doador(es)</p>
+                                        </div>
+                                        <div class="mt-4 pt-4 border-t space-y-4">`;
+
+                    for (const donorId in donorsInSlot) {
+                        const donorData = donorsInSlot[donorId];
+                        const itemsHtml = donorData.items.map(item => renderItemRow(item, activeTab)).join('');
+                        slotHtml += `<div class="pl-4">
+                                        <h4 class="font-semibold text-gray-800">${donorData.donorName}</h4>
+                                        <div class="space-y-2 mt-2">${itemsHtml}</div>
+                                     </div>`;
+                    }
+
+                    slotHtml += `</div></div>`;
+                    dayContentHtml += slotHtml;
+                });
+
+                dayElement.innerHTML = dayContentHtml;
+                donationsContainer.appendChild(dayElement);
+            });
         }
         
-        async function createCampaignCard(campaign, items, activeTab) {
-            const card = document.createElement('div');
-            card.className = 'bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500';
-
-            const renderItemRow = async (item) => {
-                let donorName = item.donorName;
-                if (!profilesCache.has(item.donorId)) {
-                    const donorDoc = await getDoc(doc(db, paths.userDoc(item.donorId)));
-                    if (donorDoc.exists()) profilesCache.set(item.donorId, donorDoc.data());
-                    donorName = profilesCache.get(item.donorId)?.displayName || 'Doador Anônimo';
-                }
-
-                const uniqueItemId = `${item.donationId}_${item.itemIndex}`;
-                const isCompleted = item.status === 'completed';
-
-                let dateInfo = '';
-                if (item.scheduledAt) {
-                    const dateStr = item.scheduledAt.toLocaleDateString('pt-BR');
-                    const timeStr = item.scheduledAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    dateInfo = `Agendado para: ${dateStr} às ${timeStr}`;
-                }
-                if (isCompleted && item.receivedDate) {
-                    let receiverName = 'N/A';
-                    if (item.receivedBy && profilesCache.has(item.receivedBy)) {
-                        receiverName = profilesCache.get(item.receivedBy).displayName;
-                    } else if (item.receivedBy) {
-                        const receiverDoc = await getDoc(doc(db, paths.userDoc(item.receivedBy)));
-                        if (receiverDoc.exists()) {
-                            profilesCache.set(item.receivedBy, receiverDoc.data());
-                            receiverName = receiverDoc.data().displayName;
-                        }
-                    }
-                    dateInfo = `Recebido em: ${item.receivedDate.toDate().toLocaleDateString('pt-BR')} por ${receiverName}`;
-                }
-                
-                const statusHtml = isCompleted ? `<p class="text-xs text-green-600 font-semibold">Recebido</p>` : `<button onclick="window.confirmItemReception('${item.donationId}', ${item.itemIndex})" class="bg-green-600 text-white text-sm font-bold py-2 px-3 rounded-lg hover:bg-green-700 transition">Receber</button>`;
-
-                return `
-                <div id="item-row-${uniqueItemId}" class="item-row flex items-center justify-between py-3">
-                    <div class="flex items-center space-x-4 flex-grow">
-                        <img src="${item.photoURL || 'https://placehold.co/64x64/e2e8f0/e2e8f0?text=Item'}" alt="${item.type}" class="w-16 h-16 rounded-md object-cover">
-                        <div>
-                            <p class="font-semibold text-gray-800">${item.type}</p>
-                            <p class="text-sm text-gray-600 flex items-center"><i class="fas fa-user-circle text-gray-400 mr-2"></i>Doador: ${donorName}</p>
-                            <p class="text-xs text-gray-500 mt-1">${dateInfo}</p>
-                        </div>
-                    </div>
-                    <div class="text-right">${statusHtml}</div>
-                </div>`;
-            };
-
-            let cardContentHtml;
-            if (activeTab === 'overdue') {
-                const activeCampaignItems = items.filter(i => i.campaignIsActive);
-                const expiredCampaignItems = items.filter(i => !i.campaignIsActive);
-                
-                const activeHtml = activeCampaignItems.length > 0 ? `<h4 class="font-semibold text-amber-600 mb-2 mt-4">Campanha Ativa</h4>` + (await Promise.all(activeCampaignItems.map(renderItemRow))).join('') : '';
-                const expiredHtml = expiredCampaignItems.length > 0 ? `<h4 class="font-semibold text-red-600 mb-2 mt-4">Campanha Encerrada</h4>` + (await Promise.all(expiredCampaignItems.map(renderItemRow))).join('') : '';
-                cardContentHtml = activeHtml + expiredHtml;
-            } else {
-                cardContentHtml = (await Promise.all(items.map(renderItemRow))).join('');
-            }
+        function renderItemRow(item, activeTab) {
+            const uniqueItemId = `${item.donationId}_${item.itemIndex}`;
+            const isCompleted = item.status !== 'pending';
             
-            if (!cardContentHtml.trim()) return null;
+            // CORREÇÃO: Botão "Receber" só aparece se o item não estiver completo E a campanha ainda estiver ativa
+            const canReceive = !isCompleted && item.campaignIsActive;
+            const statusHtml = canReceive 
+                ? `<button onclick="window.confirmItemReception('${item.donationId}', ${item.itemIndex})" class="bg-green-600 text-white text-sm font-bold py-2 px-3 rounded-lg hover:bg-green-700 transition">Receber</button>`
+                : (isCompleted 
+                    ? `<p class="text-xs text-green-600 font-semibold">Recebido</p>`
+                    : `<p class="text-xs text-gray-500 font-semibold">Campanha Encerrada</p>`);
 
-            card.innerHTML = `
-                <div class="border-b pb-4 mb-4">
-                    <div class="flex items-start space-x-4">
-                        <img src="${campaign.images?.[0] || 'https://placehold.co/80x80/e2e8f0/e2e8f0?text=Campanha'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
-                        <div>
-                            <h3 class="text-xl font-bold text-gray-800">${campaign.title}</h3>
-                            <p class="text-sm text-gray-600 mt-1 truncate-2-lines">${campaign.description || ''}</p>
-                            <button onclick="window.showCampaignDetails('${campaign.id}')" class="text-sm font-semibold text-blue-600 hover:underline mt-2">Ver Detalhes</button>
-                        </div>
+            return `
+            <div id="item-row-${uniqueItemId}" class="item-row flex items-center justify-between py-2 border-b last:border-b-0">
+                <div class="flex items-center space-x-3 flex-grow">
+                    <img src="${item.photoURL || 'https://placehold.co/48x48/e2e8f0/e2e8f0?text=Item'}" alt="${item.type}" class="w-12 h-12 rounded-md object-cover">
+                    <div>
+                        <p class="font-semibold text-gray-800">${item.type}</p>
+                        <p class="text-sm text-gray-500">${item.campaignTitle}</p>
                     </div>
                 </div>
-                <div class="pl-6 border-l-2 border-gray-200 space-y-2">${cardContentHtml}</div>`;
-            return card;
-        }
+                <div class="text-right w-28">${statusHtml}</div>
+            </div>`;
+        };
 
         window.openModal = () => detailsModal.style.display = 'flex';
         window.closeModal = () => detailsModal.style.display = 'none';
@@ -364,18 +345,10 @@
             }
         });
 
-        window.showCampaignDetails = (campaignId) => {
-            const campaign = campaignsCache.get(campaignId);
-            if (!campaign) return;
-            modalTitle.innerText = 'Detalhes da Campanha';
-            modalContent.innerHTML = `<h3 class="font-bold text-lg text-gray-900">${campaign.title}</h3><p class="text-sm text-gray-500 mt-1">Organizado por: ${campaign.entityName || 'N/A'}</p><p class="mt-4 text-gray-700 whitespace-pre-wrap">${campaign.description}</p>`;
-            openModal();
-        };
-
         window.confirmItemReception = (donationId, itemIndex) => {
             const item = allDonationsData.find(d => d.id === donationId)?.items[itemIndex];
             if (!item) return;
-            modalContent.innerHTML = `<div class="text-center"><img src="${item.photoURL || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem'}" class="w-full h-64 object-contain rounded-md mb-4 bg-gray-100"><p class="font-bold text-lg">${item.type}</p><p class="text-sm text-gray-600">${item.details} (${item.condition})</p><p class="mt-4">Confirmar recebimento?</p></div><div class="mt-6 flex justify-end gap-3"><button onclick="window.closeModal()" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">Cancelar</button><button id="confirm-reception-btn" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Sim, Recebido</button></div>`;
+            modalContent.innerHTML = `<div class="text-center"><img src="${item.photoURL || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem'}" class="w-full h-64 object-contain rounded-md mb-4 bg-gray-100"><p class="font-bold text-lg">${item.type}</p><p class="text-sm text-gray-600">${item.details || ''} (${item.condition || ''})</p><p class="mt-4">Confirmar recebimento?</p></div><div class="mt-6 flex justify-end gap-3"><button onclick="window.closeModal()" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">Cancelar</button><button id="confirm-reception-btn" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Sim, Recebido</button></div>`;
             openModal();
             document.getElementById('confirm-reception-btn').onclick = () => processItemReception(donationId, itemIndex);
         };
@@ -408,10 +381,11 @@
             html5QrCode = new Html5Qrcode("qr-reader");
             const qrCodeSuccessCallback = (decodedText) => {
                 html5QrCode.stop();
-                const donationExists = allDonationsData.some(d => d.id === decodedText);
+                const donationId = decodedText.split('|')[0];
+                const donationExists = allDonationsData.some(d => d.id === donationId);
                 if (donationExists) {
                     resultsElement.innerHTML = `<p class="text-green-600 font-bold">Doação encontrada! Exibindo itens...</p>`;
-                    renderItemsByStatus(decodedText);
+                    renderItemsByStatus(donationId);
                     setTimeout(window.closeQrModal, 1500);
                 } else {
                     resultsElement.innerHTML = `<p class="text-red-500 font-bold">QR Code inválido ou doação não encontrada!</p>`;
