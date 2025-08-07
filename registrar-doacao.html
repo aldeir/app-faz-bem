@@ -1,506 +1,165 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrar Doação - Faz Bem</title>
-    
-    <meta name="theme-color" content="#22c55e">
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #22c55e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .schedule-slot {
-            transition: all 0.2s ease-in-out;
-            cursor: pointer;
-            border: 1px solid #d1d5db;
-        }
-        .schedule-slot:not(:disabled):hover {
-            border-color: #16a34a;
-            transform: translateY(-2px);
-        }
-        .schedule-slot.selected {
-            background-color: #16a34a;
-            color: white;
-            border-color: #15803d;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(34, 197, 94, 0.4);
-        }
-        .schedule-slot:disabled {
-            background-color: #e5e7eb;
-            color: #9ca3af;
-            cursor: not-allowed;
-            border-color: #d1d5db;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registrar Doação</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icons/icon-192x192.png" type="image/png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .preview-img { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; }
+  </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-100 text-gray-800">
+  <header id="app-header"></header>
+  <main class="container mx-auto py-8 px-4 max-w-3xl">
+    <h1 class="text-2xl font-bold mb-6">Registrar Doação</h1>
 
-    <div id="app-header"></div>
+    <form id="donation-form" class="space-y-6">
+      <div>
+        <label for="delivery-date" class="block font-medium mb-2">Data de Entrega</label>
+        <input type="date" id="delivery-date" class="w-full p-2 border rounded-md" required>
+      </div>
 
-    <main id="page-content">
-        <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
-            <div class="text-center">
-                <div class="loader mx-auto !w-10 !h-10 !border-4"></div>
-                <p class="mt-4 text-gray-600">A carregar informações...</p>
-            </div>
-        </div>
+      <div id="custom-fields-container"></div>
 
-        <div id="donation-view" class="hidden container mx-auto max-w-4xl p-4 sm:p-6 my-8">
-            <div id="campaign-header" class="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex items-center space-x-4 mb-8 border-l-4 border-green-500"></div>
+      <button type="button" id="add-item-btn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        <i class="fas fa-plus-circle mr-2"></i>Adicionar Item
+      </button>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                
-                <div class="bg-white rounded-xl shadow-lg p-6 space-y-6">
-                    <div>
-                        <h2 id="items-section-title" class="text-xl font-bold text-gray-800">1. Itens para Doar</h2>
-                        <div id="donated-items-list" class="mt-4 space-y-4">
-                            <p id="no-items-placeholder" class="text-center text-gray-500 py-4 bg-gray-50 rounded-md">Nenhum item adicionado ainda.</p>
-                        </div>
-                    </div>
-                    <div id="add-item-container" class="pt-6 border-t">
-                        <h3 class="text-lg font-medium text-gray-900">Adicionar Novo Item</h3>
-                        <form id="add-item-form" class="space-y-4 mt-3">
-                            <div id="dynamic-fields-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
-                        </form>
-                        <div id="add-item-error" class="text-red-600 text-sm font-semibold mt-3"></div>
-                        <button id="add-item-btn" class="mt-4 w-full bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">Adicionar Item à Lista</button>
-                    </div>
-                </div>
+      <div id="donated-items-preview" class="space-y-4 mt-6"></div>
 
-                <div class="space-y-8">
-                    <div class="bg-white rounded-xl shadow-lg p-6">
-                        <h2 id="schedule-section-title" class="text-xl font-bold text-gray-800">2. Agendar Entrega</h2>
-                        <p class="text-sm text-gray-600 mt-1">Selecione um dia e, em seguida, um horário disponível.</p>
-                        <div class="mt-4 space-y-4">
-                            <div>
-                                <label for="schedule-date-select" class="block text-sm font-medium text-gray-700">Dia</label>
-                                <select id="schedule-date-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 rounded-md"></select>
-                            </div>
-                            <div id="schedule-slots-container" class="hidden mt-4">
-                                <p class="block text-sm font-medium text-gray-700 mb-2">Horário</p>
-                                <div id="schedule-slots-grid" class="grid grid-cols-3 sm:grid-cols-4 gap-3"></div>
-                            </div>
-                        </div>
-                    </div>
+      <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded">
+        <i class="fas fa-paper-plane mr-2"></i>Finalizar Doação
+      </button>
+    </form>
+  </main>
 
-                    <div id="privacy-section" class="bg-white rounded-xl shadow-lg p-6">
-                        <h2 class="text-xl font-bold text-gray-800">3. Privacidade</h2>
-                        <div class="mt-2 flex items-center space-x-8">
-                            <label class="flex items-center cursor-pointer"><input type="radio" name="privacy" value="public" checked class="h-4 w-4 text-green-600"><span class="ml-2 text-gray-700">Pública</span></label>
-                            <label class="flex items-center cursor-pointer"><input type="radio" name="privacy" value="anonymous" class="h-4 w-4 text-green-600"><span class="ml-2 text-gray-700">Anônima</span></label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="form-error" class="text-red-600 text-center font-semibold mt-8"></div>
+  <div id="modal-placeholder"></div>
 
-            <div class="flex justify-end mt-8">
-                <button id="submit-donation-btn" class="bg-green-600 text-white font-bold py-4 px-10 rounded-lg text-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 inline-flex items-center shadow-lg">
-                    <span id="submit-btn-text">Confirmar Minha Doação</span>
-                    <div id="submit-btn-spinner" class="hidden loader !w-6 !h-6 !border-2 ml-3"></div>
-                </button>
-            </div>
-        </div>
-    </main>
-    
-    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
-                            <div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
-            </div>
-        </div>
-    </div>
+  <script type="module">
+    import { db, auth } from './app-config.js';
+    import { loadHeader } from './app-header.js';
+    import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { collection, getDoc, getDocs, addDoc, doc, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-    <script type="module">
-        import { db, storage, paths } from './app-config.js';
-        import { doc, getDoc, collection, addDoc, Timestamp, query, where, getDocs, storageRef, uploadBytes, getDownloadURL, writeBatch } from './firebase-services.js';
-        import { injectHeader } from './app-header.js';
-        import { getCurrentUser } from './auth-service.js';
-        import { showAlertModal } from './modal-handler.js';
-        import { createNotification } from './notification-service.js';
+    loadHeader();
 
-        const loadingView = document.getElementById('loading-view');
-        const donationView = document.getElementById('donation-view');
-        const campaignHeader = document.getElementById('campaign-header');
-        const donatedItemsList = document.getElementById('donated-items-list');
-        const noItemsPlaceholder = document.getElementById('no-items-placeholder');
-        const addItemForm = document.getElementById('add-item-form');
-        const addItemBtn = document.getElementById('add-item-btn');
-        const dynamicFieldsContainer = document.getElementById('dynamic-fields-container');
-        const submitDonationBtn = document.getElementById('submit-donation-btn');
-        const formError = document.getElementById('form-error');
-        const addItemError = document.getElementById('add-item-error');
-        const scheduleDateSelect = document.getElementById('schedule-date-select');
-        const scheduleSlotsContainer = document.getElementById('schedule-slots-container');
-        const scheduleSlotsGrid = document.getElementById('schedule-slots-grid');
+    const customFieldsContainer = document.getElementById('custom-fields-container');
+    const previewContainer = document.getElementById('donated-items-preview');
+    const addItemBtn = document.getElementById('add-item-btn');
+    const donationForm = document.getElementById('donation-form');
 
-        let currentUserSession = null;
-        let campaignId = null;
-        let campaignData = null;
-        let donatedItems = [];
-        let selectedScheduleSlot = null;
-        let isRescheduleMode = false;
-        let rescheduleData = null;
-        let existingAppointments = {};
-        let campaignTypeSettings = {};
+    let customFields = [];
+    let donatedItems = [];
+    let userId = null;
+    let campaignId = new URLSearchParams(window.location.search).get('id');
 
-        async function initializeApp() {
-            const canProceed = await injectHeader();
-            if (!canProceed) { return; }
-            currentUserSession = await getCurrentUser();
-            if (currentUserSession) {
-                const params = new URLSearchParams(window.location.search);
-                campaignId = params.get('id');
-                isRescheduleMode = params.has('reschedule');
-                if (!campaignId) {
-                    loadingView.innerHTML = '<p class="text-red-500">Erro: ID da campanha não encontrado.</p>';
-                    return;
-                }
-                if (isRescheduleMode) {
-                    const data = localStorage.getItem('rescheduleData');
-                    if (!data) {
-                        showAlertModal('Erro', 'Dados de reagendamento não encontrados.').then(() => window.location.href = 'minhas-entregas.html');
-                        return;
-                    }
-                    rescheduleData = JSON.parse(data);
-                    setupRescheduleMode();
-                }
-                await loadInitialData();
-            } else {
-                window.location.href = 'login.html';
-            }
+    onAuthStateChanged(auth, async user => {
+      if (!user || !user.emailVerified) {
+        alert('Você precisa estar logado e com e-mail confirmado para registrar uma doação.');
+        window.location.href = 'login.html';
+        return;
+      }
+      userId = user.uid;
+      await loadCustomFields();
+    });
+
+    async function loadCustomFields() {
+      try {
+        const configRef = doc(db, 'tiposCampanha', campaignId);
+        const snap = await getDoc(configRef);
+        if (!snap.exists()) throw new Error('Campos personalizados não encontrados.');
+
+        customFields = snap.data().campos || [];
+      } catch (error) {
+        console.error('Erro ao carregar campos personalizados:', error);
+        customFields = [];
+      }
+    }
+
+    addItemBtn.addEventListener('click', () => {
+      const newItem = {};
+      const inputs = [];
+
+      const itemCard = document.createElement('div');
+      itemCard.className = 'bg-white p-4 rounded-md shadow-sm border';
+
+      customFields.forEach(field => {
+        const id = `item-${field.nome}-${Date.now()}`;
+        const label = document.createElement('label');
+        label.className = 'block font-medium mt-2';
+        label.textContent = field.nome;
+
+        let input;
+        if (field.tipo === 'imagem') {
+          input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+        } else {
+          input = document.createElement('input');
+          input.type = field.tipo;
         }
-        
-        function setupRescheduleMode() {
-            document.title = "Reagendar Entrega - Faz Bem";
-            document.getElementById('items-section-title').textContent = "1. Itens para Reagendar";
-            document.getElementById('schedule-section-title').textContent = "2. Escolha a Nova Data de Entrega";
-            document.getElementById('submit-btn-text').textContent = "Confirmar Reagendamento";
-            document.getElementById('add-item-container').classList.add('hidden');
-            document.getElementById('privacy-section').classList.add('hidden');
-            donatedItems = rescheduleData.items;
-            renderDonatedItems(true);
+        input.className = 'w-full p-2 border rounded-md';
+        input.name = field.nome;
+        input.required = true;
+        input.id = id;
+
+        inputs.push(input);
+        itemCard.appendChild(label);
+        itemCard.appendChild(input);
+      });
+
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = 'Remover';
+      removeBtn.type = 'button';
+      removeBtn.className = 'text-red-600 font-medium mt-4';
+      removeBtn.addEventListener('click', () => itemCard.remove());
+
+      itemCard.appendChild(removeBtn);
+      previewContainer.appendChild(itemCard);
+
+      donatedItems.push({ inputs });
+    });
+
+    donationForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const deliveryDate = document.getElementById('delivery-date').value;
+      if (!deliveryDate) return alert('Data de entrega obrigatória');
+
+      const itens = [];
+      for (const group of donatedItems) {
+        const itemData = {};
+        for (const input of group.inputs) {
+          const value = input.type === 'file' ? input.files[0] : input.value.trim();
+          if (!value) return alert(`Preencha o campo ${input.name}`);
+
+          itemData[input.name] = value.name || value;
         }
-        
-        async function loadInitialData() {
-            try {
-                const campaignRef = doc(db, paths.campaignDoc(campaignId));
-                const campaignSnap = await getDoc(campaignRef);
-                if (!campaignSnap.exists()) throw new Error("Campanha não encontrada.");
-                campaignData = campaignSnap.data();
+        itens.push(itemData);
+      }
 
-                const appointmentsQuery = query(collection(db, paths.donations), where("campaignId", "==", campaignId), where("status", "==", "scheduled"));
-                const appointmentsSnapshot = await getDocs(appointmentsQuery);
-                existingAppointments = {};
-                appointmentsSnapshot.forEach(doc => {
-                    const scheduledAt = doc.data().scheduledAt.toDate().getTime();
-                    existingAppointments[scheduledAt] = (existingAppointments[scheduledAt] || 0) + 1;
-                });
+      try {
+        const agendamento = {
+          campanhaId,
+          doadorId: userId,
+          dataAgendamento: Timestamp.fromDate(new Date(deliveryDate)),
+          status: 'agendado',
+          itens
+        };
 
-                const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
-                campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
-                
-                populateCampaignHeader();
-                
-                if (!isRescheduleMode) {
-                    renderDynamicFields(campaignData.type);
-                }
-                
-                generateScheduleDays();
-                loadingView.classList.add('hidden');
-                donationView.classList.remove('hidden');
-            } catch (error) {
-                console.error("Erro fatal no carregamento inicial:", error);
-                loadingView.innerHTML = `<p class="text-red-500 text-center p-8">${error.message}.</p>`;
-            }
-        }
-
-        function renderDynamicFields(campaignType) {
-            dynamicFieldsContainer.innerHTML = '';
-            const typeConfig = campaignTypeSettings[campaignType];
-            if (!typeConfig || !typeConfig.fields) return;
-            
-            const fields = typeConfig.fields
-                .filter(field => field.active !== false)
-                .sort((a, b) => (a.order || 0) - (b.order || 0));
-
-            fields.forEach(field => {
-                let fieldHtml = '';
-                const requiredStar = field.required ? '<span class="text-red-500">*</span>' : '';
-                const label = `<label for="field-${field.id}" class="block text-sm font-medium text-gray-700">${field.label} ${requiredStar}</label>`;
-                const required = field.required ? 'required' : '';
-
-                switch (field.type) {
-                    case 'text':
-                        fieldHtml = `<div class="col-span-1 sm:col-span-2">${label}<input type="text" id="field-${field.id}" name="${field.id}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>`;
-                        break;
-                    case 'select':
-                        const optionsHtml = field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
-                        fieldHtml = `<div class="col-span-1">${label}<select id="field-${field.id}" name="${field.id}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"><option value="">Selecione...</option>${optionsHtml}</select></div>`;
-                        break;
-                    case 'date':
-                        fieldHtml = `<div class="col-span-1">${label}<input type="date" id="field-${field.id}" name="${field.id}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>`;
-                        break;
-                    case 'image':
-                    case 'video':
-                        const accept = field.type === 'image' ? 'image/*' : 'video/*';
-                        fieldHtml = `<div class="col-span-1 sm:col-span-2">${label}
-                                        <label class="mt-1 flex justify-center items-center w-full px-4 py-3 bg-white text-blue-500 rounded-lg shadow-sm tracking-wide uppercase border border-blue-500 cursor-pointer hover:bg-blue-500 hover:text-white">
-                                            <svg class="w-6 h-6 mr-2" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M16.88 9.1A4 4 0 0 1 16 17H5a5 5 0 0 1-1-9.9V7a3 3 0 0 1 4.52-2.59A4.98 4.98 0 0 1 17 8c0 .38-.04.74-.12 1.1zM11 11h3l-4 4-4-4h3V9h2v2z" /></svg>
-                                            <span id="file-label-${field.id}" class="text-sm leading-normal">Selecionar ficheiro</span>
-                                            <input type='file' id="field-${field.id}" name="${field.id}" ${required} accept="${accept}" class="hidden" onchange="document.getElementById('file-label-${field.id}').textContent = this.files[0] ? this.files[0].name : 'Selecionar ficheiro';" />
-                                        </label>
-                                     </div>`;
-                        break;
-                }
-                dynamicFieldsContainer.innerHTML += fieldHtml;
-            });
-        }
-        
-        function renderDonatedItems(isReschedule = false) {
-            donatedItemsList.innerHTML = '';
-            if (donatedItems.length === 0) {
-                donatedItemsList.appendChild(noItemsPlaceholder);
-                return;
-            }
-            donatedItems.forEach((item, index) => {
-                const itemEl = document.createElement('div');
-                itemEl.className = 'flex items-center space-x-4 bg-gray-50 p-3 rounded-lg border';
-                const photoSrc = isReschedule ? item.mainPhotoUrl : URL.createObjectURL(item.mainPhotoFile);
-                
-                let customDetailsHtml = Object.entries(item.customFields || {})
-                    .filter(([key]) => key !== item.mainPhotoId)
-                    .map(([key, value]) => {
-                        const fieldConfig = campaignTypeSettings[campaignData.type]?.fields?.find(f => f.id === key);
-                        const fieldValue = (value instanceof File) ? value.name : value;
-                        return `<span class="text-xs text-gray-500">${fieldConfig?.label || key}: <strong>${fieldValue}</strong></span>`;
-                    }).join('; ');
-
-                itemEl.innerHTML = `
-                    <img src="${photoSrc}" class="w-16 h-16 rounded-md object-cover">
-                    <div class="flex-grow">
-                        <p class="font-bold">${item.type}</p>
-                        <p class="text-sm text-gray-600">${customDetailsHtml}</p>
-                    </div>
-                    ${!isReschedule ? `<button data-index="${index}" class="remove-item-btn text-red-500 hover:text-red-700 font-semibold">Remover</button>` : ''}
-                `;
-                donatedItemsList.appendChild(itemEl);
-            });
-        }
-
-        function populateCampaignHeader() {
-            const actionText = isRescheduleMode ? "Você está reagendando para:" : "Você está doando para:";
-            campaignHeader.innerHTML = `<img src="${campaignData.images?.[0] || 'https://placehold.co/100x100/e2e8f0/e2e8f0'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
-                <div><p class="text-sm text-gray-500">${actionText}</p><h1 class="text-2xl font-bold text-gray-800">${campaignData.title}</h1><p class="text-sm font-medium text-gray-600">Organizado por: ${campaignData.entityName}</p></div>`;
-        }
-        
-        function generateScheduleDays() {
-            scheduleDateSelect.innerHTML = '<option value="">Carregando...</option>';
-            const availableDates = Object.keys(campaignData.disponibilidade || {}).sort();
-            const now = new Date();
-            now.setHours(0,0,0,0);
-            let optionsHtml = '<option value="">Selecione uma data</option>';
-            let daysFound = 0;
-            availableDates.forEach(dateString => {
-                const date = new Date(dateString + 'T00:00:00');
-                if (date >= now) {
-                    optionsHtml += `<option value="${dateString}">${date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</option>`;
-                    daysFound++;
-                }
-            });
-            scheduleDateSelect.innerHTML = optionsHtml;
-            if (daysFound === 0) { scheduleDateSelect.innerHTML = '<option value="">Nenhum dia disponível nesta campanha.</option>'; }
-        }
-
-        function renderTimeSlotsForDate(selectedDateStr) {
-            scheduleSlotsGrid.innerHTML = '';
-            scheduleSlotsContainer.classList.remove('hidden');
-            selectedScheduleSlot = null;
-            const availableTimes = campaignData.disponibilidade[selectedDateStr] || [];
-            const maxSlots = campaignData.slots || 1;
-            const now = new Date();
-            if (availableTimes.length === 0) {
-                scheduleSlotsGrid.innerHTML = '<p class="col-span-full text-center text-gray-500">Nenhum horário disponível para esta data.</p>';
-                return;
-            }
-            availableTimes.forEach(time => {
-                const slotDateTime = new Date(selectedDateStr + 'T' + time);
-                if (slotDateTime < now) return;
-                const occupiedSlots = existingAppointments[slotDateTime.getTime()] || 0;
-                const remainingSlots = maxSlots - occupiedSlots;
-                const slotBtn = document.createElement('button');
-                slotBtn.className = 'schedule-slot p-2 rounded-md text-center';
-                slotBtn.disabled = remainingSlots <= 0;
-                const vagasText = remainingSlots === 1 ? '1 vaga' : `${remainingSlots} vagas`;
-                slotBtn.innerHTML = `<span class="font-bold block">${time}</span><span class="text-xs">${vagasText}</span>`;
-                slotBtn.onclick = () => {
-                    document.querySelectorAll('.schedule-slot.selected').forEach(s => s.classList.remove('selected'));
-                    slotBtn.classList.add('selected');
-                    selectedScheduleSlot = slotDateTime;
-                };
-                scheduleSlotsGrid.appendChild(slotBtn);
-            });
-        }
-
-        scheduleDateSelect.addEventListener('change', (e) => {
-            if (e.target.value) { renderTimeSlotsForDate(e.target.value); } 
-            else { scheduleSlotsContainer.classList.add('hidden'); scheduleSlotsGrid.innerHTML = ''; selectedScheduleSlot = null; }
-        });
-
-        addItemBtn.addEventListener('click', () => {
-            addItemError.textContent = '';
-            
-            const customFieldsData = {};
-            const dynamicInputs = dynamicFieldsContainer.querySelectorAll('input, select');
-            let allFieldsValid = true;
-            let mainPhotoFile = null;
-            let mainPhotoId = null;
-            let itemType = campaignData.title;
-
-            const fieldsConfig = campaignTypeSettings[campaignData.type]?.fields || [];
-            const activeImageFields = fieldsConfig.filter(f => f.type === 'image' && f.active !== false);
-            
-            if (activeImageFields.length > 0) {
-                mainPhotoId = activeImageFields[0].id;
-            }
-
-            dynamicInputs.forEach(input => {
-                if (input.required && ((input.type === 'file' && input.files.length === 0) || !input.value)) {
-                    allFieldsValid = false;
-                }
-                const file = input.type === 'file' ? input.files[0] : null;
-                customFieldsData[input.name] = file || input.value; 
-
-                if (file && mainPhotoId && input.name === mainPhotoId) {
-                    mainPhotoFile = file;
-                }
-                
-                const firstTextField = fieldsConfig.find(f => f.type === 'text' || f.type === 'select');
-                if (firstTextField && input.name === firstTextField.id && input.value) {
-                    itemType = input.value;
-                }
-            });
-
-            if (!allFieldsValid) {
-                addItemError.textContent = 'Por favor, preencha todos os campos obrigatórios.';
-                return;
-            }
-            const firstRequiredImageField = activeImageFields.find(f => f.required);
-            if (firstRequiredImageField && !mainPhotoFile) {
-                 addItemError.textContent = `Por favor, adicione uma "${firstRequiredImageField.label}".`;
-                 return;
-            }
-
-            donatedItems.push({ type: itemType, mainPhotoFile, mainPhotoId, customFields: customFieldsData });
-            renderDonatedItems();
-            
-            dynamicFieldsContainer.innerHTML = '';
-            renderDynamicFields(campaignData.type);
-        });
-
-        donatedItemsList.addEventListener('click', (e) => {
-            if (e.target.classList.contains('remove-item-btn')) {
-                const index = e.target.dataset.index;
-                donatedItems.splice(index, 1);
-                renderDonatedItems();
-            }
-        });
-
-        submitDonationBtn.addEventListener('click', async () => {
-            formError.textContent = '';
-            if (donatedItems.length === 0) { formError.textContent = 'Adicione pelo menos um item.'; return; }
-            if (!selectedScheduleSlot) { formError.textContent = 'Selecione um dia e horário.'; return; }
-            const submitBtnText = document.getElementById('submit-btn-text');
-            const submitBtnSpinner = document.getElementById('submit-btn-spinner');
-            submitDonationBtn.disabled = true;
-            submitBtnText.classList.add('hidden');
-            submitBtnSpinner.classList.remove('hidden');
-
-            try {
-                const userId = currentUserSession.auth.uid;
-                
-                const itemsToSave = isRescheduleMode 
-                    ? donatedItems 
-                    : await Promise.all(donatedItems.map(async (item) => {
-                        const mainPhotoUrl = item.mainPhotoFile ? await uploadBytes(storageRef(storage, `donated_items/${userId}/${Date.now()}_${item.mainPhotoFile.name}`), item.mainPhotoFile).then(snap => getDownloadURL(snap.ref)) : null;
-                        
-                        const customFieldsWithUrls = { ...item.customFields };
-                        for (const key in item.customFields) {
-                            if (item.customFields[key] instanceof File) {
-                                const customFilePath = `donated_items/${userId}/custom_${Date.now()}_${item.customFields[key].name}`;
-                                customFieldsWithUrls[key] = await uploadBytes(storageRef(storage, customFilePath), item.customFields[key]).then(snap => getDownloadURL(snap.ref));
-                            }
-                        }
-
-                        return { type: item.type, mainPhotoUrl, status: 'pending', customFields: customFieldsWithUrls };
-                    }));
-
-                const newDonationData = {
-                    donorId: userId,
-                    donorName: currentUserSession.profile?.displayName ?? currentUserSession.auth?.displayName ?? "Doador Anônimo",
-                    donorPhoto: currentUserSession.profile?.photoURL ?? currentUserSession.auth?.photoURL ?? null,
-                    campaignId: campaignId,
-                    campaignTitle: campaignData.title,
-                    entityId: campaignData.entityId,
-                    items: itemsToSave,
-                    status: 'scheduled',
-                    privacy: isRescheduleMode ? (rescheduleData.privacy || 'public') : document.querySelector('input[name="privacy"]:checked').value,
-                    createdAt: Timestamp.now(),
-                    scheduledAt: Timestamp.fromDate(selectedScheduleSlot)
-                };
-                
-                if (isRescheduleMode) {
-                    const batch = writeBatch(db);
-                    const newDonationRef = doc(collection(db, paths.donations));
-                    batch.set(newDonationRef, newDonationData);
-                    const oldDonationRef = doc(db, paths.donationDoc(rescheduleData.oldDonationId));
-                    batch.update(oldDonationRef, { status: 'reagendado' });
-                    await batch.commit();
-                    localStorage.removeItem('rescheduleData');
-                } else {
-                    await addDoc(collection(db, paths.donations), newDonationData);
-                }
-                
-                const notificationMessage = `O doador ${newDonationData.donorName} ${isRescheduleMode ? 'reagendou' : 'agendou'} uma entrega para a campanha "${newDonationData.campaignTitle}".`;
-                await createNotification(newDonationData.entityId, notificationMessage, 'gerenciar-agendamentos.html');
-                
-                const successMessage = isRescheduleMode ? 'Sua doação foi reagendada com sucesso!' : 'Sua doação foi registrada com sucesso!';
-                await showAlertModal('Sucesso!', successMessage);
-                window.location.href = 'minhas-entregas.html';
-            } catch (error) {
-                console.error("ERRO DETALHADO AO REGISTRAR DOAÇÃO:", error);
-                formError.textContent = `Erro ao registrar doação: ${error.message}`;
-            } finally {
-                submitDonationBtn.disabled = false;
-                submitBtnText.classList.remove('hidden');
-                submitBtnSpinner.classList.add('hidden');
-            }
-        });
-
-        initializeApp();
-    </script>
+        await addDoc(collection(db, 'agendamentos'), agendamento);
+        alert('Doação registrada com sucesso!');
+        window.location.href = 'minhas-entregas.html';
+      } catch (err) {
+        console.error('Erro ao registrar doação:', err);
+        alert('Erro ao registrar doação.');
+      }
+    });
+  </script>
 </body>
 </html>
