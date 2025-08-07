@@ -1,11 +1,11 @@
-// service-worker.js (v2.1 - com Estratégia Stale-While-Revalidate e versão incrementada)
+// service-worker.js (v2.2 - Remoção do cache de CDN externo para corrigir erro de CORS)
 
 // A versão do cache é crucial. Mude-a sempre que fizer deploy de novos ficheiros.
-const CACHE_NAME = 'faz-bem-cache-v6'; 
+const CACHE_NAME = 'faz-bem-cache-v7'; 
 const urlsToCache = [
   '/app-faz-bem/',
-  '/app-faz-bem/index.html',
-  'https://cdn.tailwindcss.com'
+  '/app-faz-bem/index.html'
+  // A URL 'https://cdn.tailwindcss.com' foi removida para evitar o erro de CORS.
 ];
 
 // Evento de Instalação: O Service Worker é instalado.
@@ -49,7 +49,8 @@ self.addEventListener('fetch', event => {
     caches.open(CACHE_NAME).then(cache => {
       return cache.match(event.request).then(cachedResponse => {
         const fetchPromise = fetch(event.request).then(networkResponse => {
-          if (networkResponse && networkResponse.status === 200 && (networkResponse.type === 'basic' || networkResponse.type === 'cors')) {
+          // Apenas guarda em cache recursos do mesmo domínio (self) para evitar erros de CORS.
+          if (networkResponse && networkResponse.status === 200 && new URL(event.request.url).origin === self.location.origin) {
             cache.put(event.request, networkResponse.clone());
           }
           return networkResponse;
