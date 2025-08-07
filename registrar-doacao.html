@@ -290,13 +290,20 @@
                 const itemEl = document.createElement('div');
                 itemEl.className = 'flex items-center space-x-4 bg-gray-50 p-3 rounded-lg border';
                 
-                // --- INÍCIO DA CORREÇÃO: Usa photoURL para reagendamento e objectURL para novos itens ---
-                const photoSrc = isReschedule ? item.photoURL : URL.createObjectURL(item.mainPhotoFile);
-                
-                let customDetailsHtml = Object.entries(item.customFields || item)
-                    .filter(([key]) => !['type', 'photoURL', 'mainPhotoId', 'mainPhotoFile', 'status'].includes(key) && item[key])
-                    .map(([key, value]) => {
+                // --- INÍCIO DA CORREÇÃO: Verifica se o ficheiro existe antes de criar a URL ---
+                let photoSrc;
+                if (isReschedule) {
+                    photoSrc = item.photoURL || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Item';
+                } else {
+                    photoSrc = item.mainPhotoFile 
+                        ? URL.createObjectURL(item.mainPhotoFile) 
+                        : 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Item';
+                }
                 // --- FIM DA CORREÇÃO ---
+
+                let customDetailsHtml = Object.entries(isReschedule ? item : item.customFields)
+                    .filter(([key]) => !['type', 'photoURL', 'mainPhotoId', 'mainPhotoFile', 'status'].includes(key) && (isReschedule ? item[key] : item.customFields[key]))
+                    .map(([key, value]) => {
                         const fieldConfig = campaignTypeSettings[campaignData.type]?.fields?.find(f => f.id === key);
                         const fieldValue = (value instanceof File) ? value.name : value;
                         return `<span class="text-xs text-gray-500">${fieldConfig?.label || key}: <strong>${fieldValue}</strong></span>`;
@@ -421,7 +428,6 @@
             renderDonatedItems();
             
             addItemForm.reset();
-            // Limpa os nomes de ficheiro dos inputs de ficheiro
             dynamicFieldsContainer.querySelectorAll('input[type="file"]').forEach(input => {
                 const label = document.getElementById(`file-label-${input.name}`);
                 if (label) label.textContent = 'Selecionar ficheiro';
@@ -452,10 +458,8 @@
                 const itemsToSave = isRescheduleMode 
                     ? donatedItems 
                     : await Promise.all(donatedItems.map(async (item) => {
-                        // --- INÍCIO DA CORREÇÃO E OTIMIZAÇÃO ---
                         const customFieldsWithUrls = { ...item.customFields };
                         
-                        // Processa todos os uploads de ficheiro (incluindo a foto principal)
                         for (const key in item.customFields) {
                             if (item.customFields[key] instanceof File) {
                                 const file = item.customFields[key];
@@ -465,10 +469,8 @@
                             }
                         }
 
-                        // Define a photoURL principal a partir do campo de imagem correspondente
                         const photoURL = item.mainPhotoId ? customFieldsWithUrls[item.mainPhotoId] : null;
 
-                        // Combina todos os campos num único objeto (flat)
                         const finalItemObject = {
                             ...customFieldsWithUrls,
                             type: item.type,
@@ -477,7 +479,6 @@
                         };
 
                         return finalItemObject;
-                        // --- FIM DA CORREÇÃO E OTIMIZAÇÃO ---
                     }));
 
                 const newDonationData = {
