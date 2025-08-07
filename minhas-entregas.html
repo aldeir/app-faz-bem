@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
-
+    <link rel="icon" href="images/icons/icon-72x72.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -239,8 +239,12 @@
                                   </div>`;
                     break;
                 case 'history':
+                    let receivedDateStr = formattedDate;
+                    if (donation.items[0]?.receivedDate) {
+                        receivedDateStr = donation.items[0].receivedDate.toDate().toLocaleDateString('pt-BR');
+                    }
                     let historyStatusText = 'Não entregue (campanha encerrada)';
-                    if (donation.status === 'completed') historyStatusText = `Entregue com sucesso em ${donation.items[0].receivedDate ? donation.items[0].receivedDate.toDate().toLocaleDateString('pt-BR') : formattedDate}`;
+                    if (donation.status === 'completed') historyStatusText = `Entregue com sucesso em ${receivedDateStr}`;
                     else if (donation.status === 'reagendado') historyStatusText = 'Esta doação foi reagendada com sucesso.';
                     headerHtml = `<div class="bg-gray-100 p-6">
                                     <h2 class="text-2xl font-bold text-gray-800">${donation.campaignTitle}</h2>
@@ -251,18 +255,20 @@
             
             // --- INÍCIO DA CORREÇÃO NA EXIBIÇÃO DE DETALHES ---
             const fieldsConfig = campaignTypeSettings[campaignType]?.fields || [];
+            // Cria um Set com os IDs dos campos que são de imagem/vídeo para fácil consulta
+            const mediaFieldIds = new Set(fieldsConfig.filter(f => f.type === 'image' || f.type === 'video').map(f => f.id));
+
             let itemsHtml = donation.items.map((item, index) => {
                 let itemDetailsHtml = '';
-                if (fieldsConfig.length > 0) {
-                    fieldsConfig.forEach(field => {
-                        const key = field.id;
-                        const value = item[key];
-                        // Não exibe se não houver valor, se for a foto principal ou o 'type'
-                        if (value && key !== 'photoURL' && key !== fieldsConfig[0].id) {
-                            itemDetailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
-                        }
-                    });
-                }
+                
+                fieldsConfig.forEach(field => {
+                    const key = field.id;
+                    const value = item[key];
+                    // NÃO exibe o campo se: não houver valor, for um campo de mídia, ou for o campo 'type' (já exibido como título)
+                    if (value && !mediaFieldIds.has(key) && key !== 'type') {
+                        itemDetailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
+                    }
+                });
 
                 return `
                 <div class="item-card flex items-start space-x-4 p-3 bg-gray-50 rounded-md border ${tab === 'scheduled' ? 'cursor-pointer' : ''} transition-all" 
@@ -299,7 +305,7 @@
                 const qr = qrcode(0, 'L');
                 qr.addData(text);
                 qr.make();
-                element.innerHTML = qr.createImgTag(4, 4); // size, margin
+                element.innerHTML = qr.createImgTag(4, 4);
             } catch (e) {
                 console.error(`Erro ao gerar QR code para ${elementId}:`, e);
                 element.innerHTML = '<p class="text-xs text-red-500">Erro QR</p>';
@@ -330,7 +336,7 @@
                 modalItemTitle.textContent = itemTitle;
                 modalItemPhoto.src = itemPhoto || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem';
                 modalItemQrcode.innerHTML = '';
-                generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`);
+                generateQRCode('modal-item-qrcode', `${donationId}|${index}`);
                 itemFocusModal.classList.remove('hidden');
             }
             
