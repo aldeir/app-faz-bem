@@ -69,10 +69,8 @@
                     <div id="add-item-container" class="pt-6 border-t">
                         <h3 class="text-lg font-medium text-gray-900">Adicionar Novo Item</h3>
                         <form id="add-item-form" class="space-y-4 mt-3">
-                            <select id="item-subtype" class="border-gray-300 rounded-md shadow-sm w-full"><option value="">Selecione o tipo de item...</option></select>
-                            <input type="text" id="item-other-subtype" placeholder="Descreva o item específico" class="hidden border-gray-300 rounded-md shadow-sm w-full">
-                            
-                            <div id="dynamic-fields-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+                            <div id="dynamic-fields-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                </div>
                         </form>
                         <div id="add-item-error" class="text-red-600 text-sm font-semibold mt-3"></div>
                         <button id="add-item-btn" class="mt-4 w-full bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">Adicionar Item à Lista</button>
@@ -152,8 +150,6 @@
         const noItemsPlaceholder = document.getElementById('no-items-placeholder');
         const addItemForm = document.getElementById('add-item-form');
         const addItemBtn = document.getElementById('add-item-btn');
-        const itemSubtypeSelect = document.getElementById('item-subtype');
-        const itemOtherSubtypeInput = document.getElementById('item-other-subtype');
         const dynamicFieldsContainer = document.getElementById('dynamic-fields-container');
         const submitDonationBtn = document.getElementById('submit-donation-btn');
         const formError = document.getElementById('form-error');
@@ -225,17 +221,15 @@
                     existingAppointments[scheduledAt] = (existingAppointments[scheduledAt] || 0) + 1;
                 });
 
-                const [typesSnap, subtypesSnap] = await Promise.all([
-                    getDoc(doc(db, paths.configDoc('campaignTypes'))),
-                    getDoc(doc(db, paths.configDoc('itemSubtypes')))
-                ]);
+                const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
                 campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
-                const itemSubtypes = subtypesSnap.exists() ? subtypesSnap.data() : {};
-
+                
                 populateCampaignHeader();
+                
                 if (!isRescheduleMode) {
-                    populateSubItemTypes(itemSubtypes[campaignData.type] || []);
+                    renderDynamicFields(campaignData.type);
                 }
+                
                 generateScheduleDays();
                 loadingView.classList.add('hidden');
                 donationView.classList.remove('hidden');
@@ -298,11 +292,13 @@
                 itemEl.className = 'flex items-center space-x-4 bg-gray-50 p-3 rounded-lg border';
                 const photoSrc = isReschedule ? item.mainPhotoUrl : URL.createObjectURL(item.mainPhotoFile);
                 
-                let customDetailsHtml = Object.entries(item.customFields || {}).map(([key, value]) => {
-                    const fieldConfig = campaignTypeSettings[campaignData.type]?.fields?.find(f => f.id === key);
-                    const fieldValue = (value instanceof File) ? value.name : value;
-                    return `<span class="text-xs text-gray-500">${fieldConfig?.label || key}: <strong>${fieldValue}</strong></span>`;
-                }).join('; ');
+                let customDetailsHtml = Object.entries(item.customFields || {})
+                    .filter(([key]) => key !== item.mainPhotoId)
+                    .map(([key, value]) => {
+                        const fieldConfig = campaignTypeSettings[campaignData.type]?.fields?.find(f => f.id === key);
+                        const fieldValue = (value instanceof File) ? value.name : value;
+                        return `<span class="text-xs text-gray-500">${fieldConfig?.label || key}: <strong>${fieldValue}</strong></span>`;
+                    }).join('; ');
 
                 itemEl.innerHTML = `
                     <img src="${photoSrc}" class="w-16 h-16 rounded-md object-cover">
@@ -322,12 +318,6 @@
                 <div><p class="text-sm text-gray-500">${actionText}</p><h1 class="text-2xl font-bold text-gray-800">${campaignData.title}</h1><p class="text-sm font-medium text-gray-600">Organizado por: ${campaignData.entityName}</p></div>`;
         }
         
-        function populateSubItemTypes(subtypes) {
-            itemSubtypeSelect.innerHTML = '<option value="">Selecione o item...</option>';
-            subtypes.forEach(subtype => { itemSubtypeSelect.innerHTML += `<option value="${subtype}">${subtype}</option>`; });
-            itemSubtypeSelect.innerHTML += '<option value="outro">Outro</option>';
-        }
-
         function generateScheduleDays() {
             scheduleDateSelect.innerHTML = '<option value="">Carregando...</option>';
             const availableDates = Object.keys(campaignData.disponibilidade || {}).sort();
@@ -381,27 +371,23 @@
             else { scheduleSlotsContainer.classList.add('hidden'); scheduleSlotsGrid.innerHTML = ''; selectedScheduleSlot = null; }
         });
 
-        itemSubtypeSelect.addEventListener('change', (e) => {
-            const isOther = e.target.value === 'outro';
-            itemOtherSubtypeInput.classList.toggle('hidden', !isOther);
-            renderDynamicFields(campaignData.type);
-        });
-
         addItemBtn.addEventListener('click', () => {
             addItemError.textContent = '';
-            const type = itemSubtypeSelect.value === 'outro' ? itemOtherSubtypeInput.value.trim() : itemSubtypeSelect.value;
-            if (!type) {
-                 addItemError.textContent = 'Por favor, selecione um tipo de item.';
-                 return;
-            }
             
             const customFieldsData = {};
             const dynamicInputs = dynamicFieldsContainer.querySelectorAll('input, select');
             let allFieldsValid = true;
             let mainPhotoFile = null;
+            let mainPhotoId = null;
+            let itemType = campaignData.title;
 
-            const imageFields = (campaignTypeSettings[campaignData.type]?.fields || []).filter(f => f.type === 'image');
+            const fieldsConfig = campaignTypeSettings[campaignData.type]?.fields || [];
+            const imageFields = fieldsConfig.filter(f => f.type === 'image');
             
+            if (imageFields.length > 0) {
+                mainPhotoId = imageFields[0].id;
+            }
+
             dynamicInputs.forEach(input => {
                 if (input.required && ((input.type === 'file' && input.files.length === 0) || !input.value)) {
                     allFieldsValid = false;
@@ -409,8 +395,12 @@
                 const file = input.type === 'file' ? input.files[0] : null;
                 customFieldsData[input.name] = file || input.value; 
 
-                if (file && imageFields.length > 0 && input.name === imageFields[0].id) {
+                if (file && mainPhotoId && input.name === mainPhotoId) {
                     mainPhotoFile = file;
+                }
+                
+                if (input.type !== 'file' && input.value && itemType === campaignData.title) {
+                    itemType = input.value;
                 }
             });
 
@@ -423,11 +413,11 @@
                  return;
             }
 
-            donatedItems.push({ type, mainPhotoFile, customFields: customFieldsData });
+            donatedItems.push({ type: itemType, mainPhotoFile, mainPhotoId, customFields: customFieldsData });
             renderDonatedItems();
-            addItemForm.reset();
-            itemOtherSubtypeInput.classList.add('hidden');
+            
             dynamicFieldsContainer.innerHTML = '';
+            renderDynamicFields(campaignData.type);
         });
 
         donatedItemsList.addEventListener('click', (e) => {
