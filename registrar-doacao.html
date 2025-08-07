@@ -250,31 +250,33 @@
             dynamicFieldsContainer.innerHTML = '';
             const typeConfig = campaignTypeSettings[campaignType];
             if (!typeConfig || !typeConfig.fields) return;
-            const fields = typeConfig.fields;
-            for (const fieldId in fields) {
-                const field = fields[fieldId];
+            
+            const fields = typeConfig.fields.filter(field => field.active !== false);
+
+            fields.forEach(field => {
                 let fieldHtml = '';
-                const label = `<label for="field-${fieldId}" class="block text-sm font-medium text-gray-700">${field.label} ${field.required ? '*' : ''}</label>`;
+                const label = `<label for="field-${field.id}" class="block text-sm font-medium text-gray-700">${field.label} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>`;
                 const required = field.required ? 'required' : '';
+
                 switch (field.type) {
                     case 'text':
-                        fieldHtml = `<div class="col-span-1">${label}<input type="text" id="field-${fieldId}" name="${fieldId}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>`;
+                        fieldHtml = `<div class="col-span-1">${label}<input type="text" id="field-${field.id}" name="${field.id}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>`;
                         break;
                     case 'select':
                         const optionsHtml = field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
-                        fieldHtml = `<div class="col-span-1">${label}<select id="field-${fieldId}" name="${fieldId}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"><option value="">Selecione...</option>${optionsHtml}</select></div>`;
+                        fieldHtml = `<div class="col-span-1">${label}<select id="field-${field.id}" name="${field.id}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"><option value="">Selecione...</option>${optionsHtml}</select></div>`;
                         break;
                     case 'date':
-                        fieldHtml = `<div class="col-span-1">${label}<input type="date" id="field-${fieldId}" name="${fieldId}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>`;
+                        fieldHtml = `<div class="col-span-1">${label}<input type="date" id="field-${field.id}" name="${field.id}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>`;
                         break;
                     case 'image':
                     case 'video':
                         const accept = field.type === 'image' ? 'image/*' : 'video/*';
-                        fieldHtml = `<div class="col-span-1 md:col-span-2">${label}<input type="file" id="field-${fieldId}" name="${fieldId}" ${required} accept="${accept}" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"></div>`;
+                        fieldHtml = `<div class="col-span-1 md:col-span-2">${label}<input type="file" id="field-${field.id}" name="${field.id}" ${required} accept="${accept}" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"></div>`;
                         break;
                 }
                 dynamicFieldsContainer.innerHTML += fieldHtml;
-            }
+            });
         }
         
         function renderDonatedItems(isReschedule = false) {
@@ -289,7 +291,7 @@
                 const photoSrc = isReschedule ? item.photoURL : URL.createObjectURL(item.photoFile);
                 
                 let customDetailsHtml = Object.entries(item.customFields || {}).map(([key, value]) => {
-                    const fieldConfig = campaignTypeSettings[campaignData.type]?.fields?.[key];
+                    const fieldConfig = campaignTypeSettings[campaignData.type]?.fields?.find(f => f.id === key);
                     const fieldValue = (value instanceof File) ? value.name : value;
                     return `<span class="text-xs text-gray-500">${fieldConfig?.label || key}: <strong>${fieldValue}</strong></span>`;
                 }).join('; ');
@@ -392,13 +394,14 @@
             dynamicInputs.forEach(input => {
                 if (!input.value && input.required) allFieldsValid = false;
                 if (input.type === 'file') {
+                    if (input.required && input.files.length === 0) allFieldsValid = false;
                     customFieldsData[input.name] = input.files[0];
                 } else {
                     customFieldsData[input.name] = input.value;
                 }
             });
             if (!allFieldsValid) {
-                addItemError.textContent = 'Por favor, preencha todos os campos adicionais.';
+                addItemError.textContent = 'Por favor, preencha todos os campos adicionais obrigatórios.';
                 return;
             }
             donatedItems.push({ type, condition, photoFile, customFields: customFieldsData });
