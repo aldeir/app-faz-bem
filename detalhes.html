@@ -275,9 +275,6 @@
                 } else {
                     loadingContainer.innerHTML = '<p class="text-red-500 text-center">Campanha não encontrada.</p>';
                 }
-            }, (error) => {
-                console.error("Erro ao buscar detalhes:", error);
-                loadingContainer.innerHTML = '<p class="text-red-500 text-center">Ocorreu um erro ao carregar.</p>';
             });
         }
 
@@ -317,7 +314,9 @@
                 const uniqueDonors = {};
 
                 donationsData.forEach(donation => {
-                    if (!uniqueDonors[donation.donorId] || donation.status === 'completed') {
+                     if (!uniqueDonors[donation.donorId] || 
+                        (uniqueDonors[donation.donorId].privacy === 'anonymous' && donation.privacy !== 'anonymous') ||
+                        (donation.status === 'completed' && uniqueDonors[donation.donorId].status !== 'completed')) {
                         uniqueDonors[donation.donorId] = donation;
                     }
                 });
@@ -329,7 +328,7 @@
                     const isAnonymous = donation.privacy === 'anonymous';
                     const photoURL = isAnonymous ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A' : donation.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
                     const displayName = isAnonymous ? 'Anônimo' : donation.donorName;
-                    const isCompleted = donation.status === 'completed';
+                    const isCompleted = donation.items.some(item => item.status === 'completed');
 
                     const donorElement = document.createElement('div');
                     donorElement.className = "text-center";
@@ -369,10 +368,10 @@
 
         donorsList.addEventListener('click', async (e) => {
             const likeButton = e.target.closest('.like-button');
-            if (!likeButton || !currentUserSession?.auth) {
-                if (!currentUserSession?.auth) {
-                    showAlertModal("Ação necessária", "Você precisa estar logado para curtir.");
-                }
+            if (!likeButton) return;
+            
+            if (!currentUserSession?.auth) {
+                showAlertModal("Ação necessária", "Você precisa estar logado para curtir.");
                 return;
             }
 
