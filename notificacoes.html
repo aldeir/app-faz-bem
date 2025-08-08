@@ -18,9 +18,18 @@
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #16a34a; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .notification-item {
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
         .notification-item.unread {
-            background-color: #ecfdf5; /* green-50 */
+            background-color: #f0fdf4; /* green-50 */
             border-left-color: #22c55e; /* green-500 */
+        }
+         .notification-item.read {
+            background-color: #ffffff; /* white */
+            border-left-color: #e5e7eb; /* gray-200 */
         }
     </style>
 </head>
@@ -54,11 +63,14 @@
         </div>
     </main>
 
+    <div id="app-modal"></div>
+
     <script type="module">
         import { db, paths } from './app-config.js';
         import { collection, query, where, onSnapshot, doc, updateDoc, orderBy, writeBatch } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
+        import { showDetailsModal } from './modal-handler.js';
 
         const loadingView = document.getElementById('loading-view');
         const notificationsView = document.getElementById('notifications-view');
@@ -117,13 +129,12 @@
 
                 snapshot.docs.forEach(docSnap => {
                     const notification = { id: docSnap.id, ...docSnap.data() };
-                    const item = document.createElement('a');
-                    item.href = notification.link || '#';
-                    item.className = `notification-item block p-4 hover:bg-gray-50 border-l-4 ${notification.read ? 'border-transparent' : 'unread'}`;
+                    const item = document.createElement('div');
+                    item.className = `notification-item p-4 border-l-4 ${notification.read ? 'read' : 'unread'}`;
                     
                     item.innerHTML = `
                         <div class="flex items-center">
-                            ${!notification.read ? '<div class="w-2 h-2 bg-blue-500 rounded-full mr-3 flex-shrink-0"></div>' : '<div class="w-2 h-2 mr-3"></div>'}
+                            ${!notification.read ? '<div class="w-2 h-2 bg-green-500 rounded-full mr-3 flex-shrink-0"></div>' : '<div class="w-2 h-2 mr-3"></div>'}
                             <div class="flex-grow">
                                 <p class="text-sm text-gray-800">${notification.message}</p>
                                 <p class="text-xs text-gray-500 mt-1">${formatTimeAgo(notification.timestamp)}</p>
@@ -131,14 +142,7 @@
                         </div>
                     `;
 
-                    item.addEventListener('click', async (e) => {
-                        e.preventDefault();
-                        if (!notification.read) {
-                            const notifRef = doc(db, paths.notificationDoc(notification.id));
-                            await updateDoc(notifRef, { read: true });
-                        }
-                        window.location.href = item.href;
-                    });
+                    item.addEventListener('click', () => displayNotificationModal(notification));
                     
                     notificationsList.appendChild(item);
 
@@ -154,6 +158,25 @@
                 console.error("Erro ao carregar notificações:", error);
                 loadingView.innerHTML = '<p class="text-red-500 text-center">Ocorreu um erro ao carregar as notificações.</p>';
             });
+        }
+
+        async function displayNotificationModal(notification) {
+            const modalContentHtml = `
+                <p>${notification.message}</p>
+                <div class="mt-4 pt-4 border-t">
+                    <button onclick="window.location.href='${notification.link || '#'}'" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">
+                        Ver Detalhes
+                    </button>
+                </div>
+            `;
+            
+            await showDetailsModal('Notificação', modalContentHtml);
+
+            // Só marca como lida depois que o modal for fechado
+            if (!notification.read) {
+                const notifRef = doc(db, paths.notificationDoc(notification.id));
+                await updateDoc(notifRef, { read: true });
+            }
         }
 
         markAllReadBtn.addEventListener('click', async () => {
