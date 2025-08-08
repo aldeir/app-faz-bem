@@ -109,7 +109,7 @@
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal, showConfirmationModal, showDetailsModal } from './modal-handler.js';
         import { createNotification } from './notification-service.js';
-        import { getProfileById } from './profile-service.js'; // <-- [ADICIONADO]
+        import { getProfileById } from './profile-service.js';
 
         const loadingView = document.getElementById('loading-view');
         const schedulesView = document.getElementById('schedules-view');
@@ -121,6 +121,7 @@
 
         let allDonationsData = [];
         let campaignsMap = new Map();
+        let campaignTypeSettings = {}; // <-- [ADICIONADO]
         let currentUserSession = null;
         let currentPage = 1;
         const ITEMS_PER_PAGE = 5;
@@ -129,6 +130,10 @@
             await injectHeader();
             currentUserSession = await getCurrentUser();
             if (currentUserSession && currentUserSession.profile?.role === 'entidade') {
+                // [ADICIONADO] Carrega as configurações dos tipos de campanha
+                const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
+                campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
+                
                 loadInitialData(currentUserSession.auth.uid);
             } else {
                 window.location.href = 'login.html';
@@ -216,11 +221,26 @@
                                 const receiverName = receiverProfile?.displayName || 'Desconhecido';
                                 receivedByHtml = `<span class="text-xs text-gray-500 ml-2">(Recebido por: ${receiverName})</span>`;
                             }
-                            return `<li class="flex items-center space-x-3">
+
+                            // Lógica para renderizar detalhes dinâmicos
+                            let itemDetailsHtml = '<div class="space-y-1 mt-1">';
+                            const fieldsConfig = campaignTypeSettings[campaignType]?.fields || [];
+                            const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
+                            
+                            fieldsConfig.forEach(field => {
+                                const key = field.id;
+                                const value = item[key];
+                                if (value && !mediaFieldIds.has(key) && key !== 'type' && key !== 'photoURL') {
+                                    itemDetailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
+                                }
+                            });
+                            itemDetailsHtml += '</div>';
+
+                            return `<li class="flex items-start space-x-3">
                                         <img src="${item.photoURL}" class="w-10 h-10 rounded-md object-cover bg-gray-200">
-                                        <div>
+                                        <div class="flex-grow">
                                             <p class="font-medium text-gray-800">${item.type} ${receivedByHtml}</p>
-                                            <p class="text-xs text-gray-500">${item.details || ''} (${item.condition})</p>
+                                            ${itemDetailsHtml}
                                         </div>
                                     </li>`;
                         });
