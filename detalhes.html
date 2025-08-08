@@ -316,7 +316,7 @@
                 donationsData.forEach(donation => {
                      if (!uniqueDonors[donation.donorId] || 
                         (uniqueDonors[donation.donorId].privacy === 'anonymous' && donation.privacy !== 'anonymous') ||
-                        (donation.status === 'completed' && uniqueDonors[donation.donorId].status !== 'completed')) {
+                        (donation.items.some(i => i.status === 'completed') && !uniqueDonors[donation.donorId].items.some(i => i.status === 'completed'))) {
                         uniqueDonors[donation.donorId] = donation;
                     }
                 });
