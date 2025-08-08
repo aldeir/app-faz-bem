@@ -161,7 +161,7 @@
                 const userId = currentUserSession.auth.uid;
                 loadProfileData(currentUserSession);
                 loadDonationHistory(userId);
-                calculateAndDisplayRanking(userId); // <-- CHAMADA DA NOVA FUNÇÃO DE RANKING
+                calculateAndDisplayRanking(userId);
                 loadingView.classList.add('hidden');
                 profileView.classList.remove('hidden');
             } else {
@@ -181,7 +181,7 @@
                 photoPreview.src = profile.photoURL || 'https://placehold.co/128x128/e2e8f0/cbd5e0?text=Foto';
             }
         }
-
+        
         async function calculateAndDisplayRanking(currentUserId) {
             try {
                 const completedDonationsQuery = query(collection(db, paths.donations), where("status", "==", "completed"));
