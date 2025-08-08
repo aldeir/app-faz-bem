@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meu Perfil - Faz Bem</title>
     
-    <!-- PWA Tags -->
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
@@ -192,25 +191,17 @@
                 const likesSnapshot = await getDocs(likesQuery);
                 const allLikes = likesSnapshot.docs.map(doc => doc.data());
 
-                const likerIds = [...new Set(allLikes.map(like => like.likerId))].filter(id => id);
-                let likersMap = {};
+                // --- CORREÇÃO APLICADA AQUI ---
+                // Não precisamos mais buscar os perfis dos likers, pois os dados já estão nos documentos de like.
+                renderHistory(completedDonations, allLikes);
 
-                if (likerIds.length > 0) {
-                    const likersQuery = query(collection(db, paths.users), where("uid", "in", likerIds.slice(0, 30)));
-                    const likersSnapshot = await getDocs(likersQuery);
-                    likersSnapshot.forEach(doc => {
-                        likersMap[doc.id] = doc.data();
-                    });
-                }
-
-                renderHistory(completedDonations, allLikes, likersMap);
             } catch (error) {
                 console.error("Erro ao carregar histórico de doações:", error);
                 historyList.innerHTML = '<p class="text-center text-red-500 py-6">Ocorreu um erro ao carregar seu histórico.</p>';
             }
         }
 
-        function renderHistory(donations, allLikes, likersMap) {
+        function renderHistory(donations, allLikes) {
             const donationsByCampaign = donations.reduce((acc, donation) => {
                 const campaignId = donation.campaignId;
                 if (!acc[campaignId]) {
@@ -240,12 +231,13 @@
                 
                 let likesHtml = '<p class="text-xs text-gray-500">Nenhuma curtida ainda.</p>';
                 if (campaignLikes.length > 0) {
+                    // --- CORREÇÃO APLICADA AQUI ---
+                    // Usamos os campos `likerPhotoURL` e `likerName` que agora existem no documento de like.
                     likesHtml = `<div class="flex items-center -space-x-2">${campaignLikes.slice(0, 5).map(like => {
-                        const likerProfile = likersMap[like.likerId];
-                        if (!likerProfile) return '';
-                        const photoURL = likerProfile.photoURL || `https://placehold.co/24x24/e2e8f0/cbd5e0?text=${likerProfile.displayName.charAt(0)}`;
-                        return `<img src="${photoURL}" class="w-7 h-7 rounded-full border-2 border-white" title="${likerProfile.displayName}">`;
+                        const photoURL = like.likerPhotoURL || `https://placehold.co/24x24/e2e8f0/cbd5e0?text=${like.likerName.charAt(0)}`;
+                        return `<img src="${photoURL}" class="w-7 h-7 rounded-full border-2 border-white" title="${like.likerName}">`;
                     }).join('')}</div>`;
+
                     if(campaignLikes.length > 5) {
                         likesHtml += `<span class="text-xs text-gray-500 ml-3">+${campaignLikes.length - 5}</span>`;
                     }
@@ -375,7 +367,6 @@
         initializeApp();
     </script>
 
-    <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
