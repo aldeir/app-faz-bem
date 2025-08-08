@@ -8,6 +8,7 @@
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+    <link rel="icon" href="images/icons/icon-72x72.png" type="image/png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -149,7 +150,7 @@
         import { auth, db, storage, paths } from './app-config.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
-        import { doc, updateDoc, collection, query, where, getDocs, storageRef, uploadBytes, getDownloadURL, updateProfile, onSnapshot } from "./firebase-services.js";
+        import { doc, updateDoc, collection, query, where, getDocs, storageRef, uploadBytes, getDownloadURL, updateProfile, onSnapshot, getDoc } from "./firebase-services.js";
         import { showDetailsModal } from './modal-handler.js';
 
         const loadingView = document.getElementById('loading-view');
@@ -174,7 +175,7 @@
 
         let currentUserSession = null;
         let cropper;
-        let campaignTypeSettings = {}; // <-- ARMAZENAR AS CONFIGURAÇÕES
+        let campaignTypeSettings = {};
 
         async function initializeApp() {
             await injectHeader();
@@ -182,7 +183,6 @@
 
             if (currentUserSession) {
                 const userId = currentUserSession.auth.uid;
-                // Carrega as configurações primeiro
                 const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
                 campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
 
@@ -213,9 +213,17 @@
             onSnapshot(allDonationsQuery, (snapshot) => {
                 const allDonations = snapshot.docs.map(doc => doc.data());
                 displayRanking(userId, allDonations);
+            });
 
-                const userDonations = allDonations.filter(d => d.donorId === userId);
-                renderHistory(userDonations);
+            const userDonationsQuery = query(collection(db, paths.donations), where("donorId", "==", userId));
+            onSnapshot(userDonationsQuery, async (snapshot) => {
+                const userDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                const likesQuery = query(collection(db, paths.likes), where("donorId", "==", userId));
+                const likesSnapshot = await getDocs(likesQuery);
+                const allLikes = likesSnapshot.docs.map(doc => doc.data());
+
+                renderHistory(userDonations, allLikes);
             });
         }
 
@@ -250,7 +258,7 @@
             }
         }
         
-        async function renderHistory(donations) {
+        function renderHistory(donations, allLikes) {
             const completedItemsByCampaign = donations.reduce((acc, d) => {
                 const completedItems = d.items.filter(item => item.status === 'completed');
                 if (completedItems.length > 0) {
@@ -281,12 +289,6 @@
             historyTitle.textContent = `Você já contribuiu em ${totalCampaigns} campanha(s)!`;
 
             const sortedCampaigns = Object.entries(completedItemsByCampaign).sort(([, a], [, b]) => b.latestDate - a.latestDate);
-            
-            // --- INÍCIO DA CORREÇÃO: LIKES ---
-            const likesQuery = query(collection(db, paths.likes), where("donorId", "==", currentUserSession.auth.uid));
-            const likesSnapshot = await getDocs(likesQuery);
-            const allLikes = likesSnapshot.docs.map(doc => doc.data());
-            // --- FIM DA CORREÇÃO: LIKES ---
 
             for (const [campaignId, campaignData] of sortedCampaigns) {
                 const campaignLikes = allLikes.filter(like => like.campaignId === campaignId);
@@ -312,7 +314,6 @@
                 }
 
                 let itemsHtml = campaignData.items.map(item => {
-                    // --- INÍCIO DA CORREÇÃO: EXIBIÇÃO DE ITENS ---
                     const fieldsConfig = campaignTypeSettings[item.campaignType]?.fields || [];
                     const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
 
@@ -325,7 +326,6 @@
                         }
                     });
                     detailsHtml += '</div>';
-                    // --- FIM DA CORREÇÃO: EXIBIÇÃO DE ITENS ---
 
                     return `
                     <li class="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-100 cursor-pointer" data-item-details='${JSON.stringify(item)}'>
