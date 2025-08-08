@@ -123,8 +123,8 @@
         function loadAllDonationsForEntity(entityId) {
             const q = query(collection(db, paths.donations), where('entityId', '==', entityId), where('status', '==', 'scheduled'));
             
-            onSnapshot(q, (querySnapshot) => {
-                allScheduledDonations = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            onSnapshot(q, (snapshot) => {
+                allScheduledDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
                 const uniqueDates = [...new Set(allScheduledDonations.map(d => d.scheduledAt.toDate().toISOString().split('T')[0]))];
                 availableDates = uniqueDates.sort();
@@ -132,7 +132,7 @@
                 const todayStr = new Date().toISOString().split('T')[0];
                 currentDateIndex = availableDates.findIndex(dateStr => dateStr >= todayStr);
                 if (currentDateIndex === -1 && availableDates.length > 0) {
-                    currentDateIndex = availableDates.length - 1; // Se não houver datas futuras, mostra a última
+                    currentDateIndex = availableDates.length - 1;
                 }
 
                 renderScheduleForSelectedDate();
@@ -141,9 +141,6 @@
                     loadingView.classList.add('hidden');
                     donationsView.classList.remove('hidden');
                 }
-            }, (error) => {
-                console.error("Erro ao carregar doações:", error);
-                loadingView.innerHTML = `<p class="text-red-500">Ocorreu um erro ao carregar as doações.</p>`;
             });
         }
         
@@ -152,7 +149,7 @@
             nextDayBtn.disabled = currentDateIndex >= availableDates.length - 1;
 
             if (currentDateIndex === -1) {
-                selectedDateDisplay.textContent = "Nenhum Agendamento Futuro";
+                selectedDateDisplay.textContent = "Nenhum Agendamento";
                 noSlotsMessage.style.display = 'block';
                 scheduleSlotsGrid.innerHTML = '';
                 itemsList.innerHTML = '';
@@ -189,7 +186,7 @@
                 const isOverdue = new Date(selectedDateStr + 'T' + time) < new Date();
                 const slotEl = document.createElement('button');
                 slotEl.className = 'schedule-slot p-3 rounded-lg text-left';
-                if (isOverdue) slotEl.classList.add('!border-red-500');
+                if (isOverdue) slotEl.classList.add('!border-red-500', 'bg-red-50');
                 slotEl.innerHTML = `
                     <p class="font-bold text-lg">${time}</p>
                     <p class="slot-donors text-sm text-gray-500">${slotData.donors.size} doador(es)</p>
@@ -226,9 +223,8 @@
                     if (item.status === 'completed') {
                         statusHtml = `<p class="text-xs text-green-600 font-semibold">Recebido</p>`;
                     } else if (isCampaignActive) {
-                        statusHtml = `<button data-donation-id="${donation.id}" data-item-index="${index}" class="receive-btn bg-green-600 text-white text-sm font-bold py-2 px-3 rounded-lg hover:bg-green-700 transition">
-                            ${isOverdue ? 'Receber (Vencido)' : 'Receber'}
-                        </button>`;
+                        const buttonText = isOverdue ? 'Receber (Vencido)' : 'Receber';
+                        statusHtml = `<button data-donation-id="${donation.id}" data-item-index="${index}" class="receive-btn bg-green-600 text-white text-sm font-bold py-2 px-3 rounded-lg hover:bg-green-700 transition">${buttonText}</button>`;
                     } else {
                         statusHtml = `<p class="text-xs text-gray-500 font-semibold">Campanha Encerrada</p>`;
                     }
@@ -259,29 +255,24 @@
                 itemsList.appendChild(donorSection);
             });
         }
-
+        
         async function processItemReception(donationId, itemIndex) {
             const donationRef = doc(db, paths.donationDoc(donationId));
-            try {
-                const docSnap = await getDoc(donationRef);
-                if (docSnap.exists()) {
-                    const currentDonation = docSnap.data();
-                    const updatedItems = [...currentDonation.items];
-                    const item = updatedItems[itemIndex];
-                    
-                    item.status = 'completed';
-                    item.receivedBy = auth.currentUser.uid;
-                    item.receivedDate = new Date();
-                    
-                    await updateDoc(donationRef, { items: updatedItems });
-                    // A UI irá atualizar-se automaticamente graças ao onSnapshot.
-                }
-            } catch (error) {
-                console.error("Erro ao confirmar recebimento: ", error);
+            const docSnap = await getDoc(donationRef);
+            if (docSnap.exists()) {
+                const currentDonation = docSnap.data();
+                const updatedItems = [...currentDonation.items];
+                const item = updatedItems[itemIndex];
+                
+                item.status = 'completed';
+                item.receivedBy = auth.currentUser.uid;
+                item.receivedDate = new Date();
+                
+                await updateDoc(donationRef, { items: updatedItems });
             }
         }
-
-        itemsList.addEventListener('click', async (e) => {
+        
+        itemsList.addEventListener('click', (e) => {
             const button = e.target.closest('.receive-btn');
             if (!button) return;
             
@@ -291,7 +282,8 @@
 
             if (!item) return;
 
-            const fieldsConfig = campaignTypeSettings[campaignsData.get(donation.campaignId)?.type]?.fields || [];
+            const campaign = campaignsData.get(donation.campaignId);
+            const fieldsConfig = campaignTypeSettings[campaign?.type]?.fields || [];
             let detailsHtml = '';
             fieldsConfig.forEach(field => {
                 const value = item[field.id];
@@ -305,7 +297,7 @@
                     <img src="${item.photoURL || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem'}" class="w-full h-64 object-contain rounded-md mb-4 bg-gray-100">
                     <h4 class="font-bold text-xl">${item.type}</h4>
                     <p class="text-sm text-gray-500 mb-4">Campanha: ${donation.campaignTitle}</p>
-                    <div class="text-left text-sm space-y-1">${detailsHtml}</div>
+                    <div class="text-left text-sm space-y-1 p-2 bg-gray-50 rounded">${detailsHtml || '<p>Sem detalhes adicionais.</p>'}</div>
                 </div>
                 <div class="mt-6 flex justify-end gap-3">
                     <button id="modal-cancel-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">Cancelar</button>
@@ -313,13 +305,13 @@
                 </div>
             `;
             
-            const modalClosed = showDetailsModal('Confirmar Recebimento', modalContentHtml);
+            showDetailsModal('Confirmar Recebimento', modalContentHtml);
             
             document.getElementById('modal-confirm-btn').onclick = async () => {
                 const modal = document.getElementById('app-modal');
-                modal.querySelector('#modal-message-body').innerHTML = '<div class="loader mx-auto"></div><p class="text-center mt-2">Processando...</p>';
-                await processItemReception(donationId, itemIndex);
-                modal.classList.add('hidden'); // Fecha o modal manualmente
+                modal.querySelector('#modal-message-body').innerHTML = '<div class="loader mx-auto"></div><p class="text-center mt-2">A processar...</p>';
+                await processItemReception(donationId, parseInt(itemIndex));
+                modal.classList.add('hidden');
             };
             document.getElementById('modal-cancel-btn').onclick = () => document.getElementById('app-modal').classList.add('hidden');
         });
