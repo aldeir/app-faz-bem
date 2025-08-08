@@ -80,7 +80,7 @@
     <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">​</span>
             <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
@@ -109,6 +109,7 @@
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal, showConfirmationModal, showDetailsModal } from './modal-handler.js';
         import { createNotification } from './notification-service.js';
+        import { getProfileById } from './profile-service.js'; // <-- [ADICIONADO]
 
         const loadingView = document.getElementById('loading-view');
         const schedulesView = document.getElementById('schedules-view');
@@ -120,10 +121,9 @@
 
         let allDonationsData = [];
         let campaignsMap = new Map();
-        let profilesCache = new Map();
         let currentUserSession = null;
         let currentPage = 1;
-        const ITEMS_PER_PAGE = 5; // Exibe 5 dias de cada vez
+        const ITEMS_PER_PAGE = 5;
 
         async function initializeApp() {
             await injectHeader();
@@ -144,7 +144,7 @@
                 const donationsQuery = query(collection(db, paths.donations), where("entityId", "==", entityId));
                 onSnapshot(donationsQuery, (snapshot) => {
                     allDonationsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    currentPage = 1; // Reseta a página a cada nova atualização
+                    currentPage = 1;
                     renderActiveTabData();
                     loadingView.classList.add('hidden');
                     schedulesView.classList.remove('hidden');
@@ -172,6 +172,7 @@
             renderHierarchicalList(donationsToRender);
         }
         
+        // [MODIFICADO]
         async function renderHierarchicalList(donations, append = false) {
             if (!append) schedulesList.innerHTML = '';
             
@@ -211,7 +212,8 @@
                         const itemsHtmlPromises = campaignDonations.flatMap(d => d.items).map(async (item) => {
                             let receivedByHtml = '';
                             if (item.receivedBy) {
-                                const receiverName = await getProfileName(item.receivedBy);
+                                const receiverProfile = await getProfileById(item.receivedBy);
+                                const receiverName = receiverProfile?.displayName || 'Desconhecido';
                                 receivedByHtml = `<span class="text-xs text-gray-500 ml-2">(Recebido por: ${receiverName})</span>`;
                             }
                             return `<li class="flex items-center space-x-3">
@@ -282,23 +284,6 @@
             return Object.fromEntries(map);
         }
 
-        async function getProfileName(userId) {
-            if (!userId) return "Desconhecido";
-            if (profilesCache.has(userId)) return profilesCache.get(userId).displayName;
-            if (currentUserSession?.auth?.uid === userId) {
-                 profilesCache.set(userId, currentUserSession.profile);
-                 return currentUserSession.profile.displayName;
-            }
-            const userRef = doc(db, paths.userDoc(userId));
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) {
-                const userData = userSnap.data();
-                profilesCache.set(userId, userData);
-                return userData.displayName;
-            }
-            return "Doador";
-        }
-        
         tabsContainer.addEventListener('click', (e) => {
             const button = e.target.closest('button.tab-button');
             if (button) {
@@ -355,7 +340,6 @@
             }
         });
 
-        // Listener para fechar o menu de opções ao clicar fora
         document.addEventListener('click', (e) => {
             if (!e.target.closest('[data-action="toggle-options"]')) {
                 document.querySelectorAll('.options-menu').forEach(m => m.classList.add('hidden'));
