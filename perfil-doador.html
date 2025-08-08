@@ -191,10 +191,7 @@
                 const likesSnapshot = await getDocs(likesQuery);
                 const allLikes = likesSnapshot.docs.map(doc => doc.data());
 
-                // --- CORREÇÃO APLICADA AQUI ---
-                // Não precisamos mais buscar os perfis dos likers, pois os dados já estão nos documentos de like.
                 renderHistory(completedDonations, allLikes);
-
             } catch (error) {
                 console.error("Erro ao carregar histórico de doações:", error);
                 historyList.innerHTML = '<p class="text-center text-red-500 py-6">Ocorreu um erro ao carregar seu histórico.</p>';
@@ -231,13 +228,14 @@
                 
                 let likesHtml = '<p class="text-xs text-gray-500">Nenhuma curtida ainda.</p>';
                 if (campaignLikes.length > 0) {
-                    // --- CORREÇÃO APLICADA AQUI ---
-                    // Usamos os campos `likerPhotoURL` e `likerName` que agora existem no documento de like.
                     likesHtml = `<div class="flex items-center -space-x-2">${campaignLikes.slice(0, 5).map(like => {
-                        const photoURL = like.likerPhotoURL || `https://placehold.co/24x24/e2e8f0/cbd5e0?text=${like.likerName.charAt(0)}`;
-                        return `<img src="${photoURL}" class="w-7 h-7 rounded-full border-2 border-white" title="${like.likerName}">`;
+                        // --- INÍCIO DA CORREÇÃO ---
+                        // Adiciona uma verificação para garantir que 'like.likerName' existe.
+                        const likerName = like.likerName || 'U'; // 'U' de 'Usuário' como fallback.
+                        const photoURL = like.likerPhotoURL || `https://placehold.co/24x24/e2e8f0/cbd5e0?text=${likerName.charAt(0)}`;
+                        return `<img src="${photoURL}" class="w-7 h-7 rounded-full border-2 border-white" title="${likerName}">`;
+                        // --- FIM DA CORREÇÃO ---
                     }).join('')}</div>`;
-
                     if(campaignLikes.length > 5) {
                         likesHtml += `<span class="text-xs text-gray-500 ml-3">+${campaignLikes.length - 5}</span>`;
                     }
