@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>App Faz Bem - Campanhas</title>
     
-    <!-- PWA Tags -->
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+    <link rel="icon" href="images/icons/icon-72x72.png" type="image/png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -109,7 +109,6 @@
         let campaignsUnsubscribe, donationsUnsubscribe, likesUnsubscribe, settingsUnsubscribe;
 
         async function initializeApp() {
-            // O cabeçalho é injetado, mas não bloqueia a página (lógica dentro do injectHeader)
             await injectHeader();
             currentUserSession = await getCurrentUser();
             setupDataListeners();
@@ -138,10 +137,27 @@
                 const uniqueDonorsPerCampaign = {};
                 snapshot.docs.forEach(doc => {
                     const donation = doc.data();
-                    if (!uniqueDonorsPerCampaign[donation.campaignId]) uniqueDonorsPerCampaign[donation.campaignId] = {};
-                    if (!uniqueDonorsPerCampaign[donation.campaignId][donation.donorId] || donation.status === 'completed') {
-                        uniqueDonorsPerCampaign[donation.campaignId][donation.donorId] = donation;
+                    const campaignId = donation.campaignId;
+                    const donorId = donation.donorId;
+
+                    if (!campaignId || !donorId) return;
+
+                    if (!uniqueDonorsPerCampaign[campaignId]) {
+                        uniqueDonorsPerCampaign[campaignId] = {};
                     }
+
+                    const existingDonation = uniqueDonorsPerCampaign[campaignId][donorId];
+
+                    // --- INÍCIO DA CORREÇÃO ---
+                    // Se não houver doação registada, adiciona.
+                    // Se a existente for anónima e a nova for pública, substitui pela pública.
+                    // Se a nova for concluída (status 'completed'), ela tem prioridade para exibir a estrela.
+                    if (!existingDonation || 
+                        (existingDonation.privacy === 'anonymous' && donation.privacy !== 'anonymous') ||
+                        (donation.status === 'completed')) {
+                        uniqueDonorsPerCampaign[campaignId][donorId] = donation;
+                    }
+                    // --- FIM DA CORREÇÃO ---
                 });
                 allDonations = Object.values(uniqueDonorsPerCampaign).flatMap(obj => Object.values(obj));
                 renderUI();
@@ -359,7 +375,6 @@
         initializeApp();
     </script>
 
-    <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
