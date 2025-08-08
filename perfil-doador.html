@@ -270,7 +270,7 @@
                             campaignType: d.campaignType || 'default'
                         };
                     }
-                    acc[d.campaignId].items.push(...completedItems.map(item => ({...item, campaignId: d.campaignId, campaignType: d.campaignType || 'default'})));
+                    acc[d.campaignId].items.push(...completedItems.map(item => ({...item, campaignId: d.campaignId, campaignType: d.campaignType || 'default', campaignTitle: d.campaignTitle})));
                 }
                 return acc;
             }, {});
