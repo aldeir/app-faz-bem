@@ -8,7 +8,6 @@
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
-    <link rel="icon" href="images/icons/icon-72x72.png" type="image/png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -148,16 +147,11 @@
 
                     const existingDonation = uniqueDonorsPerCampaign[campaignId][donorId];
 
-                    // --- INÍCIO DA CORREÇÃO ---
-                    // Se não houver doação registada, adiciona.
-                    // Se a existente for anónima e a nova for pública, substitui pela pública.
-                    // Se a nova for concluída (status 'completed'), ela tem prioridade para exibir a estrela.
                     if (!existingDonation || 
                         (existingDonation.privacy === 'anonymous' && donation.privacy !== 'anonymous') ||
                         (donation.status === 'completed')) {
                         uniqueDonorsPerCampaign[campaignId][donorId] = donation;
                     }
-                    // --- FIM DA CORREÇÃO ---
                 });
                 allDonations = Object.values(uniqueDonorsPerCampaign).flatMap(obj => Object.values(obj));
                 renderUI();
@@ -347,7 +341,16 @@
                     if (likeButton.classList.contains('liked')) {
                         await deleteDoc(likeDocRef);
                     } else {
-                        await setDoc(likeDocRef, { campaignId, donorId, likerId, createdAt: serverTimestamp() });
+                        // --- CORREÇÃO APLICADA AQUI ---
+                        const likerProfile = currentUserSession.profile;
+                        await setDoc(likeDocRef, { 
+                            campaignId, 
+                            donorId, 
+                            likerId, 
+                            likerName: likerProfile.displayName || 'Usuário',
+                            likerPhotoURL: likerProfile.photoURL || null,
+                            createdAt: serverTimestamp() 
+                        });
                     }
                 } catch (error) {
                     console.error("Erro ao curtir:", error);
