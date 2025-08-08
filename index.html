@@ -149,7 +149,7 @@
 
                     if (!existingDonation || 
                         (existingDonation.privacy === 'anonymous' && donation.privacy !== 'anonymous') ||
-                        (donation.status === 'completed' && existingDonation.status !== 'completed')) {
+                        (donation.items.some(i => i.status === 'completed') && !existingDonation.items.some(i => i.status === 'completed'))) {
                         uniqueDonorsPerCampaign[campaignId][donorId] = donation;
                     }
                 });
@@ -247,7 +247,7 @@
                     const isAnonymous = donation.privacy === 'anonymous';
                     const photoURL = isAnonymous ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A' : donation.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
                     const displayName = isAnonymous ? 'Anônimo' : donation.donorName;
-                    const isCompleted = donation.status === 'completed';
+                    const isCompleted = donation.items.some(item => item.status === 'completed');
                     return `
                         <div class="text-center">
                             <div class="donor-avatar-container">
