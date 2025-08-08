@@ -128,7 +128,7 @@
         import { auth, db, storage, paths } from './app-config.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
-        import { doc, updateDoc, collection, query, where, getDocs, storageRef, uploadBytes, getDownloadURL, updateProfile } from "./firebase-services.js";
+        import { doc, updateDoc, collection, query, where, getDocs, storageRef, uploadBytes, getDownloadURL, updateProfile, onSnapshot } from "./firebase-services.js";
 
         const loadingView = document.getElementById('loading-view');
         const profileView = document.getElementById('profile-view');
@@ -160,8 +160,7 @@
             if (currentUserSession) {
                 const userId = currentUserSession.auth.uid;
                 loadProfileData(currentUserSession);
-                loadDonationHistory(userId);
-                calculateAndDisplayRanking(userId);
+                setupRealtimeListeners(userId); // <-- CHAMADA DA NOVA FUNÇÃO COM LISTENERS
                 loadingView.classList.add('hidden');
                 profileView.classList.remove('hidden');
             } else {
@@ -182,85 +181,77 @@
             }
         }
         
-        async function calculateAndDisplayRanking(currentUserId) {
-            try {
-                const completedDonationsQuery = query(collection(db, paths.donations), where("status", "==", "completed"));
-                const snapshot = await getDocs(completedDonationsQuery);
-
+        // --- INÍCIO DA REESTRUTURAÇÃO ---
+        function setupRealtimeListeners(userId) {
+            // Listener para o ranking (escuta TODAS as doações concluídas)
+            const completedDonationsQuery = query(collection(db, paths.donations), where("status", "==", "completed"));
+            onSnapshot(completedDonationsQuery, (snapshot) => {
                 const donorItemCounts = {};
                 snapshot.docs.forEach(doc => {
                     const donation = doc.data();
-                    const donorId = donation.donorId;
-                    const itemCount = donation.items.length;
-                    donorItemCounts[donorId] = (donorItemCounts[donorId] || 0) + itemCount;
+                    donorItemCounts[donation.donorId] = (donorItemCounts[donation.donorId] || 0) + donation.items.length;
                 });
+                displayRanking(userId, donorItemCounts);
+            });
 
-                const sortedDonors = Object.entries(donorItemCounts).sort((a, b) => b[1] - a[1]);
-                
-                const userRank = sortedDonors.findIndex(entry => entry[0] === currentUserId) + 1;
-                const userItemCount = donorItemCounts[currentUserId] || 0;
-
-                if (userRank > 0) {
-                    rankingContent.innerHTML = `
-                        <div class="flex flex-col sm:flex-row justify-around items-center gap-4">
-                            <div>
-                                <p class="text-4xl font-bold text-green-600">#${userRank}</p>
-                                <p class="text-sm text-gray-500 font-semibold mt-1">Sua Posição no Ranking</p>
-                            </div>
-                            <div class="w-full sm:w-px h-px sm:h-16 bg-gray-200"></div>
-                            <div>
-                                <p class="text-4xl font-bold text-blue-600">${userItemCount}</p>
-                                <p class="text-sm text-gray-500 font-semibold mt-1">Itens Doados com Sucesso</p>
-                            </div>
-                        </div>`;
-                } else {
-                    rankingContent.innerHTML = `<p class="text-gray-600">Você ainda não tem doações concluídas para aparecer no ranking. Faça o bem!</p>`;
-                }
-            } catch (error) {
-                console.error("Erro ao calcular ranking:", error);
-                rankingContent.innerHTML = `<p class="text-red-500">Não foi possível carregar o ranking.</p>`;
-            }
-        }
-
-        async function loadDonationHistory(userId) {
-            try {
-                const q = query(collection(db, paths.donations), where("donorId", "==", userId));
-                const donationsSnapshot = await getDocs(q);
-
-                const completedDonations = donationsSnapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() }))
-                    .filter(donation => donation.status === 'completed');
-
-                if (completedDonations.length === 0) {
-                    historyList.innerHTML = '';
-                    historyList.appendChild(noHistoryPlaceholder);
-                    return;
-                }
+            // Listener para o histórico (escuta APENAS as doações do usuário)
+            const userDonationsQuery = query(collection(db, paths.donations), where("donorId", "==", userId));
+            onSnapshot(userDonationsQuery, async (snapshot) => {
+                const userDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
                 const likesQuery = query(collection(db, paths.likes), where("donorId", "==", userId));
                 const likesSnapshot = await getDocs(likesQuery);
                 const allLikes = likesSnapshot.docs.map(doc => doc.data());
 
-                renderHistory(completedDonations, allLikes);
-            } catch (error) {
-                console.error("Erro ao carregar histórico de doações:", error);
-                historyList.innerHTML = '<p class="text-center text-red-500 py-6">Ocorreu um erro ao carregar seu histórico.</p>';
-            }
+                renderHistory(userDonations, allLikes);
+            });
         }
 
+        function displayRanking(currentUserId, donorItemCounts) {
+            const sortedDonors = Object.entries(donorItemCounts).sort((a, b) => b[1] - a[1]);
+            const userRank = sortedDonors.findIndex(entry => entry[0] === currentUserId) + 1;
+            const userItemCount = donorItemCounts[currentUserId] || 0;
+
+            if (userRank > 0) {
+                rankingContent.innerHTML = `
+                    <div class="flex flex-col sm:flex-row justify-around items-center gap-4">
+                        <div>
+                            <p class="text-4xl font-bold text-green-600">#${userRank}</p>
+                            <p class="text-sm text-gray-500 font-semibold mt-1">Sua Posição no Ranking</p>
+                        </div>
+                        <div class="w-full sm:w-px h-px sm:h-16 bg-gray-200"></div>
+                        <div>
+                            <p class="text-4xl font-bold text-blue-600">${userItemCount}</p>
+                            <p class="text-sm text-gray-500 font-semibold mt-1">Itens Doados com Sucesso</p>
+                        </div>
+                    </div>`;
+            } else {
+                rankingContent.innerHTML = `<p class="text-gray-600">Você ainda não tem doações concluídas para aparecer no ranking. Faça o bem!</p>`;
+            }
+        }
+        
         function renderHistory(donations, allLikes) {
-            const donationsByCampaign = donations.reduce((acc, donation) => {
-                const campaignId = donation.campaignId;
-                if (!acc[campaignId]) {
-                    acc[campaignId] = {
-                        campaignTitle: donation.campaignTitle,
+            const completedItems = donations.flatMap(d => d.items.filter(item => item.status === 'completed').map(item => ({...item, campaignTitle: d.campaignTitle, createdAt: d.createdAt })));
+            
+            if (completedItems.length === 0) {
+                historyList.innerHTML = ''; // Limpa qualquer conteúdo anterior
+                historyList.appendChild(noHistoryPlaceholder);
+                noHistoryPlaceholder.classList.remove('hidden');
+                 historyTitle.textContent = `Histórico de Doações Concluídas`;
+                return;
+            }
+
+            const donationsByCampaign = completedItems.reduce((acc, item) => {
+                const campaignTitle = item.campaignTitle;
+                if (!acc[campaignTitle]) {
+                    acc[campaignTitle] = {
                         items: [],
-                        latestDate: donation.createdAt.toMillis(),
+                        latestDate: item.createdAt.toMillis(),
                     };
                 }
-                acc[campaignId].items.push(...donation.items);
-                if (donation.createdAt.toMillis() > acc[campaignId].latestDate) {
-                    acc[campaignId].latestDate = donation.createdAt.toMillis();
+                acc[campaignTitle].items.push(item);
+                if (item.createdAt.toMillis() > acc[campaignTitle].latestDate) {
+                    acc[campaignTitle].latestDate = item.createdAt.toMillis();
                 }
                 return acc;
             }, {});
@@ -272,8 +263,8 @@
 
             const sortedCampaigns = Object.entries(donationsByCampaign).sort(([, a], [, b]) => b.latestDate - a.latestDate);
 
-            for (const [campaignId, campaignData] of sortedCampaigns) {
-                const campaignLikes = allLikes.filter(like => like.campaignId === campaignId);
+            for (const [campaignTitle, campaignData] of sortedCampaigns) {
+                const campaignLikes = allLikes; // Simplificado, pois já filtramos por donorId
                 const date = new Date(campaignData.latestDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
                 
                 let likesHtml = '<p class="text-xs text-gray-500">Nenhuma curtida ainda.</p>';
@@ -295,26 +286,32 @@
                     }
                 }
 
-                let itemsHtml = campaignData.items.map(item => `
+                let itemsHtml = campaignData.items.map(item => {
+                     const detailsHtml = Object.entries(item)
+                        .filter(([key, value]) => value && !['type', 'photoURL', 'status', 'receivedBy', 'receivedDate', 'campaignTitle', 'createdAt'].includes(key))
+                        .map(([key, value]) => `<div class="text-xs text-gray-500"><span class="font-medium capitalize">${key.replace('_', ' ')}:</span> ${value}</div>`)
+                        .join('');
+
+                    return `
                     <li class="flex items-center space-x-3">
                         <img src="${item.photoURL}" class="w-10 h-10 rounded-md object-cover bg-gray-200">
                         <div>
                             <p class="font-medium text-gray-700">${item.type}</p>
-                            <p class="text-xs text-gray-500">${item.details} (${item.condition})</p>
+                            ${detailsHtml}
                         </div>
                     </li>
-                `).join('');
+                `}).join('');
 
                 const card = document.createElement('div');
                 card.className = 'p-4 border rounded-lg bg-gray-50';
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div>
-                            <p class="font-bold text-gray-800">${campaignData.campaignTitle}</p>
-                            <p class="text-sm text-gray-500">Última doação em ${date}</p>
+                            <p class="font-bold text-gray-800">${campaignTitle}</p>
+                            <p class="text-sm text-gray-500">Última contribuição em ${date}</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-sm font-semibold text-green-600">${campaignData.items.length} item(ns) entregue(s) no total</p>
+                            <p class="text-sm font-semibold text-green-600">${campaignData.items.length} item(ns) entregue(s)</p>
                         </div>
                     </div>
                     <div class="mt-4 pt-3 border-t">
