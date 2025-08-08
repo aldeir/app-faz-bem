@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalhes da Campanha - App Faz Bem</title>
     
-    <!-- PWA Tags -->
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
@@ -386,10 +385,14 @@
                 if (likeButton.classList.contains('liked')) {
                     await deleteDoc(likeDocRef);
                 } else {
+                    // --- CORREÇÃO APLICADA AQUI ---
+                    const likerProfile = currentUserSession.profile;
                     await setDoc(likeDocRef, {
                         campaignId: campaignId,
                         donorId: donorId,
                         likerId: likerId,
+                        likerName: likerProfile.displayName || 'Usuário',
+                        likerPhotoURL: likerProfile.photoURL || null,
                         createdAt: serverTimestamp()
                     });
                 }
@@ -420,7 +423,6 @@
         initializeApp();
     </script>
 
-    <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
