@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurações Gerais - Faz Bem</title>
+    <title>Minhas Notificações - Faz Bem</title>
     
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
@@ -18,6 +18,10 @@
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #16a34a; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .notification-item.unread {
+            background-color: #ecfdf5; /* green-50 */
+            border-left-color: #22c55e; /* green-500 */
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -28,216 +32,151 @@
         <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
             <div class="text-center">
                 <div class="loader mx-auto"></div>
-                <p class="mt-4 text-gray-600">A carregar configurações...</p>
+                <p class="mt-4 text-gray-600">A carregar notificações...</p>
             </div>
         </div>
 
-        <div id="config-view" class="hidden container mx-auto max-w-7xl p-4 sm:p-6 my-8">
+        <div id="notifications-view" class="hidden container mx-auto max-w-3xl p-4 sm:p-6 my-8">
             <div class="flex justify-between items-center mb-6">
-                <h1 class="text-3xl font-bold text-gray-800">Configurações Gerais</h1>
-                <a href="superadmin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
+                <h1 class="text-3xl font-bold text-gray-800">Minhas Notificações</h1>
+                <button id="mark-all-read-btn" class="hidden text-sm font-medium text-green-600 hover:text-green-800 disabled:text-gray-400">
+                    Marcar todas como lidas
+                </button>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Tipos de Campanha</h2>
-                    <div id="campaign-types-list" class="space-y-2 mb-6"></div>
-                    <form id="campaign-type-form" class="space-y-4 pt-4 border-t">
-                        <h3 id="campaign-form-title" class="font-medium text-gray-700">Adicionar Novo Tipo</h3>
-                        <input type="hidden" id="campaign-type-id-hidden">
-                        <div>
-                            <label for="campaign-type-id" class="block text-sm font-medium text-gray-600">ID (ex: agasalho, alimento)</label>
-                            <input type="text" id="campaign-type-id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                        </div>
-                        <div>
-                            <label for="campaign-type-label" class="block text-sm font-medium text-gray-600">Rótulo (ex: Agasalhos, Alimentos)</label>
-                            <input type="text" id="campaign-type-label" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                        </div>
-                        <div>
-                            <label for="campaign-type-color" class="block text-sm font-medium text-gray-600">Cor</label>
-                            <select id="campaign-type-color" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                                <option value="green">Verde</option><option value="blue">Azul</option><option value="yellow">Amarelo</option>
-                                <option value="red">Vermelho</option><option value="purple">Roxo</option><option value="gray">Cinza</option>
-                            </select>
-                        </div>
-                        <div class="flex justify-end space-x-3">
-                            <button type="button" id="cancel-edit-btn" class="hidden px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button>
-                            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Salvar Tipo</button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Campos Personalizados dos Itens</h2>
-                    <div class="mb-4">
-                        <label for="field-campaign-type-select" class="block text-sm font-medium text-gray-600">Gerir campos para o tipo de campanha:</label>
-                        <select id="field-campaign-type-select" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></select>
+            <div class="bg-white rounded-lg shadow">
+                <div id="notifications-list" class="divide-y divide-gray-200">
                     </div>
-
-                    <div id="custom-fields-editor" class="hidden">
-                        <div id="custom-fields-list" class="space-y-2 mb-6"></div>
-                        <form id="custom-field-form" class="space-y-4 pt-4 border-t">
-                            <h3 class="font-medium text-gray-700">Adicionar Novo Campo</h3>
-                            <div>
-                                <label for="field-id" class="block text-sm font-medium text-gray-600">ID do Campo (ex: tamanho_roupa)</label>
-                                <input type="text" id="field-id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            </div>
-                            <div>
-                                <label for="field-label" class="block text-sm font-medium text-gray-600">Rótulo (ex: Tamanho da Roupa)</label>
-                                <input type="text" id="field-label" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            </div>
-                            <div>
-                                <label for="field-type" class="block text-sm font-medium text-gray-600">Tipo de Campo</label>
-                                <select id="field-type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                                    <option value="text">Texto Curto</option>
-                                    <option value="select">Lista de Opções</option>
-                                    <option value="file">Upload de Ficheiro</option>
-                                </select>
-                            </div>
-                            <div id="field-options-container" class="hidden">
-                                <label for="field-options" class="block text-sm font-medium text-gray-600">Opções (separadas por vírgula)</label>
-                                <input type="text" id="field-options" placeholder="P, M, G, GG" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            </div>
-                            <div class="flex justify-end">
-                                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Adicionar Campo</button>
-                            </div>
-                        </form>
-                    </div>
+                <div id="no-notifications-placeholder" class="hidden p-10 text-center text-gray-500">
+                    <p>Você não tem nenhuma notificação.</p>
                 </div>
             </div>
         </div>
     </main>
 
-    <div id="app-modal"></div>
-
     <script type="module">
         import { db, paths } from './app-config.js';
-        import { doc, getDoc, updateDoc } from './firebase-services.js';
+        import { collection, query, where, onSnapshot, doc, updateDoc, orderBy, writeBatch } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
-        import { showAlertModal } from './modal-handler.js';
 
-        // --- Referências DOM ---
         const loadingView = document.getElementById('loading-view');
-        const configView = document.getElementById('config-view');
-        // ... (outras referências existentes)
-        const fieldCampaignTypeSelect = document.getElementById('field-campaign-type-select');
-        const customFieldsEditor = document.getElementById('custom-fields-editor');
-        const customFieldsList = document.getElementById('custom-fields-list');
-        const customFieldForm = document.getElementById('custom-field-form');
-        const fieldTypeSelect = document.getElementById('field-type');
-        const fieldOptionsContainer = document.getElementById('field-options-container');
-        
-        let campaignTypesData = {};
+        const notificationsView = document.getElementById('notifications-view');
+        const notificationsList = document.getElementById('notifications-list');
+        const noNotificationsPlaceholder = document.getElementById('no-notifications-placeholder');
+        const markAllReadBtn = document.getElementById('mark-all-read-btn');
+
+        let currentUserSession = null;
+        let unreadNotificationsIds = [];
 
         async function initializeApp() {
-            // ... (código existente)
-            await loadConfigs();
-            loadingView.classList.add('hidden');
-            configView.classList.remove('hidden');
-        }
+            const canProceed = await injectHeader();
+            if (!canProceed) return;
 
-        async function loadConfigs() {
-            const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-            const campaignTypesSnap = await getDoc(campaignTypesRef);
-            campaignTypesData = campaignTypesSnap.exists() ? campaignTypesSnap.data() : {};
-            
-            renderCampaignTypes();
-            populateFieldCampaignTypeSelect();
-        }
-
-        function populateFieldCampaignTypeSelect() {
-            fieldCampaignTypeSelect.innerHTML = '<option value="">Selecione um tipo...</option>';
-            Object.entries(campaignTypesData).forEach(([id, data]) => {
-                fieldCampaignTypeSelect.innerHTML += `<option value="${id}">${data.label}</option>`;
-            });
-        }
-        
-        function renderCustomFields(campaignTypeId) {
-            customFieldsList.innerHTML = '';
-            const typeData = campaignTypesData[campaignTypeId] || {};
-            const fields = typeData.fields || {};
-
-            if (Object.keys(fields).length === 0) {
-                customFieldsList.innerHTML = '<p class="text-sm text-gray-500 text-center p-2">Nenhum campo personalizado para este tipo.</p>';
-            }
-
-            Object.entries(fields).forEach(([id, data]) => {
-                const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-2 rounded-md hover:bg-gray-50';
-                item.innerHTML = `
-                    <div>
-                        <p class="font-medium">${data.label} <span class="text-xs text-gray-500">(${id})</span></p>
-                        <p class="text-xs text-gray-400">Tipo: ${data.type}</p>
-                    </div>
-                    <button data-action="delete-field" data-type-id="${campaignTypeId}" data-field-id="${id}" class="text-sm text-red-600 hover:underline">Excluir</button>
-                `;
-                customFieldsList.appendChild(item);
-            });
-        }
-        
-        // --- Event Listeners ---
-        
-        fieldCampaignTypeSelect.addEventListener('change', (e) => {
-            const selectedType = e.target.value;
-            if (selectedType) {
-                customFieldsEditor.classList.remove('hidden');
-                renderCustomFields(selectedType);
+            currentUserSession = await getCurrentUser();
+            if (currentUserSession) {
+                loadNotifications(currentUserSession.auth.uid);
             } else {
-                customFieldsEditor.classList.add('hidden');
+                window.location.href = 'login.html';
             }
-        });
+        }
 
-        fieldTypeSelect.addEventListener('change', (e) => {
-            fieldOptionsContainer.classList.toggle('hidden', e.target.value !== 'select');
-        });
+        function formatTimeAgo(timestamp) {
+            if (!timestamp) return 'agora mesmo';
+            const seconds = Math.floor((new Date() - timestamp.toDate()) / 1000);
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + " anos atrás";
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + " meses atrás";
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + " dias atrás";
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + " horas atrás";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + " minutos atrás";
+            return "agora mesmo";
+        }
 
-        customFieldForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const campaignTypeId = fieldCampaignTypeSelect.value;
-            const fieldId = document.getElementById('field-id').value.trim().toLowerCase().replace(/\s+/g, '_');
-            const fieldLabel = document.getElementById('field-label').value.trim();
-            const fieldType = fieldTypeSelect.value;
+        function loadNotifications(userId) {
+            const q = query(collection(db, paths.notifications), where("userId", "==", userId), orderBy("timestamp", "desc"));
             
-            if (!campaignTypeId || !fieldId || !fieldLabel) {
-                showAlertModal('Erro', 'Todos os campos são obrigatórios.');
-                return;
-            }
+            onSnapshot(q, (snapshot) => {
+                loadingView.classList.add('hidden');
+                notificationsView.classList.remove('hidden');
+                
+                notificationsList.innerHTML = '';
+                unreadNotificationsIds = [];
 
-            const newFieldData = { label: fieldLabel, type: fieldType };
-            if (fieldType === 'select') {
-                const options = document.getElementById('field-options').value.split(',').map(opt => opt.trim()).filter(Boolean);
-                if (options.length === 0) {
-                    showAlertModal('Erro', 'Para o tipo "Lista de Opções", você deve fornecer as opções separadas por vírgula.');
+                if (snapshot.empty) {
+                    noNotificationsPlaceholder.classList.remove('hidden');
+                    markAllReadBtn.classList.add('hidden');
                     return;
                 }
-                newFieldData.options = options;
-            }
-            
-            const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-            const fieldPath = `${campaignTypeId}.fields.${fieldId}`;
+
+                noNotificationsPlaceholder.classList.add('hidden');
+
+                snapshot.docs.forEach(docSnap => {
+                    const notification = { id: docSnap.id, ...docSnap.data() };
+                    const item = document.createElement('a');
+                    item.href = notification.link || '#';
+                    item.className = `notification-item block p-4 hover:bg-gray-50 border-l-4 ${notification.read ? 'border-transparent' : 'unread'}`;
+                    
+                    item.innerHTML = `
+                        <div class="flex items-center">
+                            ${!notification.read ? '<div class="w-2 h-2 bg-blue-500 rounded-full mr-3 flex-shrink-0"></div>' : '<div class="w-2 h-2 mr-3"></div>'}
+                            <div class="flex-grow">
+                                <p class="text-sm text-gray-800">${notification.message}</p>
+                                <p class="text-xs text-gray-500 mt-1">${formatTimeAgo(notification.timestamp)}</p>
+                            </div>
+                        </div>
+                    `;
+
+                    item.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        if (!notification.read) {
+                            const notifRef = doc(db, paths.notificationDoc(notification.id));
+                            await updateDoc(notifRef, { read: true });
+                        }
+                        window.location.href = item.href;
+                    });
+                    
+                    notificationsList.appendChild(item);
+
+                    if (!notification.read) {
+                        unreadNotificationsIds.push(notification.id);
+                    }
+                });
+
+                markAllReadBtn.classList.toggle('hidden', unreadNotificationsIds.length === 0);
+                markAllReadBtn.disabled = unreadNotificationsIds.length === 0;
+
+            }, (error) => {
+                console.error("Erro ao carregar notificações:", error);
+                loadingView.innerHTML = '<p class="text-red-500 text-center">Ocorreu um erro ao carregar as notificações.</p>';
+            });
+        }
+
+        markAllReadBtn.addEventListener('click', async () => {
+            if (unreadNotificationsIds.length === 0) return;
+
+            markAllReadBtn.disabled = true;
+            markAllReadBtn.textContent = 'Aguarde...';
 
             try {
-                await updateDoc(campaignTypesRef, { [fieldPath]: newFieldData });
-                showAlertModal('Sucesso!', 'Campo personalizado adicionado com sucesso.');
-                
-                // Atualiza os dados locais e renderiza novamente
-                if (!campaignTypesData[campaignTypeId].fields) {
-                    campaignTypesData[campaignTypeId].fields = {};
-                }
-                campaignTypesData[campaignTypeId].fields[fieldId] = newFieldData;
-                renderCustomFields(campaignTypeId);
-                customFieldForm.reset();
-                fieldOptionsContainer.classList.add('hidden');
-                
+                const batch = writeBatch(db);
+                unreadNotificationsIds.forEach(id => {
+                    const notifRef = doc(db, paths.notificationDoc(id));
+                    batch.update(notifRef, { "read": true });
+                });
+                await batch.commit();
             } catch (error) {
-                console.error("Erro ao adicionar campo:", error);
-                showAlertModal('Erro', 'Não foi possível adicionar o campo personalizado.');
+                console.error("Erro ao marcar todas como lidas:", error);
+            } finally {
+                 markAllReadBtn.textContent = 'Marcar todas como lidas';
             }
         });
-        
-        // ... (código original para initializeApp, loadConfigs, renderCampaignTypes e formulário de tipos de campanha)
-        // ... (O código anterior para a gestão de tipos de campanha permanece funcional)
+
+        initializeApp();
     </script>
 </body>
 </html>
