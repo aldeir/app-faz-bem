@@ -150,7 +150,7 @@
         import { auth, db, storage, paths } from './app-config.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
-        import { doc, updateDoc, collection, query, where, getDocs, storageRef, uploadBytes, getDownloadURL, updateProfile, onSnapshot, getDoc } from "./firebase-services.js";
+        import { doc, getDoc, updateDoc, collection, query, where, getDocs, storageRef, uploadBytes, getDownloadURL, updateProfile, onSnapshot } from "./firebase-services.js";
         import { showDetailsModal } from './modal-handler.js';
 
         const loadingView = document.getElementById('loading-view');
