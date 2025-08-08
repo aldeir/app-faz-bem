@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visão Global de Agendamentos - Faz Bem</title>
     
-    <!-- PWA Tags -->
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
@@ -52,7 +51,6 @@
                 <input type="search" id="search-input" placeholder="Buscar por doador, campanha ou entidade..." class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
             </div>
 
-            <!-- Abas de Navegação -->
             <div class="border-b border-gray-200 mb-6">
                 <nav id="tabs-container" class="-mb-px flex space-x-8" aria-label="Tabs">
                     <button data-tab="all" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Todos</button>
@@ -62,14 +60,12 @@
                 </nav>
             </div>
             
-            <!-- Conteúdo das Abas -->
             <div id="list-content" class="space-y-6"></div>
 
             <div id="no-schedules-placeholder" class="hidden text-center text-gray-500 py-10 bg-white rounded-lg shadow">
                 <p>Nenhuma doação encontrada para esta categoria.</p>
             </div>
 
-            <!-- Paginação -->
             <div id="pagination-controls" class="hidden mt-6 flex justify-end items-center space-x-4 text-sm text-gray-700">
                 <span id="page-counter"></span>
                 <button id="prev-page-btn" class="pagination-btn p-2 rounded-md hover:bg-gray-200">
@@ -82,7 +78,6 @@
         </div>
     </main>
 
-    <!-- Modal para Detalhes do Item -->
     <div id="item-details-modal" class="hidden fixed z-50 inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center relative">
              <button id="close-item-modal-btn" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
@@ -95,7 +90,6 @@
         </div>
     </div>
 
-    <!-- Modal para Detalhes do Doador/Entidade -->
     <div id="details-modal" class="hidden fixed z-50 inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
             <button id="close-details-modal-btn" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
@@ -118,6 +112,7 @@
         import { collection, query, where, onSnapshot, doc, getDoc, getDocs } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
+        import { getProfileById } from './profile-service.js'; // <-- [ADICIONADO]
 
         const loadingView = document.getElementById('loading-view');
         const schedulesView = document.getElementById('schedules-view');
@@ -138,7 +133,6 @@
         
         let allDonations = [];
         let donorRanking = new Map();
-        let profilesCache = new Map();
         let currentPage = 1;
         const ITEMS_PER_PAGE = 10;
 
@@ -151,24 +145,10 @@
             
             const userSession = await getCurrentUser();
             if (userSession && userSession.profile?.role === 'superadmin') {
-                await loadAllProfiles();
                 loadGlobalSchedules();
             } else {
                 window.location.href = 'index.html';
             }
-        }
-
-        async function loadAllProfiles() {
-            const usersQuery = query(collection(db, paths.users));
-            const entitiesQuery = query(collection(db, paths.entidades));
-            
-            const [usersSnapshot, entitiesSnapshot] = await Promise.all([
-                getDocs(usersQuery),
-                getDocs(entitiesQuery)
-            ]);
-
-            usersSnapshot.forEach(doc => profilesCache.set(doc.id, doc.data()));
-            entitiesSnapshot.forEach(doc => profilesCache.set(doc.id, doc.data()));
         }
 
         function loadGlobalSchedules() {
@@ -199,13 +179,14 @@
             donorRanking = new Map(sortedDonors.map(([donorId, count], index) => [donorId, index + 1]));
         }
 
-        function filterAndRender() {
+        async function filterAndRender() {
             const searchTerm = searchInput.value.toLowerCase().trim();
             const activeTab = tabsContainer.querySelector('.tab-button.active').dataset.tab;
             const now = new Date();
 
-            let filteredDonations = allDonations.filter(donation => {
-                const entityProfile = profilesCache.get(donation.entityId);
+            // Usamos Promise.all para buscar perfis de entidades em paralelo, se necessário
+            const filteredDonationsPromises = allDonations.map(async (donation) => {
+                const entityProfile = await getProfileById(donation.entityId);
                 const entityDisplayName = entityProfile ? entityProfile.publicName : (donation.entityName || '');
 
                 const matchesSearch = searchTerm === '' ||
@@ -213,15 +194,17 @@
                     (donation.campaignTitle || '').toLowerCase().includes(searchTerm) ||
                     (entityDisplayName).toLowerCase().includes(searchTerm);
 
-                if (!matchesSearch) return false;
+                if (!matchesSearch) return null;
 
-                if (activeTab === 'all') return true;
-                if (activeTab === 'completed') return donation.status === 'completed';
-                if (activeTab === 'upcoming') return donation.status === 'scheduled' && donation.scheduledAt?.toDate() >= now;
-                if (activeTab === 'overdue') return donation.status === 'scheduled' && donation.scheduledAt?.toDate() < now;
+                if (activeTab === 'all') return donation;
+                if (activeTab === 'completed') return donation.status === 'completed' ? donation : null;
+                if (activeTab === 'upcoming') return donation.status === 'scheduled' && donation.scheduledAt?.toDate() >= now ? donation : null;
+                if (activeTab === 'overdue') return donation.status === 'scheduled' && donation.scheduledAt?.toDate() < now ? donation : null;
                 
-                return false;
+                return null;
             });
+            
+            const filteredDonations = (await Promise.all(filteredDonationsPromises)).filter(Boolean);
 
             const groupedByDonor = filteredDonations.reduce((acc, donation) => {
                 const donorId = donation.donorId;
@@ -265,40 +248,41 @@
             nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
         }
 
-        function renderListContent(donors) {
+        async function renderListContent(donors) {
             listContent.innerHTML = '';
-            donors.forEach(donor => {
+            
+            const renderPromises = donors.map(async (donor) => {
                 const donorSection = document.createElement('div');
                 donorSection.className = 'bg-white rounded-lg shadow-md p-4';
                 
-                const itemsByCampaign = donor.donations.reduce((acc, d) => {
-                    if (!acc[d.campaignId]) {
-                        const entityProfile = profilesCache.get(d.entityId);
-                        const entityDisplayName = entityProfile ? entityProfile.publicName : (d.entityName || 'N/A');
-                        acc[d.campaignId] = {
-                            campaignTitle: d.campaignTitle,
-                            entityName: entityDisplayName,
-                            entityId: d.entityId,
-                            items: []
-                        };
-                    }
-                    acc[d.campaignId].items.push(...d.items.map((item, index) => ({...item, scheduledAt: d.scheduledAt, status: d.status, receivedBy: d.receivedBy})));
-                    return acc;
-                }, {});
-
-                const campaignsHtml = Object.entries(itemsByCampaign).map(([campaignId, campaignData]) => {
+                const itemsByCampaignPromises = donor.donations.map(async (d) => {
+                    const entityProfile = await getProfileById(d.entityId);
+                    const entityDisplayName = entityProfile ? entityProfile.publicName : (d.entityName || 'N/A');
+                    return {
+                        campaignId: d.campaignId,
+                        campaignTitle: d.campaignTitle,
+                        entityName: entityDisplayName,
+                        entityId: d.entityId,
+                        items: d.items.map(item => ({...item, scheduledAt: d.scheduledAt, status: d.status, receivedBy: d.receivedBy}))
+                    };
+                });
+                const itemsByCampaignList = await Promise.all(itemsByCampaignPromises);
+                
+                const campaignsHtmlPromises = itemsByCampaignList.map(async (campaignData) => {
+                    const itemDetailRows = await Promise.all(campaignData.items.map(createItemDetailRow));
                     return `
                         <div class="mt-2">
                             <h3 class="font-semibold text-gray-700">
-                                <a href="detalhes.html?id=${campaignId}" target="_blank" class="hover:underline">${campaignData.items.length} Itens - Campanha: ${campaignData.campaignTitle}</a>
+                                <a href="detalhes.html?id=${campaignData.campaignId}" target="_blank" class="hover:underline">${campaignData.items.length} Itens - Campanha: ${campaignData.campaignTitle}</a>
                             </h3>
                             <p class="text-sm text-gray-500 mb-2">Entidade: <a href="#" data-action="view-entity" data-id="${campaignData.entityId}" class="hover:underline font-medium">${campaignData.entityName}</a></p>
                             <ul class="list-disc list-inside pl-2 space-y-1 text-sm">
-                                ${campaignData.items.map(createItemDetailRow).join('')}
+                                ${itemDetailRows.join('')}
                             </ul>
                         </div>
                     `;
-                }).join('');
+                });
+                const campaignsHtml = (await Promise.all(campaignsHtmlPromises)).join('');
 
                 const stats = allDonations.filter(d => d.donorId === donor.donorId).reduce((acc, d) => {
                     const isOverdue = d.status === 'scheduled' && d.scheduledAt?.toDate() < new Date();
@@ -326,18 +310,20 @@
                     </div>
                     <div class="space-y-3">${campaignsHtml}</div>
                 `;
-                listContent.appendChild(donorSection);
+                return donorSection;
             });
+            const renderedDonors = await Promise.all(renderPromises);
+            renderedDonors.forEach(el => listContent.appendChild(el));
         }
 
-        function createItemDetailRow(item) {
+        async function createItemDetailRow(item) {
             const scheduledDate = item.scheduledAt?.toDate().toLocaleDateString('pt-BR');
             let statusHtml = '';
             const now = new Date();
 
             if (item.status === 'completed') {
-                const receivedByUser = profilesCache.get(item.receivedBy);
-                const receivedByName = receivedByUser ? receivedByUser.displayName : (item.receivedBy || 'Entidade');
+                const receivedByUser = await getProfileById(item.receivedBy);
+                const receivedByName = receivedByUser ? receivedByUser.displayName : 'Entidade';
                 const receivedByHtml = item.receivedBy ? `por ${receivedByName}` : '';
                 statusHtml = `<span class="font-medium text-gray-500">Entregue em ${scheduledDate} ${receivedByHtml}</span>`;
             } else {
@@ -398,18 +384,8 @@
                 document.getElementById('modal-item-details').textContent = target.dataset.details;
                 itemDetailsModal.classList.remove('hidden');
             } else if (action === 'view-donor' || action === 'view-entity') {
-                if (profilesCache.has(id)) {
-                    showDetailsModal(profilesCache.get(id), action);
-                    return;
-                }
-                const docPath = action === 'view-donor' ? paths.userDoc(id) : paths.entidadeDoc(id);
-                const docRef = doc(db, docPath);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    profilesCache.set(id, data);
-                    showDetailsModal(data, action);
-                }
+                const profileData = await getProfileById(id);
+                showDetailsModal(profileData, action);
             }
         });
 
@@ -459,7 +435,6 @@
         initializeApp();
     </script>
     
-    <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
