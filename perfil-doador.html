@@ -229,19 +229,17 @@
                 let likesHtml = '<p class="text-xs text-gray-500">Nenhuma curtida ainda.</p>';
                 if (campaignLikes.length > 0) {
                     likesHtml = `<div class="flex items-center -space-x-2">${campaignLikes.slice(0, 5).map(like => {
-                        // --- INÍCIO DA CORREÇÃO APLICADA ---
-                        // Se 'likerName' não existir (curtida antiga), usamos um placeholder informativo.
                         let likerName = like.likerName;
                         let photoURL = like.likerPhotoURL;
 
                         if (!likerName) {
                             likerName = 'Apoiador Anônimo';
-                            photoURL = 'https://placehold.co/24x24/9ca3af/ffffff?text=A'; // URL de placeholder anônimo
+                            photoURL = 'https://placehold.co/24x24/9ca3af/ffffff?text=A';
                         }
                         
-                        return `<img src="${photoURL}" class="w-7 h-7 rounded-full border-2 border-white" title="${likerName}">`;
-                        // --- FIM DA CORREÇÃO APLICADA ---
+                        return `<img src="${photoURL || `https://placehold.co/24x24/e2e8f0/cbd5e0?text=${likerName.charAt(0)}`}" class="w-7 h-7 rounded-full border-2 border-white" title="${likerName}">`;
                     }).join('')}</div>`;
+
                     if(campaignLikes.length > 5) {
                         likesHtml += `<span class="text-xs text-gray-500 ml-3">+${campaignLikes.length - 5}</span>`;
                     }
