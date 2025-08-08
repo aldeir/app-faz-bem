@@ -174,6 +174,7 @@
 
         let currentUserSession = null;
         let cropper;
+        let campaignTypeSettings = {}; // <-- ARMAZENAR AS CONFIGURAÇÕES
 
         async function initializeApp() {
             await injectHeader();
@@ -181,6 +182,10 @@
 
             if (currentUserSession) {
                 const userId = currentUserSession.auth.uid;
+                // Carrega as configurações primeiro
+                const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
+                campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
+
                 loadProfileData(currentUserSession);
                 setupRealtimeListeners(userId);
                 loadingView.classList.add('hidden');
@@ -208,17 +213,9 @@
             onSnapshot(allDonationsQuery, (snapshot) => {
                 const allDonations = snapshot.docs.map(doc => doc.data());
                 displayRanking(userId, allDonations);
-            });
 
-            const userDonationsQuery = query(collection(db, paths.donations), where("donorId", "==", userId));
-            onSnapshot(userDonationsQuery, async (snapshot) => {
-                const userDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                const likesQuery = query(collection(db, paths.likes), where("donorId", "==", userId));
-                const likesSnapshot = await getDocs(likesQuery);
-                const allLikes = likesSnapshot.docs.map(doc => doc.data());
-
-                renderHistory(userDonations, allLikes);
+                const userDonations = allDonations.filter(d => d.donorId === userId);
+                renderHistory(userDonations);
             });
         }
 
@@ -253,7 +250,7 @@
             }
         }
         
-        function renderHistory(donations, allLikes) {
+        async function renderHistory(donations) {
             const completedItemsByCampaign = donations.reduce((acc, d) => {
                 const completedItems = d.items.filter(item => item.status === 'completed');
                 if (completedItems.length > 0) {
@@ -262,9 +259,10 @@
                             campaignTitle: d.campaignTitle,
                             items: [],
                             latestDate: d.createdAt.toMillis(),
+                            campaignType: d.campaignType || 'default'
                         };
                     }
-                    acc[d.campaignId].items.push(...completedItems.map(item => ({...item, campaignId: d.campaignId})));
+                    acc[d.campaignId].items.push(...completedItems.map(item => ({...item, campaignId: d.campaignId, campaignType: d.campaignType || 'default'})));
                 }
                 return acc;
             }, {});
@@ -283,6 +281,12 @@
             historyTitle.textContent = `Você já contribuiu em ${totalCampaigns} campanha(s)!`;
 
             const sortedCampaigns = Object.entries(completedItemsByCampaign).sort(([, a], [, b]) => b.latestDate - a.latestDate);
+            
+            // --- INÍCIO DA CORREÇÃO: LIKES ---
+            const likesQuery = query(collection(db, paths.likes), where("donorId", "==", currentUserSession.auth.uid));
+            const likesSnapshot = await getDocs(likesQuery);
+            const allLikes = likesSnapshot.docs.map(doc => doc.data());
+            // --- FIM DA CORREÇÃO: LIKES ---
 
             for (const [campaignId, campaignData] of sortedCampaigns) {
                 const campaignLikes = allLikes.filter(like => like.campaignId === campaignId);
@@ -308,10 +312,20 @@
                 }
 
                 let itemsHtml = campaignData.items.map(item => {
-                    const detailsHtml = Object.entries(item)
-                        .filter(([key, value]) => value && !['type', 'photoURL', 'status', 'receivedBy', 'receivedDate', 'campaignTitle', 'createdAt', 'campaignId'].includes(key))
-                        .map(([key, value]) => `<div class="text-xs text-gray-500"><span class="font-medium capitalize">${key.replace(/_/g, ' ')}:</span> ${value}</div>`)
-                        .join('');
+                    // --- INÍCIO DA CORREÇÃO: EXIBIÇÃO DE ITENS ---
+                    const fieldsConfig = campaignTypeSettings[item.campaignType]?.fields || [];
+                    const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
+
+                    let detailsHtml = '<div class="space-y-1 mt-1">';
+                     fieldsConfig.forEach(field => {
+                        const key = field.id;
+                        const value = item[key];
+                        if (value && !mediaFieldIds.has(key) && key !== 'type' && key !== 'photoURL') {
+                            detailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
+                        }
+                    });
+                    detailsHtml += '</div>';
+                    // --- FIM DA CORREÇÃO: EXIBIÇÃO DE ITENS ---
 
                     return `
                     <li class="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-100 cursor-pointer" data-item-details='${JSON.stringify(item)}'>
@@ -353,11 +367,15 @@
             if (!itemElement) return;
 
             const item = JSON.parse(itemElement.dataset.itemDetails);
+            const fieldsConfig = campaignTypeSettings[item.campaignType]?.fields || [];
             
-            let detailsHtml = Object.entries(item)
-                .filter(([key, value]) => value && !['type', 'photoURL', 'status', 'receivedBy', 'receivedDate', 'campaignTitle', 'createdAt', 'campaignId'].includes(key))
-                .map(([key, value]) => `<p><strong class="font-semibold capitalize">${key.replace(/_/g, ' ')}:</strong> ${value}</p>`)
-                .join('');
+            let detailsHtml = '';
+            fieldsConfig.forEach(field => {
+                const value = item[field.id];
+                 if (value && field.type !== 'image' && field.type !== 'video') {
+                    detailsHtml += `<p><strong class="font-semibold">${field.label}:</strong> ${value}</p>`;
+                }
+            });
             
             const modalContentHtml = `
                 <div class="text-center">
