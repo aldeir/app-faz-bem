@@ -1,4 +1,4 @@
-// app-header.js (Versão 4.2 - Implementação do Portão de Segurança)
+// app-header.js (Versão 4.3 - Injeção dinâmica do Favicon)
 
 import { db, rtdb, logout } from './app-config.js';
 import { collection, query, where, onSnapshot, databaseRef, onValue, sendEmailVerification } from './firebase-services.js';
@@ -7,6 +7,22 @@ import { getCurrentUser } from './auth-service.js';
 import { showAlertModal } from './modal-handler.js';
 
 let unreadListener = null;
+
+/**
+ * Adiciona dinamicamente a tag do favicon ao <head> da página.
+ */
+function addFavicon() {
+    // Verifica se o favicon já não foi adicionado para evitar duplicatas.
+    if (document.querySelector("link[rel='icon']")) return;
+
+    const faviconLink = document.createElement('link');
+    faviconLink.rel = 'icon';
+    faviconLink.type = 'image/png';
+    // O caminho deve ser relativo à raiz do site.
+    faviconLink.href = 'images/icons/icon-72x72.png'; 
+    document.head.appendChild(faviconLink);
+}
+
 
 function listenForUnreadNotifications(userId) {
     const bellIndicator = document.getElementById('notification-indicator');
@@ -87,6 +103,8 @@ const headerHTML = `
  * @returns {Promise<boolean>} Retorna 'true' se o utilizador estiver verificado e a página puder carregar, 'false' caso contrário.
  */
 export async function injectHeader() {
+    addFavicon(); // --- ALTERAÇÃO APLICADA AQUI ---
+
     const headerContainer = document.getElementById('app-header');
     if (!headerContainer) return true;
 
@@ -100,14 +118,13 @@ export async function injectHeader() {
     if (userSession?.auth) {
         const { auth, profile, isVerified } = userSession;
         
-        // PONTO CENTRAL DA CORREÇÃO DE SEGURANÇA
         if (!isVerified) {
-            const isPublicPage = window.location.pathname.endsWith('index.html') || window.location.pathname === '/';
+            const isPublicPage = window.location.pathname.endsWith('index.html') || window.location.pathname === '/app-faz-bem/' || window.location.pathname === '/';
             if (!isPublicPage) {
                 showVerificationBlock(auth);
                 userMenu.innerHTML = `<button id="header-logout-btn" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Sair</button>`;
                 document.getElementById('header-logout-btn').addEventListener('click', () => logout().then(() => window.location.href = 'login.html'));
-                return false; // **Impede o carregamento de páginas restritas**
+                return false;
             }
         }
         
@@ -150,5 +167,5 @@ export async function injectHeader() {
     } else {
         userMenu.innerHTML = `<a href="login.html" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 shadow">Entrar / Registar</a>`;
     }
-    return true; // **Permite o carregamento da página por defeito**
+    return true;
 }
