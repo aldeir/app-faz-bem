@@ -96,7 +96,6 @@
         const donationsContainer = document.getElementById('donations-container');
         const noDonationsMessage = document.getElementById('no-donations-message');
         const detailsModal = document.getElementById('details-modal');
-        const modalTitle = document.getElementById('modal-title');
         const modalContent = document.getElementById('modal-content');
         const qrCodeModal = document.getElementById('qr-code-modal');
         const tabsContainer = document.getElementById('tabs-container');
@@ -106,10 +105,7 @@
         
         let html5QrCode;
         let allDonationsData = [];
-        let profilesCache = new Map();
         let campaignsCache = new Map();
-        let completedItemsPage = 1;
-        const ITEMS_PER_PAGE = 10;
         let donationsUnsubscribe = null;
 
         async function initializeApp() {
@@ -124,14 +120,10 @@
 
         function loadAllDonationsForEntity(entityId) {
             if (donationsUnsubscribe) donationsUnsubscribe();
-
             const donationsQuery = query(collection(db, paths.donations), where('entityId', '==', entityId));
             
             donationsUnsubscribe = onSnapshot(donationsQuery, async (querySnapshot) => {
-                allDonationsData = [];
-                for (const donationDoc of querySnapshot.docs) {
-                    allDonationsData.push({ id: donationDoc.id, ...donationDoc.data() });
-                }
+                allDonationsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
                 updateStatusCounters();
                 await renderItemsByStatus();
@@ -143,7 +135,6 @@
             }, (error) => {
                 console.error("Erro ao carregar doações em tempo real: ", error);
                 loadingView.innerHTML = `<p class="text-red-500">Ocorreu um erro ao carregar as doações.</p>`;
-                donationsView.classList.add('hidden');
             });
         }
         
@@ -155,7 +146,9 @@
                     donationId: donation.id,
                     itemIndex: index,
                     donorId: donation.donorId,
+                    donorName: donation.donorName, // <-- Adicionado para busca
                     campaignId: donation.campaignId,
+                    campaignTitle: donation.campaignTitle, // <-- Adicionado para busca
                     scheduledAt: donation.scheduledAt?.toDate()
                 }))
             );
@@ -187,55 +180,38 @@
         
         async function renderItemsByStatus(filterDonationId = null) {
             donationsContainer.innerHTML = '';
-            paginationContainer.innerHTML = '';
             const activeTab = tabsContainer.querySelector('.tab-button.active').dataset.tab;
             const searchTerm = searchInput.value.toLowerCase();
             const { pending, overdue, completed } = getItemsByStatus();
 
-            let itemsToFilter;
+            let itemsToDisplay;
             switch (activeTab) {
-                case 'pending': itemsToFilter = pending; break;
-                case 'overdue': itemsToFilter = overdue; break;
-                case 'completed': itemsToFilter = completed; break;
-                default: itemsToFilter = [];
+                case 'pending': itemsToDisplay = pending; break;
+                case 'overdue': itemsToDisplay = overdue; break;
+                case 'completed': itemsToDisplay = completed; break;
+                default: itemsToDisplay = [];
             }
             
             if (filterDonationId) {
-                itemsToFilter = itemsToFilter.filter(item => item.donationId === filterDonationId);
+                itemsToDisplay = itemsToDisplay.filter(item => item.donationId === filterDonationId);
             }
 
-            const getCampaignData = async (campaignId) => {
+            const getCampaignIsActive = async (campaignId) => {
                 if (campaignsCache.has(campaignId)) return campaignsCache.get(campaignId);
                 const campaignDoc = await getDoc(doc(db, paths.campaignDoc(campaignId)));
-                const data = campaignDoc.exists() ? {id: campaignDoc.id, ...campaignDoc.data()} : { id: campaignId, title: 'Campanha Desconhecida', expiresAt: { toDate: () => new Date(0) } };
-                campaignsCache.set(campaignId, data);
-                return data;
+                const isActive = campaignDoc.exists() ? (campaignDoc.data().expiresAt.toDate() > new Date()) : false;
+                campaignsCache.set(campaignId, isActive);
+                return isActive;
             };
 
-            const getDonorName = async (donorId) => {
-                if (profilesCache.has(donorId)) return profilesCache.get(donorId).displayName;
-                const donorDoc = await getDoc(doc(db, paths.userDoc(donorId)));
-                if (donorDoc.exists()) {
-                    profilesCache.set(donorId, donorDoc.data());
-                    return donorDoc.data().displayName;
-                }
-                return 'Doador Anônimo';
-            };
-
-            const enrichedItems = (await Promise.all(itemsToFilter.map(async item => {
-                const campaignData = await getCampaignData(item.campaignId);
-                const donorName = await getDonorName(item.donorId);
-                return {
-                    ...item,
-                    campaignTitle: campaignData.title,
-                    campaignIsActive: (campaignData.expiresAt.toDate() || new Date()) > new Date(),
-                    donorName: donorName
-                };
-            }))).filter(item => 
+            const enrichedItems = (await Promise.all(itemsToDisplay.map(async item => ({
+                ...item,
+                campaignIsActive: await getCampaignIsActive(item.campaignId)
+            })))).filter(item => 
                 !searchTerm ||
                 item.type.toLowerCase().includes(searchTerm) ||
-                item.donorName.toLowerCase().includes(searchTerm) ||
-                item.campaignTitle.toLowerCase().includes(searchTerm)
+                (item.donorName || '').toLowerCase().includes(searchTerm) ||
+                (item.campaignTitle || '').toLowerCase().includes(searchTerm)
             );
             
             if (enrichedItems.length === 0) {
@@ -244,7 +220,6 @@
             }
             noDonationsMessage.style.display = 'none';
             
-            // --- NOVA LÓGICA DE AGRUPAMENTO HIERÁRQUICO ---
             const groupedByDay = enrichedItems.reduce((acc, item) => {
                 const dateKey = item.scheduledAt.toISOString().split('T')[0];
                 if (!acc[dateKey]) acc[dateKey] = [];
@@ -275,10 +250,7 @@
                     const timeItems = groupedByTime[timeKey];
                     const donorsInSlot = timeItems.reduce((acc, item) => {
                          if (!acc[item.donorId]) {
-                            acc[item.donorId] = {
-                                donorName: item.donorName,
-                                items: []
-                            }
+                            acc[item.donorId] = { donorName: item.donorName, items: [] }
                         }
                         acc[item.donorId].items.push(item);
                         return acc;
@@ -293,7 +265,7 @@
 
                     for (const donorId in donorsInSlot) {
                         const donorData = donorsInSlot[donorId];
-                        const itemsHtml = donorData.items.map(item => renderItemRow(item, activeTab)).join('');
+                        const itemsHtml = donorData.items.map(item => renderItemRow(item)).join('');
                         slotHtml += `<div class="pl-4">
                                         <h4 class="font-semibold text-gray-800">${donorData.donorName}</h4>
                                         <div class="space-y-2 mt-2">${itemsHtml}</div>
@@ -309,11 +281,10 @@
             });
         }
         
-        function renderItemRow(item, activeTab) {
+        function renderItemRow(item) {
             const uniqueItemId = `${item.donationId}_${item.itemIndex}`;
             const isCompleted = item.status !== 'pending';
             
-            // CORREÇÃO: Botão "Receber" só aparece se o item não estiver completo E a campanha ainda estiver ativa
             const canReceive = !isCompleted && item.campaignIsActive;
             const statusHtml = canReceive 
                 ? `<button onclick="window.confirmItemReception('${item.donationId}', ${item.itemIndex})" class="bg-green-600 text-white text-sm font-bold py-2 px-3 rounded-lg hover:bg-green-700 transition">Receber</button>`
@@ -402,7 +373,6 @@
             if (button && !button.classList.contains('active')) {
                 tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
-                completedItemsPage = 1;
                 renderItemsByStatus();
             }
         });
