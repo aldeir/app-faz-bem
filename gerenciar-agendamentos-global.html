@@ -408,6 +408,7 @@
                 const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
                 fieldsConfig.forEach(field => {
                     const value = item[field.id];
+                    // [CORRIGIDO] AQUI ESTAVA O ERRO!
                     if (value && !mediaFieldIds.has(field.id) && field.id !== 'type' && field.id !== 'photoURL') {
                         detailsHtml += `<p><strong>${field.label}:</strong> ${value}</p>`;
                     }
