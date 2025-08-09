@@ -298,7 +298,6 @@
                 if (campaignLikes.length > 0) {
                     likesHtml = `<div class="flex items-center -space-x-2">${campaignLikes.slice(0, 5).map(like => {
                         const likerName = like.likerName || 'Apoiador';
-                        // [CORRIGIDO] Adiciona um fallback para a photoURL
                         const photoURL = like.likerPhotoURL || `https://placehold.co/24x24/e2e8f0/cbd5e0?text=${likerName.charAt(0)}`;
                         
                         return `<img src="${photoURL}" class="w-7 h-7 rounded-full border-2 border-white" title="${likerName}">`;
@@ -322,8 +321,7 @@
                         }
                     });
                     detailsHtml += '</div>';
-
-                    // [CORRIGIDO] Adiciona um fallback para a photoURL do item
+                    
                     const itemPhoto = item.photoURL || 'https://placehold.co/40x40/e2e8f0/e2e8f0?text=Item';
 
                     return `
