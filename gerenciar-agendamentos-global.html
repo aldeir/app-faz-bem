@@ -180,9 +180,9 @@
 
         function calculateRanking() {
             const completedCounts = allDonations
-                .filter(d => d.status === 'completed')
+                .filter(d => d.items.some(i => i.status === 'completed'))
                 .reduce((acc, d) => {
-                    acc[d.donorId] = (acc[d.donorId] || 0) + d.items.length;
+                    acc[d.donorId] = (acc[d.donorId] || 0) + d.items.filter(i => i.status === 'completed').length;
                     return acc;
                 }, {});
             
@@ -348,8 +348,6 @@
                 statusHtml = `<span class="font-medium ${isOverdue ? 'text-red-500' : 'text-blue-600'}">${isOverdue ? 'Vencido' : 'Agendado'} para ${scheduledDate}</span>`;
             }
             
-            // Lógica para detalhes dinâmicos
-            const fieldsConfig = campaignTypeSettings[campaign.type]?.fields || [];
             const itemString = JSON.stringify(item).replace(/"/g, '&quot;');
 
             return `<li>
@@ -402,7 +400,7 @@
                 const item = JSON.parse(target.dataset.item);
                 const campaignType = target.dataset.campaignType;
                 
-                document.getElementById('modal-item-photo').src = item.photoURL;
+                document.getElementById('modal-item-photo').src = item.photoURL || 'https://placehold.co/400x400/e2e8f0/cbd5e0?text=Sem+Foto';
                 document.getElementById('modal-item-title').textContent = item.type;
                 
                 let detailsHtml = '';
@@ -410,7 +408,7 @@
                 const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
                 fieldsConfig.forEach(field => {
                     const value = item[field.id];
-                    if (value && !mediaFieldIds.has(key) && key !== 'type' && key !== 'photoURL') {
+                    if (value && !mediaFieldIds.has(field.id) && field.id !== 'type' && field.id !== 'photoURL') {
                         detailsHtml += `<p><strong>${field.label}:</strong> ${value}</p>`;
                     }
                 });
