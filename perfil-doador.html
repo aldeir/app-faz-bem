@@ -294,6 +294,10 @@
                 const campaignLikes = allLikes.filter(like => like.campaignId === campaignId);
                 const date = new Date(campaignData.latestDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
                 
+                // =================================================================
+                // INÍCIO DA SECÇÃO COMENTADA PARA DEPURAÇÃO
+                // =================================================================
+                /*
                 let likesHtml = '<p class="text-xs text-gray-500">Nenhuma curtida ainda.</p>';
                 if (campaignLikes.length > 0) {
                     likesHtml = `<div class="flex items-center -space-x-2">${campaignLikes.slice(0, 5).map(like => {
@@ -307,6 +311,12 @@
                         likesHtml += `<span class="text-xs text-gray-500 ml-3">+${campaignLikes.length - 5}</span>`;
                     }
                 }
+                */
+                // Para o teste, vamos apenas mostrar que a secção existe.
+                const likesHtml = `<p class="text-xs text-gray-400 italic">Secção de apoiadores em manutenção.</p>`;
+                // =================================================================
+                // FIM DA SECÇÃO COMENTADA
+                // =================================================================
 
                 let itemsHtml = campaignData.items.map(item => {
                     const fieldsConfig = campaignTypeSettings[item.campaignType]?.fields || [];
