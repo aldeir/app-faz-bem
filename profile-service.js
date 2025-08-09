@@ -19,6 +19,11 @@ export async function getProfileById(userId) {
         return { displayName: 'Sistema', photoURL: null };
     }
     
+    // [NOVO] Verificação especial para campanhas gerais do App Faz Bem.
+    if (userId === 'app_faz_bem') {
+        return { publicName: 'App Faz Bem', displayName: 'App Faz Bem', photoURL: './images/icons/icon-192x192.png' };
+    }
+
     // 1. Verifica se já temos o perfil em cache para máxima performance.
     if (profilesCache.has(userId)) {
         return profilesCache.get(userId);
@@ -37,13 +42,17 @@ export async function getProfileById(userId) {
     // 4. Se encontrarmos o perfil, guardamos no cache e retornamos os dados.
     if (docSnap.exists()) {
         const profileData = docSnap.data();
+        // Garante que ambos os possíveis nomes de exibição estejam disponíveis.
+        if (profileData.publicName) profileData.displayName = profileData.publicName;
+        if (profileData.displayName) profileData.publicName = profileData.displayName;
+        
         profilesCache.set(userId, profileData);
         return profileData;
     }
 
     // 5. Se não encontrarmos em lado nenhum, retornamos um objeto padrão para evitar erros.
     console.warn(`Perfil não encontrado para o ID: ${userId}`);
-    const notFoundProfile = { displayName: 'Utilizador Desconhecido', photoURL: null };
+    const notFoundProfile = { displayName: 'Utilizador Desconhecido', publicName: 'Entidade Desconhecida', photoURL: null };
     profilesCache.set(userId, notFoundProfile); // Também guardamos no cache para não procurar de novo.
     return notFoundProfile;
 }
