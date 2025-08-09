@@ -115,7 +115,7 @@
     <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">​</span>
             <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
@@ -258,6 +258,7 @@
             }
         }
         
+        // [MODIFICADO]
         function renderHistory(donations, allLikes) {
             const completedItemsByCampaign = donations.reduce((acc, d) => {
                 const completedItems = d.items.filter(item => item.status === 'completed');
@@ -291,21 +292,17 @@
             const sortedCampaigns = Object.entries(completedItemsByCampaign).sort(([, a], [, b]) => b.latestDate - a.latestDate);
 
             for (const [campaignId, campaignData] of sortedCampaigns) {
-                const campaignLikes = allLikes.filter(like => like.campaignId === campaignId);
+                // Filtra os "gostos" por campanha E pelo ID do doador atual (o dono do perfil)
+                const campaignLikes = allLikes.filter(like => like.campaignId === campaignId && like.donorId === currentUserSession.auth.uid);
                 const date = new Date(campaignData.latestDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
                 
                 let likesHtml = '<p class="text-xs text-gray-500">Nenhuma curtida ainda.</p>';
                 if (campaignLikes.length > 0) {
                     likesHtml = `<div class="flex items-center -space-x-2">${campaignLikes.slice(0, 5).map(like => {
-                        let likerName = like.likerName;
-                        let photoURL = like.likerPhotoURL;
-
-                        if (!likerName) {
-                            likerName = 'Apoiador';
-                            photoURL = 'https://placehold.co/24x24/9ca3af/ffffff?text=A';
-                        }
+                        const likerName = like.likerName || 'Apoiador';
+                        const photoURL = like.likerPhotoURL || `https://placehold.co/24x24/e2e8f0/cbd5e0?text=${likerName.charAt(0)}`;
                         
-                        return `<img src="${photoURL || `https://placehold.co/24x24/e2e8f0/cbd5e0?text=${likerName.charAt(0)}`}" class="w-7 h-7 rounded-full border-2 border-white" title="${likerName}">`;
+                        return `<img src="${photoURL}" class="w-7 h-7 rounded-full border-2 border-white" title="${likerName}">`;
                     }).join('')}</div>`;
 
                     if(campaignLikes.length > 5) {
