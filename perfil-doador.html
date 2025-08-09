@@ -7,8 +7,8 @@
     
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
-    <link rel="icon" href="images/icons/icon-72x72.png" type="image/png">
+    <link rel="apple-touch-icon" href="/app-faz-bem/images/icons/icon-192x192.png">
+    <link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -258,7 +258,6 @@
             }
         }
         
-        // [MODIFICADO]
         function renderHistory(donations, allLikes) {
             const completedItemsByCampaign = donations.reduce((acc, d) => {
                 const completedItems = d.items.filter(item => item.status === 'completed');
@@ -292,14 +291,14 @@
             const sortedCampaigns = Object.entries(completedItemsByCampaign).sort(([, a], [, b]) => b.latestDate - a.latestDate);
 
             for (const [campaignId, campaignData] of sortedCampaigns) {
-                // Filtra os "gostos" por campanha E pelo ID do doador atual (o dono do perfil)
-                const campaignLikes = allLikes.filter(like => like.campaignId === campaignId && like.donorId === currentUserSession.auth.uid);
+                const campaignLikes = allLikes.filter(like => like.campaignId === campaignId);
                 const date = new Date(campaignData.latestDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
                 
                 let likesHtml = '<p class="text-xs text-gray-500">Nenhuma curtida ainda.</p>';
                 if (campaignLikes.length > 0) {
                     likesHtml = `<div class="flex items-center -space-x-2">${campaignLikes.slice(0, 5).map(like => {
                         const likerName = like.likerName || 'Apoiador';
+                        // [CORRIGIDO] Adiciona um fallback para a photoURL
                         const photoURL = like.likerPhotoURL || `https://placehold.co/24x24/e2e8f0/cbd5e0?text=${likerName.charAt(0)}`;
                         
                         return `<img src="${photoURL}" class="w-7 h-7 rounded-full border-2 border-white" title="${likerName}">`;
@@ -324,9 +323,12 @@
                     });
                     detailsHtml += '</div>';
 
+                    // [CORRIGIDO] Adiciona um fallback para a photoURL do item
+                    const itemPhoto = item.photoURL || 'https://placehold.co/40x40/e2e8f0/e2e8f0?text=Item';
+
                     return `
                     <li class="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-100 cursor-pointer" data-item-details='${JSON.stringify(item)}'>
-                        <img src="${item.photoURL}" class="w-10 h-10 rounded-md object-cover bg-gray-200">
+                        <img src="${itemPhoto}" class="w-10 h-10 rounded-md object-cover bg-gray-200">
                         <div>
                             <p class="font-medium text-gray-700">${item.type}</p>
                             ${detailsHtml}
