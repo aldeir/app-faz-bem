@@ -8,6 +8,7 @@
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+    <link rel="icon" href="images/icons/icon-72x72.png" type="image/png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -113,26 +114,7 @@
         </div>
     </main>
     
-    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
-                            <div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
-            </div>
-        </div>
-    </div>
+    <div id="app-modal"></div>
 
     <script type="module">
         import { db, storage, paths } from './app-config.js';
@@ -243,7 +225,14 @@
             const typeConfig = campaignTypeSettings[campaignType];
             if (!typeConfig || !typeConfig.fields) return;
             
-            const fields = typeConfig.fields
+            // --- INÍCIO DA CORREÇÃO ---
+            // Garante que 'fields' seja sempre um array antes de usar '.filter'
+            const fieldsArray = Array.isArray(typeConfig.fields) 
+                ? typeConfig.fields 
+                : Object.values(typeConfig.fields);
+            // --- FIM DA CORREÇÃO ---
+
+            const fields = fieldsArray
                 .filter(field => field.active !== false)
                 .sort((a, b) => (a.order || 0) - (b.order || 0));
 
@@ -300,35 +289,28 @@
                 }
 
                 const fieldsToRender = isReschedule ? item : item.customFields;
-                const fieldsConfig = campaignTypeSettings[campaignData.type]?.fields || [];
+                const fieldsConfig = Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
+                    ? campaignTypeSettings[campaignData.type].fields
+                    : Object.values(campaignTypeSettings[campaignData.type]?.fields || {});
                 
                 let itemTitle = 'Item Adicionado';
                 let detailsHtml = '';
 
-                // --- INÍCIO DA CORREÇÃO: Lógica de exibição de detalhes ---
                 if (fieldsConfig.length > 0) {
-                    // Tenta usar o primeiro campo da configuração como título
                     const titleFieldKey = fieldsConfig[0].id;
                     const titleValue = fieldsToRender[titleFieldKey];
                     if (titleValue) {
                         itemTitle = titleValue;
                     }
-
-                    // Percorre todos os campos para criar a lista de detalhes
                     fieldsConfig.forEach(fieldConfig => {
                         const key = fieldConfig.id;
                         const value = fieldsToRender[key];
-                        
-                        // Não mostra o campo se estiver vazio, se for o campo de título, ou se for a foto principal
-                        if (!value || key === titleFieldKey || key === item.mainPhotoId) {
-                            return;
+                        if (value && key !== titleFieldKey && key !== item.mainPhotoId) {
+                            const displayValue = (value instanceof File) ? value.name : value;
+                            detailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium text-gray-700">${fieldConfig.label}:</span> ${displayValue}</div>`;
                         }
-
-                        const displayValue = (value instanceof File) ? value.name : value;
-                        detailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium text-gray-700">${fieldConfig.label}:</span> ${displayValue}</div>`;
                     });
                 }
-                // --- FIM DA CORREÇÃO ---
 
                 itemEl.innerHTML = `
                     <img src="${photoSrc}" class="w-16 h-16 rounded-md object-cover flex-shrink-0">
@@ -410,7 +392,10 @@
             let mainPhotoFile = null;
             let mainPhotoId = null;
             
-            const fieldsConfig = campaignTypeSettings[campaignData.type]?.fields || [];
+            const fieldsConfig = Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
+                ? campaignTypeSettings[campaignData.type].fields
+                : Object.values(campaignTypeSettings[campaignData.type]?.fields || {});
+
             const activeImageFields = fieldsConfig.filter(f => f.type === 'image' && f.active !== false);
             
             if (activeImageFields.length > 0) {
@@ -438,7 +423,7 @@
                  addItemError.textContent = `Por favor, adicione uma "${firstRequiredImageField.label}".`;
                  return;
             }
-            // Usa um objeto simples para passar para a renderização, sem o 'type' que estava a causar confusão
+            
             donatedItems.push({ mainPhotoFile, mainPhotoId, customFields: customFieldsData });
             renderDonatedItems();
             
@@ -486,16 +471,17 @@
 
                         const photoURL = item.mainPhotoId ? customFieldsWithUrls[item.mainPhotoId] : null;
 
-                        // --- INÍCIO DA CORREÇÃO: Define o 'type' do item antes de guardar ---
-                        const fieldsConfig = campaignTypeSettings[campaignData.type]?.fields || [];
-                        let itemType = campaignData.title; // Fallback
+                        const fieldsConfig = Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
+                            ? campaignTypeSettings[campaignData.type].fields
+                            : Object.values(campaignTypeSettings[campaignData.type]?.fields || {});
+
+                        let itemType = campaignData.title; 
                         if (fieldsConfig.length > 0) {
                             const titleFieldKey = fieldsConfig[0].id;
                             if(customFieldsWithUrls[titleFieldKey]) {
                                 itemType = customFieldsWithUrls[titleFieldKey];
                             }
                         }
-                        // --- FIM DA CORREÇÃO ---
 
                         const finalItemObject = {
                             ...customFieldsWithUrls,
@@ -518,7 +504,8 @@
                     status: 'scheduled',
                     privacy: isRescheduleMode ? (rescheduleData.privacy || 'public') : document.querySelector('input[name="privacy"]:checked').value,
                     createdAt: Timestamp.now(),
-                    scheduledAt: Timestamp.fromDate(selectedScheduleSlot)
+                    scheduledAt: Timestamp.fromDate(selectedScheduleSlot),
+                    campaignType: campaignData.type || 'default'
                 };
                 
                 if (isRescheduleMode) {
