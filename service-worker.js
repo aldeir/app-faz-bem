@@ -1,14 +1,13 @@
-// service-worker.js (v2.2 - Remoção do cache de CDN externo para corrigir erro de CORS)
+// service-worker.js (v2.3 - Caminhos de cache relativos)
 
-// A versão do cache é crucial. Mude-a sempre que fizer deploy de novos ficheiros.
-const CACHE_NAME = 'faz-bem-cache-v7'; 
+const CACHE_NAME = 'faz-bem-cache-v8'; // Mudei a versão para forçar a atualização
 const urlsToCache = [
-  '/app-faz-bem/',
-  '/app-faz-bem/index.html'
-  // A URL 'https://cdn.tailwindcss.com' foi removida para evitar o erro de CORS.
+  './',
+  'index.html'
+  // Adicione outras páginas importantes aqui, como 'login.html', 'perfil-doador.html', etc.
+  // Ex: 'login.html', 'cadastro-doador.html'
 ];
 
-// Evento de Instalação: O Service Worker é instalado.
 self.addEventListener('install', event => {
   console.log('Service Worker: Instalando...');
   event.waitUntil(
@@ -17,11 +16,10 @@ self.addEventListener('install', event => {
         console.log('Service Worker: Cache aberto, adicionando URLs essenciais.');
         return cache.addAll(urlsToCache);
       })
-      .then(() => self.skipWaiting()) // Força o novo service worker a ativar-se mais rápido
+      .then(() => self.skipWaiting())
   );
 });
 
-// Evento de Ativação: Limpa caches antigos.
 self.addEventListener('activate', event => {
   console.log('Service Worker: Ativando...');
   event.waitUntil(
@@ -34,22 +32,19 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    }).then(() => self.clients.claim()) // Torna-se o service worker ativo para todas as abas
+    }).then(() => self.clients.claim())
   );
 });
 
-// Evento Fetch: Interceta todos os pedidos de rede.
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
     return;
   }
 
-  // --- ESTRATÉGIA: STALE-WHILE-REVALIDATE ---
   event.respondWith(
     caches.open(CACHE_NAME).then(cache => {
       return cache.match(event.request).then(cachedResponse => {
         const fetchPromise = fetch(event.request).then(networkResponse => {
-          // Apenas guarda em cache recursos do mesmo domínio (self) para evitar erros de CORS.
           if (networkResponse && networkResponse.status === 200 && new URL(event.request.url).origin === self.location.origin) {
             cache.put(event.request, networkResponse.clone());
           }
