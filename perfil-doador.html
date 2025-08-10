@@ -294,15 +294,12 @@
                 const campaignLikes = allLikes.filter(like => like.campaignId === campaignId);
                 const date = new Date(campaignData.latestDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
                 
-                // =================================================================
-                // INÍCIO DA SECÇÃO COMENTADA PARA DEPURAÇÃO
-                // =================================================================
+                // [COMENTADO PARA DEPURAÇÃO]
                 /*
                 let likesHtml = '<p class="text-xs text-gray-500">Nenhuma curtida ainda.</p>';
                 if (campaignLikes.length > 0) {
                     likesHtml = `<div class="flex items-center -space-x-2">${campaignLikes.slice(0, 5).map(like => {
                         const likerName = like.likerName || 'Apoiador';
-                        // [CORRIGIDO] Adiciona um fallback para a photoURL
                         const photoURL = like.likerPhotoURL || `https://placehold.co/24x24/e2e8f0/cbd5e0?text=${likerName.charAt(0)}`;
                         
                         return `<img src="${photoURL}" class="w-7 h-7 rounded-full border-2 border-white" title="${likerName}">`;
@@ -313,11 +310,8 @@
                     }
                 }
                 */
-                // Para o teste, vamos apenas mostrar que a secção existe.
                 const likesHtml = `<p class="text-xs text-gray-400 italic">Secção de apoiadores em manutenção.</p>`;
-                // =================================================================
-                // FIM DA SECÇÃO COMENTADA
-                // =================================================================
+
 
                 let itemsHtml = campaignData.items.map(item => {
                     const fieldsConfig = campaignTypeSettings[item.campaignType]?.fields || [];
