@@ -294,7 +294,6 @@
                 const campaignLikes = allLikes.filter(like => like.campaignId === campaignId);
                 const date = new Date(campaignData.latestDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
                 
-                // [REATIVADO E CORRIGIDO] Lógica robusta para exibir os "gostos"
                 let likesHtml = '<p class="text-xs text-gray-500">Nenhuma curtida ainda.</p>';
                 if (campaignLikes.length > 0) {
                     likesHtml = `<div class="flex items-center -space-x-2">${campaignLikes.slice(0, 5).map(like => {
