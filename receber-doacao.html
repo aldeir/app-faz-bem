@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+    <link rel="icon" href="images/icons/icon-72x72.png" type="image/png">
     <style>
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
@@ -73,36 +75,36 @@
                 <p id="select-slot-prompt" class="text-center text-gray-500 py-10 bg-white rounded-lg shadow-sm">Selecione um horário acima para visualizar os detalhes dos itens a serem recebidos.</p>
             </div>
         </div>
-    </main>
-    
-    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
-                            <div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div>
+
+        <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
+                                <div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div>
+                            </div>
                         </div>
                     </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
                 </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
             </div>
         </div>
-    </div>
-
+    </main>
+    
     <script type="module">
         import { db, auth, paths } from './app-config.js';
         import { collection, query, where, onSnapshot, getDoc, doc, updateDoc, getDocs } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         import { showDetailsModal } from './modal-handler.js';
-        import { createNotification } from './notification-service.js'; // <-- IMPORTAÇÃO DA FUNÇÃO
+        import { createNotification } from './notification-service.js';
 
         const loadingView = document.getElementById('loading-view');
         const donationsView = document.getElementById('donations-view');
@@ -249,9 +251,11 @@
                         statusHtml = `<p class="text-xs text-gray-500 font-semibold">Campanha Encerrada</p>`;
                     }
                     
-                    // --- INÍCIO DA CORREÇÃO: LÓGICA DE DETALHES DO ITEM ---
                     let itemDetailsHtml = '<div class="space-y-1 mt-1">';
-                    const fieldsConfig = campaignTypeSettings[campaign?.type]?.fields || [];
+                    const fieldsConfig = Array.isArray(campaignTypeSettings[campaign?.type]?.fields)
+                        ? campaignTypeSettings[campaign.type].fields
+                        : Object.values(campaignTypeSettings[campaign?.type]?.fields || {});
+
                     const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
                     
                     fieldsConfig.forEach(field => {
@@ -262,7 +266,6 @@
                         }
                     });
                     itemDetailsHtml += '</div>';
-                    // --- FIM DA CORREÇÃO ---
 
                     return `
                         <div class="bg-white p-3 rounded-lg shadow-sm flex items-center justify-between border-l-4 ${borderColor}">
@@ -299,7 +302,6 @@
                 const updatedItems = [...currentDonation.items];
                 const item = updatedItems[itemIndex];
                 
-                // Só processa se não tiver sido processado antes
                 if (item.status === 'completed') return;
 
                 item.status = 'completed';
@@ -308,12 +310,10 @@
                 
                 await updateDoc(donationRef, { items: updatedItems });
 
-                // --- INÍCIO DA CORREÇÃO: ENVIAR NOTIFICAÇÃO ---
                 const donorId = currentDonation.donorId;
                 const message = `A sua doação do item "${item.type}" para a campanha "${currentDonation.campaignTitle}" foi recebida! Muito obrigado!`;
                 const link = 'minhas-entregas.html';
                 await createNotification(donorId, message, link);
-                // --- FIM DA CORREÇÃO ---
             }
         }
         
@@ -328,7 +328,10 @@
             if (!item) return;
 
             const campaign = campaignsData.get(donation.campaignId);
-            const fieldsConfig = campaignTypeSettings[campaign?.type]?.fields || [];
+            const fieldsConfig = Array.isArray(campaignTypeSettings[campaign?.type]?.fields)
+                ? campaignTypeSettings[campaign.type].fields
+                : Object.values(campaignTypeSettings[campaign?.type]?.fields || {});
+
             let detailsHtml = '';
             fieldsConfig.forEach(field => {
                 const value = item[field.id];
