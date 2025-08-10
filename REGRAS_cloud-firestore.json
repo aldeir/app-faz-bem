@@ -11,20 +11,22 @@ service cloud.firestore {
       return isAuthenticated() && get(entityPath).data.status == 'ativo';
     }
 
-    // --- CORREÇÃO DE SEGURANÇA APLICADA ---
     match /users/{userId} {
-      // PERMITE a leitura apenas se o utilizador for o dono do perfil ou um superadmin.
       allow read: if isOwner(userId) || isSuperAdmin();
       allow create: if isOwner(userId) && request.resource.data.role == 'doador';
       allow update: if isOwner(userId) || isSuperAdmin();
       allow delete: if false;
     }
-    // --- FIM DA CORREÇÃO ---
 
     match /artifacts/{appId}/public/data {
 
       match /notifications/{notificationId} {
-        allow create: if isOwner(request.resource.data.userId); 
+        // --- INÍCIO DA CORREÇÃO ---
+        // Permite que qualquer usuário autenticado crie uma notificação.
+        // A lógica de quem recebe a notificação é controlada pela aplicação.
+        allow create: if isAuthenticated(); 
+        // --- FIM DA CORREÇÃO ---
+        
         allow read, update: if isOwner(resource.data.userId); 
         allow delete: if false;
       }
