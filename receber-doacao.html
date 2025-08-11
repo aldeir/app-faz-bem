@@ -22,6 +22,9 @@
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #16a34a; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #qr-reader { width: 100%; max-width: 500px; border-radius: 0.75rem; overflow: hidden; }
+        .view-toggle-btn.active { background-color: #16a34a; color: white; }
+        .view-toggle-btn { background-color: #e5e7eb; color: #374151; }
         .schedule-slot {
             transition: all 0.2s ease-in-out; cursor: pointer; border: 1px solid #d1d5db;
         }
@@ -35,9 +38,6 @@
         .schedule-slot.active .slot-donors { color: #dbeafe; }
         .schedule-slot:disabled {
             background-color: #e5e7eb; color: #9ca3af; cursor: not-allowed;
-        }
-        #qr-reader {
-            width: 100%; max-width: 500px; border-radius: 0.75rem; overflow: hidden;
         }
     </style>
 </head>
@@ -54,10 +54,10 @@
         </div>
 
         <div id="donations-view" class="hidden">
-            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
                 <div>
-                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Agenda de Recebimento</h1>
-                    <p class="text-gray-600 mt-1">Navegue pelos dias para gerir as doações ou use o leitor de QR Code.</p>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Gerenciar Recebimentos</h1>
+                    <p class="text-gray-600 mt-1">Acompanhe as doações agendadas e recebidas.</p>
                 </div>
                 <div class="flex items-center space-x-2">
                     <button id="scan-qr-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 flex items-center gap-2 shadow-sm">
@@ -68,21 +68,29 @@
                 </div>
             </div>
 
-            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md mb-8">
-                <div class="flex justify-between items-center mb-4">
-                    <button id="prev-day-btn" class="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"><i class="fas fa-chevron-left fa-lg text-gray-600"></i></button>
-                    <h2 id="selected-date-display" class="text-xl font-bold text-center text-gray-700"></h2>
-                    <button id="next-day-btn" class="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"><i class="fas fa-chevron-right fa-lg text-gray-600"></i></button>
-                </div>
-                <div id="schedule-slots-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div>
-                <p id="no-slots-message" class="text-center text-gray-500 py-8 hidden">Nenhum agendamento para este dia.</p>
+            <div class="mb-6 flex justify-center p-1 rounded-lg bg-gray-200 w-full sm:w-auto sm:mx-auto">
+                <button id="toggle-agenda-view" class="view-toggle-btn active w-1/2 font-semibold py-2 px-4 rounded-md transition-colors">Visão de Agenda</button>
+                <button id="toggle-list-view" class="view-toggle-btn w-1/2 font-semibold py-2 px-4 rounded-md transition-colors">Visão de Lista</button>
             </div>
 
-            <div id="items-container" class="mt-8">
-                <h3 id="items-header" class="text-2xl font-bold text-gray-800 mb-4 hidden">Itens Agendados</h3>
-                <div id="items-list" class="space-y-3"></div>
-                <p id="select-slot-prompt" class="text-center text-gray-500 py-10 bg-white rounded-lg shadow-sm">Selecione um horário acima para visualizar os detalhes.</p>
+            <div id="agenda-view">
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <button id="prev-day-btn" class="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"><i class="fas fa-chevron-left fa-lg text-gray-600"></i></button>
+                        <h2 id="selected-date-display" class="text-xl font-bold text-center text-gray-700"></h2>
+                        <button id="next-day-btn" class="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"><i class="fas fa-chevron-right fa-lg text-gray-600"></i></button>
+                    </div>
+                    <div id="schedule-slots-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div>
+                    <p id="no-slots-message" class="text-center text-gray-500 py-8 hidden">Nenhum agendamento para este dia.</p>
+                </div>
+                <div id="items-container" class="mt-8">
+                    <h3 id="items-header" class="text-2xl font-bold text-gray-800 mb-4 hidden">Itens Agendados</h3>
+                    <div id="items-list" class="space-y-3"></div>
+                    <p id="select-slot-prompt" class="text-center text-gray-500 py-10 bg-white rounded-lg shadow-sm">Selecione um horário acima para visualizar os detalhes.</p>
+                </div>
             </div>
+
+            <div id="list-view" class="hidden space-y-8"></div>
         </div>
     </main>
 
@@ -153,8 +161,12 @@
         const qrItemDetails = document.getElementById('qr-item-details');
         const qrConfirmBtn = document.getElementById('qr-confirm-reception-btn');
         const qrReaderStatus = document.getElementById('qr-reader-status');
-
-        let allScheduledDonations = [];
+        const toggleAgendaBtn = document.getElementById('toggle-agenda-view');
+        const toggleListBtn = document.getElementById('toggle-list-view');
+        const agendaView = document.getElementById('agenda-view');
+        const listView = document.getElementById('list-view');
+        
+        let allDonations = [];
         let campaignsData = new Map();
         let campaignTypeSettings = {};
         let availableDates = [];
@@ -169,24 +181,26 @@
                 const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
                 campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
                 await loadAllCampaignsForEntity(auth.currentUser.uid);
-                loadAllDonationsForEntity(auth.currentUser.uid);
+                loadAllDonations(auth.currentUser.uid);
             } else {
                 window.location.href = 'index.html';
             }
         }
-
+        
         async function loadAllCampaignsForEntity(entityId) {
             const q = query(collection(db, paths.campaigns), where("entityId", "==", entityId));
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach(doc => campaignsData.set(doc.id, { id: doc.id, ...doc.data() }));
         }
 
-        function loadAllDonationsForEntity(entityId) {
-            const q = query(collection(db, paths.donations), where('entityId', '==', entityId), where('status', '==', 'scheduled'));
+        function loadAllDonations(entityId) {
+            const q = query(collection(db, paths.donations), where('entityId', '==', entityId));
             
             onSnapshot(q, (snapshot) => {
-                allScheduledDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                const uniqueDates = [...new Set(allScheduledDonations.map(d => d.scheduledAt.toDate().toISOString().split('T')[0]))];
+                allDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                const scheduledDonations = allDonations.filter(d => d.status === 'scheduled');
+                const uniqueDates = [...new Set(scheduledDonations.map(d => d.scheduledAt.toDate().toISOString().split('T')[0]))];
                 availableDates = uniqueDates.sort();
                 
                 const todayStr = new Date().toISOString().split('T')[0];
@@ -196,6 +210,9 @@
                 }
 
                 renderScheduleForSelectedDate();
+                if(document.getElementById('list-view').classList.contains('hidden') === false) {
+                    renderListView();
+                }
                 
                 if (!loadingView.classList.contains('hidden')) {
                     loadingView.classList.add('hidden');
@@ -222,7 +239,7 @@
             const selectedDate = new Date(selectedDateStr + 'T00:00:00');
             selectedDateDisplay.textContent = selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
             
-            const donationsForDay = allScheduledDonations.filter(d => d.scheduledAt.toDate().toISOString().split('T')[0] === selectedDateStr);
+            const donationsForDay = allDonations.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate().toISOString().split('T')[0] === selectedDateStr);
 
             scheduleSlotsGrid.innerHTML = '';
             itemsList.innerHTML = '';
@@ -234,7 +251,7 @@
                 const time = donation.scheduledAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 if (!acc[time]) acc[time] = { donors: new Set(), items: 0, donations: [] };
                 acc[time].donors.add(donation.donorId);
-                acc[time].items += donation.items.length;
+                acc[time].items += donation.items.filter(i => i.status !== 'completed').length;
                 acc[time].donations.push(donation);
                 return acc;
             }, {});
@@ -243,6 +260,7 @@
 
             sortedTimes.forEach(time => {
                 const slotData = slots[time];
+                if (slotData.items === 0) return;
                 const isOverdue = new Date(selectedDateStr + 'T' + time) < new Date();
                 const slotEl = document.createElement('button');
                 slotEl.className = 'schedule-slot p-3 rounded-lg text-left';
@@ -250,7 +268,7 @@
                 slotEl.innerHTML = `
                     <p class="font-bold text-lg">${time}</p>
                     <p class="slot-donors text-sm text-gray-500">${slotData.donors.size} doador(es)</p>
-                    <p class="text-sm font-semibold">${slotData.items} item(ns)</p>
+                    <p class="text-sm font-semibold">${slotData.items} item(ns) pendente(s)</p>
                 `;
                 slotEl.addEventListener('click', () => {
                     document.querySelectorAll('.schedule-slot.active').forEach(el => el.classList.remove('active'));
@@ -271,24 +289,17 @@
                 const donorName = donation.donorName || "Doador Anônimo";
                 
                 const itemsHtml = donation.items.map((item, index) => {
+                    if (item.status === 'completed') return ''; // Não mostra itens já recebidos
+
                     const campaign = campaignsData.get(donation.campaignId);
                     const typeConfig = campaignTypeSettings[campaign?.type] || { color: 'gray' };
                     const colorMap = { green: 'border-green-500', blue: 'border-blue-500', yellow: 'border-yellow-500', red: 'border-red-500', purple: 'border-purple-500', gray: 'border-gray-500' };
                     const borderColor = colorMap[typeConfig.color] || 'border-gray-500';
 
-                    const isCampaignActive = campaign && campaign.expiresAt.toDate() > new Date();
                     const isOverdue = donation.scheduledAt.toDate() < new Date();
-                    
-                    let statusHtml;
-                    if (item.status === 'completed') {
-                        statusHtml = `<p class="text-xs text-green-600 font-semibold">Recebido</p>`;
-                    } else if (isCampaignActive || isOverdue) {
-                        const buttonText = isOverdue ? 'Receber (Vencido)' : 'Receber';
-                        statusHtml = `<button data-donation-id="${donation.id}" data-item-index="${index}" class="receive-btn bg-green-600 text-white text-sm font-bold py-2 px-3 rounded-lg hover:bg-green-700 transition">${buttonText}</button>`;
-                    } else {
-                        statusHtml = `<p class="text-xs text-gray-500 font-semibold">Campanha Encerrada</p>`;
-                    }
-                    
+                    const buttonText = isOverdue ? 'Receber (Vencido)' : 'Receber';
+                    const statusHtml = `<button data-donation-id="${donation.id}" data-item-index="${index}" class="receive-btn bg-green-600 text-white text-sm font-bold py-2 px-3 rounded-lg hover:bg-green-700 transition">${buttonText}</button>`;
+
                     let itemDetailsHtml = '<div class="space-y-1 mt-1">';
                     const fieldsConfig = Array.isArray(campaignTypeSettings[campaign?.type]?.fields) ? campaignTypeSettings[campaign.type].fields : Object.values(campaignTypeSettings[campaign?.type]?.fields || {});
                     const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
@@ -316,16 +327,11 @@
                     `;
                 }).join('');
 
-                const donorSection = document.createElement('div');
-                donorSection.innerHTML = `
-                    <div class="mb-4">
-                        <h4 class="font-bold text-lg text-gray-800">${donorName}</h4>
-                        <div class="pl-4 mt-2 space-y-2">
-                            ${itemsHtml}
-                        </div>
-                    </div>
-                `;
-                itemsList.appendChild(donorSection);
+                if (itemsHtml.trim() !== '') {
+                    const donorSection = document.createElement('div');
+                    donorSection.innerHTML = `<div class="mb-4"><h4 class="font-bold text-lg text-gray-800">${donorName}</h4><div class="pl-4 mt-2 space-y-2">${itemsHtml}</div></div>`;
+                    itemsList.appendChild(donorSection);
+                }
             });
         }
         
@@ -355,8 +361,7 @@
 
                 const donorId = currentDonation.donorId;
                 const message = `A sua doação do item "${item.type}" para a campanha "${currentDonation.campaignTitle}" foi recebida! Muito obrigado!`;
-                const link = 'minhas-entregas.html';
-                await createNotification(donorId, message, link);
+                await createNotification(donorId, message, 'minhas-entregas.html');
             }
         }
         
@@ -365,7 +370,7 @@
             if (!button) return;
             
             const { donationId, itemIndex } = button.dataset;
-            const donation = allScheduledDonations.find(d => d.id === donationId);
+            const donation = allDonations.find(d => d.id === donationId);
             const item = donation?.items[itemIndex];
 
             if (!item) return;
@@ -496,6 +501,84 @@
         });
         
         closeQrModalBtn.addEventListener('click', closeAndResetQrModal);
+        
+        toggleAgendaBtn.addEventListener('click', () => {
+            listView.classList.add('hidden');
+            agendaView.classList.remove('hidden');
+            toggleAgendaBtn.classList.add('active');
+            toggleListBtn.classList.remove('active');
+        });
+
+        toggleListBtn.addEventListener('click', () => {
+            agendaView.classList.add('hidden');
+            listView.classList.remove('hidden');
+            toggleListBtn.classList.add('active');
+            toggleAgendaBtn.classList.remove('active');
+            renderListView();
+        });
+
+        function renderListView() {
+            listView.innerHTML = '';
+            const now = new Date();
+
+            const upcoming = allDonations.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() >= now && d.items.some(i => i.status !== 'completed'));
+            const overdue = allDonations.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() < now && d.items.some(i => i.status !== 'completed'));
+            const history = allDonations.filter(d => d.status === 'completed' || d.items.every(i => i.status === 'completed'));
+            
+            const sections = [
+                { title: 'Itens Próximos', data: upcoming, color: 'blue' },
+                { title: 'Itens Vencidos', data: overdue, color: 'red' },
+                { title: 'Histórico de Itens Recebidos', data: history, color: 'gray' }
+            ];
+
+            sections.forEach(section => {
+                if (section.data.length > 0) {
+                    const sectionEl = document.createElement('div');
+                    let itemsHtml = '';
+                    
+                    section.data.forEach(donation => {
+                        donation.items.forEach((item, index) => {
+                            if ((section.title.includes('Próximos') || section.title.includes('Vencidos')) && item.status === 'completed') return;
+                            if (section.title.includes('Histórico') && item.status !== 'completed') return;
+
+                            const campaign = campaignsData.get(donation.campaignId);
+                            const typeConfig = campaignTypeSettings[campaign?.type] || { color: 'gray' };
+                            const borderColor = `border-${typeConfig.color}-500`;
+                            
+                            let statusHtml = '';
+                             if (item.status === 'completed') {
+                                statusHtml = `<p class="text-xs text-green-600 font-semibold">Recebido</p>`;
+                            } else {
+                                const isOverdue = donation.scheduledAt.toDate() < now;
+                                statusHtml = `<button data-donation-id="${donation.id}" data-item-index="${index}" class="receive-btn bg-green-600 text-white text-sm font-bold py-2 px-3 rounded-lg hover:bg-green-700 transition">${isOverdue ? 'Receber (Vencido)' : 'Receber'}</button>`;
+                            }
+
+                            itemsHtml += `
+                                <div class="bg-white p-3 rounded-lg shadow-sm flex items-center justify-between border-l-4 ${borderColor}">
+                                    <div class="flex items-center space-x-4 flex-grow">
+                                        <img src="${item.photoURL || 'https://placehold.co/48x48/e2e8f0/e2e8f0?text=Item'}" alt="${item.type}" class="w-12 h-12 rounded-md object-cover">
+                                        <div>
+                                            <p class="font-semibold text-gray-800">${item.type}</p>
+                                            <p class="text-xs text-gray-500">Doador: ${donation.donorName}</p>
+                                            <p class="text-xs text-gray-500">Agendado para: ${donation.scheduledAt.toDate().toLocaleDateString('pt-BR')}</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right w-36">${statusHtml}</div>
+                                </div>`;
+                        });
+                    });
+                    
+                    if (itemsHtml.trim() !== '') {
+                        sectionEl.innerHTML = `
+                            <h2 class="text-xl font-bold text-gray-800 border-b-2 border-${section.color}-500 pb-2 mb-4">${section.title}</h2>
+                            <div class="space-y-3">${itemsHtml}</div>
+                        `;
+                        listView.appendChild(sectionEl);
+                    }
+                }
+            });
+            listView.addEventListener('click', handleReceiveClick);
+        }
         
         initializeApp();
     </script>
