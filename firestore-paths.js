@@ -1,5 +1,5 @@
 // Arquivo: firestore-paths.js
-// Versão 3.2 - Path de Notificações Adicionado e Corrigido.
+// Versão 3.2 - Caminhos Corretos com Estrutura Aninhada
 
 const paths = {
     _projectId: null,
@@ -30,7 +30,7 @@ const paths = {
     },
 
     // --- Getters para Coleções ---
-    get users() { this._checkInit(); return 'users'; },
+    get users() { this._checkInit(); return 'users'; }, // 'users' fica na raiz
     get entidades() { this._checkInit(); return `${this._basePath}/entidades`; },
     get campaigns() { this._checkInit(); return `${this._basePath}/campaigns`; },
     get donations() { this._checkInit(); return `${this._basePath}/donations`; },
@@ -41,8 +41,8 @@ const paths = {
     // --- Funções para Documentos ---
     userDoc: function(uid) { this._checkInit(); return `${this.users}/${uid}`; },
     entidadeDoc: function(uid) { this._checkInit(); return `${this.entidades}/${uid}`; },
-    campaignDoc: function(campaignId) { return `${this.campaigns}/${campaignId}`; },
-    donationDoc: function(donationId) { return `${this.donations}/${donationId}`; },
+    campaignDoc: function(campaignId) { this._checkInit(); return `${this.campaigns}/${campaignId}`; },
+    donationDoc: function(donationId) { this._checkInit(); return `${this.donations}/${donationId}`; },
     likeDoc: function(likeId) { this._checkInit(); return `${this.likes}/${likeId}`; },
     configDoc: function(configId) { this._checkInit(); return `${this.configs}/${configId}`; },
     notificationDoc: function(notificationId) { this._checkInit(); return `${this.notifications}/${notificationId}`; },
