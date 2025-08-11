@@ -31,6 +31,30 @@
             z-index: 20;
             transition: opacity 0.2s, transform 0.2s;
         }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 160px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -80px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -136,7 +160,7 @@
                 
                 loadInitialData(currentUserSession.auth.uid);
             } else {
-                window.location.href = 'login.html';
+                window.location.href = 'index.html';
             }
         }
 
@@ -205,6 +229,18 @@
                     const { donorName, donorPhoto, scheduledAt, status } = donorDonations[0];
                     const scheduledTime = scheduledAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
+                    const donorProfile = await getProfileById(donorId);
+                    let verificationBadge = '';
+                    if (donorProfile && donorProfile.emailVerified === false) {
+                        verificationBadge = `
+                            <div class="tooltip ml-2">
+                                <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.636-1.214 2.852-1.214 3.488 0l5.58 10.655c.614 1.173-.284 2.618-1.744 2.618H4.42c-1.46 0-2.358-1.445-1.744-2.618l5.58-10.655zM10 13a1 1 0 100-2 1 1 0 000 2zm-1-4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd" />
+                                </svg>
+                                <span class="tooltiptext">E-mail não verificado</span>
+                            </div>`;
+                    }
+
                     let campaignsHtml = '';
                     const groupedByCampaign = groupBy(donorDonations, d => d.campaignId);
 
@@ -271,7 +307,10 @@
                                 <div class="flex items-center space-x-4">
                                     <img src="${donorPhoto || 'https://placehold.co/48x48/e2e8f0/cbd5e0?text=?'}" class="w-12 h-12 rounded-full object-cover">
                                     <div>
-                                        <p class="font-bold text-lg text-gray-900">${donorName}</p>
+                                        <div class="flex items-center">
+                                            <p class="font-bold text-lg text-gray-900">${donorName}</p>
+                                            ${verificationBadge}
+                                        </div>
                                         <p class="text-sm font-semibold text-green-600">Horário: ${scheduledTime}</p>
                                     </div>
                                 </div>
