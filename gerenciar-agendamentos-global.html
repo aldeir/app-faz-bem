@@ -140,12 +140,10 @@
         const tabsContainer = document.getElementById('tabs-container');
         const listContent = document.getElementById('list-content');
         const searchInput = document.getElementById('search-input');
-
         const paginationControls = document.getElementById('pagination-controls');
         const pageCounter = document.getElementById('page-counter');
         const prevPageBtn = document.getElementById('prev-page-btn');
         const nextPageBtn = document.getElementById('next-page-btn');
-
         const itemDetailsModal = document.getElementById('item-details-modal');
         const closeItemModalBtn = document.getElementById('close-item-modal-btn');
         const detailsModal = document.getElementById('details-modal');
@@ -184,7 +182,6 @@
 
         function loadGlobalSchedules() {
             const q = query(collection(db, paths.donations));
-
             onSnapshot(q, (snapshot) => {
                 allDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 calculateRanking();
@@ -215,12 +212,12 @@
             const activeTab = tabsContainer.querySelector('.tab-button.active').dataset.tab;
             const now = new Date();
 
-            let filteredDonations = allDonations.filter(d => Array.isArray(d.items)); // Garante que a doação tem itens
+            let filteredDonations = allDonations.filter(d => Array.isArray(d.items));
 
             if (searchTerm) {
                 const profiles = new Map();
                 for (const d of filteredDonations) {
-                    if (!profiles.has(d.entityId)) {
+                    if (d.entityId && !profiles.has(d.entityId)) {
                         profiles.set(d.entityId, await getProfileById(d.entityId));
                     }
                 }
@@ -491,9 +488,9 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./service-worker.js').then(registration => {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    // console.log('ServiceWorker registration successful with scope: ', registration.scope);
                 }, err => {
-                    console.log('ServiceWorker registration failed: ', err);
+                    // console.log('ServiceWorker registration failed: ', err);
                 });
             });
         }
