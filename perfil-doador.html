@@ -19,6 +19,8 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
 
+    <script src="https://unpkg.com/imask"></script>
+
     <style>
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 3px solid #f3f3f3; border-top: 3px solid #16a34a; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
@@ -152,6 +154,12 @@
         import { getCurrentUser } from './auth-service.js';
         import { doc, getDoc, updateDoc, collection, query, where, getDocs, storageRef, uploadBytes, getDownloadURL, updateProfile, onSnapshot } from "./firebase-services.js";
         import { showDetailsModal } from './modal-handler.js';
+        import { getProfileById } from './profile-service.js';
+
+        const phoneInput = document.getElementById('phone');
+        const cepInput = document.getElementById('addressCep');
+        const phoneMask = IMask(phoneInput, { mask: [{ mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' }] });
+        const cepMask = IMask(cepInput, { mask: '00000-000' });
 
         const loadingView = document.getElementById('loading-view');
         const profileView = document.getElementById('profile-view');
@@ -160,14 +168,12 @@
         const saveBtnText = document.getElementById('save-btn-text');
         const saveBtnSpinner = document.getElementById('save-btn-spinner');
         const saveFeedback = document.getElementById('save-feedback');
-        
         const photoPreview = document.getElementById('profile-photo-preview');
         const photoUploadInput = document.getElementById('photo-upload-input');
         const cropperModal = document.getElementById('cropper-modal');
         const imageToCrop = document.getElementById('image-to-crop');
         const cancelCropBtn = document.getElementById('cancel-crop-btn');
         const confirmCropBtn = document.getElementById('confirm-crop-btn');
-
         const historyTitle = document.getElementById('history-title');
         const historyList = document.getElementById('donation-history-list');
         const noHistoryPlaceholder = document.getElementById('no-history-placeholder');
@@ -201,16 +207,15 @@
                 document.getElementById('displayName').value = profile.displayName || '';
                 document.getElementById('profile-display-name').textContent = profile.displayName || 'Nome não definido';
                 document.getElementById('profile-email').textContent = profile.email || '';
-                document.getElementById('phone').value = profile.phone || '';
-                document.getElementById('addressCep').value = profile.address?.cep || '';
+                phoneMask.value = profile.phone || '';
+                cepMask.value = profile.address?.cep || '';
                 document.getElementById('addressStreet').value = profile.address?.street || '';
                 photoPreview.src = profile.photoURL || 'https://placehold.co/128x128/e2e8f0/cbd5e0?text=Foto';
             }
         }
         
         function setupRealtimeListeners(userId) {
-            const allDonationsQuery = query(collection(db, paths.donations));
-            onSnapshot(allDonationsQuery, (snapshot) => {
+            onSnapshot(query(collection(db, paths.donations)), (snapshot) => {
                 const allDonations = snapshot.docs.map(doc => doc.data());
                 displayRanking(userId, allDonations);
             });
@@ -230,7 +235,7 @@
         function displayRanking(currentUserId, allDonations) {
             const donorItemCounts = {};
             allDonations.forEach(donation => {
-                const itemCount = donation.items.filter(item => item.status === 'completed').length;
+                const itemCount = (donation.items || []).filter(item => item.status === 'completed').length;
                 if (itemCount > 0) {
                      donorItemCounts[donation.donorId] = (donorItemCounts[donation.donorId] || 0) + itemCount;
                 }
@@ -258,9 +263,9 @@
             }
         }
         
-        function renderHistory(donations, allLikes) {
+        async function renderHistory(donations, allLikes) {
             const completedItemsByCampaign = donations.reduce((acc, d) => {
-                const completedItems = d.items.filter(item => item.status === 'completed');
+                const completedItems = (d.items || []).filter(item => item.status === 'completed');
                 if (completedItems.length > 0) {
                     if (!acc[d.campaignId]) {
                         acc[d.campaignId] = {
@@ -294,44 +299,34 @@
                 const campaignLikes = allLikes.filter(like => like.campaignId === campaignId && like.donorId === currentUserSession.auth.uid);
                 const date = new Date(campaignData.latestDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
                 
+                const likesHtmlPromises = campaignLikes.slice(0, 5).map(async (like) => {
+                    const likerProfile = await getProfileById(like.likerId);
+                    const likerName = likerProfile.displayName || 'Apoiador';
+                    const photoURL = likerProfile.photoURL || `https://placehold.co/24x24/e2e8f0/cbd5e0?text=${likerName.charAt(0)}`;
+                    return `<img src="${photoURL}" class="w-7 h-7 rounded-full border-2 border-white" title="${likerName}">`;
+                });
+                const likesImagesHtml = (await Promise.all(likesHtmlPromises)).join('');
+
                 let likesHtml = '<p class="text-xs text-gray-500">Nenhuma curtida ainda.</p>';
                 if (campaignLikes.length > 0) {
-                    likesHtml = `<div class="flex items-center -space-x-2">${campaignLikes.slice(0, 5).map(like => {
-                        const likerName = like.likerName || 'Apoiador';
-                        const photoURL = like.likerPhotoURL || `https://placehold.co/24x24/e2e8f0/cbd5e0?text=${likerName.charAt(0)}`;
-                        
-                        return `<img src="${photoURL}" class="w-7 h-7 rounded-full border-2 border-white" title="${likerName}">`;
-                    }).join('')}</div>`;
-
+                    likesHtml = `<div class="flex items-center -space-x-2">${likesImagesHtml}</div>`;
                     if(campaignLikes.length > 5) {
                         likesHtml += `<span class="text-xs text-gray-500 ml-3">+${campaignLikes.length - 5}</span>`;
                     }
                 }
 
                 let itemsHtml = campaignData.items.map(item => {
-                    const fieldsConfig = Array.isArray(campaignTypeSettings[item.campaignType]?.fields)
-                        ? campaignTypeSettings[item.campaignType].fields
-                        : Object.values(campaignTypeSettings[item.campaignType]?.fields || {});
-
+                    const fieldsConfig = Array.isArray(campaignTypeSettings[item.campaignType]?.fields) ? campaignTypeSettings[item.campaignType].fields : Object.values(campaignTypeSettings[item.campaignType]?.fields || {});
                     const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
                     
                     let detailsHtml = '<div class="space-y-1 mt-1">';
-                    let detailsFound = false;
-
                     fieldsConfig.forEach(field => {
                         const key = field.id;
                         const value = item[key];
                         if (value && !mediaFieldIds.has(key) && key !== 'type' && key !== 'photoURL') {
                             detailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
-                            detailsFound = true;
                         }
                     });
-
-                    if (!detailsFound) {
-                        if (item.details) detailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">Detalhes:</span> ${item.details}</div>`;
-                        if (item.condition) detailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">Condição:</span> ${item.condition}</div>`;
-                    }
-
                     detailsHtml += '</div>';
                     
                     const itemPhoto = item.photoURL || 'https://placehold.co/64x64/e2e8f0/e2e8f0?text=Item';
@@ -377,9 +372,7 @@
             if (!itemElement) return;
 
             const item = JSON.parse(itemElement.dataset.itemDetails);
-            const fieldsConfig = Array.isArray(campaignTypeSettings[item.campaignType]?.fields)
-                ? campaignTypeSettings[item.campaignType].fields
-                : Object.values(campaignTypeSettings[item.campaignType]?.fields || {});
+            const fieldsConfig = Array.isArray(campaignTypeSettings[item.campaignType]?.fields) ? campaignTypeSettings[item.campaignType].fields : Object.values(campaignTypeSettings[item.campaignType]?.fields || {});
             
             let detailsHtml = '';
             fieldsConfig.forEach(field => {
@@ -412,16 +405,26 @@
             }
             const dataToUpdate = {
                 displayName: newDisplayName,
-                phone: document.getElementById('phone').value,
-                address: { cep: document.getElementById('addressCep').value, street: document.getElementById('addressStreet').value }
+                phone: phoneMask.unmaskedValue,
+                address: { 
+                    cep: cepMask.unmaskedValue, 
+                    street: document.getElementById('addressStreet').value 
+                }
             };
             try {
                 const userDocRef = doc(db, paths.userDoc(currentUserSession.auth.uid));
                 await updateDoc(userDocRef, dataToUpdate);
                 await updateProfile(auth.currentUser, { displayName: dataToUpdate.displayName });
+                
                 showSaveFeedback('Perfil atualizado com sucesso!', 'success');
                 document.getElementById('profile-display-name').textContent = newDisplayName;
                 await injectHeader();
+
+                const redirectUrl = localStorage.getItem('postProfileUpdateRedirect');
+                if (redirectUrl) {
+                    localStorage.removeItem('postProfileUpdateRedirect');
+                    window.location.href = redirectUrl;
+                }
             } catch (error) {
                 console.error("Erro ao atualizar perfil:", error);
                 showSaveFeedback('Erro ao salvar. Tente novamente.', 'error');
