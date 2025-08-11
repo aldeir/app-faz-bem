@@ -8,20 +8,20 @@ service cloud.firestore {
     function isSuperAdmin() { return isAuthenticated() && request.auth.token.email == 'aldeir@gmail.com'; }
     function isVerifiedEntity(userId) {
       let entityPath = /databases/$(database)/documents/artifacts/app-faz-bem-guacui/public/data/entidades/$(userId);
-      return isAuthenticated() && get(entityPath).data.status == 'ativo';
+      return isAuthenticated() && exists(entityPath) && get(entityPath).data.status == 'ativo';
     }
 
+    // Regra para a coleção 'users' que está na raiz do banco
     match /users/{userId} {
-      // --- REGRA CORRETA E SEGURA ---
       allow read: if isOwner(userId) || isSuperAdmin();
-      
       allow create: if isOwner(userId) && request.resource.data.role == 'doador';
       allow update: if isOwner(userId) || isSuperAdmin();
       allow delete: if false;
     }
 
-    match /artifacts/{appId}/public/data {
-
+    // Regra principal para o caminho aninhado onde ficam os dados da aplicação
+    match /artifacts/{appId}/public/data/{document=**} {
+    
       match /notifications/{notificationId} {
         allow create: if isAuthenticated(); 
         allow read, update: if isOwner(resource.data.userId); 
