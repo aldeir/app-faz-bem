@@ -8,6 +8,7 @@
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+    <link rel="icon" href="images/icons/icon-72x72.png" type="image/png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -121,7 +122,7 @@
 
         let allDonationsData = [];
         let campaignsMap = new Map();
-        let campaignTypeSettings = {}; // <-- [ADICIONADO]
+        let campaignTypeSettings = {};
         let currentUserSession = null;
         let currentPage = 1;
         const ITEMS_PER_PAGE = 5;
@@ -130,7 +131,6 @@
             await injectHeader();
             currentUserSession = await getCurrentUser();
             if (currentUserSession && currentUserSession.profile?.role === 'entidade') {
-                // [ADICIONADO] Carrega as configurações dos tipos de campanha
                 const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
                 campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
                 
@@ -166,18 +166,17 @@
             let donationsToRender = [];
 
             if (activeTab === 'scheduled') {
-                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() >= now);
+                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() >= now && d.items.some(i => i.status !== 'completed'));
             } else if (activeTab === 'overdue') {
-                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() < now);
+                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() < now && d.items.some(i => i.status !== 'completed'));
             } else if (activeTab === 'history') {
-                donationsToRender = allDonationsData.filter(d => d.status !== 'scheduled');
+                donationsToRender = allDonationsData.filter(d => d.status !== 'scheduled' || d.items.every(i => i.status === 'completed'));
             }
             
             donationsToRender.sort((a, b) => a.scheduledAt.toMillis() - b.scheduledAt.toMillis());
             renderHierarchicalList(donationsToRender);
         }
         
-        // [MODIFICADO]
         async function renderHierarchicalList(donations, append = false) {
             if (!append) schedulesList.innerHTML = '';
             
@@ -216,15 +215,14 @@
                         
                         const itemsHtmlPromises = campaignDonations.flatMap(d => d.items).map(async (item) => {
                             let receivedByHtml = '';
-                            if (item.receivedBy) {
+                            if (item.status === 'completed') {
                                 const receiverProfile = await getProfileById(item.receivedBy);
                                 const receiverName = receiverProfile?.displayName || 'Desconhecido';
                                 receivedByHtml = `<span class="text-xs text-gray-500 ml-2">(Recebido por: ${receiverName})</span>`;
                             }
 
-                            // Lógica para renderizar detalhes dinâmicos
                             let itemDetailsHtml = '<div class="space-y-1 mt-1">';
-                            const fieldsConfig = campaignTypeSettings[campaignType]?.fields || [];
+                            const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
                             const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
                             
                             fieldsConfig.forEach(field => {
@@ -237,7 +235,7 @@
                             itemDetailsHtml += '</div>';
 
                             return `<li class="flex items-start space-x-3">
-                                        <img src="${item.photoURL}" class="w-10 h-10 rounded-md object-cover bg-gray-200">
+                                        <img src="${item.photoURL || 'https://placehold.co/40x40/e2e8f0/e2e8f0?text=Item'}" class="w-10 h-10 rounded-md object-cover bg-gray-200">
                                         <div class="flex-grow">
                                             <p class="font-medium text-gray-800">${item.type} ${receivedByHtml}</p>
                                             ${itemDetailsHtml}
