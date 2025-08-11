@@ -135,7 +135,7 @@
         </div>
     </div>
 
-    <div id="cropper-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+    <div id="cropper-modal" class="hidden fixed z-50 inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 space-y-4">
             <h2 class="text-xl font-bold text-gray-800">Ajuste a sua Foto</h2>
             <div class="cropper-container-modal bg-gray-100">
@@ -154,8 +154,7 @@
         import { getCurrentUser } from './auth-service.js';
         import { doc, getDoc, updateDoc, collection, query, where, getDocs, storageRef, uploadBytes, getDownloadURL, updateProfile, onSnapshot } from "./firebase-services.js";
         import { showDetailsModal } from './modal-handler.js';
-        import { getProfileById } from './profile-service.js';
-
+        
         const phoneInput = document.getElementById('phone');
         const cepInput = document.getElementById('addressCep');
         const phoneMask = IMask(phoneInput, { mask: [{ mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' }] });
@@ -182,6 +181,7 @@
         let currentUserSession = null;
         let cropper;
         let campaignTypeSettings = {};
+        let donorsPublicInfoCache = new Map();
 
         async function initializeApp() {
             await injectHeader();
@@ -192,12 +192,34 @@
                 const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
                 campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
 
+                await buildDonorsPublicInfoCache();
                 loadProfileData(currentUserSession);
                 setupRealtimeListeners(userId);
                 loadingView.classList.add('hidden');
                 profileView.classList.remove('hidden');
             } else {
                 window.location.href = 'login.html';
+            }
+        }
+
+        async function buildDonorsPublicInfoCache() {
+            const donationsQuery = query(collection(db, paths.donations));
+            const snapshot = await getDocs(donationsQuery);
+            snapshot.forEach(doc => {
+                const donation = doc.data();
+                if (donation.donorId && !donorsPublicInfoCache.has(donation.donorId) && donation.privacy !== 'anonymous') {
+                    donorsPublicInfoCache.set(donation.donorId, {
+                        displayName: donation.donorName,
+                        photoURL: donation.donorPhoto
+                    });
+                }
+            });
+             // Garante que o usuário logado também esteja no cache com os dados mais recentes
+            if(currentUserSession?.profile) {
+                 donorsPublicInfoCache.set(currentUserSession.auth.uid, {
+                    displayName: currentUserSession.profile.displayName,
+                    photoURL: currentUserSession.profile.photoURL
+                });
             }
         }
 
@@ -300,8 +322,8 @@
                 const date = new Date(campaignData.latestDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
                 
                 const likesHtmlPromises = campaignLikes.slice(0, 5).map(async (like) => {
-                    const likerProfile = await getProfileById(like.likerId);
-                    const likerName = likerProfile.displayName || 'Apoiador';
+                    const likerProfile = donorsPublicInfoCache.get(like.likerId) || { displayName: 'Apoiador', photoURL: null };
+                    const likerName = likerProfile.displayName;
                     const photoURL = likerProfile.photoURL || `https://placehold.co/24x24/e2e8f0/cbd5e0?text=${likerName.charAt(0)}`;
                     return `<img src="${photoURL}" class="w-7 h-7 rounded-full border-2 border-white" title="${likerName}">`;
                 });
@@ -419,6 +441,7 @@
                 showSaveFeedback('Perfil atualizado com sucesso!', 'success');
                 document.getElementById('profile-display-name').textContent = newDisplayName;
                 await injectHeader();
+                await buildDonorsPublicInfoCache(); // Atualiza o cache com o novo nome/foto
 
                 const redirectUrl = localStorage.getItem('postProfileUpdateRedirect');
                 if (redirectUrl) {
@@ -464,6 +487,7 @@
                     await updateProfile(auth.currentUser, { photoURL: photoURL });
                     photoPreview.src = photoURL;
                     await injectHeader();
+                    await buildDonorsPublicInfoCache(); // Atualiza o cache com a nova foto
                     showSaveFeedback('Foto atualizada!', 'success');
                     cropperModal.classList.add('hidden');
                 } catch (error) {
