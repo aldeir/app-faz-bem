@@ -126,7 +126,7 @@
             </div>
         </div>
     </div>
-
+    
     <script type="module">
         import { db, paths } from './app-config.js';
         import { collection, query, where, onSnapshot, doc, getDoc, getDocs } from './firebase-services.js';
@@ -488,9 +488,9 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./service-worker.js').then(registration => {
-                    // console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
                 }, err => {
-                    // console.log('ServiceWorker registration failed: ', err);
+                    console.log('ServiceWorker registration failed: ', err);
                 });
             });
         }
