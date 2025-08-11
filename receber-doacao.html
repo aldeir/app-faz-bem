@@ -174,8 +174,7 @@
                 window.location.href = 'index.html';
             }
         }
-        
-        // --- INÍCIO: Funções da Agenda (CÓDIGO ORIGINAL MANTIDO COM PEQUENOS AJUSTES) ---
+
         async function loadAllCampaignsForEntity(entityId) {
             const q = query(collection(db, paths.campaigns), where("entityId", "==", entityId));
             const querySnapshot = await getDocs(q);
@@ -291,9 +290,7 @@
                     }
                     
                     let itemDetailsHtml = '<div class="space-y-1 mt-1">';
-                    const fieldsConfig = Array.isArray(campaignTypeSettings[campaign?.type]?.fields)
-                        ? campaignTypeSettings[campaign.type].fields
-                        : Object.values(campaignTypeSettings[campaign?.type]?.fields || {});
+                    const fieldsConfig = Array.isArray(campaignTypeSettings[campaign?.type]?.fields) ? campaignTypeSettings[campaign.type].fields : Object.values(campaignTypeSettings[campaign?.type]?.fields || {});
                     const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
                     
                     fieldsConfig.forEach(field => {
@@ -332,7 +329,6 @@
             });
         }
         
-        // --- FUNÇÃO DE RECEBIMENTO ATUALIZADA ---
         async function processItemReception(donationId, itemIndex) {
             const donationRef = doc(db, paths.donationDoc(donationId));
             const docSnap = await getDoc(donationRef);
@@ -358,23 +354,59 @@
                 await updateDoc(donationRef, dataToUpdate);
 
                 const donorId = currentDonation.donorId;
-                const message = `Sua doação do item "${item.type}" para a campanha "${currentDonation.campaignTitle}" foi recebida! Muito obrigado!`;
-                await createNotification(donorId, message, 'minhas-entregas.html');
+                const message = `A sua doação do item "${item.type}" para a campanha "${currentDonation.campaignTitle}" foi recebida! Muito obrigado!`;
+                const link = 'minhas-entregas.html';
+                await createNotification(donorId, message, link);
             }
         }
         
-        itemsList.addEventListener('click', (e) => {
+        function handleReceiveClick(e) {
             const button = e.target.closest('.receive-btn');
             if (!button) return;
             
             const { donationId, itemIndex } = button.dataset;
-            // ... (resto do código do event listener da agenda, que já está correto)
-        });
+            const donation = allScheduledDonations.find(d => d.id === donationId);
+            const item = donation?.items[itemIndex];
+
+            if (!item) return;
+
+            const campaign = campaignsData.get(donation.campaignId);
+            const fieldsConfig = Array.isArray(campaignTypeSettings[campaign?.type]?.fields) ? campaignTypeSettings[campaign.type].fields : Object.values(campaignTypeSettings[campaign?.type]?.fields || {});
+            let detailsHtml = '';
+            fieldsConfig.forEach(field => {
+                const value = item[field.id];
+                if (value && field.type !== 'image' && field.type !== 'video') {
+                    detailsHtml += `<p><strong class="font-semibold">${field.label}:</strong> ${value}</p>`;
+                }
+            });
+
+            const modalContentHtml = `
+                <div class="text-center">
+                    <img src="${item.photoURL || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem'}" class="w-full h-64 object-contain rounded-md mb-4 bg-gray-100">
+                    <h4 class="font-bold text-xl">${item.type}</h4>
+                    <p class="text-sm text-gray-500 mb-4">Campanha: ${donation.campaignTitle}</p>
+                    <div class="text-left text-sm space-y-1 p-2 bg-gray-50 rounded">${detailsHtml || '<p>Sem detalhes adicionais.</p>'}</div>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button id="modal-cancel-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">Cancelar</button>
+                    <button id="modal-confirm-btn" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Sim, Recebido</button>
+                </div>
+            `;
+            
+            showDetailsModal('Confirmar Recebimento', modalContentHtml);
+            
+            document.getElementById('modal-confirm-btn').onclick = async () => {
+                const modal = document.getElementById('app-modal');
+                modal.querySelector('#modal-message-body').innerHTML = '<div class="loader mx-auto"></div><p class="text-center mt-2">A processar...</p>';
+                await processItemReception(donationId, parseInt(itemIndex));
+                modal.classList.add('hidden');
+            };
+            document.getElementById('modal-cancel-btn').onclick = () => document.getElementById('app-modal').classList.add('hidden');
+        }
         
+        itemsList.addEventListener('click', handleReceiveClick);
         prevDayBtn.addEventListener('click', () => { if (currentDateIndex > 0) { currentDateIndex--; renderScheduleForSelectedDate(); } });
         nextDayBtn.addEventListener('click', () => { if (currentDateIndex < availableDates.length - 1) { currentDateIndex++; renderScheduleForSelectedDate(); } });
-        
-        // --- INÍCIO: Funções do Leitor de QR Code ---
         
         function onScanSuccess(decodedText, decodedResult) {
             if (html5QrCode && html5QrCode.isScanning) {
@@ -425,7 +457,7 @@
             qrConfirmBtn.disabled = true;
             qrConfirmBtn.textContent = 'A processar...';
             try {
-                await processItemReception(donationId, itemIndex); 
+                await processItemReception(donationId, parseInt(itemIndex));
                 await showAlertModal('Sucesso!', 'Recebimento do item confirmado!');
                 closeAndResetQrModal();
             } catch (error) {
