@@ -175,6 +175,7 @@
         
         let currentUserSession = null;
         let campaignId = null;
+        let campaignData = null; // Armazena os dados da campanha
         let campaignUnsubscribe = null;
         let donationsUnsubscribe = null;
         let likesUnsubscribe = null;
@@ -268,10 +269,10 @@
             
             campaignUnsubscribe = onSnapshot(campaignRef, (docSnap) => {
                 if (docSnap.exists()) {
-                    const campaign = docSnap.data();
-                    renderCampaignInfo(campaign);
-                    updateGoalProgress(campaign);
-                    loadCampaignDonors(campaignId);
+                    campaignData = docSnap.data(); // Armazena os dados da campanha
+                    renderCampaignInfo(campaignData);
+                    // Inicia os listeners de doações e curtidas aqui, pois dependem da campanha
+                    loadDonationsAndLikes(campaignId); 
                     loadingContainer.classList.add('hidden');
                     campaignContent.classList.remove('hidden');
                 } else {
@@ -280,12 +281,10 @@
             });
         }
 
-        function updateGoalProgress(campaign) {
-            if (campaign.goal) {
-                const current = campaign.currentAmount || 0;
-                const goal = campaign.goal;
-                const percentage = Math.min(100, (current / goal) * 100);
-                goalProgressText.textContent = `${current} / ${goal} itens`;
+        function updateGoalProgress(currentAmount, goal) {
+            if (goal) {
+                const percentage = Math.min(100, (currentAmount / goal) * 100);
+                goalProgressText.textContent = `${currentAmount} / ${goal} itens`;
                 progressPercentage.textContent = `${Math.round(percentage)}%`;
                 progressBar.style.width = `${percentage}%`;
                 document.getElementById('goal-container').style.display = 'block';
@@ -293,8 +292,9 @@
                 document.getElementById('goal-container').style.display = 'none';
             }
         }
-
-        function loadCampaignDonors(campaignId) {
+        
+        // --- FUNÇÃO REESTRUTURADA ---
+        function loadDonationsAndLikes(campaignId) {
             if (donationsUnsubscribe) donationsUnsubscribe();
             if (likesUnsubscribe) likesUnsubscribe();
             
@@ -305,12 +305,19 @@
             let likesData = {};
 
             const render = () => {
+                // 1. Calcula o progresso
+                const completedItemsCount = donationsData.reduce((total, donation) => {
+                    return total + (Array.isArray(donation.items) ? donation.items.filter(item => item.status === 'completed').length : 0);
+                }, 0);
+                updateGoalProgress(completedItemsCount, campaignData.goal);
+
+                // 2. Renderiza a lista de doadores
                 if (donationsData.length === 0) {
                     donorsList.innerHTML = '';
                     donorsPlaceholder.classList.remove('hidden');
                     return;
                 }
-
+                
                 donorsPlaceholder.classList.add('hidden');
                 donorsList.innerHTML = '';
                 const uniqueDonors = {};
