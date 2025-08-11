@@ -161,34 +161,42 @@
             const now = new Date();
             let filteredDonations = [];
 
-            if (activeTab === 'scheduled') {
-                filteredDonations = allUserDonations.filter(d => 
-                    d.status === 'scheduled' && 
-                    d.scheduledAt.toDate() >= now &&
-                    d.items.some(item => item.status !== 'completed')
-                );
-            } else if (activeTab === 'overdue') {
-                filteredDonations = allUserDonations.filter(d => 
-                    d.status === 'scheduled' && 
-                    d.scheduledAt.toDate() < now &&
-                    d.items.some(item => item.status !== 'completed')
-                );
-            } else if (activeTab === 'cancelled') {
-                filteredDonations = allUserDonations.filter(d => d.status === 'cancelled_by_entity');
-            } else if (activeTab === 'history') {
-                filteredDonations = allUserDonations.filter(d => {
-                    const isFinalStatus = ['completed', 'reagendado', 'cancelled_by_user'].includes(d.status);
-                    const allItemsDone = d.items.every(item => item.status === 'completed');
-                    return isFinalStatus || allItemsDone;
-                });
+            try {
+                if (activeTab === 'scheduled') {
+                    filteredDonations = allUserDonations.filter(d => 
+                        d.status === 'scheduled' && 
+                        d.scheduledAt?.toDate() >= now &&
+                        Array.isArray(d.items) && d.items.some(item => item.status !== 'completed')
+                    );
+                } else if (activeTab === 'overdue') {
+                    filteredDonations = allUserDonations.filter(d => 
+                        d.status === 'scheduled' && 
+                        d.scheduledAt?.toDate() < now &&
+                        Array.isArray(d.items) && d.items.some(item => item.status !== 'completed')
+                    );
+                } else if (activeTab === 'cancelled') {
+                    filteredDonations = allUserDonations.filter(d => d.status === 'cancelled_by_entity');
+                } else if (activeTab === 'history') {
+                    filteredDonations = allUserDonations.filter(d => {
+                        const isFinalStatus = ['completed', 'reagendado', 'cancelled_by_user'].includes(d.status);
+                        const allItemsDone = Array.isArray(d.items) && d.items.every(item => item.status === 'completed');
+                        return isFinalStatus || allItemsDone;
+                    });
+                }
+            } catch (error) {
+                console.error("Erro ao filtrar doações:", error);
+                loadingView.classList.add('hidden');
+                deliveriesView.classList.remove('hidden');
+                deliveriesList.innerHTML = `<p class="text-red-500 text-center p-4">Ocorreu um erro ao processar os dados das doações.</p>`;
+                return;
             }
 
-            filteredDonations.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+            filteredDonations.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
             
             if (filteredDonations.length === 0 && !append) {
                 noDeliveriesPlaceholder.classList.remove('hidden');
                 loadMoreContainer.classList.add('hidden');
-                deliveriesList.innerHTML = ''; // Limpa a lista explicitamente
+                deliveriesList.innerHTML = '';
                 return;
             }
 
@@ -201,7 +209,9 @@
             donationsToRender.forEach(donation => {
                 const campaign = campaignsCache.get(donation.campaignId);
                 const card = createDeliveryCard(donation, campaign, activeTab);
-                deliveriesList.appendChild(card);
+                if (card) {
+                    deliveriesList.appendChild(card);
+                }
             });
 
             if (filteredDonations.length > endIndex) {
@@ -212,6 +222,17 @@
         }
 
         function createDeliveryCard(donation, campaign, tab) {
+            const itemsToDisplay = (donation.items || []).filter(item => {
+                if ((tab === 'scheduled' || tab === 'overdue') && item.status === 'completed') {
+                    return false;
+                }
+                return true;
+            });
+
+            if (itemsToDisplay.length === 0 && (tab === 'scheduled' || tab === 'overdue')) {
+                return null;
+            }
+
             const card = document.createElement('div');
             const campaignType = campaign?.type || 'default';
             const typeSettings = campaignTypeSettings[campaignType] || { color: 'gray' };
@@ -229,23 +250,63 @@
             const photoURLsInThisDonation = new Set(donation.items.map(item => item.photoURL).filter(Boolean));
             const hasBeenRescheduled = allUserDonations.some(d => 
                 d.status === 'reagendado' &&
-                d.items.some(item => photoURLsInThisDonation.has(item.photoURL))
+                Array.isArray(d.items) && d.items.some(item => photoURLsInThisDonation.has(item.photoURL))
             );
 
-            // ... (código do switch/case para o headerHtml permanece o mesmo) ...
+            switch(tab) {
+                case 'scheduled':
+                    headerHtml = `<div class="bg-green-50 p-6">
+                                    <h2 class="text-2xl font-bold text-green-800">${donation.campaignTitle}</h2>
+                                    <p class="mt-1 text-green-700">Agendado para: <span class="font-semibold">${formattedDate} às ${formattedTime}</span></p>
+                                  </div>`;
+                    break;
+                case 'overdue':
+                    const rescheduleBtn = (isCampaignActive && !hasBeenRescheduled)
+                        ? `<button data-action="reschedule" data-donation-id="${donation.id}" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Reagendar Entrega</button>`
+                        : (hasBeenRescheduled ? `<p class="mt-4 text-sm font-semibold text-gray-600 bg-gray-200 px-4 py-2 rounded-lg inline-block">Reagendamento já utilizado</p>` : `<p class="mt-4 text-sm font-semibold text-gray-600 bg-gray-200 px-4 py-2 rounded-lg inline-block">Campanha Encerrada</p>`);
 
-            const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields)
-                ? campaignTypeSettings[campaignType].fields
-                : Object.values(campaignTypeSettings[campaignType]?.fields || {});
+                    headerHtml = `<div class="bg-red-100 p-6">
+                                    <h2 class="text-2xl font-bold text-red-800">${donation.campaignTitle}</h2>
+                                    <div class="mt-2 border-l-4 border-red-500 text-red-700 pl-4">
+                                        <p class="font-bold">Entrega Vencida</p>
+                                        <p>Esta entrega estava agendada para ${formattedDate}.</p>
+                                        ${rescheduleBtn}
+                                    </div>
+                                  </div>`;
+                    break;
+                case 'cancelled':
+                     const rebookCancelledBtn = (isCampaignActive && !hasBeenRescheduled)
+                        ? `<button data-action="reschedule" data-donation-id="${donation.id}" class="mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm">Reagendar</button>`
+                        : (hasBeenRescheduled ? `<p class="mt-2 text-sm font-semibold text-gray-600 bg-gray-200 px-4 py-2 rounded-lg inline-block">Reagendamento já utilizado</p>` : `<p class="mt-2 text-sm font-semibold text-gray-600 bg-gray-200 px-4 py-2 rounded-lg inline-block">Campanha Encerrada</p>`);
 
+                    headerHtml = `<div class="bg-yellow-100 p-6">
+                                    <h2 class="text-2xl font-bold text-yellow-800">${donation.campaignTitle}</h2>
+                                    <p class="mt-1 font-semibold text-yellow-700">Agendamento cancelado pela entidade.</p>
+                                    ${rebookCancelledBtn}
+                                  </div>`;
+                    break;
+                case 'history':
+                    let receivedDateStr = formattedDate;
+                    if (donation.items[0]?.receivedDate) {
+                        receivedDateStr = donation.items[0].receivedDate.toDate().toLocaleDateString('pt-BR');
+                    }
+                    let historyStatusText = 'Não entregue (campanha encerrada)';
+                    if (donation.status === 'completed' || (Array.isArray(donation.items) && donation.items.every(i => i.status === 'completed'))) {
+                        historyStatusText = `Entregue com sucesso!`;
+                    } else if (donation.status === 'reagendado') {
+                        historyStatusText = 'Esta doação foi reagendada com sucesso.';
+                    }
+                    headerHtml = `<div class="bg-gray-100 p-6">
+                                    <h2 class="text-2xl font-bold text-gray-800">${donation.campaignTitle}</h2>
+                                    <p class="mt-1 font-semibold text-gray-700">${historyStatusText}</p>
+                                  </div>`;
+                    break;
+            }
+            
+            const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
             const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
 
-            let itemsHtml = donation.items.map((item, index) => {
-                // Decide se o item deve ser exibido ou não
-                if ((tab === 'scheduled' || tab === 'overdue') && item.status === 'completed') {
-                    return ''; // Não renderiza itens já completados nas abas de pendentes
-                }
-
+            let itemsHtml = itemsToDisplay.map((item, index) => {
                 let itemDetailsHtml = '<div class="space-y-1 mt-1">';
                 let detailsFound = false;
 
@@ -257,7 +318,7 @@
                         detailsFound = true;
                     }
                 });
-                
+
                 if (!detailsFound) {
                     if (item.details) itemDetailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">Detalhes:</span> ${item.details}</div>`;
                     if (item.condition) itemDetailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">Condição:</span> ${item.condition}</div>`;
@@ -266,24 +327,23 @@
 
                 return `
                 <div class="item-card flex items-start space-x-4 p-3 bg-gray-50 rounded-md border transition-all ${item.status !== 'completed' ? 'cursor-pointer' : ''}" 
-                     ${item.status !== 'completed' ? `data-donation-id="${donation.id}" data-item-index="${index}"` : ''} 
+                     ${item.status !== 'completed' ? `data-donation-id="${donation.id}" data-item-index="${donation.items.indexOf(item)}"` : ''} 
                      data-item-title="${item.type}" data-item-photo="${item.photoURL}">
                     <img src="${item.photoURL || 'https://placehold.co/64x64/e2e8f0/e2e8f0?text=Item'}" class="w-16 h-16 rounded-md object-cover flex-shrink-0">
                     <div class="flex-grow">
                         <p class="font-bold">${item.type}</p>
                         ${itemDetailsHtml}
                     </div>
-                    ${item.status !== 'completed' ? `<div id="qr-${donation.id}-${index}" class="w-20 h-20 pointer-events-none flex-shrink-0"></div>` : '<div class="w-20 h-20 flex items-center justify-center"><span class="text-sm font-bold text-green-600">Entregue</span></div>'}
+                    ${item.status !== 'completed' ? `<div id="qr-${donation.id}-${donation.items.indexOf(item)}" class="w-20 h-20 pointer-events-none flex-shrink-0"></div>` : '<div class="w-20 h-20 flex items-center justify-center"><span class="text-sm font-bold text-green-600">Entregue</span></div>'}
                 </div>`;
             }).join('');
             
-            if (tab === 'scheduled' || tab === 'overdue') {
-                donation.items.forEach((item, index) => {
-                    if (item.status !== 'completed') {
-                         setTimeout(() => generateQRCode(`qr-${donation.id}-${index}`, `${donation.id}|${index}`), 0);
-                    }
-                });
-            }
+            itemsToDisplay.forEach((item) => {
+                if (item.status !== 'completed') {
+                    const index = donation.items.indexOf(item);
+                     setTimeout(() => generateQRCode(`qr-${donation.id}-${index}`, `${donation.id}|${index}`), 0);
+                }
+            });
 
             card.innerHTML = `${headerHtml}
                 <div class="p-6">
@@ -293,8 +353,71 @@
             return card;
         }
 
-        // ... (o resto do seu código JavaScript: generateQRCode, listeners, etc., permanece o mesmo) ...
+        function generateQRCode(elementId, text) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            try {
+                const qr = qrcode(0, 'L');
+                qr.addData(text);
+                qr.make();
+                element.innerHTML = qr.createImgTag(4, 4);
+            } catch (e) {
+                console.error(`Erro ao gerar QR code para ${elementId}:`, e);
+                element.innerHTML = '<p class="text-xs text-red-500">Erro QR</p>';
+            }
+        }
 
+        tabsContainer.addEventListener('click', (e) => {
+            const button = e.target.closest('button.tab-button');
+            if (button) {
+                tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                currentPage = 1;
+                renderActiveTabData();
+            }
+        });
+
+        loadMoreBtn.addEventListener('click', () => {
+            currentPage++;
+            renderActiveTabData(true);
+        });
+
+        deliveriesList.addEventListener('click', async (e) => {
+            const itemCard = e.target.closest('.item-card[data-donation-id]');
+            const rescheduleBtn = e.target.closest('[data-action="reschedule"]');
+
+            if (itemCard) {
+                const { donationId, itemIndex, itemTitle, itemPhoto } = itemCard.dataset;
+                modalItemTitle.textContent = itemTitle;
+                modalItemPhoto.src = itemPhoto || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem';
+                modalItemQrcode.innerHTML = '';
+                generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`);
+                itemFocusModal.classList.remove('hidden');
+            }
+            
+            if (rescheduleBtn) {
+                const donationId = rescheduleBtn.dataset.donationId;
+                const donationData = allUserDonations.find(d => d.id === donationId);
+                
+                if (donationData) {
+                    localStorage.setItem('rescheduleData', JSON.stringify({
+                        oldDonationId: donationId,
+                        campaignId: donationData.campaignId,
+                        items: donationData.items,
+                        privacy: donationData.privacy || 'public'
+                    }));
+                    
+                    window.location.href = `registrar-doacao.html?id=${donationData.campaignId}&reschedule=true`;
+                }
+            }
+        });
+
+        closeModalBtn.addEventListener('click', () => itemFocusModal.classList.add('hidden'));
+        itemFocusModal.addEventListener('click', (e) => {
+            if (e.target === itemFocusModal) itemFocusModal.classList.add('hidden');
+        });
+
+        initializeApp();
     </script>
 </body>
 </html>
