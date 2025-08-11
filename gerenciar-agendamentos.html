@@ -150,6 +150,7 @@
         let currentUserSession = null;
         let currentPage = 1;
         const ITEMS_PER_PAGE = 5;
+        let donorsPublicInfoCache = new Map(); // Cache para dados públicos
 
         async function initializeApp() {
             await injectHeader();
@@ -158,9 +159,19 @@
                 const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
                 campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
                 
-                loadInitialData(currentUserSession.auth.uid);
+                await loadInitialData(currentUserSession.auth.uid);
             } else {
                 window.location.href = 'index.html';
+            }
+        }
+
+        async function buildDonorsPublicInfoCache(donations) {
+            const donorIds = [...new Set(donations.flatMap(d => d.items.map(i => i.receivedBy)).filter(Boolean))];
+            for (const id of donorIds) {
+                if (!donorsPublicInfoCache.has(id)) {
+                    const profile = await getProfileById(id);
+                    donorsPublicInfoCache.set(id, profile);
+                }
             }
         }
 
@@ -171,8 +182,12 @@
                 campaignsSnapshot.forEach(doc => campaignsMap.set(doc.id, { id: doc.id, ...doc.data() }));
 
                 const donationsQuery = query(collection(db, paths.donations), where("entityId", "==", entityId));
-                onSnapshot(donationsQuery, (snapshot) => {
+                onSnapshot(donationsQuery, async (snapshot) => {
                     allDonationsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    // Constrói o cache de perfis antes de renderizar
+                    await buildDonorsPublicInfoCache(allDonationsData);
+
                     currentPage = 1;
                     renderActiveTabData();
                     loadingView.classList.add('hidden');
@@ -190,11 +205,11 @@
             let donationsToRender = [];
 
             if (activeTab === 'scheduled') {
-                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() >= now && d.items.some(i => i.status !== 'completed'));
+                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() >= now && (d.items || []).some(i => i.status !== 'completed'));
             } else if (activeTab === 'overdue') {
-                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() < now && d.items.some(i => i.status !== 'completed'));
+                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() < now && (d.items || []).some(i => i.status !== 'completed'));
             } else if (activeTab === 'history') {
-                donationsToRender = allDonationsData.filter(d => d.status !== 'scheduled' || d.items.every(i => i.status === 'completed'));
+                donationsToRender = allDonationsData.filter(d => d.status !== 'scheduled' || (d.items || []).every(i => i.status === 'completed'));
             }
             
             donationsToRender.sort((a, b) => a.scheduledAt.toMillis() - b.scheduledAt.toMillis());
@@ -229,14 +244,13 @@
                     const { donorName, donorPhoto, scheduledAt, status } = donorDonations[0];
                     const scheduledTime = scheduledAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-                    const donorProfile = await getProfileById(donorId);
+                    // Usamos o cache que já foi pré-carregado
+                    const donorProfile = donorsPublicInfoCache.get(donorId) || {};
                     let verificationBadge = '';
-                    if (donorProfile && donorProfile.emailVerified === false) {
+                    if (donorProfile.emailVerified === false) {
                         verificationBadge = `
                             <div class="tooltip ml-2">
-                                <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.636-1.214 2.852-1.214 3.488 0l5.58 10.655c.614 1.173-.284 2.618-1.744 2.618H4.42c-1.46 0-2.358-1.445-1.744-2.618l5.58-10.655zM10 13a1 1 0 100-2 1 1 0 000 2zm-1-4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd" />
-                                </svg>
+                                <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.636-1.214 2.852-1.214 3.488 0l5.58 10.655c.614 1.173-.284 2.618-1.744 2.618H4.42c-1.46 0-2.358-1.445-1.744-2.618l5.58-10.655zM10 13a1 1 0 100-2 1 1 0 000 2zm-1-4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
                                 <span class="tooltiptext">E-mail não verificado</span>
                             </div>`;
                     }
@@ -249,12 +263,11 @@
                         const { campaignTitle } = campaignDonations[0];
                         const campaignType = campaignsMap.get(campaignId)?.type || 'default';
                         
-                        const itemsHtmlPromises = campaignDonations.flatMap(d => d.items).map(async (item) => {
+                        const itemsHtmlPromises = campaignDonations.flatMap(d => d.items || []).map(async (item) => {
                             let receivedByHtml = '';
                             if (item.status === 'completed') {
-                                const receiverProfile = await getProfileById(item.receivedBy);
-                                const receiverName = receiverProfile?.displayName || 'Desconhecido';
-                                receivedByHtml = `<span class="text-xs text-gray-500 ml-2">(Recebido por: ${receiverName})</span>`;
+                                const receiverProfile = donorsPublicInfoCache.get(item.receivedBy) || { displayName: 'Desconhecido' };
+                                receivedByHtml = `<span class="text-xs text-gray-500 ml-2">(Recebido por: ${receiverProfile.displayName})</span>`;
                             }
 
                             let itemDetailsHtml = '<div class="space-y-1 mt-1">';
