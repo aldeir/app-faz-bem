@@ -12,7 +12,9 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
+      // --- REGRA CORRETA E SEGURA ---
       allow read: if isOwner(userId) || isSuperAdmin();
+      
       allow create: if isOwner(userId) && request.resource.data.role == 'doador';
       allow update: if isOwner(userId) || isSuperAdmin();
       allow delete: if false;
@@ -21,16 +23,11 @@ service cloud.firestore {
     match /artifacts/{appId}/public/data {
 
       match /notifications/{notificationId} {
-        // --- INÍCIO DA CORREÇÃO ---
-        // Permite que qualquer usuário autenticado crie uma notificação.
-        // A lógica de quem recebe a notificação é controlada pela aplicação.
         allow create: if isAuthenticated(); 
-        // --- FIM DA CORREÇÃO ---
-        
         allow read, update: if isOwner(resource.data.userId); 
         allow delete: if false;
       }
-
+      
       match /entidades/{entityId} {
         allow read: if isAuthenticated();
         allow create: if isOwner(entityId) && 
