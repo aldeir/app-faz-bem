@@ -42,7 +42,7 @@ const paths = {
     userDoc: function(uid) { this._checkInit(); return `${this.users}/${uid}`; },
     entidadeDoc: function(uid) { this._checkInit(); return `${this.entidades}/${uid}`; },
     campaignDoc: function(campaignId) { return `${this.campaigns}/${campaignId}`; },
-    donationDoc: function(donationId) { this._checkInit(); return `${this.donations}/${donationId}`; },
+    donationDoc: function(donationId) { return `${this.donations}/${donationId}`; },
     likeDoc: function(likeId) { this._checkInit(); return `${this.likes}/${likeId}`; },
     configDoc: function(configId) { this._checkInit(); return `${this.configs}/${configId}`; },
     notificationDoc: function(notificationId) { this._checkInit(); return `${this.notifications}/${notificationId}`; },
