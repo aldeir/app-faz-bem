@@ -8,6 +8,7 @@
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+    <link rel="icon" href="images/icons/icon-72x72.png" type="image/png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -105,7 +106,26 @@
         </div>
     </div>
 
-    <div id="app-modal"></div>
+    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
+                            <div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import { db, paths } from './app-config.js';
@@ -180,7 +200,7 @@
 
         function calculateRanking() {
             const completedCounts = allDonations
-                .filter(d => d.items.some(i => i.status === 'completed'))
+                .filter(d => Array.isArray(d.items) && d.items.some(i => i.status === 'completed'))
                 .reduce((acc, d) => {
                     acc[d.donorId] = (acc[d.donorId] || 0) + d.items.filter(i => i.status === 'completed').length;
                     return acc;
@@ -195,26 +215,33 @@
             const activeTab = tabsContainer.querySelector('.tab-button.active').dataset.tab;
             const now = new Date();
 
-            const filteredDonationsPromises = allDonations.map(async (donation) => {
-                const entityProfile = await getProfileById(donation.entityId);
-                const entityDisplayName = entityProfile ? entityProfile.publicName : (donation.entityName || '');
+            let filteredDonations = allDonations.filter(d => Array.isArray(d.items)); // Garante que a doação tem itens
 
-                const matchesSearch = searchTerm === '' ||
-                    (donation.donorName || '').toLowerCase().includes(searchTerm) ||
-                    (donation.campaignTitle || '').toLowerCase().includes(searchTerm) ||
-                    (entityDisplayName).toLowerCase().includes(searchTerm);
-
-                if (!matchesSearch) return null;
-
-                if (activeTab === 'all') return donation;
-                if (activeTab === 'completed') return donation.items.some(i => i.status === 'completed') ? donation : null;
-                if (activeTab === 'upcoming') return donation.status === 'scheduled' && donation.scheduledAt?.toDate() >= now ? donation : null;
-                if (activeTab === 'overdue') return donation.status === 'scheduled' && donation.scheduledAt?.toDate() < now ? donation : null;
+            if (searchTerm) {
+                const profiles = new Map();
+                for (const d of filteredDonations) {
+                    if (!profiles.has(d.entityId)) {
+                        profiles.set(d.entityId, await getProfileById(d.entityId));
+                    }
+                }
                 
-                return null;
-            });
+                filteredDonations = filteredDonations.filter(donation => {
+                    const entityProfile = profiles.get(donation.entityId);
+                    const entityDisplayName = entityProfile ? entityProfile.publicName : (donation.entityName || '');
+
+                    return (donation.donorName || '').toLowerCase().includes(searchTerm) ||
+                           (donation.campaignTitle || '').toLowerCase().includes(searchTerm) ||
+                           (entityDisplayName).toLowerCase().includes(searchTerm);
+                });
+            }
             
-            const filteredDonations = (await Promise.all(filteredDonationsPromises)).filter(Boolean);
+            if (activeTab === 'completed') {
+                filteredDonations = filteredDonations.filter(d => d.status === 'completed' || d.items.every(i => i.status === 'completed'));
+            } else if (activeTab === 'upcoming') {
+                filteredDonations = filteredDonations.filter(d => d.status === 'scheduled' && d.scheduledAt?.toDate() >= now && d.items.some(i => i.status !== 'completed'));
+            } else if (activeTab === 'overdue') {
+                filteredDonations = filteredDonations.filter(d => d.status === 'scheduled' && d.scheduledAt?.toDate() < now && d.items.some(i => i.status !== 'completed'));
+            }
 
             const groupedByDonor = filteredDonations.reduce((acc, donation) => {
                 const donorId = donation.donorId;
@@ -266,6 +293,7 @@
                 donorSection.className = 'bg-white rounded-lg shadow-md p-4';
                 
                 const itemsByCampaign = donor.donations.reduce((acc, d) => {
+                    if (!Array.isArray(d.items)) return acc;
                     const campaignId = d.campaignId;
                     if (!acc[campaignId]) {
                         acc[campaignId] = {
@@ -273,7 +301,7 @@
                             items: []
                         };
                     }
-                    acc[campaignId].items.push(...d.items.map(item => ({...item, scheduledAt: d.scheduledAt, status: d.status, receivedBy: d.receivedBy, entityId: d.entityId})));
+                    acc[campaignId].items.push(...d.items.map(item => ({...item, scheduledAt: d.scheduledAt, status: item.status || d.status, receivedBy: item.receivedBy, entityId: d.entityId})));
                     return acc;
                 }, {});
 
@@ -298,14 +326,16 @@
                 });
                 const campaignsHtml = (await Promise.all(campaignsHtmlPromises)).join('');
 
-                const stats = allDonations.filter(d => d.donorId === donor.donorId).reduce((acc, d) => {
+                const stats = allDonations.filter(d => d.donorId === donor.donorId && Array.isArray(d.items)).reduce((acc, d) => {
                     const completedItems = d.items.filter(i => i.status === 'completed').length;
                     const isOverdue = d.status === 'scheduled' && d.scheduledAt?.toDate() < new Date();
                     
                     acc.completed += completedItems;
-                    if (isOverdue) acc.overdue += d.items.length - completedItems;
-                    else if (d.status === 'scheduled') acc.upcoming += d.items.length - completedItems;
-
+                    if (isOverdue) {
+                        acc.overdue += d.items.filter(i => i.status !== 'completed').length;
+                    } else if (d.status === 'scheduled') {
+                        acc.upcoming += d.items.filter(i => i.status !== 'completed').length;
+                    }
                     return acc;
                 }, { completed: 0, upcoming: 0, overdue: 0 });
 
@@ -360,7 +390,6 @@
                     </li>`;
         }
         
-        // --- Event Listeners ---
         tabsContainer.addEventListener('click', (e) => {
             const button = e.target.closest('button.tab-button');
             if (button) {
@@ -404,11 +433,11 @@
                 document.getElementById('modal-item-title').textContent = item.type;
                 
                 let detailsHtml = '';
-                const fieldsConfig = campaignTypeSettings[campaignType]?.fields || [];
-                const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
-                fieldsConfig.forEach(field => {
+                const fields = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
+                const mediaFieldIds = new Set(fields.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
+                
+                fields.forEach(field => {
                     const value = item[field.id];
-                    // [CORRIGIDO] AQUI ESTAVA O ERRO!
                     if (value && !mediaFieldIds.has(field.id) && field.id !== 'type' && field.id !== 'photoURL') {
                         detailsHtml += `<p><strong>${field.label}:</strong> ${value}</p>`;
                     }
@@ -443,21 +472,10 @@
 
             if (type === 'view-donor') {
                 titleEl.textContent = `Detalhes de ${data.displayName}`;
-                bodyHtml = `
-                    <p><strong>Nome:</strong> ${data.displayName || 'N/A'}</p>
-                    <p><strong>E-mail:</strong> ${data.email || 'N/A'}</p>
-                    <p><strong>Telefone:</strong> ${formatPhoneNumber(data.phone)}</p>
-                    <p><strong>Endereço:</strong> ${data.address?.street || 'Não informado'}, CEP: ${data.address?.cep || 'N/A'}</p>
-                `;
-            } else { // view-entity
+                bodyHtml = `<p><strong>Nome:</strong> ${data.displayName || 'N/A'}</p><p><strong>E-mail:</strong> ${data.email || 'N/A'}</p><p><strong>Telefone:</strong> ${formatPhoneNumber(data.phone)}</p><p><strong>Endereço:</strong> ${data.address?.street || 'Não informado'}, CEP: ${data.address?.cep || 'N/A'}</p>`;
+            } else {
                 titleEl.textContent = `Detalhes de ${data.publicName}`;
-                bodyHtml = `
-                    <p><strong>Nome Público:</strong> ${data.publicName || 'N/A'}</p>
-                    <p><strong>Responsável:</strong> ${data.responsibleName || 'N/A'}</p>
-                    <p><strong>CNPJ:</strong> ${formatCnpj(data.cnpj)}</p>
-                    <p><strong>E-mail:</strong> ${data.email || 'N/A'}</p>
-                    <p><strong>Telefone:</strong> ${formatPhoneNumber(data.phone)}</p>
-                `;
+                bodyHtml = `<p><strong>Nome Público:</strong> ${data.publicName || 'N/A'}</p><p><strong>Responsável:</strong> ${data.responsibleName || 'N/A'}</p><p><strong>CNPJ:</strong> ${formatCnpj(data.cnpj)}</p><p><strong>E-mail:</strong> ${data.email || 'N/A'}</p><p><strong>Telefone:</strong> ${formatPhoneNumber(data.phone)}</p>`;
             }
             bodyEl.innerHTML = bodyHtml;
             detailsModal.classList.remove('hidden');
