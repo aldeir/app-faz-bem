@@ -8,6 +8,7 @@
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+    <link rel="icon" href="images/icons/icon-72x72.png" type="image/png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -192,6 +193,7 @@
         }
 
         function renderCampaignInfo(campaign) {
+            document.title = `${campaign.title} - App Faz Bem`;
             document.getElementById('campaign-title').textContent = campaign.title;
             document.getElementById('entity-name').textContent = campaign.entityName;
             document.getElementById('campaign-description').textContent = campaign.description;
@@ -316,7 +318,7 @@
                 donationsData.forEach(donation => {
                      if (!uniqueDonors[donation.donorId] || 
                         (uniqueDonors[donation.donorId].privacy === 'anonymous' && donation.privacy !== 'anonymous') ||
-                        (donation.items.some(i => i.status === 'completed') && !uniqueDonors[donation.donorId].items.some(i => i.status === 'completed'))) {
+                        (Array.isArray(donation.items) && donation.items.some(i => i.status === 'completed') && !uniqueDonors[donation.donorId].items.some(i => i.status === 'completed'))) {
                         uniqueDonors[donation.donorId] = donation;
                     }
                 });
@@ -328,7 +330,7 @@
                     const isAnonymous = donation.privacy === 'anonymous';
                     const photoURL = isAnonymous ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A' : donation.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
                     const displayName = isAnonymous ? 'Anônimo' : donation.donorName;
-                    const isCompleted = donation.items.some(item => item.status === 'completed');
+                    const isCompleted = Array.isArray(donation.items) && donation.items.some(item => item.status === 'completed');
 
                     const donorElement = document.createElement('div');
                     donorElement.className = "text-center";
