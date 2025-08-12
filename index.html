@@ -202,11 +202,11 @@
             renderCampaigns(upcomingCampaigns, 'upcoming');
             
             if (filteredActive.length >= 5) {
-                recentCampaignsSection.classList.add('hidden');
-                viewAllRecentLink.classList.remove('hidden');
+                recentCampaignsSection.style.display = 'none';
+                viewAllRecentLink.style.display = 'block';
             } else {
-                recentCampaignsSection.classList.remove('hidden');
-                viewAllRecentLink.classList.add('hidden');
+                recentCampaignsSection.style.display = 'block';
+                viewAllRecentLink.style.display = 'none';
                 renderCampaigns(recentCampaigns.slice(0, 4), 'recent');
             }
         }
@@ -389,6 +389,12 @@
                     loops++;
                     if (loops >= maxLoops) {
                         clearInterval(slideshowIntervals[campaignId]);
+                        // Garante que a exibição pare em uma imagem, se houver
+                        const firstImage = Array.from(mediaItems).find(item => item.tagName === 'IMG');
+                        if (firstImage) {
+                            mediaItems.forEach(item => item.classList.remove('active'));
+                            firstImage.classList.add('active');
+                        }
                     }
                 }
             };
