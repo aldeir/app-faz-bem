@@ -248,11 +248,10 @@
             const now = new Date();
             const endDate = campaign.expiresAt?.toDate();
             const isClosed = !endDate || endDate < now;
+            const isCampaignActive = listKey === 'active';
 
             let mediaHtml = '';
             const mediaItems = [];
-            const isCampaignActive = listKey === 'active';
-
             if (campaign.videoUrl) mediaItems.push({ type: 'video', src: campaign.videoUrl });
             (campaign.images || []).forEach(src => mediaItems.push({ type: 'image', src }));
             
@@ -270,15 +269,14 @@
             });
 
             let statusTag = '';
-            if (isClosed) {} 
-            else if (campaign.status === 'upcoming') {
+            if (campaign.status === 'upcoming') {
                 statusTag = `<div class="absolute top-2 left-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">PRÓXIMA</div>`;
-            } else if (campaign.priority === 'high') { 
+            } else if (isCampaignActive && campaign.priority === 'high') { 
                 statusTag = `<div class="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full urgent-badge">URGENTE</div>`; 
             }
 
             let countdownHtml = '';
-            if (!isClosed && isCampaignActive) {
+            if (isCampaignActive) {
                 countdownHtml = `<div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs font-semibold px-2 py-1 rounded-full">
                                     <span id="countdown-${campaign.id}">A calcular...</span>
                                  </div>`;
