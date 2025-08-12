@@ -39,7 +39,6 @@
         }
         .like-button:hover, .like-button.liked { color: #ef4444; }
         .campaign-card { cursor: pointer; }
-        /* Estilos para o Carrossel de Mídia */
         .media-container { position: relative; }
         .media-item { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity 1s ease-in-out; opacity: 0; }
         .media-item.active { opacity: 1; z-index: 1; }
@@ -70,7 +69,10 @@
             </div>
 
             <div id="recent-campaigns-section" class="mt-10">
-                <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b-2 border-gray-300 pb-2">Campanhas Recentes</h2>
+                <div class="flex justify-between items-center mb-6 border-b-2 border-gray-300 pb-2">
+                    <h2 class="text-2xl font-semibold text-gray-700">Campanhas Recentes</h2>
+                    <a href="#" id="view-all-recent-link" class="hidden text-sm font-medium text-green-600 hover:underline">Ver todas</a>
+                </div>
                 <div id="recent-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
             </div>
 
@@ -123,6 +125,8 @@
         const emptyPlaceholders = {
             active: document.getElementById('active-campaigns-empty'),
         };
+        const recentCampaignsSection = document.getElementById('recent-campaigns-section');
+        const viewAllRecentLink = document.getElementById('view-all-recent-link');
 
         let allCampaigns = [];
         let allDonations = [];
@@ -190,13 +194,21 @@
             const now = new Date();
             const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.startsAt?.toDate() <= now && c.expiresAt?.toDate() > now);
             const upcomingCampaigns = allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt?.toDate() > now);
-            const recentCampaigns = allCampaigns.filter(c => c.expiresAt?.toDate() <= now).slice(0, 4);
+            const recentCampaigns = allCampaigns.filter(c => c.expiresAt?.toDate() <= now);
             
             const filteredActive = (filter === 'all') ? activeCampaigns : activeCampaigns.filter(c => c.type === filter);
             
             renderCampaigns(filteredActive, 'active');
             renderCampaigns(upcomingCampaigns, 'upcoming');
-            renderCampaigns(recentCampaigns, 'recent');
+            
+            if (filteredActive.length >= 5) {
+                recentCampaignsSection.classList.add('hidden');
+                viewAllRecentLink.classList.remove('hidden');
+            } else {
+                recentCampaignsSection.classList.remove('hidden');
+                viewAllRecentLink.classList.add('hidden');
+                renderCampaigns(recentCampaigns.slice(0, 4), 'recent');
+            }
         }
 
         function renderCampaigns(campaigns, listKey) {
@@ -255,9 +267,8 @@
             });
 
             let statusTag = '';
-            if (isClosed) {
-                // Não precisa de tag se já está na seção de recentes
-            } else if (campaign.status === 'upcoming') {
+            if (isClosed) {} 
+            else if (campaign.status === 'upcoming') {
                 statusTag = `<div class="absolute top-2 left-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">PRÓXIMA</div>`;
             } else if (campaign.priority === 'high') { 
                 statusTag = `<div class="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full urgent-badge">URGENTE</div>`; 
@@ -366,17 +377,29 @@
             if (mediaItems.length <= 1) return;
 
             let currentIndex = 0;
+            let loops = 0;
+            const maxLoops = 1;
+
             const playNext = () => {
                 mediaItems[currentIndex].classList.remove('active');
                 currentIndex = (currentIndex + 1) % mediaItems.length;
                 mediaItems[currentIndex].classList.add('active');
-            };
 
+                if (currentIndex === 0) {
+                    loops++;
+                    if (loops >= maxLoops) {
+                        clearInterval(slideshowIntervals[campaignId]);
+                    }
+                }
+            };
+            
             if (videoUrl) {
                 const video = card.querySelector(`#video-${campaignId}`);
                 video.onended = () => {
-                    playNext(); // Mostra a primeira imagem
-                    slideshowIntervals[campaignId] = setInterval(playNext, 5000);
+                    playNext();
+                    if (mediaItems.length > 2) {
+                        slideshowIntervals[campaignId] = setInterval(playNext, 5000);
+                    }
                 };
             } else {
                 slideshowIntervals[campaignId] = setInterval(playNext, 5000);
