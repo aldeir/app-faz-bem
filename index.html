@@ -251,6 +251,8 @@
 
             let mediaHtml = '';
             const mediaItems = [];
+            const isCampaignActive = listKey === 'active';
+
             if (campaign.videoUrl) mediaItems.push({ type: 'video', src: campaign.videoUrl });
             (campaign.images || []).forEach(src => mediaItems.push({ type: 'image', src }));
             
@@ -260,7 +262,7 @@
 
             mediaItems.forEach((media, index) => {
                 if (media.type === 'video') {
-                    const autoplay = listKey === 'active' ? 'autoplay' : '';
+                    const autoplay = isCampaignActive ? 'autoplay' : '';
                     mediaHtml += `<video id="video-${campaign.id}" class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" muted ${autoplay} playsinline></video>`;
                 } else {
                     mediaHtml += `<img class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" alt="Imagem da campanha ${campaign.title}">`;
@@ -276,7 +278,7 @@
             }
 
             let countdownHtml = '';
-            if (!isClosed && listKey === 'active') {
+            if (!isClosed && isCampaignActive) {
                 countdownHtml = `<div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs font-semibold px-2 py-1 rounded-full">
                                     <span id="countdown-${campaign.id}">A calcular...</span>
                                  </div>`;
@@ -289,28 +291,28 @@
                 const progress = goal > 0 ? Math.min(100, (currentAmount / goal) * 100) : 0;
                 goalHtml = `<div><div class="flex justify-between text-xs font-medium text-gray-500"><span>Meta Atingida</span><span>${currentAmount} / ${goal}</span></div><div class="w-full bg-gray-200 rounded-full h-2 mt-1"><div class="bg-green-500 h-2 rounded-full" style="width: ${progress}%"></div></div></div>`;
             }
-
-            const uniqueDonors = Object.values(donations.reduce((acc, d) => {
-                if (!acc[d.donorId] || (Array.isArray(d.items) && d.items.some(i => i.status === 'completed'))) {
+            
+            const donorsWithCompletedItems = Object.values(donations.reduce((acc, d) => {
+                if (Array.isArray(d.items) && d.items.some(i => i.status === 'completed')) {
                     acc[d.donorId] = d;
                 }
                 return acc;
             }, {}));
-            
-            let donorsHtml = '<p class="text-sm text-gray-500">Nenhum apoiador ainda.</p>';
-            if (uniqueDonors.length > 0) {
-                donorsHtml = uniqueDonors.slice(0, 5).map(donation => {
+
+            let donorsHtml = '<p class="text-sm text-gray-500">Nenhum apoiador com entrega concluída.</p>';
+            if (donorsWithCompletedItems.length > 0) {
+                donorsHtml = donorsWithCompletedItems.slice(0, 5).map(donation => {
                     const donorLikes = likes.filter(l => l.donorId === donation.donorId);
                     const userHasLiked = currentUserSession?.auth && donorLikes.some(like => like.likerId === currentUserSession.auth.uid);
                     const isAnonymous = donation.privacy === 'anonymous';
                     const photoURL = isAnonymous ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A' : donation.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
                     const displayName = isAnonymous ? 'Anônimo' : donation.donorName;
-                    const isCompleted = (donation.items || []).some(item => item.status === 'completed');
+                    
                     return `
                         <div class="text-center">
                             <div class="donor-avatar-container">
                                 <img src="${photoURL}" alt="Foto de ${displayName}" title="${displayName}" class="donor-avatar inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover">
-                                ${isCompleted ? `<div class="star-badge" title="Doação Concluída!"><svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></div>` : ''}
+                                <div class="star-badge" title="Doação Concluída!"><svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></div>
                             </div>
                             <div class="like-button mt-1 ${userHasLiked ? 'liked' : ''}" data-campaign-id="${campaign.id}" data-donor-id="${donation.donorId}" title="Curtir">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path></svg>
@@ -318,7 +320,7 @@
                             </div>
                         </div>`;
                 }).join('');
-                if (uniqueDonors.length > 5) donorsHtml += `<div class="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 text-gray-600 text-xs font-bold ring-2 ring-white">+${uniqueDonors.length - 5}</div>`;
+                if (donorsWithCompletedItems.length > 5) donorsHtml += `<div class="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 text-gray-600 text-xs font-bold ring-2 ring-white">+${donorsWithCompletedItems.length - 5}</div>`;
             }
 
             return `
