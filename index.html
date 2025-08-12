@@ -229,7 +229,7 @@
                 campaigns.forEach(campaign => {
                     const campaignDonations = allDonations.filter(d => d.campaignId === campaign.id);
                     const campaignLikes = allLikes.filter(l => l.campaignId === campaign.id);
-                    listEl.innerHTML += createCampaignCard(campaign, campaignDonations, campaignLikes);
+                    listEl.innerHTML += createCampaignCard(campaign, campaignDonations, campaignLikes, listKey);
                 });
                 
                 campaigns.forEach(campaign => {
@@ -241,7 +241,7 @@
             }
         }
 
-        function createCampaignCard(campaign, donations, likes) {
+        function createCampaignCard(campaign, donations, likes, listKey) {
             const settings = campaignTypeSettings[campaign.type] || campaignTypeSettings['default'] || { label: 'Campanha', color: 'gray' };
             const color = settings.color;
             
@@ -260,7 +260,8 @@
 
             mediaItems.forEach((media, index) => {
                 if (media.type === 'video') {
-                    mediaHtml += `<video id="video-${campaign.id}" class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" muted autoplay playsinline></video>`;
+                    const autoplay = listKey === 'active' ? 'autoplay' : '';
+                    mediaHtml += `<video id="video-${campaign.id}" class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" muted ${autoplay} playsinline></video>`;
                 } else {
                     mediaHtml += `<img class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" alt="Imagem da campanha ${campaign.title}">`;
                 }
@@ -275,7 +276,7 @@
             }
 
             let countdownHtml = '';
-            if (!isClosed) {
+            if (!isClosed && listKey === 'active') {
                 countdownHtml = `<div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs font-semibold px-2 py-1 rounded-full">
                                     <span id="countdown-${campaign.id}">A calcular...</span>
                                  </div>`;
@@ -389,7 +390,6 @@
                     loops++;
                     if (loops >= maxLoops) {
                         clearInterval(slideshowIntervals[campaignId]);
-                        // Garante que a exibição pare em uma imagem, se houver
                         const firstImage = Array.from(mediaItems).find(item => item.tagName === 'IMG');
                         if (firstImage) {
                             mediaItems.forEach(item => item.classList.remove('active'));
