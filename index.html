@@ -35,19 +35,9 @@
         .media-item { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity 1s ease-in-out; opacity: 0; }
         .media-item.active { opacity: 1; z-index: 1; }
 
-        .campaign-card {
-            cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .campaign-encerrada {
-            filter: grayscale(90%);
-            background-color: #f9fafb;
-            cursor: pointer;
-        }
-        .campaign-encerrada .like-button {
-            pointer-events: none;
-            filter: grayscale(100%);
-        }
+        .campaign-card { cursor: pointer; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .campaign-encerrada { filter: grayscale(90%); background-color: #f9fafb; cursor: pointer; }
+        .campaign-encerrada .like-button { pointer-events: none; filter: grayscale(100%); }
 
         .accordion-header {
             width: 100%; background-color: transparent; border: none; border-bottom: 1px solid #e5e7eb; border-radius: 0;
@@ -57,8 +47,33 @@
         .accordion-header:hover { background-color: #f3f4f6; }
         .accordion-arrow { width: 1.5rem; height: 1.5rem; transition: transform 0.3s ease-in-out; }
         .accordion-header.active .accordion-arrow { transform: rotate(180deg); }
-        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; background-color: transparent; }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out; background-color: transparent; }
         .accordion-content-inner { padding: 1.5rem 0.5rem; }
+
+        /* NOVO: Estilos para o Dropdown de Filtro Interno */
+        .filter-dropdown-container { position: relative; }
+        .filter-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            z-index: 20;
+            min-width: 150px;
+            display: none; /* Controlado por JS */
+        }
+        .filter-dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-size: 0.875rem;
+            color: #374151;
+            cursor: pointer;
+        }
+        .filter-dropdown-item:hover { background-color: #f3f4f6; }
+        .filter-dropdown-item.active { font-weight: 600; color: #16a34a; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -72,42 +87,52 @@
                 <p class="text-lg text-gray-600 mt-2">Conectando corações e transformando vidas.</p>
             </header>
 
-            <div id="filter-container" class="flex flex-wrap justify-center gap-2 mb-8" style="display: none;"></div>
-
             <div class="space-y-4">
                 <div class="accordion-item bg-white rounded-lg shadow-sm">
-                    <button class="accordion-header" onclick="toggleAccordion(this, 'content-ativas')">
+                    <button class="accordion-header" onclick="toggleAccordion(this)">
                         <span class="text-gray-800">Campanhas Ativas <span id="count-ativas" class="font-normal text-gray-500"></span></span>
-                        <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        <div class="flex items-center gap-4">
+                            <div id="filter-dropdown-ativas" class="filter-dropdown-container"></div>
+                            <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
                     </button>
-                    <div id="content-ativas" class="accordion-content">
+                    <div class="accordion-content">
                         <div class="accordion-content-inner">
                             <div id="active-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-                            <p id="active-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha ativa no momento.</p>
+                            <p id="active-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha encontrada.</p>
+                            <div id="pagination-ativas" class="text-center mt-8"></div>
                         </div>
                     </div>
                 </div>
                 <div id="accordion-proximas" class="accordion-item bg-white rounded-lg shadow-sm" style="display: none;">
-                    <button class="accordion-header" onclick="toggleAccordion(this, 'content-proximas')">
+                    <button class="accordion-header" onclick="toggleAccordion(this)">
                         <span class="text-gray-800">Próximas Campanhas <span id="count-proximas" class="font-normal text-gray-500"></span></span>
-                        <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        <div class="flex items-center gap-4">
+                            <div id="filter-dropdown-proximas" class="filter-dropdown-container"></div>
+                            <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
                     </button>
-                    <div id="content-proximas" class="accordion-content">
+                    <div class="accordion-content">
                         <div class="accordion-content-inner">
                             <div id="upcoming-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-                            <p id="upcoming-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha programada no momento.</p>
+                            <p id="upcoming-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha encontrada.</p>
+                            <div id="pagination-proximas" class="text-center mt-8"></div>
                         </div>
                     </div>
                 </div>
                 <div id="accordion-recentes" class="accordion-item bg-white rounded-lg shadow-sm" style="display: none;">
-                    <button class="accordion-header" onclick="toggleAccordion(this, 'content-recentes')">
+                    <button class="accordion-header" onclick="toggleAccordion(this)">
                         <span class="text-gray-800">Campanhas Encerradas <span id="count-recentes" class="font-normal text-gray-500"></span></span>
-                        <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                         <div class="flex items-center gap-4">
+                            <div id="filter-dropdown-recentes" class="filter-dropdown-container"></div>
+                            <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
                     </button>
-                    <div id="content-recentes" class="accordion-content">
+                    <div class="accordion-content">
                          <div class="accordion-content-inner">
                             <div id="recent-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-                            <p id="recent-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha encerrada para exibir.</p>
+                            <p id="recent-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha encontrada.</p>
+                            <div id="pagination-recentes" class="text-center mt-8"></div>
                         </div>
                     </div>
                 </div>
@@ -151,14 +176,18 @@
     </div>
     
     <script>
-        function toggleAccordion(headerElement, contentId) {
-            const contentElement = document.getElementById(contentId);
+        function toggleAccordion(headerElement) {
+            const contentElement = headerElement.nextElementSibling;
             headerElement.classList.toggle('active');
             if (contentElement.style.maxHeight) {
                 contentElement.style.maxHeight = null;
             } else {
                 setTimeout(() => { contentElement.style.maxHeight = contentElement.scrollHeight + "px"; }, 50);
             }
+        }
+        function toggleFilterMenu(key) {
+            const menu = document.getElementById(`filter-menu-${key}`);
+            if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
         }
     </script>
     <script type="module">
@@ -168,96 +197,139 @@
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal } from './modal-handler.js';
 
-        const loadingContainer = document.getElementById('loading-container');
-        const filterContainer = document.getElementById('filter-container');
-        const campaignLists = {
-            active: document.getElementById('active-campaigns-list'),
-            upcoming: document.getElementById('upcoming-campaigns-list'),
-            recent: document.getElementById('recent-campaigns-list')
-        };
-        const emptyPlaceholders = {
-            active: document.getElementById('active-campaigns-empty'),
-            upcoming: document.getElementById('upcoming-campaigns-empty'),
-            recent: document.getElementById('recent-campaigns-empty'),
+        const ITEMS_PER_PAGE = 4;
+        const state = {
+            allCampaigns: [], allDonations: [], allLikes: [], currentUser: null, settings: {},
+            sections: {
+                ativas: { filter: 'all', visibleCount: ITEMS_PER_PAGE, key: 'active' },
+                proximas: { filter: 'all', visibleCount: ITEMS_PER_PAGE, key: 'upcoming' },
+                recentes: { filter: 'all', visibleCount: ITEMS_PER_PAGE, key: 'recent' }
+            }
         };
 
-        let allCampaigns = [], allDonations = [], allLikes = [], currentUserSession = null, campaignTypeSettings = {};
-        let campaignsUnsubscribe, donationsUnsubscribe, likesUnsubscribe, settingsUnsubscribe;
+        const loadingContainer = document.getElementById('loading-container');
+        const campaignLists = {
+            ativas: document.getElementById('active-campaigns-list'),
+            proximas: document.getElementById('upcoming-campaigns-list'),
+            recentes: document.getElementById('recent-campaigns-list')
+        };
+        const emptyPlaceholders = {
+            ativas: document.getElementById('active-campaigns-empty'),
+            proximas: document.getElementById('upcoming-campaigns-empty'),
+            recentes: document.getElementById('recent-campaigns-empty'),
+        };
+        const paginationContainers = {
+            ativas: document.getElementById('pagination-ativas'),
+            proximas: document.getElementById('pagination-proximas'),
+            recentes: document.getElementById('pagination-recentes')
+        };
         let countdownIntervals = {}, slideshowIntervals = {};
 
         async function initializeApp() {
             await injectHeader();
-            currentUserSession = await getCurrentUser();
+            state.currentUser = await getCurrentUser();
             setupDataListeners();
             setupEventListeners();
         }
         
         function setupDataListeners() {
-            const settingsRef = doc(db, paths.configDoc('campaignTypes'));
-            if (campaignsUnsubscribe) campaignsUnsubscribe();
-            if (donationsUnsubscribe) donationsUnsubscribe();
-            if (likesUnsubscribe) likesUnsubscribe();
-            if (settingsUnsubscribe) settingsUnsubscribe();
-            settingsUnsubscribe = onSnapshot(settingsRef, (snapshot) => { campaignTypeSettings = snapshot.exists() ? snapshot.data() : {}; renderAllCampaigns(); });
-            campaignsUnsubscribe = onSnapshot(query(collection(db, paths.campaigns), orderBy("priority", "desc"), orderBy("createdAt", "desc")), (snapshot) => { allCampaigns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderAllCampaigns(); });
-            donationsUnsubscribe = onSnapshot(query(collection(db, paths.donations)), (snapshot) => { allDonations = snapshot.docs.map(doc => doc.data()); renderAllCampaigns(); });
-            likesUnsubscribe = onSnapshot(query(collection(db, paths.likes)), (snapshot) => { allLikes = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})); renderAllCampaigns(); });
+            onSnapshot(doc(db, paths.configDoc('campaignTypes')), (s) => { state.settings = s.exists() ? s.data() : {}; renderAllSections(); });
+            onSnapshot(query(collection(db, paths.campaigns), orderBy("createdAt", "desc")), (s) => { state.allCampaigns = s.docs.map(d => ({ id: d.id, ...d.data() })); renderAllSections(); });
+            onSnapshot(query(collection(db, paths.donations)), (s) => { state.allDonations = s.docs.map(d => d.data()); renderAllSections(); });
+            onSnapshot(query(collection(db, paths.likes)), (s) => { state.allLikes = s.docs.map(d => ({id: d.id, ...d.data()})); renderAllSections(); });
         }
         
-        function renderAllCampaigns() {
-            if (allCampaigns.length === 0 || Object.keys(campaignTypeSettings).length === 0) {
-                loadingContainer.style.display = 'none'; // Esconde o loading mesmo se não houver campanhas
-                return;
-            }
+        function renderAllSections() {
+            if (state.allCampaigns.length === 0 || Object.keys(state.settings).length === 0) { loadingContainer.style.display = 'none'; return; }
             loadingContainer.style.display = 'none';
             Object.values(countdownIntervals).forEach(clearInterval);
             Object.values(slideshowIntervals).forEach(clearInterval);
-            countdownIntervals = {};
-            slideshowIntervals = {};
+            countdownIntervals = {}; slideshowIntervals = {};
 
             const now = new Date();
-            const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.startsAt?.toDate() <= now && c.expiresAt?.toDate() > now);
-            const upcomingCampaigns = allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt?.toDate() > now);
-            const recentCampaigns = allCampaigns.filter(c => c.expiresAt?.toDate() <= now);
+            const active = state.allCampaigns.filter(c => c.status === 'active' && c.startsAt?.toDate() <= now && c.expiresAt?.toDate() > now);
+            const upcoming = state.allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt?.toDate() > now);
+            const recent = state.allCampaigns.filter(c => c.expiresAt?.toDate() <= now);
 
-            renderFilters(allCampaigns); // Gera filtros com base em todas as campanhas
-
-            const currentFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
-            const applyFilter = (campaign) => currentFilter === 'all' || campaign.type === currentFilter;
-
-            const filteredActive = activeCampaigns.filter(applyFilter);
-            const filteredUpcoming = upcomingCampaigns.filter(applyFilter);
-            const filteredRecent = recentCampaigns.filter(applyFilter);
-
-            document.getElementById('count-ativas').textContent = `(${filteredActive.length})`;
-            document.getElementById('count-proximas').textContent = `(${filteredUpcoming.length})`;
-            document.getElementById('count-recentes').textContent = `(${filteredRecent.length})`;
+            renderSection('ativas', active);
+            renderSection('proximas', upcoming);
+            renderSection('recentes', recent);
             
-            document.getElementById('accordion-proximas').style.display = upcomingCampaigns.length > 0 ? 'block' : 'none';
-            document.getElementById('accordion-recentes').style.display = recentCampaigns.length > 0 ? 'block' : 'none';
-            
-            filterContainer.style.display = allCampaigns.length > 0 ? 'flex' : 'none';
+            document.getElementById('accordion-proximas').style.display = upcoming.length > 0 ? 'block' : 'none';
+            document.getElementById('accordion-recentes').style.display = recent.length > 0 ? 'block' : 'none';
 
-            renderCampaigns(filteredActive, 'active');
-            renderCampaigns(filteredUpcoming, 'upcoming');
-            renderCampaigns(filteredRecent, 'recent');
-            
             const firstHeader = document.querySelector('.accordion-header');
-            if (firstHeader && !firstHeader.classList.contains('active')) {
-                firstHeader.classList.add('active');
+            if (firstHeader && !firstHeader.classList.contains('active')) { firstHeader.classList.add('active'); }
+            const activeContent = document.querySelector('.accordion-header.active + .accordion-content');
+            if (activeContent) { activeContent.style.maxHeight = activeContent.scrollHeight + 'px'; }
+        }
+
+        function renderSection(sectionKey, allCampaignsForSection) {
+            const sectionState = state.sections[sectionKey];
+            const filtered = allCampaignsForSection.filter(c => sectionState.filter === 'all' || c.type === sectionState.filter);
+
+            document.getElementById(`count-${sectionKey}`).textContent = `(${filtered.length})`;
+
+            const visibleCampaigns = filtered.slice(0, sectionState.visibleCount);
+            renderCampaignsList(sectionKey, visibleCampaigns, filtered.length);
+            renderFilterDropdown(sectionKey, allCampaignsForSection);
+        }
+
+        function renderCampaignsList(sectionKey, campaigns, totalFiltered) {
+            const listEl = campaignLists[sectionKey];
+            const emptyEl = emptyPlaceholders[sectionKey];
+            const paginationEl = paginationContainers[sectionKey];
+            listEl.innerHTML = '';
+
+            if (campaigns.length === 0) {
+                emptyEl.classList.remove('hidden');
+            } else {
+                emptyEl.classList.add('hidden');
+                campaigns.forEach(c => {
+                    const d = state.allDonations.filter(don => don.campaignId === c.id);
+                    const l = state.allLikes.filter(lk => lk.campaignId === c.id);
+                    listEl.innerHTML += createCampaignCard(c, d, l, sectionKey);
+                });
+                campaigns.forEach(c => {
+                    const isEncerrada = c.expiresAt?.toDate() && c.expiresAt.toDate() <= new Date();
+                    if (sectionKey === 'ativas' && !isEncerrada) { startCountdown(c.id, c.expiresAt?.toDate()); startMediaSlideshow(c.id); }
+                });
             }
 
-            const activeContent = document.querySelector('.accordion-header.active + .accordion-content');
-            if (activeContent) {
-                activeContent.style.maxHeight = activeContent.scrollHeight + 'px';
+            paginationEl.innerHTML = '';
+            if (totalFiltered > campaigns.length) {
+                paginationEl.innerHTML = `<button onclick="window.loadMore('${sectionKey}')" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-full shadow-md hover:bg-green-700 transition">Carregar Mais</button>`;
             }
         }
 
-        function createCampaignCard(campaign, donations, likes, listKey) {
-            const settings = campaignTypeSettings[campaign.type] || campaignTypeSettings['default'] || { label: 'Campanha', color: 'gray' };
-            const isCampaignActive = listKey === 'active';
-            const isEncerrada = listKey === 'recent' || (campaign.expiresAt?.toDate() && campaign.expiresAt.toDate() <= new Date());
+        function renderFilterDropdown(sectionKey, campaigns) {
+            const container = document.getElementById(`filter-dropdown-${sectionKey}`);
+            const sectionState = state.sections[sectionKey];
+            const typesInUse = [...new Set(campaigns.map(c => c.type))];
+
+            if (typesInUse.length === 0) { container.innerHTML = ''; return; }
+
+            const currentFilterLabel = sectionState.filter === 'all' ? 'Todos' : (state.settings[sectionState.filter]?.label || sectionState.filter);
             
+            let itemsHtml = `<button class="filter-dropdown-item ${sectionState.filter === 'all' ? 'active' : ''}" onclick="window.setFilter('${sectionKey}', 'all')">Todos</button>`;
+            typesInUse.forEach(type => {
+                const settings = state.settings[type] || { label: type };
+                itemsHtml += `<button class="filter-dropdown-item ${sectionState.filter === type ? 'active' : ''}" onclick="window.setFilter('${sectionKey}', '${type}')">${settings.label}</button>`;
+            });
+
+            container.innerHTML = `
+                <button onclick="window.toggleFilterMenu('${sectionKey}')" class="text-sm font-medium text-gray-500 hover:text-green-600 flex items-center gap-1">
+                    Filtro: ${currentFilterLabel}
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                </button>
+                <div id="filter-menu-${sectionKey}" class="filter-dropdown-menu">${itemsHtml}</div>
+            `;
+        }
+
+        function createCampaignCard(campaign, donations, likes, listKey) {
+            const settings = state.settings[campaign.type] || state.settings['default'] || { label: 'Campanha', color: 'gray' };
+            const isCampaignActive = listKey === 'ativas';
+            const isEncerrada = listKey === 'recentes' || (campaign.expiresAt?.toDate() && campaign.expiresAt.toDate() <= new Date());
             const cardClasses = `campaign-card flex flex-col bg-white rounded-lg shadow-lg overflow-hidden border-2 border-${settings.color}-500 ${isEncerrada ? 'campaign-encerrada' : 'hover:shadow-xl hover:-translate-y-1'}`;
 
             let mediaHtml = '';
@@ -295,8 +367,8 @@
             let donorsHtml = '';
             if (donorsWithCompletedItems.length > 0) {
                 donorsHtml = donorsWithCompletedItems.slice(0, 5).map(donation => {
-                    const donorLikes = allLikes.filter(l => l.donorId === donation.donorId && l.campaignId === campaign.id);
-                    const userHasLiked = currentUserSession?.auth && donorLikes.some(like => like.likerId === currentUserSession.auth.uid);
+                    const donorLikes = likes.filter(l => l.donorId === donation.donorId && l.campaignId === campaign.id);
+                    const userHasLiked = state.currentUser?.auth && donorLikes.some(like => like.likerId === state.currentUser.auth.uid);
                     const isAnonymous = donation.privacy === 'anonymous';
                     const photoURL = isAnonymous ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A' : donation.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
                     const displayName = isAnonymous ? 'Anônimo' : donation.donorName;
@@ -337,111 +409,64 @@
                 </div>`;
         }
         
-        function renderCampaigns(campaigns, listKey) {
-            const listEl = campaignLists[listKey];
-            const emptyEl = emptyPlaceholders[listKey];
-            if (!listEl || !emptyEl) return;
-            listEl.innerHTML = '';
-            if (campaigns.length === 0) {
-                emptyEl.classList.remove('hidden');
-            } else {
-                emptyEl.classList.add('hidden');
-                campaigns.forEach(c => {
-                    const d = allDonations.filter(don => don.campaignId === c.id);
-                    const l = allLikes.filter(lk => lk.campaignId === c.id);
-                    listEl.innerHTML += createCampaignCard(c, d, l, listKey);
-                });
-                campaigns.forEach(c => {
-                    const isEncerrada = c.expiresAt?.toDate() && c.expiresAt.toDate() <= new Date();
-                    if (listKey === 'active' && !isEncerrada) {
-                        startCountdown(c.id, c.expiresAt?.toDate());
-                        startMediaSlideshow(c.id);
-                    }
-                });
-            }
-        }
-        
-        function startCountdown(id, expiresAt) {
-            if (!expiresAt || countdownIntervals[id]) return;
-            const el = document.getElementById(`countdown-${id}`);
-            if (!el) return;
-            const update = () => {
-                const dist = expiresAt.getTime() - new Date().getTime();
-                if (dist < 0) { clearInterval(countdownIntervals[id]); el.parentElement.innerHTML = ''; return; }
-                const d = Math.floor(dist / 864e5), h = Math.floor(dist % 864e5 / 36e5);
-                el.textContent = `Encerra em: ${d}d ${h}h`;
-            };
-            update();
-            countdownIntervals[id] = setInterval(update, 60000);
-        }
-
-        function startMediaSlideshow(id) {
-            if (slideshowIntervals[id]) clearInterval(slideshowIntervals[id]);
-            const card = document.querySelector(`[data-id="${id}"]`);
-            if (!card) return;
-            const items = card.querySelectorAll(`.media-item`);
-            if (items.length <= 1) return;
-            let idx = 0;
-            const next = () => {
-                if (document.hidden) return; // Pausa se a aba não estiver visível
-                items[idx].classList.remove('active');
-                idx = (idx + 1) % items.length;
-                items[idx].classList.add('active');
-            };
-            slideshowIntervals[id] = setInterval(next, 5000);
-        }
-
-        function renderFilters(campaigns) {
-            const typesInUse = [...new Set(campaigns.map(c => c.type))];
-            let buttonsHtml = `<button data-filter="all" class="filter-btn active bg-gray-700 text-white font-semibold py-2 px-4 rounded-full shadow-md">Todas</button>`;
-            typesInUse.forEach(type => {
-                const settings = campaignTypeSettings[type] || { label: type };
-                buttonsHtml += `<button data-filter="${type}" class="filter-btn bg-white text-gray-700 font-semibold py-2 px-4 rounded-full shadow-md">${settings.label}</button>`;
-            });
-            filterContainer.innerHTML = buttonsHtml;
-        }
-
         function setupEventListeners() {
-            filterContainer.addEventListener('click', (e) => {
-                const btn = e.target.closest('button[data-filter]');
-                if (!btn) return;
-                document.querySelectorAll('.filter-btn').forEach(b => {
-                    b.classList.remove('active', 'bg-gray-700', 'text-white');
-                    b.classList.add('bg-white', 'text-gray-700');
-                });
-                btn.classList.add('active', 'bg-gray-700', 'text-white');
-                btn.classList.remove('bg-white', 'text-gray-700');
-                renderAllCampaigns();
+            document.querySelector('main').addEventListener('click', (e) => {
+                const likeButton = e.target.closest('.like-button');
+                const card = e.target.closest('.campaign-card');
+
+                if (likeButton) {
+                    e.stopPropagation(); // Impede que o clique no like propague para o card
+                    handleLikeClick(likeButton);
+                } else if (card) {
+                    handleCardClick(card);
+                }
             });
-            document.querySelector('main').addEventListener('click', handleListClick);
+            // Esconde o menu de filtro se clicar fora
+            window.addEventListener('click', (e) => {
+                if (!e.target.closest('.filter-dropdown-container')) {
+                    document.querySelectorAll('.filter-dropdown-menu').forEach(menu => menu.style.display = 'none');
+                }
+            });
         }
         
-        async function handleListClick(e) {
-            const likeButton = e.target.closest('.like-button');
-            if (likeButton) {
-                if (!currentUserSession?.auth) { showAlertModal("Ação necessária", "Você precisa estar logado para curtir."); return; }
-                if (!currentUserSession.isVerified) { showAlertModal("Verifique seu E-mail", "Você precisa verificar seu e-mail para poder curtir."); return; }
-                const campaignId = likeButton.dataset.campaignId, donorId = likeButton.dataset.donorId, likerId = currentUserSession.auth.uid;
-                const likeDocRef = doc(db, paths.likeDoc(`${campaignId}_${donorId}_${likerId}`));
-                try {
-                    if (likeButton.classList.contains('liked')) { await deleteDoc(likeDocRef); }
-                    else { await setDoc(likeDocRef, { campaignId, donorId, likerId, likerName: currentUserSession.profile.displayName || 'Usuário', likerPhotoURL: currentUserSession.profile.photoURL || null, createdAt: serverTimestamp() }); }
-                } catch (error) { console.error("Erro ao curtir:", error); showAlertModal("Erro", "Não foi possível registrar sua curtida."); }
+        async function handleLikeClick(likeButton) {
+            if (!state.currentUser?.auth) { showAlertModal("Ação necessária", "Você precisa estar logado para curtir."); return; }
+            if (!state.currentUser.isVerified) { showAlertModal("Verifique seu E-mail", "Você precisa verificar seu e-mail para poder curtir."); return; }
+            const { campaignId, donorId } = likeButton.dataset;
+            const likerId = state.currentUser.auth.uid;
+            const likeDocRef = doc(db, paths.likeDoc(`${campaignId}_${donorId}_${likerId}`));
+            try {
+                if (likeButton.classList.contains('liked')) { await deleteDoc(likeDocRef); }
+                else { await setDoc(likeDocRef, { campaignId, donorId, likerId, likerName: state.currentUser.profile.displayName || 'Usuário', likerPhotoURL: state.currentUser.profile.photoURL || null, createdAt: serverTimestamp() }); }
+            } catch (error) { console.error("Erro ao curtir:", error); showAlertModal("Erro", "Não foi possível registrar sua curtida."); }
+        }
+
+        function handleCardClick(card) {
+            if (!state.currentUser?.auth) {
+                showAlertModal("Acesso Restrito", "Você precisa estar logado para ver os detalhes da campanha. Por favor, faça o login.");
                 return;
             }
-
-            const card = e.target.closest('.campaign-card');
-            if (card) {
-                if (!currentUserSession?.auth) {
-                    showAlertModal("Acesso Restrito", "Você precisa estar logado para ver os detalhes da campanha. Por favor, faça o login.");
-                    return;
-                }
-                const campaignId = card.dataset.id;
-                if (!campaignId) return;
-                window.location.href = `detalhes.html?id=${campaignId}`;
-            }
+            const campaignId = card.dataset.id;
+            if (campaignId) window.location.href = `detalhes.html?id=${campaignId}`;
         }
         
+        // Funções auxiliares para Countdown e Slideshow
+        function startCountdown(id, expiresAt) { if (!expiresAt || countdownIntervals[id]) return; const el = document.getElementById(`countdown-${id}`); if (!el) return; const update = () => { const dist = expiresAt.getTime() - new Date().getTime(); if (dist < 0) { clearInterval(countdownIntervals[id]); el.parentElement.innerHTML = ''; return; } const d = Math.floor(dist / 864e5), h = Math.floor(dist % 864e5 / 36e5); el.textContent = `Encerra em: ${d}d ${h}h`; }; update(); countdownIntervals[id] = setInterval(update, 60000); }
+        function startMediaSlideshow(id) { if (slideshowIntervals[id]) return; const card = document.querySelector(`[data-id="${id}"]`); if (!card) return; const items = card.querySelectorAll(`.media-item`); if (items.length <= 1) return; let idx = 0; const next = () => { if (document.hidden) return; items[idx].classList.remove('active'); idx = (idx + 1) % items.length; items[idx].classList.add('active'); }; slideshowIntervals[id] = setInterval(next, 5000); }
+        
+        // Funções globais para serem chamadas pelo onclick no HTML
+        window.toggleFilterMenu = toggleFilterMenu;
+        window.setFilter = (sectionKey, filterValue) => {
+            state.sections[sectionKey].filter = filterValue;
+            state.sections[sectionKey].visibleCount = ITEMS_PER_PAGE; // Reseta a paginação ao trocar de filtro
+            renderAllSections();
+            toggleFilterMenu(sectionKey); // Esconde o menu após a seleção
+        };
+        window.loadMore = (sectionKey) => {
+            state.sections[sectionKey].visibleCount += ITEMS_PER_PAGE;
+            renderAllSections();
+        };
+
         initializeApp();
     </script>
 </body>
