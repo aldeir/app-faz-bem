@@ -49,42 +49,16 @@
             filter: grayscale(100%);
         }
 
-        /* AJUSTE NO ACORDEÃO E BOTÕES */
         .accordion-header {
-            width: 100%;
-            background-color: transparent;
-            border: none;
-            border-bottom: 1px solid #e5e7eb;
-            border-radius: 0;
-            padding: 0.75rem 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            transition: background-color 0.2s ease-in-out;
-            font-size: 1.25rem;
-            font-weight: 600;
+            width: 100%; background-color: transparent; border: none; border-bottom: 1px solid #e5e7eb; border-radius: 0;
+            padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; transition: background-color 0.2s ease-in-out; font-size: 1.25rem; font-weight: 600;
         }
-        .accordion-header:hover {
-            background-color: #f3f4f6;
-        }
-        .accordion-arrow {
-            width: 1.5rem;
-            height: 1.5rem;
-            transition: transform 0.3s ease-in-out;
-        }
-        .accordion-header.active .accordion-arrow {
-            transform: rotate(180deg);
-        }
-        .accordion-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.5s ease-in-out;
-            background-color: transparent;
-        }
-        .accordion-content-inner {
-            padding: 1.5rem 0.5rem;
-        }
+        .accordion-header:hover { background-color: #f3f4f6; }
+        .accordion-arrow { width: 1.5rem; height: 1.5rem; transition: transform 0.3s ease-in-out; }
+        .accordion-header.active .accordion-arrow { transform: rotate(180deg); }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; background-color: transparent; }
+        .accordion-content-inner { padding: 1.5rem 0.5rem; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -113,7 +87,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div id="accordion-proximas" class="accordion-item bg-white rounded-lg shadow-sm" style="display: none;">
                     <button class="accordion-header" onclick="toggleAccordion(this, 'content-proximas')">
                         <span class="text-gray-800">Próximas Campanhas <span id="count-proximas" class="font-normal text-gray-500"></span></span>
@@ -126,7 +99,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div id="accordion-recentes" class="accordion-item bg-white rounded-lg shadow-sm" style="display: none;">
                     <button class="accordion-header" onclick="toggleAccordion(this, 'content-recentes')">
                         <span class="text-gray-800">Campanhas Encerradas <span id="count-recentes" class="font-normal text-gray-500"></span></span>
@@ -196,7 +168,6 @@
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal } from './modal-handler.js';
 
-        // Constantes e variáveis de estado (sem alterações)
         const loadingContainer = document.getElementById('loading-container');
         const filterContainer = document.getElementById('filter-container');
         const campaignLists = {
@@ -219,16 +190,8 @@
             currentUserSession = await getCurrentUser();
             setupDataListeners();
             setupEventListeners();
-            
-            // LÓGICA DE ABERTURA PADRÃO DO ACORDEÃO
-            const firstHeader = document.querySelector('.accordion-header');
-            if (firstHeader) {
-                firstHeader.classList.add('active');
-                // A altura será definida na primeira chamada de renderAllCampaigns
-            }
         }
         
-        // setupDataListeners (sem alterações)
         function setupDataListeners() {
             const settingsRef = doc(db, paths.configDoc('campaignTypes'));
             if (campaignsUnsubscribe) campaignsUnsubscribe();
@@ -241,9 +204,11 @@
             likesUnsubscribe = onSnapshot(query(collection(db, paths.likes)), (snapshot) => { allLikes = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})); renderAllCampaigns(); });
         }
         
-        // AJUSTE NA LÓGICA DE RENDERIZAÇÃO
         function renderAllCampaigns() {
-            if (allCampaigns.length === 0 || Object.keys(campaignTypeSettings).length === 0) return;
+            if (allCampaigns.length === 0 || Object.keys(campaignTypeSettings).length === 0) {
+                loadingContainer.style.display = 'none'; // Esconde o loading mesmo se não houver campanhas
+                return;
+            }
             loadingContainer.style.display = 'none';
             Object.values(countdownIntervals).forEach(clearInterval);
             Object.values(slideshowIntervals).forEach(clearInterval);
@@ -255,36 +220,39 @@
             const upcomingCampaigns = allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt?.toDate() > now);
             const recentCampaigns = allCampaigns.filter(c => c.expiresAt?.toDate() <= now);
 
-            document.getElementById('count-ativas').textContent = `(${activeCampaigns.length})`;
-            document.getElementById('count-proximas').textContent = `(${upcomingCampaigns.length})`;
-            document.getElementById('count-recentes').textContent = `(${recentCampaigns.length})`;
+            renderFilters(allCampaigns); // Gera filtros com base em todas as campanhas
+
+            const currentFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
+            const applyFilter = (campaign) => currentFilter === 'all' || campaign.type === currentFilter;
+
+            const filteredActive = activeCampaigns.filter(applyFilter);
+            const filteredUpcoming = upcomingCampaigns.filter(applyFilter);
+            const filteredRecent = recentCampaigns.filter(applyFilter);
+
+            document.getElementById('count-ativas').textContent = `(${filteredActive.length})`;
+            document.getElementById('count-proximas').textContent = `(${filteredUpcoming.length})`;
+            document.getElementById('count-recentes').textContent = `(${filteredRecent.length})`;
             
             document.getElementById('accordion-proximas').style.display = upcomingCampaigns.length > 0 ? 'block' : 'none';
             document.getElementById('accordion-recentes').style.display = recentCampaigns.length > 0 ? 'block' : 'none';
+            
+            filterContainer.style.display = allCampaigns.length > 0 ? 'flex' : 'none';
 
-            // Lógica para exibir/ocultar filtros
-            if (activeCampaigns.length > 0) {
-                filterContainer.style.display = 'flex';
-                renderFilters(activeCampaigns);
-                const currentFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
-                const filteredActive = (currentFilter === 'all') ? activeCampaigns : activeCampaigns.filter(c => c.type === currentFilter);
-                renderCampaigns(filteredActive, 'active');
-            } else {
-                filterContainer.style.display = 'none';
-                renderCampaigns([], 'active');
+            renderCampaigns(filteredActive, 'active');
+            renderCampaigns(filteredUpcoming, 'upcoming');
+            renderCampaigns(filteredRecent, 'recent');
+            
+            const firstHeader = document.querySelector('.accordion-header');
+            if (firstHeader && !firstHeader.classList.contains('active')) {
+                firstHeader.classList.add('active');
             }
 
-            renderCampaigns(upcomingCampaigns, 'upcoming');
-            renderCampaigns(recentCampaigns, 'recent');
-            
-            // LÓGICA CORRIGIDA para abrir o acordeão ativo
             const activeContent = document.querySelector('.accordion-header.active + .accordion-content');
             if (activeContent) {
                 activeContent.style.maxHeight = activeContent.scrollHeight + 'px';
             }
         }
 
-        // --- FUNÇÃO createCampaignCard COM TODAS AS MELHORIAS ---
         function createCampaignCard(campaign, donations, likes, listKey) {
             const settings = campaignTypeSettings[campaign.type] || campaignTypeSettings['default'] || { label: 'Campanha', color: 'gray' };
             const isCampaignActive = listKey === 'active';
@@ -299,34 +267,35 @@
                 (campaign.images || []).forEach(src => mediaItems.push({ type: 'image', src }));
                 if (mediaItems.length === 0) mediaItems.push({ type: 'image', src: 'https://placehold.co/600x400/e2e8f0/e2e8f0?text=Sem+Imagem' });
                 mediaItems.forEach((media, index) => {
-                    if (media.type === 'video') {
-                        mediaHtml += `<video class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" muted autoplay playsinline loop></video>`;
-                    } else {
-                        mediaHtml += `<img class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" alt="Imagem da campanha ${campaign.title}">`;
-                    }
+                    if (media.type === 'video') { mediaHtml += `<video class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" muted autoplay playsinline loop></video>`; } 
+                    else { mediaHtml += `<img class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" alt="Imagem da campanha ${campaign.title}">`; }
                 });
             } else {
                  const firstImage = (campaign.images && campaign.images[0]) || 'https://placehold.co/600x400/e2e8f0/e2e8f0?text=Sem+Imagem';
                  mediaHtml = `<img class="media-item active" src="${firstImage}" alt="Imagem da campanha ${campaign.title}">`;
             }
 
-            // Estas tarjas agora são renderizadas DENTRO da área de texto
             let statusTag = '';
             if (campaign.status === 'upcoming') { statusTag = `<span class="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">PRÓXIMA</span>`; } 
             else if (isCampaignActive && campaign.priority === 'high') { statusTag = `<span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full urgent-badge">URGENTE</span>`; }
 
             let countdownHtml = '';
             if (isCampaignActive) { countdownHtml = `<span id="countdown-${campaign.id}" class="bg-black bg-opacity-60 text-white text-xs font-semibold px-2 py-1 rounded-full">A calcular...</span>`; }
-
+            
             let goalHtml = '';
-            if (campaign.goal) { /* ... Lógica do Goal (sem alterações) ... */ }
+            if (campaign.goal) {
+                const currentAmount = donations.reduce((total, d) => total + (d.items || []).filter(i => i.status === 'completed').length, 0);
+                const goal = parseInt(campaign.goal, 10);
+                const progress = goal > 0 ? Math.min(100, (currentAmount / goal) * 100) : 0;
+                goalHtml = `<div><div class="flex justify-between text-xs font-medium text-gray-500"><span>Meta Atingida</span><span>${currentAmount} / ${goal}</span></div><div class="w-full bg-gray-200 rounded-full h-2 mt-1"><div class="bg-green-500 h-2 rounded-full" style="width: ${progress}%"></div></div></div>`;
+            }
 
             const donorsWithCompletedItems = Object.values(donations.reduce((acc, d) => { if (d.campaignId === campaign.id && Array.isArray(d.items) && d.items.some(i => i.status === 'completed')) acc[d.donorId] = d; return acc; }, {}));
             
             let donorsHtml = '';
             if (donorsWithCompletedItems.length > 0) {
                 donorsHtml = donorsWithCompletedItems.slice(0, 5).map(donation => {
-                    const donorLikes = allLikes.filter(l => l.donorId === donation.donorId && l.campaignId === campaign.id); // CORREÇÃO DA LÓGICA
+                    const donorLikes = allLikes.filter(l => l.donorId === donation.donorId && l.campaignId === campaign.id);
                     const userHasLiked = currentUserSession?.auth && donorLikes.some(like => like.likerId === currentUserSession.auth.uid);
                     const isAnonymous = donation.privacy === 'anonymous';
                     const photoURL = isAnonymous ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A' : donation.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
@@ -337,6 +306,8 @@
             } else {
                 donorsHtml = isEncerrada ? '<p class="text-sm text-gray-500">Nenhum apoiador com entrega concluída.</p>' : '<p class="text-sm text-green-600 font-medium">Seja o primeiro a apoiar e fazer o bem!</p>';
             }
+            
+            const verifiedBadgeHtml = `<svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" title="Entidade Verificada"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>`;
 
             return `
                 <div data-id="${campaign.id}" class="${cardClasses}">
@@ -346,16 +317,17 @@
                     </div>
                     <div class="p-6 flex-grow flex flex-col">
                         <div class="flex justify-between items-center mb-2">
-                            <p class="uppercase tracking-wide text-sm text-gray-600 font-semibold">${campaign.entityName}</p>
+                            <p class="uppercase tracking-wide text-sm text-gray-600 font-semibold flex items-center gap-1">
+                                ${campaign.entityName}
+                                ${campaign.entityVerified ? verifiedBadgeHtml : ''}
+                            </p>
                             <span class="text-xs font-semibold px-2 py-1 rounded-full bg-${settings.color}-100 text-${settings.color}-800">${settings.label}</span>
                         </div>
                         <h3 class="block text-xl leading-tight font-bold text-black truncate" title="${campaign.title}">${campaign.title}</h3>
-                        
                         <div class="flex justify-between items-center mt-2 min-h-[22px]">
                             <div>${statusTag}</div>
                             <div>${countdownHtml}</div>
                         </div>
-
                         <div class="mt-2 space-y-3 flex-grow">${goalHtml}</div>
                          <div class="px-0 pt-4 border-t mt-4">
                             <h4 class="text-sm font-semibold text-gray-700 mb-3">Apoiadores</h4>
@@ -365,31 +337,110 @@
                 </div>`;
         }
         
-        // --- FUNÇÃO handleListClick PADRONIZADA ---
+        function renderCampaigns(campaigns, listKey) {
+            const listEl = campaignLists[listKey];
+            const emptyEl = emptyPlaceholders[listKey];
+            if (!listEl || !emptyEl) return;
+            listEl.innerHTML = '';
+            if (campaigns.length === 0) {
+                emptyEl.classList.remove('hidden');
+            } else {
+                emptyEl.classList.add('hidden');
+                campaigns.forEach(c => {
+                    const d = allDonations.filter(don => don.campaignId === c.id);
+                    const l = allLikes.filter(lk => lk.campaignId === c.id);
+                    listEl.innerHTML += createCampaignCard(c, d, l, listKey);
+                });
+                campaigns.forEach(c => {
+                    const isEncerrada = c.expiresAt?.toDate() && c.expiresAt.toDate() <= new Date();
+                    if (listKey === 'active' && !isEncerrada) {
+                        startCountdown(c.id, c.expiresAt?.toDate());
+                        startMediaSlideshow(c.id);
+                    }
+                });
+            }
+        }
+        
+        function startCountdown(id, expiresAt) {
+            if (!expiresAt || countdownIntervals[id]) return;
+            const el = document.getElementById(`countdown-${id}`);
+            if (!el) return;
+            const update = () => {
+                const dist = expiresAt.getTime() - new Date().getTime();
+                if (dist < 0) { clearInterval(countdownIntervals[id]); el.parentElement.innerHTML = ''; return; }
+                const d = Math.floor(dist / 864e5), h = Math.floor(dist % 864e5 / 36e5);
+                el.textContent = `Encerra em: ${d}d ${h}h`;
+            };
+            update();
+            countdownIntervals[id] = setInterval(update, 60000);
+        }
+
+        function startMediaSlideshow(id) {
+            if (slideshowIntervals[id]) clearInterval(slideshowIntervals[id]);
+            const card = document.querySelector(`[data-id="${id}"]`);
+            if (!card) return;
+            const items = card.querySelectorAll(`.media-item`);
+            if (items.length <= 1) return;
+            let idx = 0;
+            const next = () => {
+                if (document.hidden) return; // Pausa se a aba não estiver visível
+                items[idx].classList.remove('active');
+                idx = (idx + 1) % items.length;
+                items[idx].classList.add('active');
+            };
+            slideshowIntervals[id] = setInterval(next, 5000);
+        }
+
+        function renderFilters(campaigns) {
+            const typesInUse = [...new Set(campaigns.map(c => c.type))];
+            let buttonsHtml = `<button data-filter="all" class="filter-btn active bg-gray-700 text-white font-semibold py-2 px-4 rounded-full shadow-md">Todas</button>`;
+            typesInUse.forEach(type => {
+                const settings = campaignTypeSettings[type] || { label: type };
+                buttonsHtml += `<button data-filter="${type}" class="filter-btn bg-white text-gray-700 font-semibold py-2 px-4 rounded-full shadow-md">${settings.label}</button>`;
+            });
+            filterContainer.innerHTML = buttonsHtml;
+        }
+
+        function setupEventListeners() {
+            filterContainer.addEventListener('click', (e) => {
+                const btn = e.target.closest('button[data-filter]');
+                if (!btn) return;
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    b.classList.remove('active', 'bg-gray-700', 'text-white');
+                    b.classList.add('bg-white', 'text-gray-700');
+                });
+                btn.classList.add('active', 'bg-gray-700', 'text-white');
+                btn.classList.remove('bg-white', 'text-gray-700');
+                renderAllCampaigns();
+            });
+            document.querySelector('main').addEventListener('click', handleListClick);
+        }
+        
         async function handleListClick(e) {
             const likeButton = e.target.closest('.like-button');
-            if (likeButton) { /* Lógica de like (sem alterações) */ return; }
+            if (likeButton) {
+                if (!currentUserSession?.auth) { showAlertModal("Ação necessária", "Você precisa estar logado para curtir."); return; }
+                if (!currentUserSession.isVerified) { showAlertModal("Verifique seu E-mail", "Você precisa verificar seu e-mail para poder curtir."); return; }
+                const campaignId = likeButton.dataset.campaignId, donorId = likeButton.dataset.donorId, likerId = currentUserSession.auth.uid;
+                const likeDocRef = doc(db, paths.likeDoc(`${campaignId}_${donorId}_${likerId}`));
+                try {
+                    if (likeButton.classList.contains('liked')) { await deleteDoc(likeDocRef); }
+                    else { await setDoc(likeDocRef, { campaignId, donorId, likerId, likerName: currentUserSession.profile.displayName || 'Usuário', likerPhotoURL: currentUserSession.profile.photoURL || null, createdAt: serverTimestamp() }); }
+                } catch (error) { console.error("Erro ao curtir:", error); showAlertModal("Erro", "Não foi possível registrar sua curtida."); }
+                return;
+            }
 
             const card = e.target.closest('.campaign-card');
             if (card) {
-                // REGRA DE AUTENTICAÇÃO APLICADA A TODOS OS CARDS
                 if (!currentUserSession?.auth) {
                     showAlertModal("Acesso Restrito", "Você precisa estar logado para ver os detalhes da campanha. Por favor, faça o login.");
                     return;
                 }
-                
                 const campaignId = card.dataset.id;
                 if (!campaignId) return;
                 window.location.href = `detalhes.html?id=${campaignId}`;
             }
         }
-        
-        // Funções restantes (renderCampaigns, startCountdown, etc) sem alterações críticas
-        function renderCampaigns(campaigns, listKey) { const listEl = campaignLists[listKey], emptyEl = emptyPlaceholders[listKey]; if (!listEl || !emptyEl) return; listEl.innerHTML = ''; if (campaigns.length === 0) { emptyEl.classList.remove('hidden'); } else { emptyEl.classList.add('hidden'); campaigns.forEach(c => { const d = allDonations.filter(don => don.campaignId === c.id); const l = allLikes.filter(lk => lk.campaignId === c.id); listEl.innerHTML += createCampaignCard(c, d, l, listKey); }); campaigns.forEach(c => { if (listKey === 'active' && !c.expiresAt?.toDate() || c.expiresAt.toDate() > new Date()) { startCountdown(c.id, c.expiresAt?.toDate()); startMediaSlideshow(c.id); } }); } }
-        function startCountdown(id, expiresAt) { if (!expiresAt || countdownIntervals[id]) return; const el = document.getElementById(`countdown-${id}`); if (!el) return; const update = () => { const dist = expiresAt.getTime() - new Date().getTime(); if (dist < 0) { clearInterval(countdownIntervals[id]); el.parentElement.innerHTML = 'Encerrada'; return; } const d = Math.floor(dist / 864e5), h = Math.floor(dist % 864e5 / 36e5); el.textContent = `Encerra em: ${d}d ${h}h`; }; update(); countdownIntervals[id] = setInterval(update, 6e4); }
-        function startMediaSlideshow(id) { if (slideshowIntervals[id]) clearInterval(slideshowIntervals[id]); const card = document.querySelector(`[data-id="${id}"]`); if (!card) return; const items = card.querySelectorAll(`.media-item`); if (items.length <= 1) return; let idx = 0; const next = () => { items[idx].classList.remove('active'); idx = (idx + 1) % items.length; items[idx].classList.add('active'); }; slideshowIntervals[id] = setInterval(next, 5000); }
-        function renderFilters(campaigns) { const counts = campaigns.reduce((acc, c) => { acc[c.type] = (acc[c.type] || 0) + 1; return acc; }, {}); let html = `<button data-filter="all" class="filter-btn active bg-gray-700 text-white font-semibold py-2 px-4 rounded-full shadow-md">Todas (${campaigns.length})</button>`; for (const type in counts) { const s = campaignTypeSettings[type] || { label: type }; html += `<button data-filter="${type}" class="filter-btn bg-white text-gray-700 font-semibold py-2 px-4 rounded-full shadow-md">${s.label} (${counts[type]})</button>`; } filterContainer.innerHTML = html; }
-        function setupEventListeners() { filterContainer.addEventListener('click', (e) => { const btn = e.target.closest('button[data-filter]'); if (!btn) return; document.querySelectorAll('.filter-btn').forEach(b => { b.classList.remove('active', 'bg-gray-700', 'text-white'); b.classList.add('bg-white', 'text-gray-700'); }); btn.classList.add('active', 'bg-gray-700', 'text-white'); btn.classList.remove('bg-white', 'text-gray-700'); renderAllCampaigns(); }); document.querySelector('main').addEventListener('click', handleListClick); }
         
         initializeApp();
     </script>
