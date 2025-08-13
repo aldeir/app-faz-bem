@@ -16,54 +16,83 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
+        /* Estilos base herdados */
         body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #22c55e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
         .urgent-badge { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         @keyframes pulse { 50% { opacity: .7; } }
-        
         .donor-avatar-container { position: relative; display: inline-block; }
         .donor-avatar { transition: transform 0.2s ease-in-out; }
         .donor-avatar:hover { transform: scale(1.1); z-index: 10; }
-        .star-badge {
-            position: absolute; bottom: -2px; right: -4px;
-            background-color: #f59e0b; color: white; border-radius: 50%;
-            width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
-            border: 2px solid white; z-index: 11;
-        }
-        .like-button {
-            cursor: pointer; display: flex; align-items: center; gap: 4px;
-            font-size: 12px; color: #6b7280; transition: color 0.2s;
-        }
+        .star-badge { position: absolute; bottom: -2px; right: -4px; background-color: #f59e0b; color: white; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; border: 2px solid white; z-index: 11; }
+        .like-button { cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px; color: #6b7280; transition: color 0.2s; }
         .like-button:hover, .like-button.liked { color: #ef4444; }
         .campaign-card { cursor: pointer; }
         .media-container { position: relative; }
         .media-item { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity 1s ease-in-out; opacity: 0; }
         .media-item.active { opacity: 1; z-index: 1; }
 
-        /* --- NOVOS ESTILOS PARA ABAS --- */
-        .tab-button {
-            padding: 10px 20px;
-            cursor: pointer;
-            border: none;
-            background-color: transparent;
-            border-bottom: 3px solid transparent;
-            font-weight: 500;
-            color: #6b7280;
-            transition: all 0.2s ease-in-out;
+        /* --- ESTILO PARA CAMPANHAS ENCERRADAS --- */
+        .campaign-encerrada {
+            filter: grayscale(100%);
+            opacity: 0.8;
+            pointer-events: none; /* Desativa cliques e hovers nos filhos */
+            cursor: default;
         }
-        .tab-button:hover { color: #16a34a; }
-        .tab-button.active-tab {
-            color: #15803d;
-            border-bottom-color: #15803d;
+        .campaign-encerrada .like-button, .campaign-encerrada .donor-avatar {
+            pointer-events: none;
+        }
+        .campaign-card:not(.campaign-encerrada):hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        /* --- NOVOS ESTILOS PARA O ACORDEÃO --- */
+        .accordion-header {
+            width: 100%;
+            background-color: #f9fafb; /* bg-gray-50 */
+            border: 1px solid #e5e7eb; /* border-gray-200 */
+            border-radius: 0.5rem;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            font-size: 1.25rem;
             font-weight: 600;
         }
-        .tab-content {
-            display: none; /* Inicia escondido */
-            animation: fadeIn 0.5s;
+        .accordion-header:hover {
+            background-color: #f3f4f6; /* bg-gray-100 */
         }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .accordion-header.active {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            border-bottom-color: transparent;
+        }
+        .accordion-arrow {
+            width: 1.5rem;
+            height: 1.5rem;
+            transition: transform 0.3s ease-in-out;
+        }
+        .accordion-header.active .accordion-arrow {
+            transform: rotate(180deg);
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+            padding: 0; /* O padding será adicionado ao conteúdo interno */
+        }
+        .accordion-content-inner {
+            padding: 1.5rem;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -77,35 +106,45 @@
                 <p class="text-lg text-gray-600 mt-2">Conectando corações e transformando vidas.</p>
             </header>
 
-            <div id="campaigns-container">
-                <div class="border-b border-gray-200 mb-4">
-                    <nav class="flex justify-center space-x-2 md:space-x-4" aria-label="Tabs">
-                        <button class="tab-button active-tab" onclick="openTab(event, 'ativas')">
-                            Ativas <span id="count-ativas" class="text-xs ml-1"></span>
-                        </button>
-                        <button id="tab-proximas" class="tab-button" onclick="openTab(event, 'proximas')" style="display: none;">
-                            Próximas <span id="count-proximas" class="text-xs ml-1"></span>
-                        </button>
-                        <button id="tab-recentes" class="tab-button" onclick="openTab(event, 'recentes')" style="display: none;">
-                            Encerradas <span id="count-recentes" class="text-xs ml-1"></span>
-                        </button>
-                    </nav>
+            <div class="space-y-4">
+                <div class="accordion-item">
+                    <button class="accordion-header active" onclick="toggleAccordion(this, 'content-ativas')">
+                        <span>Campanhas Ativas <span id="count-ativas" class="font-normal text-gray-500"></span></span>
+                        <svg class="accordion-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="content-ativas" class="accordion-content">
+                        <div class="accordion-content-inner">
+                            <div id="filter-container" class="flex flex-wrap justify-center gap-2 mb-8"></div>
+                            <div id="active-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+                            <p id="active-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha ativa no momento.</p>
+                        </div>
+                    </div>
                 </div>
 
-                <div id="ativas" class="tab-content">
-                    <div id="filter-container" class="flex flex-wrap justify-center gap-2 mb-8"></div>
-                    <div id="active-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-                    <p id="active-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha ativa no momento.</p>
+                <div id="accordion-proximas" class="accordion-item" style="display: none;">
+                    <button class="accordion-header" onclick="toggleAccordion(this, 'content-proximas')">
+                        <span>Próximas Campanhas <span id="count-proximas" class="font-normal text-gray-500"></span></span>
+                        <svg class="accordion-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="content-proximas" class="accordion-content">
+                        <div class="accordion-content-inner">
+                            <div id="upcoming-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+                            <p id="upcoming-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha programada no momento.</p>
+                        </div>
+                    </div>
                 </div>
 
-                <div id="proximas" class="tab-content">
-                    <div id="upcoming-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-                    <p id="upcoming-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha programada no momento.</p>
-                </div>
-
-                <div id="recentes" class="tab-content">
-                    <div id="recent-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-                    <p id="recent-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha encerrada para exibir.</p>
+                <div id="accordion-recentes" class="accordion-item" style="display: none;">
+                    <button class="accordion-header" onclick="toggleAccordion(this, 'content-recentes')">
+                        <span>Campanhas Encerradas <span id="count-recentes" class="font-normal text-gray-500"></span></span>
+                        <svg class="accordion-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="content-recentes" class="accordion-content">
+                         <div class="accordion-content-inner">
+                            <div id="recent-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+                            <p id="recent-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha encerrada para exibir.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="loading-container" class="text-center py-10">
@@ -146,12 +185,19 @@
     </div>
     
     <script>
-        // Função para navegação em abas (pode ser movida para um arquivo JS se preferir)
-        function openTab(event, tabName) {
-            document.querySelectorAll(".tab-content").forEach(content => content.style.display = "none");
-            document.querySelectorAll(".tab-button").forEach(button => button.classList.remove("active-tab"));
-            document.getElementById(tabName).style.display = "block";
-            event.currentTarget.classList.add("active-tab");
+        // Nova função para o Acordeão
+        function toggleAccordion(headerElement, contentId) {
+            const contentElement = document.getElementById(contentId);
+            headerElement.classList.toggle('active');
+
+            if (contentElement.style.maxHeight) {
+                contentElement.style.maxHeight = null;
+            } else {
+                // Adiciona um pequeno delay para a renderização inicial caso o elemento estivesse escondido
+                setTimeout(() => {
+                   contentElement.style.maxHeight = contentElement.scrollHeight + "px";
+                }, 50);
+            }
         }
     </script>
     <script type="module">
@@ -161,6 +207,7 @@
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal } from './modal-handler.js';
 
+        // Suas constantes e variáveis de estado permanecem as mesmas
         const loadingContainer = document.getElementById('loading-container');
         const filterContainer = document.getElementById('filter-container');
         const campaignLists = {
@@ -183,12 +230,17 @@
             currentUserSession = await getCurrentUser();
             setupDataListeners();
             setupEventListeners();
-            // Inicia a aba 'ativas' por padrão
-            document.querySelector('.tab-button[onclick*="ativas"]').click();
+            
+            // Abre o primeiro item do acordeão por padrão
+            const firstHeader = document.querySelector('.accordion-header');
+            const firstContent = document.querySelector('.accordion-content');
+            if(firstHeader && firstContent) {
+                firstHeader.classList.add('active');
+                // O max-height será ajustado na primeira renderização
+            }
         }
 
         function setupDataListeners() {
-            // Seu código de listeners permanece o mesmo
             const settingsRef = doc(db, paths.configDoc('campaignTypes'));
 
             if (campaignsUnsubscribe) campaignsUnsubscribe();
@@ -217,7 +269,6 @@
             });
         }
         
-        // Função unificada para renderizar tudo
         function renderAllCampaigns() {
             if (allCampaigns.length === 0 || Object.keys(campaignTypeSettings).length === 0) return;
 
@@ -233,14 +284,14 @@
             const upcomingCampaigns = allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt?.toDate() > now);
             const recentCampaigns = allCampaigns.filter(c => c.expiresAt?.toDate() <= now);
 
-            // Atualiza contadores nas abas
+            // Atualiza contadores
             document.getElementById('count-ativas').textContent = `(${activeCampaigns.length})`;
             document.getElementById('count-proximas').textContent = `(${upcomingCampaigns.length})`;
             document.getElementById('count-recentes').textContent = `(${recentCampaigns.length})`;
-
-            // Exibe as abas se tiverem conteúdo
-            document.getElementById('tab-proximas').style.display = upcomingCampaigns.length > 0 ? 'inline-block' : 'none';
-            document.getElementById('tab-recentes').style.display = recentCampaigns.length > 0 ? 'inline-block' : 'none';
+            
+            // Exibe as seções do acordeão se houver conteúdo
+            document.getElementById('accordion-proximas').style.display = upcomingCampaigns.length > 0 ? 'block' : 'none';
+            document.getElementById('accordion-recentes').style.display = recentCampaigns.length > 0 ? 'block' : 'none';
 
             renderFilters(activeCampaigns);
             const currentFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
@@ -249,16 +300,24 @@
             renderCampaigns(filteredActive, 'active');
             renderCampaigns(upcomingCampaigns, 'upcoming');
             renderCampaigns(recentCampaigns, 'recent');
+            
+            // Ajusta o tamanho do acordeão aberto
+            const activeContent = document.querySelector('.accordion-header.active + .accordion-content');
+            if (activeContent) {
+                activeContent.style.maxHeight = activeContent.scrollHeight + 'px';
+            }
         }
 
-        // A função createCampaignCard permanece idêntica
+        // --- ATUALIZAÇÃO IMPORTANTE na função createCampaignCard ---
         function createCampaignCard(campaign, donations, likes, listKey) {
             const settings = campaignTypeSettings[campaign.type] || campaignTypeSettings['default'] || { label: 'Campanha', color: 'gray' };
-            const color = settings.color;
-            const now = new Date();
-            const endDate = campaign.expiresAt?.toDate();
-            const isClosed = !endDate || endDate < now;
             const isCampaignActive = listKey === 'active';
+            const isEncerrada = campaign.expiresAt?.toDate() <= new Date();
+            
+            // Remove as classes de hover para campanhas encerradas
+            const cardClasses = `campaign-card flex flex-col bg-white rounded-xl shadow-md overflow-hidden border-2 border-${settings.color}-500 ${isEncerrada ? 'campaign-encerrada' : 'transition-all duration-300'}`;
+
+            // ... (o restante da sua lógica para criar mediaHtml, statusTag, countdownHtml, goalHtml, donorsHtml permanece O MESMO)
             let mediaHtml = '';
             const mediaItems = [];
             if (campaign.videoUrl) mediaItems.push({ type: 'video', src: campaign.videoUrl });
@@ -305,10 +364,33 @@
                 }).join('');
                 if (donorsWithCompletedItems.length > 5) donorsHtml += `<div class="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 text-gray-600 text-xs font-bold ring-2 ring-white">+${donorsWithCompletedItems.length - 5}</div>`;
             }
-            return `<div data-id="${campaign.id}" class="campaign-card flex flex-col bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow border-2 border-${color}-500"><div class="relative h-48 w-full media-container">${mediaHtml}${isClosed ? `<div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span class="text-white text-xl font-bold uppercase tracking-wider">Encerrada</span></div>` : ''}${statusTag}${countdownHtml}</div><div class="p-6 flex-grow"><div class="flex justify-between items-center mb-2"><p class="uppercase tracking-wide text-sm text-gray-600 font-semibold">${campaign.entityName}</p><span class="text-xs font-semibold px-2 py-1 rounded-full bg-${color}-100 text-${color}-800">${settings.label}</span></div><h3 class="block text-xl leading-tight font-bold text-black truncate" title="${campaign.title}">${campaign.title}</h3><div class="mt-4 space-y-3">${goalHtml}</div></div><div class="px-6 pb-4 border-t mt-auto pt-4"><h4 class="text-sm font-semibold text-gray-700 mb-3">Apoiadores</h4><div class="flex flex-wrap items-end gap-x-2 gap-y-4">${donorsHtml}</div></div></div>`;
+
+            return `
+                <div data-id="${campaign.id}" class="${cardClasses}">
+                    <div class="relative h-48 w-full media-container">
+                        ${mediaHtml}
+                        ${isEncerrada ? `<div class="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center"><span class="text-white text-xl font-bold uppercase tracking-wider">Encerrada</span></div>` : ''}
+                        ${statusTag}
+                        ${countdownHtml}
+                    </div>
+                    <div class="p-6 flex-grow flex flex-col">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="uppercase tracking-wide text-sm text-gray-600 font-semibold">${campaign.entityName}</p>
+                            <span class="text-xs font-semibold px-2 py-1 rounded-full bg-${settings.color}-100 text-${settings.color}-800">${settings.label}</span>
+                        </div>
+                        <h3 class="block text-xl leading-tight font-bold text-black truncate" title="${campaign.title}">${campaign.title}</h3>
+                        <div class="mt-4 space-y-3 flex-grow">${goalHtml}</div>
+                         <div class="px-0 pt-4 border-t mt-4">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Apoiadores</h4>
+                            <div class="flex flex-wrap items-end gap-x-2 gap-y-4">
+                                ${donorsHtml}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
         }
 
-        // A função renderCampaigns permanece praticamente idêntica
+        // As suas outras funções (renderCampaigns, startCountdown, etc.) permanecem as mesmas
         function renderCampaigns(campaigns, listKey) {
             const listEl = campaignLists[listKey];
             const emptyEl = emptyPlaceholders[listKey];
@@ -331,8 +413,6 @@
                 });
             }
         }
-        
-        // As demais funções (startCountdown, startMediaSlideshow, etc.) permanecem idênticas
         function startCountdown(campaignId, expiresAt) {
             if (!expiresAt || countdownIntervals[campaignId]) return;
             const timerEl = document.getElementById(`countdown-${campaignId}`);
@@ -352,7 +432,6 @@
             update();
             countdownIntervals[campaignId] = setInterval(update, 60000);
         }
-
         function startMediaSlideshow(campaignId, videoUrl, imageUrls) {
             if (slideshowIntervals[campaignId]) clearInterval(slideshowIntervals[campaignId]);
             const card = document.querySelector(`[data-id="${campaignId}"]`);
@@ -386,7 +465,6 @@
                 slideshowIntervals[campaignId] = setInterval(playNext, 5000);
             }
         }
-
         function renderFilters(campaigns) {
             const counts = campaigns.reduce((acc, campaign) => { acc[campaign.type] = (acc[campaign.type] || 0) + 1; return acc; }, {});
             let buttonsHtml = `<button data-filter="all" class="filter-btn active bg-gray-700 text-white font-semibold py-2 px-4 rounded-full shadow-md">Todas (${campaigns.length})</button>`;
@@ -396,7 +474,6 @@
             }
             filterContainer.innerHTML = buttonsHtml;
         }
-
         function setupEventListeners() {
             filterContainer.addEventListener('click', (e) => {
                 const button = e.target.closest('button[data-filter]');
@@ -407,41 +484,29 @@
                 });
                 button.classList.add('active', 'bg-gray-700', 'text-white');
                 button.classList.remove('bg-white', 'text-gray-700');
-                renderAllCampaigns(); // Apenas re-renderiza tudo com o novo filtro
+                renderAllCampaigns();
             });
-            document.getElementById('campaigns-container').addEventListener('click', handleListClick);
+            document.querySelector('main').addEventListener('click', handleListClick);
         }
-
         async function handleListClick(e) {
-            // A sua função handleListClick permanece idêntica
             const likeButton = e.target.closest('.like-button');
             if (likeButton) {
-                if (!currentUserSession?.auth) {
-                    showAlertModal("Ação necessária", "Você precisa estar logado para curtir.");
-                    return;
-                }
-                if (!currentUserSession.isVerified) {
-                    showAlertModal("Verifique seu E-mail", "Você precisa verificar seu e-mail para poder curtir. Verifique sua caixa de entrada ou o banner no topo da página.");
-                    return;
-                }
+                if (!currentUserSession?.auth) { showAlertModal("Ação necessária", "Você precisa estar logado para curtir."); return; }
+                if (!currentUserSession.isVerified) { showAlertModal("Verifique seu E-mail", "Você precisa verificar seu e-mail para poder curtir."); return; }
                 const campaignId = likeButton.dataset.campaignId;
                 const donorId = likeButton.dataset.donorId;
                 const likerId = currentUserSession.auth.uid;
                 const likeDocRef = doc(db, paths.likeDoc(`${campaignId}_${donorId}_${likerId}`));
                 try {
-                    if (likeButton.classList.contains('liked')) {
-                        await deleteDoc(likeDocRef);
-                    } else {
+                    if (likeButton.classList.contains('liked')) { await deleteDoc(likeDocRef); } 
+                    else {
                         const likerProfile = currentUserSession.profile;
                         await setDoc(likeDocRef, { campaignId, donorId, likerId, likerName: likerProfile.displayName || 'Usuário', likerPhotoURL: likerProfile.photoURL || null, createdAt: serverTimestamp() });
                     }
-                } catch (error) {
-                    console.error("Erro ao curtir:", error);
-                    showAlertModal("Erro", "Não foi possível registrar sua curtida.");
-                }
+                } catch (error) { console.error("Erro ao curtir:", error); showAlertModal("Erro", "Não foi possível registrar sua curtida."); }
                 return;
             }
-            const card = e.target.closest('.campaign-card');
+            const card = e.target.closest('.campaign-card:not(.campaign-encerrada)');
             if (card) {
                 const campaignId = card.dataset.id;
                 if (!campaignId) return;
