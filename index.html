@@ -243,10 +243,10 @@
                 if (videoUrl) mediaItems.push({ type: 'video', src: videoUrl });
                 images.forEach(src => mediaItems.push({ type: 'image', src }));
                 if (mediaItems.length === 0) mediaItems.push({ type: 'image', src: staticImageUrl });
-
+                
                 mediaItems.forEach((media, index) => {
                     if (media.type === 'video') {
-                        mediaHtml += `<video class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" muted autoplay playsinline></video>`;
+                        mediaHtml += `<video id="video-${campaign.id}" class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" muted autoplay playsinline></video>`;
                     } else {
                         const isFirstActive = (index === 0 && !videoUrl) || (index === 1 && videoUrl);
                         mediaHtml += `<img class="media-item ${isFirstActive ? 'active' : ''}" src="${media.src}" alt="${campaign.title}">`;
@@ -256,15 +256,17 @@
                 mediaHtml = `<img class="media-item active" src="${staticImageUrl}" alt="${campaign.title}">`;
             }
 
-            const closedOverlay = isClosed ? `<div class="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-20"><span class="text-white text-xl font-bold uppercase tracking-wider">Encerrada</span></div>` : '';
-            
-            let goalHtml = '';
-            // ... (código do goalHtml, sem alterações) ...
-            
-            const cardContent = `...`; // Seu HTML para o conteúdo do card
-            return `<div data-id="${campaign.id}" class="campaign-card ...">${cardContent}</div>`;
-        }
+            const cardContent = `...`; // O conteúdo do card que você já tem, incluindo goal, apoiadores, etc.
 
+            return `<div data-id="${campaign.id}" class="campaign-card ...">
+                        <div class="relative h-48 w-full media-container">
+                            ${mediaHtml}
+                            ${isClosed ? `<div class="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-20"><span class="text-white text-xl font-bold uppercase tracking-wider">Encerrada</span></div>` : ''}
+                        </div>
+                        ${cardContent}
+                    </div>`;
+        }
+        
         function startMediaSlideshow(campaignId, videoUrl, imageUrls) {
             // ... (código do carrossel que roda uma vez e para na foto) ...
         }
@@ -282,13 +284,17 @@
                 recentCampaignsContent.classList.toggle('hidden');
                 recentCampaignsToggle.querySelector('.accordion-arrow').classList.toggle('-rotate-90');
             });
-            document.getElementById('campaigns-container').addEventListener('click', (e) => {
-                // ... (seu código handleListClick, agora dentro deste listener)
+            
+            campaignsContainer.addEventListener('click', (e) => {
+                const card = e.target.closest('.campaign-card');
+                if (card) {
+                    const campaignId = card.dataset.id;
+                    if (campaignId) window.location.href = `detalhes.html?id=${campaignId}`;
+                }
             });
         }
 
         initializeApp();
     </script>
-
 </body>
 </html>
