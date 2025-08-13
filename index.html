@@ -84,7 +84,7 @@
             <footer class="text-center mt-20 py-4 border-t">
                 <p class="text-gray-500 text-sm">
                     <span class="font-semibold text-gray-700">
-                        <span class="text-lg align-middle">&copy;</span>ássia & Alice Nery
+                        <span class="text-lg align-middle">&copy;</span>Ássia & Alice Nery
                     </span> 
                     2025 App Faz Bem. Uma iniciativa comunitária.
                 </p>
@@ -270,7 +270,7 @@
                     if (media.type === 'video') {
                         mediaHtml += `<video id="video-${campaign.id}" class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" muted autoplay playsinline></video>`;
                     } else {
-                        const isActive = (index === 0 && !videoUrl) || (index === 1 && videoUrl);
+                        const isActive = (index === 0 && !videoUrl) || (index > 0 && videoUrl && index === 1) || (index === 0 && !videoUrl);
                         mediaHtml += `<img class="media-item ${isActive ? 'active' : ''}" src="${media.src}" alt="Imagem da campanha ${campaign.title}">`;
                     }
                 });
