@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>App Faz Bem - Campanhas</title>
-
+    
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
     <link rel="icon" href="images/icons/icon-72x72.png" type="image/png">
 
-        <link href="/app-faz-bem/style.css" rel="stylesheet">
+    <link href="/app-faz-bem/style.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+    
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #22c55e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
@@ -56,7 +56,7 @@
             </header>
 
             <div id="filter-container" class="flex flex-wrap justify-center gap-2 mb-8"></div>
-
+            
             <div id="active-campaigns-section">
                 <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b-2 border-green-200 pb-2">Campanhas Ativas</h2>
                 <div id="active-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
@@ -81,18 +81,17 @@
                 <p class="mt-4 text-gray-600">A carregar campanhas...</p>
             </div>
 
-                <footer class="text-center mt-20 py-4 border-t">
-                    <p class="text-gray-500 text-sm">
-                        <span class="font-semibold text-gray-700">
-                            <span class="text-lg align-middle">&copy;</span>ássia & @lice Nery
-                        </span> 
-                        2025 App Faz Bem. Uma iniciativa comunitária.
-                    </p>
-                </footer>
-
+            <footer class="text-center mt-20 py-4 border-t">
+                <p class="text-gray-500 text-sm">
+                    <span class="font-semibold text-gray-700">
+                        <span class="text-lg align-middle">&copy;</span>Ássia & Alice Nery
+                    </span> 
+                    2025 App Faz Bem. Uma iniciativa comunitária.
+                </p>
+            </footer>
         </div>
     </main>
-
+    
     <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
@@ -149,7 +148,7 @@
             setupDataListeners();
             setupEventListeners();
         }
-
+        
         function setupDataListeners() {
             const settingsRef = doc(db, paths.configDoc('campaignTypes'));
 
@@ -183,10 +182,10 @@
             if (allCampaigns.length === 0 || Object.keys(campaignTypeSettings).length === 0) {
                  if (loadingContainer.style.display !== 'none' && campaignsUnsubscribe) return;
             }
-
+            
             loadingContainer.style.display = 'none';
             const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.expiresAt?.toDate() > new Date());
-
+            
             renderFilters(activeCampaigns);
             renderAllSections(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
         }
@@ -201,12 +200,12 @@
             const activeCampaigns = allCampaigns.filter(c => c.status === 'active' && c.startsAt?.toDate() <= now && c.expiresAt?.toDate() > now);
             const upcomingCampaigns = allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt?.toDate() > now);
             const recentCampaigns = allCampaigns.filter(c => c.expiresAt?.toDate() <= now);
-
+            
             const filteredActive = (filter === 'all') ? activeCampaigns : activeCampaigns.filter(c => c.type === filter);
-
+            
             renderCampaigns(filteredActive, 'active');
             renderCampaigns(upcomingCampaigns, 'upcoming');
-
+            
             if (filteredActive.length >= 5) {
                 recentCampaignsSection.style.display = 'none';
                 viewAllRecentLink.style.display = 'block';
@@ -223,9 +222,9 @@
 
             const sectionEl = listEl.parentElement;
             const emptyEl = emptyPlaceholders[listKey];
-
+            
             listEl.innerHTML = '';
-
+            
             if (campaigns.length === 0) {
                 if (emptyEl) emptyEl.classList.remove('hidden');
                 if (listKey !== 'active') sectionEl.style.display = 'none';
@@ -237,43 +236,48 @@
                     const campaignLikes = allLikes.filter(l => l.campaignId === campaign.id);
                     listEl.innerHTML += createCampaignCard(campaign, campaignDonations, campaignLikes, listKey);
                 });
-
-                campaigns.forEach(campaign => {
-                    if (listKey === 'active') {
+                
+                if (listKey === 'active') {
+                    campaigns.forEach(campaign => {
                         startCountdown(campaign.id, campaign.expiresAt?.toDate());
                         startMediaSlideshow(campaign.id, campaign.videoUrl, campaign.images || []);
-                    }
-                });
+                    });
+                }
             }
         }
 
         function createCampaignCard(campaign, donations, likes, listKey) {
             const settings = campaignTypeSettings[campaign.type] || campaignTypeSettings['default'] || { label: 'Campanha', color: 'gray' };
             const color = settings.color;
-
+            
             const now = new Date();
             const endDate = campaign.expiresAt?.toDate();
             const isClosed = !endDate || endDate < now;
             const isCampaignActive = listKey === 'active';
 
             let mediaHtml = '';
-            const mediaItems = [];
-            if (campaign.videoUrl) mediaItems.push({ type: 'video', src: campaign.videoUrl });
-            (campaign.images || []).forEach(src => mediaItems.push({ type: 'image', src }));
+            const images = campaign.images || [];
+            const videoUrl = campaign.videoUrl;
+            const staticImageUrl = images.length > 0 ? images[0] : 'https://placehold.co/600x400/e2e8f0/e2e8f0?text=Sem+Imagem';
 
-            if (mediaItems.length === 0) {
-                mediaItems.push({ type: 'image', src: 'https://placehold.co/600x400/e2e8f0/e2e8f0?text=Sem+Imagem' });
+            if (isCampaignActive) {
+                const mediaItems = [];
+                if (videoUrl) mediaItems.push({ type: 'video', src: videoUrl });
+                images.forEach(src => mediaItems.push({ type: 'image', src }));
+                if (mediaItems.length === 0) mediaItems.push({ type: 'image', src: staticImageUrl });
+
+                mediaItems.forEach((media, index) => {
+                    if (media.type === 'video') {
+                        mediaHtml += `<video id="video-${campaign.id}" class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" muted autoplay playsinline></video>`;
+                    } else {
+                        const isActive = (index === 0 && !videoUrl) || (index > 0 && videoUrl && index === 1);
+                        mediaHtml += `<img class="media-item ${isActive ? 'active' : ''}" src="${media.src}" alt="Imagem da campanha ${campaign.title}">`;
+                    }
+                });
+            } else {
+                mediaHtml = `<img class="media-item active" src="${staticImageUrl}" alt="Imagem da campanha ${campaign.title}">`;
             }
-
-            mediaItems.forEach((media, index) => {
-                if (media.type === 'video') {
-                    const autoplay = isCampaignActive ? 'autoplay' : '';
-                    mediaHtml += `<video id="video-${campaign.id}" class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" muted ${autoplay} playsinline></video>`;
-                } else {
-                    mediaHtml += `<img class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" alt="Imagem da campanha ${campaign.title}">`;
-                }
-            });
-
+            
             let statusTag = '';
             if (campaign.status === 'upcoming') {
                 statusTag = `<div class="absolute top-2 left-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">PRÓXIMA</div>`;
@@ -295,7 +299,7 @@
                 const progress = goal > 0 ? Math.min(100, (currentAmount / goal) * 100) : 0;
                 goalHtml = `<div><div class="flex justify-between text-xs font-medium text-gray-500"><span>Meta Atingida</span><span>${currentAmount} / ${goal}</span></div><div class="w-full bg-gray-200 rounded-full h-2 mt-1"><div class="bg-green-500 h-2 rounded-full" style="width: ${progress}%"></div></div></div>`;
             }
-
+            
             const donorsWithCompletedItems = Object.values(donations.reduce((acc, d) => {
                 if (Array.isArray(d.items) && d.items.some(i => i.status === 'completed')) {
                     acc[d.donorId] = d;
@@ -311,7 +315,7 @@
                     const isAnonymous = donation.privacy === 'anonymous';
                     const photoURL = isAnonymous ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A' : donation.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
                     const displayName = isAnonymous ? 'Anônimo' : donation.donorName;
-
+                    
                     return `
                         <div class="text-center">
                             <div class="donor-avatar-container">
@@ -404,7 +408,7 @@
                     }
                 }
             };
-
+            
             if (videoUrl) {
                 const video = card.querySelector(`#video-${campaignId}`);
                 video.onended = () => {
@@ -417,7 +421,7 @@
                 slideshowIntervals[campaignId] = setInterval(playNext, 5000);
             }
         }
-
+        
         function renderFilters(campaigns) {
             const counts = campaigns.reduce((acc, campaign) => { acc[campaign.type] = (acc[campaign.type] || 0) + 1; return acc; }, {});
             let buttonsHtml = `<button data-filter="all" class="filter-btn active bg-gray-700 text-white font-semibold py-2 px-4 rounded-full shadow-md">Todas (${campaigns.length})</button>`;
@@ -462,7 +466,7 @@
                 const donorId = likeButton.dataset.donorId;
                 const likerId = currentUserSession.auth.uid;
                 const likeDocRef = doc(db, paths.likeDoc(`${campaignId}_${donorId}_${likerId}`));
-
+                
                 try {
                     if (likeButton.classList.contains('liked')) {
                         await deleteDoc(likeDocRef);
@@ -483,7 +487,7 @@
                 }
                 return;
             }
-
+            
             const card = e.target.closest('.campaign-card');
             if (card) {
                 const campaignId = card.dataset.id;
