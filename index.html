@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>App Faz Bem - Campanhas</title>
-    
+
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/app-faz-bem/images/icons/icon-192x192.png">
@@ -14,11 +14,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #22c55e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .campaign-section:not(:empty) { margin-top: 2.5rem; }
+        .filter-btn { transition: all 0.2s ease-in-out; }
+        .filter-btn.active { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+        .urgent-badge { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 50% { opacity: .7; } }
         .donor-avatar-container { position: relative; display: inline-block; }
         .donor-avatar { transition: transform 0.2s ease-in-out; }
         .donor-avatar:hover { transform: scale(1.1); z-index: 10; }
@@ -41,14 +46,15 @@
         .accordion-content {
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
-            padding-top: 0;
-            padding-bottom: 0;
+            transition: max-height 0.5s ease-out, padding 0.5s ease-out;
+            padding-left: 1.5rem; /* px-6 */
+            padding-right: 1.5rem; /* px-6 */
         }
         .accordion-content.open {
             max-height: 10000px; /* Um valor alto para permitir a expansão */
-            padding-top: 1.5rem; /* 24px */
-            padding-bottom: 1.5rem; /* 24px */
+            transition: max-height 1s ease-in, padding 0.5s ease-in;
+            padding-top: 1.5rem;
+            padding-bottom: 1.5rem;
         }
     </style>
 </head>
@@ -74,7 +80,7 @@
                         <h2 class="text-xl font-bold text-green-700">Campanhas Ativas</h2>
                         <svg class="accordion-arrow w-6 h-6 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
-                    <div id="active-campaigns-content" class="accordion-content open px-6">
+                    <div id="active-campaigns-content" class="accordion-content open">
                         <div id="filter-container" class="flex flex-wrap justify-center gap-2 mb-6"></div>
                         <div id="active-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
                         <p id="active-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha ativa no momento.</p>
@@ -108,7 +114,7 @@
                     <span class="font-semibold text-gray-700">
                         <span class="text-lg align-middle">&copy;</span>ássia & @lice Nery
                     </span> 
-                    2025 App Faz Bem. Uma iniciativa comunitária.
+                    2025 App Faz Bem. Uma iniciativa comunitária. teste
                 </p>
             </footer>
         </div>
@@ -161,7 +167,11 @@
         const recentCampaignsList = document.getElementById('recent-campaigns-list');
         const recentCampaignsEmpty = document.getElementById('recent-campaigns-empty');
 
-        let allCampaigns = [], allDonations = [], allLikes = [], currentUserSession = null, campaignTypeSettings = {};
+        let allCampaigns = [];
+        let allDonations = [];
+        let allLikes = [];
+        let currentUserSession = null;
+        let campaignTypeSettings = {};
         let campaignsUnsubscribe, donationsUnsubscribe, likesUnsubscribe, settingsUnsubscribe;
         let slideshowIntervals = {};
 
@@ -174,25 +184,24 @@
         
         function setupDataListeners() {
             const settingsRef = doc(db, paths.configDoc('campaignTypes'));
+
+            if (campaignsUnsubscribe) campaignsUnsubscribe();
+            if (donationsUnsubscribe) donationsUnsubscribe();
+            if (likesUnsubscribe) likesUnsubscribe();
             if (settingsUnsubscribe) settingsUnsubscribe();
+
             settingsUnsubscribe = onSnapshot(settingsRef, (snapshot) => {
                 campaignTypeSettings = snapshot.exists() ? snapshot.data() : { 'default': { label: 'Outro', color: 'gray' } };
                 renderUI();
             });
-
-            if (campaignsUnsubscribe) campaignsUnsubscribe();
             campaignsUnsubscribe = onSnapshot(query(collection(db, paths.campaigns), orderBy("createdAt", "desc")), (snapshot) => {
                 allCampaigns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderUI();
             });
-
-            if (donationsUnsubscribe) donationsUnsubscribe();
             donationsUnsubscribe = onSnapshot(query(collection(db, paths.donations)), (snapshot) => {
                 allDonations = snapshot.docs.map(doc => doc.data());
                 renderUI();
             });
-
-            if (likesUnsubscribe) likesUnsubscribe();
             likesUnsubscribe = onSnapshot(query(collection(db, paths.likes)), (snapshot) => {
                 allLikes = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 renderUI();
@@ -277,31 +286,82 @@
             
             const goalHtml = `...`; // Seu HTML para a barra de progresso, etc.
             const donorsHtml = `...`; // Seu HTML para a lista de apoiadores
-            const closedOverlay = isClosed ? `<div class="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-20"><span class="text-white text-xl font-bold uppercase tracking-wider">Encerrada</span></div>` : '';
+            const cardContent = `...`; // O conteúdo do card que você já tem
 
-            return `
-                <div data-id="${campaign.id}" class="campaign-card flex flex-col bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow border-2 border-${settings.color}-500">
-                    <div class="relative h-48 w-full media-container">
-                        ${mediaHtml}
-                        ${closedOverlay}
+            return `<div data-id="${campaign.id}" class="campaign-card ...">
+                        <div class="relative h-48 w-full media-container">
+                            ${mediaHtml}
+                            ${isClosed ? `<div class="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-20"><span class="text-white text-xl font-bold uppercase tracking-wider">Encerrada</span></div>` : ''}
                         </div>
-                    <div class="p-6 flex-grow">
-                        ${goalHtml}
-                    </div>
-                    <div class="px-6 pb-4 border-t mt-auto pt-4">
-                        <h4 class="text-sm font-semibold text-gray-700 mb-3">Apoiadores</h4>
-                        <div class="flex flex-wrap items-end gap-x-2 gap-y-4">
-                            ${donorsHtml}
-                        </div>
-                    </div>
-                </div>`;
+                        ${cardContent}
+                    </div>`;
         }
-
+        
         function startMediaSlideshow(campaignId, videoUrl, imageUrls) {
-            // ... (código do carrossel que roda uma vez e para na foto) ...
+            if (slideshowIntervals[campaignId]) clearInterval(slideshowIntervals[campaignId]);
+            const card = document.querySelector(`[data-id="${campaignId}"]`);
+            if (!card) return;
+            const mediaItems = card.querySelectorAll(`.media-item`);
+            if (mediaItems.length <= 1) return;
+
+            let currentIndex = 0;
+            let loops = 0;
+            const maxLoops = 1;
+
+            const playNext = () => {
+                mediaItems[currentIndex].classList.remove('active');
+                currentIndex = (currentIndex + 1) % mediaItems.length;
+                mediaItems[currentIndex].classList.add('active');
+
+                if (currentIndex === 0) {
+                    loops++;
+                    if (loops >= maxLoops) {
+                        clearInterval(slideshowIntervals[campaignId]);
+                        const firstImage = Array.from(mediaItems).find(item => item.tagName === 'IMG');
+                        if (firstImage) {
+                            mediaItems.forEach(item => item.classList.remove('active'));
+                            firstImage.classList.add('active');
+                        }
+                    }
+                }
+            };
+            
+            if (videoUrl) {
+                const video = card.querySelector(`#video-${campaignId}`);
+                video.onended = () => {
+                    playNext();
+                    if (mediaItems.length > 2) {
+                        slideshowIntervals[campaignId] = setInterval(playNext, 5000);
+                    }
+                };
+            } else {
+                slideshowIntervals[campaignId] = setInterval(playNext, 5000);
+            }
+        }
+        
+        function renderFilters(campaigns) {
+            const counts = campaigns.reduce((acc, campaign) => { acc[campaign.type] = (acc[campaign.type] || 0) + 1; return acc; }, {});
+            let buttonsHtml = `<button data-filter="all" class="filter-btn active bg-gray-700 text-white font-semibold py-2 px-4 rounded-full shadow-md">Todas (${campaigns.length})</button>`;
+            for (const type in counts) {
+                const settings = campaignTypeSettings[type] || { label: type };
+                buttonsHtml += `<button data-filter="${type}" class="filter-btn bg-white text-gray-700 font-semibold py-2 px-4 rounded-full shadow-md">${settings.label} (${counts[type]})</button>`;
+            }
+            filterContainer.innerHTML = buttonsHtml;
         }
 
         function setupEventListeners() {
+            filterContainer.addEventListener('click', (e) => {
+                const button = e.target.closest('button[data-filter]');
+                if (!button) return;
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('active', 'bg-gray-700', 'text-white');
+                    btn.classList.add('bg-white', 'text-gray-700');
+                });
+                button.classList.add('active', 'bg-gray-700', 'text-white');
+                button.classList.remove('bg-white', 'text-gray-700');
+                renderUI(); // Re-renderiza tudo com o novo filtro
+            });
+
             activeCampaignsToggle.addEventListener('click', () => {
                 activeCampaignsContent.classList.toggle('open');
                 activeCampaignsToggle.querySelector('.accordion-arrow').classList.toggle('-rotate-90');
@@ -316,12 +376,22 @@
             });
             
             campaignsContainer.addEventListener('click', (e) => {
-                // ... (código para tratar cliques em "curtir" e nos cards)
+                const likeButton = e.target.closest('.like-button');
+                if (likeButton) {
+                    // Lógica de curtir
+                    return;
+                }
+                
+                const card = e.target.closest('.campaign-card');
+                if (card) {
+                    const campaignId = card.dataset.id;
+                    if (campaignId) window.location.href = `detalhes.html?id=${campaignId}`;
+                }
             });
         }
         
         initializeApp();
     </script>
+
 </body>
 </html>
-
