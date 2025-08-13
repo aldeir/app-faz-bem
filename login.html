@@ -8,6 +8,7 @@
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/icons/icon-192x192.png">
+    <link rel="icon" href="images/icons/icon-72x72.png" type="image/png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,6 +21,7 @@
 </head>
 <body class="bg-gray-100">
 
+    <div id="app-header"></div>
     <div id="app-container">
         <div id="login-view">
             <div class="min-h-screen flex items-center justify-center py-12 px-4">
@@ -67,11 +69,18 @@
         import { auth, db, ADMIN_EMAIL } from './app-config.js';
         import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, getAdditionalUserInfo, doc, getDoc, setDoc } from './firebase-services.js';
         import { paths } from './firestore-paths.js';
+        // --- INÍCIO DA ALTERAÇÃO: Importação da função do header ---
+        import { injectHeader } from './app-header.js';
+        // --- FIM DA ALTERAÇÃO ---
 
         const loginForm = document.getElementById('login-form');
         const googleLoginBtn = document.getElementById('google-login-btn');
         const errorDiv = document.getElementById('login-error');
         let isRedirecting = false;
+
+        // --- INÍCIO DA ALTERAÇÃO: Chamada da função do header ---
+        injectHeader();
+        // --- FIM DA ALTERAÇÃO ---
 
         const getRedirectUrl = () => {
             const params = new URLSearchParams(window.location.search);
