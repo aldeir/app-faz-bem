@@ -2571,3 +2571,42 @@ video {
     padding-right: 2rem;
   }
 }
+
+/* Estilos para o sistema de Abas de Campanhas */
+
+.tab-button {
+  padding: 10px 20px;
+  cursor: pointer;
+  border: none;
+  background-color: transparent;
+  border-bottom: 3px solid transparent;
+  font-weight: 500;
+  color: #6b7280; /* Cor de texto padrão (cinza) */
+  transition: all 0.2s ease-in-out;
+}
+
+.tab-button:hover {
+  color: #16a34a; /* Cor de texto ao passar o mouse (verde) */
+}
+
+/* Estilo para a aba ativa */
+.tab-button.active-tab {
+  color: #15803d; /* Cor de texto da aba ativa (verde escuro) */
+  border-bottom: 3px solid #15803d; /* Borda inferior da aba ativa */
+  font-weight: 600;
+}
+
+/* O conteúdo das abas inativas fica escondido */
+.tab-content {
+  display: block; /* Por padrão, é visível, o JS vai controlar */
+  animation: fadeIn 0.5s; /* Animação suave ao trocar de aba */
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
