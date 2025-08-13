@@ -38,7 +38,18 @@
         .media-item { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity 1s ease-in-out; opacity: 0; }
         .media-item.active { opacity: 1; z-index: 1; }
         .accordion-arrow { transition: transform 0.3s ease; }
-        .accordion-content.hidden { display: none; }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        .accordion-content.open {
+            max-height: 10000px; /* Um valor alto para permitir a expansão */
+            padding-top: 1.5rem; /* 24px */
+            padding-bottom: 1.5rem; /* 24px */
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -57,34 +68,35 @@
                 <p class="mt-4 text-gray-600">A carregar campanhas...</p>
             </div>
             
-            <div id="campaigns-container" class="hidden space-y-6">
-                <div id="active-campaigns-section" class="accordion-section">
-                    <button id="active-campaigns-toggle" class="accordion-toggle flex justify-between items-center w-full text-left p-4 bg-green-100 rounded-t-lg border-b-2 border-green-200">
-                        <h2 class="text-2xl font-semibold text-green-800">Campanhas Ativas</h2>
-                        <svg class="accordion-arrow w-6 h-6 text-green-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            <div id="campaigns-container" class="hidden space-y-4">
+                <div id="active-campaigns-section" class="accordion-section bg-white rounded-lg shadow-md">
+                    <button id="active-campaigns-toggle" class="accordion-toggle flex justify-between items-center w-full text-left p-4">
+                        <h2 class="text-xl font-bold text-green-700">Campanhas Ativas</h2>
+                        <svg class="accordion-arrow w-6 h-6 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
-                    <div id="active-campaigns-content" class="accordion-content bg-white p-6 rounded-b-lg">
+                    <div id="active-campaigns-content" class="accordion-content open px-6">
+                        <div id="filter-container" class="flex flex-wrap justify-center gap-2 mb-6"></div>
                         <div id="active-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
                         <p id="active-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha ativa no momento.</p>
                     </div>
                 </div>
 
-                <div id="upcoming-campaigns-section" class="accordion-section hidden">
-                    <button id="upcoming-campaigns-toggle" class="accordion-toggle flex justify-between items-center w-full text-left p-4 bg-blue-100 rounded-lg">
-                        <h2 class="text-2xl font-semibold text-blue-800">Próximas Campanhas</h2>
-                        <svg class="accordion-arrow w-6 h-6 text-blue-800 transform -rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                <div id="upcoming-campaigns-section" class="accordion-section hidden bg-white rounded-lg shadow-md">
+                    <button id="upcoming-campaigns-toggle" class="accordion-toggle flex justify-between items-center w-full text-left p-4">
+                        <h2 class="text-xl font-bold text-blue-700">Próximas Campanhas</h2>
+                        <svg class="accordion-arrow w-6 h-6 text-blue-700 transform -rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
-                    <div id="upcoming-campaigns-content" class="accordion-content hidden bg-white p-6 rounded-b-lg">
+                    <div id="upcoming-campaigns-content" class="accordion-content px-6">
                         <div id="upcoming-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
                     </div>
                 </div>
 
-                <div id="recent-campaigns-section" class="accordion-section">
-                    <button id="recent-campaigns-toggle" class="accordion-toggle flex justify-between items-center w-full text-left p-4 bg-gray-200 rounded-lg">
-                        <h2 class="text-2xl font-semibold text-gray-700">Campanhas Recentes</h2>
-                        <svg class="accordion-arrow w-6 h-6 text-gray-700 transform -rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                <div id="recent-campaigns-section" class="accordion-section bg-white rounded-lg shadow-md">
+                    <button id="recent-campaigns-toggle" class="accordion-toggle flex justify-between items-center w-full text-left p-4">
+                        <h2 class="text-xl font-bold text-gray-600">Campanhas Recentes</h2>
+                        <svg class="accordion-arrow w-6 h-6 text-gray-600 transform -rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
-                    <div id="recent-campaigns-content" class="accordion-content hidden bg-white p-6 rounded-b-lg">
+                    <div id="recent-campaigns-content" class="accordion-content px-6">
                         <div id="recent-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
                         <p id="recent-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha recente encontrada.</p>
                     </div>
@@ -132,14 +144,18 @@
 
         const loadingContainer = document.getElementById('loading-container');
         const campaignsContainer = document.getElementById('campaigns-container');
+        const filterContainer = document.getElementById('filter-container');
+        
         const activeCampaignsToggle = document.getElementById('active-campaigns-toggle');
         const activeCampaignsContent = document.getElementById('active-campaigns-content');
         const activeCampaignsList = document.getElementById('active-campaigns-list');
         const activeCampaignsEmpty = document.getElementById('active-campaigns-empty');
+        
         const upcomingCampaignsSection = document.getElementById('upcoming-campaigns-section');
         const upcomingCampaignsToggle = document.getElementById('upcoming-campaigns-toggle');
         const upcomingCampaignsContent = document.getElementById('upcoming-campaigns-content');
         const upcomingCampaignsList = document.getElementById('upcoming-campaigns-list');
+        
         const recentCampaignsToggle = document.getElementById('recent-campaigns-toggle');
         const recentCampaignsContent = document.getElementById('recent-campaigns-content');
         const recentCampaignsList = document.getElementById('recent-campaigns-list');
@@ -158,24 +174,25 @@
         
         function setupDataListeners() {
             const settingsRef = doc(db, paths.configDoc('campaignTypes'));
-
-            if (campaignsUnsubscribe) campaignsUnsubscribe();
-            if (donationsUnsubscribe) donationsUnsubscribe();
-            if (likesUnsubscribe) likesUnsubscribe();
             if (settingsUnsubscribe) settingsUnsubscribe();
-
             settingsUnsubscribe = onSnapshot(settingsRef, (snapshot) => {
                 campaignTypeSettings = snapshot.exists() ? snapshot.data() : { 'default': { label: 'Outro', color: 'gray' } };
                 renderUI();
             });
+
+            if (campaignsUnsubscribe) campaignsUnsubscribe();
             campaignsUnsubscribe = onSnapshot(query(collection(db, paths.campaigns), orderBy("createdAt", "desc")), (snapshot) => {
                 allCampaigns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderUI();
             });
+
+            if (donationsUnsubscribe) donationsUnsubscribe();
             donationsUnsubscribe = onSnapshot(query(collection(db, paths.donations)), (snapshot) => {
                 allDonations = snapshot.docs.map(doc => doc.data());
                 renderUI();
             });
+
+            if (likesUnsubscribe) likesUnsubscribe();
             likesUnsubscribe = onSnapshot(query(collection(db, paths.likes)), (snapshot) => {
                 allLikes = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 renderUI();
@@ -184,7 +201,6 @@
 
         function renderUI() {
             if (!allCampaigns.length || !Object.keys(campaignTypeSettings).length) return;
-            
             loadingContainer.style.display = 'none';
             campaignsContainer.classList.remove('hidden');
 
@@ -196,7 +212,11 @@
             const upcomingCampaigns = allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt?.toDate() > now);
             const recentCampaigns = allCampaigns.filter(c => c.expiresAt?.toDate() <= now);
             
-            renderCampaigns(activeCampaigns, activeCampaignsList, activeCampaignsEmpty, true);
+            renderFilters(activeCampaigns);
+            const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
+            const filteredActive = (activeFilter === 'all') ? activeCampaigns : activeCampaigns.filter(c => c.type === activeFilter);
+            
+            renderCampaigns(filteredActive, activeCampaignsList, activeCampaignsEmpty, true);
             
             if (upcomingCampaigns.length > 0) {
                 upcomingCampaignsSection.classList.remove('hidden');
@@ -204,7 +224,6 @@
             } else {
                 upcomingCampaignsSection.classList.add('hidden');
             }
-
             renderCampaigns(recentCampaigns, recentCampaignsList, recentCampaignsEmpty, false);
         }
         
@@ -255,45 +274,52 @@
             } else {
                 mediaHtml = `<img class="media-item active" src="${staticImageUrl}" alt="${campaign.title}">`;
             }
+            
+            const goalHtml = `...`; // Seu HTML para a barra de progresso, etc.
+            const donorsHtml = `...`; // Seu HTML para a lista de apoiadores
+            const closedOverlay = isClosed ? `<div class="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-20"><span class="text-white text-xl font-bold uppercase tracking-wider">Encerrada</span></div>` : '';
 
-            const cardContent = `...`; // O conteúdo do card que você já tem, incluindo goal, apoiadores, etc.
-
-            return `<div data-id="${campaign.id}" class="campaign-card ...">
-                        <div class="relative h-48 w-full media-container">
-                            ${mediaHtml}
-                            ${isClosed ? `<div class="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-20"><span class="text-white text-xl font-bold uppercase tracking-wider">Encerrada</span></div>` : ''}
+            return `
+                <div data-id="${campaign.id}" class="campaign-card flex flex-col bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow border-2 border-${settings.color}-500">
+                    <div class="relative h-48 w-full media-container">
+                        ${mediaHtml}
+                        ${closedOverlay}
                         </div>
-                        ${cardContent}
-                    </div>`;
+                    <div class="p-6 flex-grow">
+                        ${goalHtml}
+                    </div>
+                    <div class="px-6 pb-4 border-t mt-auto pt-4">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-3">Apoiadores</h4>
+                        <div class="flex flex-wrap items-end gap-x-2 gap-y-4">
+                            ${donorsHtml}
+                        </div>
+                    </div>
+                </div>`;
         }
-        
+
         function startMediaSlideshow(campaignId, videoUrl, imageUrls) {
             // ... (código do carrossel que roda uma vez e para na foto) ...
         }
 
         function setupEventListeners() {
             activeCampaignsToggle.addEventListener('click', () => {
-                activeCampaignsContent.classList.toggle('hidden');
+                activeCampaignsContent.classList.toggle('open');
                 activeCampaignsToggle.querySelector('.accordion-arrow').classList.toggle('-rotate-90');
             });
             upcomingCampaignsToggle.addEventListener('click', () => {
-                upcomingCampaignsContent.classList.toggle('hidden');
+                upcomingCampaignsContent.classList.toggle('open');
                 upcomingCampaignsToggle.querySelector('.accordion-arrow').classList.toggle('-rotate-90');
             });
             recentCampaignsToggle.addEventListener('click', () => {
-                recentCampaignsContent.classList.toggle('hidden');
+                recentCampaignsContent.classList.toggle('open');
                 recentCampaignsToggle.querySelector('.accordion-arrow').classList.toggle('-rotate-90');
             });
             
             campaignsContainer.addEventListener('click', (e) => {
-                const card = e.target.closest('.campaign-card');
-                if (card) {
-                    const campaignId = card.dataset.id;
-                    if (campaignId) window.location.href = `detalhes.html?id=${campaignId}`;
-                }
+                // ... (código para tratar cliques em "curtir" e nos cards)
             });
         }
-
+        
         initializeApp();
     </script>
 </body>
