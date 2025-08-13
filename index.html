@@ -52,7 +52,7 @@
         <div class="container mx-auto max-w-4xl p-4 sm:p-6">
             <header class="text-center my-8">
                 <h1 class="text-4xl sm:text-5xl font-bold text-green-600">Faz Bem</h1>
-                <p class="text-lg text-gray-600 mt-2">Conectando corações e transformando vidas em Guaçuí-ES.</p>
+                <p class="text-lg text-gray-600 mt-2">Conectando corações e transformando vidas.</p>
             </header>
 
             <div id="filter-container" class="flex flex-wrap justify-center gap-2 mb-8"></div>
@@ -84,7 +84,7 @@
             <footer class="text-center mt-20 py-4 border-t">
                 <p class="text-gray-500 text-sm">
                     <span class="font-semibold text-gray-700">
-                        <span class="text-lg align-middle">&copy;</span>Ássia Nery
+                        <span class="text-lg align-middle">&copy;</span>ássia & Alice Nery
                     </span> 
                     2025 App Faz Bem. Uma iniciativa comunitária.
                 </p>
@@ -270,7 +270,7 @@
                     if (media.type === 'video') {
                         mediaHtml += `<video id="video-${campaign.id}" class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" muted autoplay playsinline></video>`;
                     } else {
-                        const isActive = index === 0 && !videoUrl;
+                        const isActive = (index === 0 && !videoUrl) || (index === 1 && videoUrl);
                         mediaHtml += `<img class="media-item ${isActive ? 'active' : ''}" src="${media.src}" alt="Imagem da campanha ${campaign.title}">`;
                     }
                 });
