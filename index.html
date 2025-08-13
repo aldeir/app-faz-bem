@@ -45,13 +45,13 @@
             cursor: pointer; transition: background-color 0.2s ease-in-out; font-size: 1.25rem; font-weight: 600;
         }
         .accordion-header:hover { background-color: #f3f4f6; }
-        .accordion-arrow { width: 1.5rem; height: 1.5rem; transition: transform 0.3s ease-in-out; }
+        .accordion-arrow { width: 1.5rem; height: 1.5rem; transition: transform 0.3s ease-in-out; pointer-events: none; }
         .accordion-header.active .accordion-arrow { transform: rotate(180deg); }
         .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; background-color: transparent; }
         .accordion-content-inner { padding: 1.5rem 0.5rem; }
 
         /* Estilos para o Dropdown de Filtro Interno */
-        .filter-dropdown-container { position: relative; }
+        .filter-dropdown-container { position: relative; z-index: 10; }
         .filter-dropdown-menu {
             position: absolute;
             top: 100%;
@@ -89,7 +89,7 @@
 
             <div class="space-y-4">
                 <div class="accordion-item bg-white rounded-lg shadow-sm">
-                    <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <button class="accordion-header" onclick="window.toggleAccordion(this)">
                         <span class="text-gray-800">Campanhas Ativas <span id="count-ativas" class="font-normal text-gray-500"></span></span>
                         <div class="flex items-center gap-4">
                             <div id="filter-dropdown-ativas" class="filter-dropdown-container"></div>
@@ -105,7 +105,7 @@
                     </div>
                 </div>
                 <div id="accordion-proximas" class="accordion-item bg-white rounded-lg shadow-sm" style="display: none;">
-                    <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <button class="accordion-header" onclick="window.toggleAccordion(this)">
                         <span class="text-gray-800">Próximas Campanhas <span id="count-proximas" class="font-normal text-gray-500"></span></span>
                         <div class="flex items-center gap-4">
                             <div id="filter-dropdown-proximas" class="filter-dropdown-container"></div>
@@ -121,7 +121,7 @@
                     </div>
                 </div>
                 <div id="accordion-recentes" class="accordion-item bg-white rounded-lg shadow-sm" style="display: none;">
-                    <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <button class="accordion-header" onclick="window.toggleAccordion(this)">
                         <span class="text-gray-800">Campanhas Encerradas <span id="count-recentes" class="font-normal text-gray-500"></span></span>
                          <div class="flex items-center gap-4">
                             <div id="filter-dropdown-recentes" class="filter-dropdown-container"></div>
@@ -175,22 +175,6 @@
         </div>
     </div>
     
-    <script>
-        function toggleAccordion(headerElement) {
-            const contentElement = headerElement.nextElementSibling;
-            headerElement.classList.toggle('active');
-            if (contentElement.style.maxHeight) {
-                contentElement.style.maxHeight = null;
-            } else {
-                setTimeout(() => { contentElement.style.maxHeight = contentElement.scrollHeight + "px"; }, 50);
-            }
-        }
-        function toggleFilterMenu(key, event) {
-            event.stopPropagation(); // Impede que o clique feche o acordeão
-            const menu = document.getElementById(`filter-menu-${key}`);
-            if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-        }
-    </script>
     <script type="module">
         import { db, paths } from './app-config.js';
         import { collection, onSnapshot, query, orderBy, doc, setDoc, deleteDoc, serverTimestamp } from './firebase-services.js';
@@ -241,7 +225,7 @@
         
         function renderAllSections() {
             const loadingContainer = document.getElementById('loading-container');
-            if (state.allCampaigns.length === 0 || Object.keys(state.settings).length === 0) { loadingContainer.style.display = 'none'; return; }
+            if (state.allCampaigns.length === 0 && Object.keys(state.settings).length > 0) { loadingContainer.style.display = 'none'; return; }
             loadingContainer.style.display = 'none';
             Object.values(countdownIntervals).forEach(clearInterval);
             Object.values(slideshowIntervals).forEach(clearInterval);
@@ -264,12 +248,9 @@
                 firstHeader.classList.add('active');
             }
             
-            // Ajusta altura de qualquer acordeão que esteja ativo
             document.querySelectorAll('.accordion-header.active').forEach(header => {
                 const activeContent = header.nextElementSibling;
-                if (activeContent) {
-                    activeContent.style.maxHeight = activeContent.scrollHeight + 'px';
-                }
+                if (activeContent) activeContent.style.maxHeight = activeContent.scrollHeight + 'px';
             });
         }
 
@@ -320,10 +301,10 @@
 
             const currentFilterLabel = sectionState.filter === 'all' ? 'Filtrar' : (state.settings[sectionState.filter]?.label || sectionState.filter);
             
-            let itemsHtml = `<button class="filter-dropdown-item ${sectionState.filter === 'all' ? 'active' : ''}" onclick="window.setFilter('${sectionKey}', 'all')">Todos os Tipos</button>`;
+            let itemsHtml = `<button class="filter-dropdown-item ${sectionState.filter === 'all' ? 'active' : ''}" onclick="window.setFilter('${sectionKey}', 'all', event)">Todos os Tipos</button>`;
             typesInUse.forEach(type => {
                 const settings = state.settings[type] || { label: type };
-                itemsHtml += `<button class="filter-dropdown-item ${sectionState.filter === type ? 'active' : ''}" onclick="window.setFilter('${sectionKey}', '${type}')">${settings.label}</button>`;
+                itemsHtml += `<button class="filter-dropdown-item ${sectionState.filter === type ? 'active' : ''}" onclick="window.setFilter('${sectionKey}', '${type}', event)">${settings.label}</button>`;
             });
 
             container.innerHTML = `
@@ -339,7 +320,6 @@
             const settings = state.settings[campaign.type] || state.settings['default'] || { label: 'Campanha', color: 'gray' };
             const isCampaignActive = listKey === 'active';
             const isEncerrada = listKey === 'recent' || (campaign.expiresAt?.toDate() && campaign.expiresAt.toDate() <= new Date());
-            
             const cardClasses = `campaign-card flex flex-col bg-white rounded-lg shadow-lg overflow-hidden border-2 border-${settings.color}-500 ${isEncerrada ? 'campaign-encerrada' : 'hover:shadow-xl hover:-translate-y-1'}`;
 
             let mediaHtml = '';
@@ -425,13 +405,9 @@
                 const card = e.target.closest('.campaign-card');
                 const filterContainer = e.target.closest('.filter-dropdown-container');
 
-                if (filterContainer) { e.stopPropagation(); return; } // Impede que o clique no filtro feche o acordeão
-
-                if (likeButton) {
-                    e.stopPropagation(); handleLikeClick(likeButton);
-                } else if (card) {
-                    handleCardClick(card);
-                }
+                if (filterContainer) { return; } // Previne que o clique no container do filtro feche o acordeão
+                if (likeButton) { e.stopPropagation(); handleLikeClick(likeButton); } 
+                else if (card) { handleCardClick(card); }
             });
             window.addEventListener('click', (e) => {
                 if (!e.target.closest('.filter-dropdown-container')) {
@@ -464,14 +440,36 @@
         function startCountdown(id, expiresAt) { if (!expiresAt || countdownIntervals[id]) return; const el = document.getElementById(`countdown-${id}`); if (!el) return; const update = () => { const dist = expiresAt.getTime() - new Date().getTime(); if (dist < 0) { clearInterval(countdownIntervals[id]); el.parentElement.innerHTML = ''; return; } const d = Math.floor(dist / 864e5), h = Math.floor(dist % 864e5 / 36e5); el.textContent = `Encerra em: ${d}d ${h}h`; }; update(); countdownIntervals[id] = setInterval(update, 60000); }
         function startMediaSlideshow(id) { if (slideshowIntervals[id]) return; const card = document.querySelector(`[data-id="${id}"]`); if (!card) return; const items = card.querySelectorAll(`.media-item`); if (items.length <= 1) return; let idx = 0; const next = () => { if (document.hidden) return; items[idx].classList.remove('active'); idx = (idx + 1) % items.length; items[idx].classList.add('active'); }; slideshowIntervals[id] = setInterval(next, 5000); }
         
-        window.toggleFilterMenu = toggleFilterMenu;
-        window.setFilter = (sectionKey, filterValue) => {
+        // Funções Globais Acessíveis pelo HTML via window
+        window.toggleAccordion = (headerElement) => {
+            const contentElement = headerElement.nextElementSibling;
+            headerElement.classList.toggle('active');
+            if (contentElement.style.maxHeight) {
+                contentElement.style.maxHeight = null;
+            } else {
+                setTimeout(() => { contentElement.style.maxHeight = contentElement.scrollHeight + "px"; }, 50);
+            }
+        };
+
+        window.toggleFilterMenu = (key, event) => {
+            event.stopPropagation();
+            const menu = document.getElementById(`filter-menu-${key}`);
+            if (menu) {
+                const isVisible = menu.style.display === 'block';
+                document.querySelectorAll('.filter-dropdown-menu').forEach(m => m.style.display = 'none');
+                menu.style.display = isVisible ? 'none' : 'block';
+            }
+        };
+
+        window.setFilter = (sectionKey, filterValue, event) => {
+            event.stopPropagation();
             state.sections[sectionKey].filter = filterValue;
             state.sections[sectionKey].visibleCount = ITEMS_PER_PAGE;
             renderAllSections();
             const menu = document.getElementById(`filter-menu-${sectionKey}`);
             if (menu) menu.style.display = 'none';
         };
+
         window.loadMore = (sectionKey) => {
             state.sections[sectionKey].visibleCount += ITEMS_PER_PAGE;
             renderAllSections();
