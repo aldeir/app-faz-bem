@@ -92,6 +92,7 @@
                             <div>
                                 <label for="field-id" class="block text-sm font-medium text-gray-600">ID do Campo (gerado do Rótulo, sem espaços/acentos)*</label>
                                 <input type="text" id="field-id" required readonly class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100">
+                                <p id="field-id-warning" class="hidden text-xs text-yellow-600 mt-1">Atenção: Alterar o ID pode afetar dados existentes.</p>
                             </div>
                             <div>
                                 <label for="field-type" class="block text-sm font-medium text-gray-600">Tipo de Campo</label>
@@ -140,8 +141,6 @@
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal, showConfirmationModal } from './modal-handler.js';
 
-        // O código restante é a sua lógica completa e funcional,
-        // com a adição de uma validação extra no formulário de campos personalizados.
         const loadingView = document.getElementById('loading-view');
         const configView = document.getElementById('config-view');
         const campaignTypesList = document.getElementById('campaign-types-list');
@@ -157,6 +156,7 @@
         const customFieldForm = document.getElementById('custom-field-form');
         const fieldLabelInput = document.getElementById('field-label');
         const fieldIdInput = document.getElementById('field-id');
+        const fieldIdWarning = document.getElementById('field-id-warning');
         const fieldTypeSelect = document.getElementById('field-type');
         const fieldOptionsContainer = document.getElementById('field-options-container');
         const fieldOptionsInput = document.getElementById('field-options');
@@ -186,7 +186,6 @@
             const campaignTypesSnap = await getDoc(campaignTypesRef);
             campaignTypesData = campaignTypesSnap.exists() ? campaignTypesSnap.data() : {};
             
-            // Garante que 'fields' seja sempre um array para consistência
             for(const typeId in campaignTypesData) {
                 const fieldsObject = campaignTypesData[typeId].fields;
                 if(fieldsObject && !Array.isArray(fieldsObject)) {
@@ -272,6 +271,8 @@
             submitFieldBtn.textContent = 'Adicionar Campo';
             originalFieldIdInput.value = '';
             fieldIdInput.readOnly = true;
+            fieldIdInput.classList.add('bg-gray-100');
+            fieldIdWarning.classList.add('hidden');
             cancelFieldEditBtn.classList.add('hidden');
             fieldOptionsContainer.classList.add('hidden');
         }
@@ -358,6 +359,8 @@
                 fieldLabelInput.value = fieldData.label;
                 fieldIdInput.value = fieldData.id;
                 fieldIdInput.readOnly = false; // Permite editar o ID
+                fieldIdInput.classList.remove('bg-gray-100');
+                fieldIdWarning.classList.remove('hidden');
                 fieldTypeSelect.value = fieldData.type;
                 fieldRequiredCheckbox.checked = fieldData.required || false;
 
@@ -386,11 +389,10 @@
                 const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
                 const fieldPath = `${campaignTypeId}.fields`;
                 try {
-                    // Adiciona o campo 'order' para salvar a ordem
-                    fields.forEach((field, idx) => field.order = idx);
+                    fields.forEach((field, idx) => field.order = idx); // Atualiza a ordem
                     await updateDoc(campaignTypesRef, { [fieldPath]: fields });
                     if(action !== 'toggle-active') showAlertModal('Sucesso!', 'Operação concluída.');
-                    await loadConfigs(); // Recarrega para obter a nova ordem
+                    await loadConfigs(); // Recarrega para obter os dados atualizados
                     renderCustomFields(campaignTypeId);
                 } catch (error) {
                     showAlertModal('Erro', `Não foi possível salvar a alteração: ${error.message}`);
@@ -404,51 +406,51 @@
         customFieldForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const campaignTypeId = fieldCampaignTypeSelect.value;
-            const fieldId = fieldIdInput.value.trim();
+            let fieldId = fieldIdInput.value.trim();
             const fieldLabel = fieldLabelInput.value.trim();
             const fieldType = fieldTypeSelect.value;
             const isRequired = fieldRequiredCheckbox.checked;
             const originalFieldId = originalFieldIdInput.value;
 
-            // ### VALIDAÇÃO MELHORADA ###
             if (!campaignTypeId || !fieldId || !fieldLabel) {
                 showAlertModal('Erro', 'Tipo de Campanha, Rótulo e ID do Campo são obrigatórios.');
                 return;
             }
 
-            const newFieldData = { id: fieldId, label: fieldLabel, type: fieldType, required: isRequired, active: true };
-            if (fieldType === 'select') {
-                const options = fieldOptionsInput.value.split(',').map(opt => opt.trim()).filter(Boolean);
-                if (options.length === 0) {
-                    showAlertModal('Erro', 'Para "Lista de Opções", forneça as opções separadas por vírgula.');
-                    return;
-                }
-                newFieldData.options = options;
-            }
-            
             const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
             const fields = campaignTypesData[campaignTypeId]?.fields || [];
 
             if (originalFieldId) { // Editando
                 const fieldIndex = fields.findIndex(f => f.id === originalFieldId);
                 if (fieldIndex > -1) {
-                    // Verifica se o novo ID já existe (e não é o campo que estamos editando)
                     if (fields.some((f, idx) => f.id === fieldId && idx !== fieldIndex)) {
                         showAlertModal('Erro', `O ID de campo "${fieldId}" já pertence a outro campo.`);
                         return;
                     }
-                    fields[fieldIndex] = { ...fields[fieldIndex], ...newFieldData };
+                    fields[fieldIndex] = { ...fields[fieldIndex], id: fieldId, label: fieldLabel, type: fieldType, required: isRequired };
                 }
             } else { // Adicionando
+                // ### LÓGICA DE ID ÚNICO ###
+                const uniqueSuffix = Math.random().toString(36).substring(2, 8);
+                fieldId = `${fieldId}_${uniqueSuffix}`;
+
                 if (fields.some(f => f.id === fieldId)) {
-                    showAlertModal('Erro', `O ID de campo "${fieldId}" já existe.`);
+                    showAlertModal('Erro', `O ID de campo "${fieldId}" já existe. Tente um Rótulo ligeiramente diferente.`);
                     return;
+                }
+                const newFieldData = { id: fieldId, label: fieldLabel, type: fieldType, required: isRequired, active: true };
+                if (fieldType === 'select') {
+                    const options = fieldOptionsInput.value.split(',').map(opt => opt.trim()).filter(Boolean);
+                    if (options.length === 0) {
+                        showAlertModal('Erro', 'Para "Lista de Opções", forneça as opções separadas por vírgula.');
+                        return;
+                    }
+                    newFieldData.options = options;
                 }
                 fields.push(newFieldData);
             }
 
             try {
-                // Garante que a ordem seja salva
                 fields.forEach((field, idx) => field.order = idx);
                 await updateDoc(campaignTypesRef, { [`${campaignTypeId}.fields`]: fields });
                 showAlertModal('Sucesso!', 'Campo salvo com sucesso.');
