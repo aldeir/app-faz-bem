@@ -99,7 +99,6 @@
         const modalItemTitle = document.getElementById('modal-item-title');
         const modalItemPhoto = document.getElementById('modal-item-photo');
         const modalItemQrcode = document.getElementById('modal-item-qrcode');
-        // ### NOVO: Elemento para os detalhes no modal ###
         const modalItemDetails = document.getElementById('modal-item-details');
 
         let allUserDonations = [];
@@ -214,6 +213,24 @@
             }
         }
 
+        // ### FUNÇÃO AUXILIAR PARA GERAR HTML DE DETALHES ###
+        function generateItemDetailsHtml(item, campaignType) {
+            let detailsHtml = '<div class="space-y-1 mt-1">';
+            const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
+            
+            // Itera sobre a configuração para manter a ordem e a consistência
+            fieldsConfig.forEach(field => {
+                const key = field.id;
+                const value = item[key];
+                // Exibe apenas se a chave existir no item e não for de mídia/controle
+                if (value && key !== 'type' && key !== 'photoURL' && !field.type.includes('image') && !field.type.includes('video')) {
+                    detailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
+                }
+            });
+            detailsHtml += '</div>';
+            return detailsHtml;
+        }
+
         function createDeliveryCard(donation, campaign, tab) {
             const itemsToDisplay = (donation.items || []).filter(item => {
                 if ((tab === 'scheduled' || tab === 'overdue') && item.status === 'completed') {
@@ -279,10 +296,6 @@
                                   </div>`;
                     break;
                 case 'history':
-                    let receivedDateStr = formattedDate;
-                    if (donation.items[0]?.receivedDate) {
-                        receivedDateStr = donation.items[0].receivedDate.toDate().toLocaleDateString('pt-BR');
-                    }
                     let historyStatusText = 'Não entregue (campanha encerrada)';
                     if (donation.status === 'completed' || (Array.isArray(donation.items) && donation.items.every(i => i.status === 'completed'))) {
                         historyStatusText = `Entregue com sucesso!`;
@@ -319,20 +332,8 @@
                 `;
             }
 
-            const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
-            const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
-
             let itemsHtml = itemsToDisplay.map((item) => {
-                let itemDetailsHtml = '<div class="space-y-1 mt-1">';
-                
-                fieldsConfig.forEach(field => {
-                    const key = field.id;
-                    const value = item[key];
-                    if (value && !mediaFieldIds.has(key) && key !== 'type' && key !== 'photoURL') {
-                        itemDetailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
-                    }
-                });
-                itemDetailsHtml += '</div>';
+                const itemDetailsHtml = generateItemDetailsHtml(item, campaignType);
 
                 return `
                 <div class="item-card flex items-start space-x-4 p-3 bg-gray-50 rounded-md border transition-all ${item.status !== 'completed' ? 'cursor-pointer' : ''}" 
@@ -405,24 +406,12 @@
                 modalItemPhoto.src = itemPhoto || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem';
                 modalItemQrcode.innerHTML = '';
                 
-                // ### LÓGICA ATUALIZADA PARA O MODAL ###
                 const donation = allUserDonations.find(d => d.id === donationId);
                 const item = donation.items[itemIndex];
                 const campaign = campaignsCache.get(donation.campaignId);
-                const campaignType = campaign?.type || 'default';
-                const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
-                const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
-
-                let itemDetailsHtml = '<div class="space-y-1 text-left">';
-                fieldsConfig.forEach(field => {
-                    const key = field.id;
-                    const value = item[key];
-                    if (value && !mediaFieldIds.has(key) && key !== 'type' && key !== 'photoURL') {
-                        itemDetailsHtml += `<p><span class="font-semibold">${field.label}:</span> ${value}</p>`;
-                    }
-                });
-                itemDetailsHtml += '</div>';
-                modalItemDetails.innerHTML = itemDetailsHtml;
+                
+                const itemDetailsHtml = generateItemDetailsHtml(item, campaign?.type || 'default');
+                modalItemDetails.innerHTML = itemDetailsHtml.replace(/text-xs/g, 'text-sm'); // Aumenta a fonte para o modal
                 
                 generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`);
                 itemFocusModal.classList.remove('hidden');
