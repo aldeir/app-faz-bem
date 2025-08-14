@@ -441,7 +441,9 @@
                     allFieldsValid = false;
                 }
                 const file = input.type === 'file' ? input.files[0] : null;
-                customFieldsData[input.name] = file || input.value; 
+                if(input.name) { // Segurança extra para evitar o bug 'undefined'
+                    customFieldsData[input.name] = file || input.value; 
+                }
 
                 if (file && mainPhotoId && input.name === mainPhotoId) {
                     mainPhotoFile = file;
@@ -505,26 +507,20 @@
 
                         const photoURL = item.mainPhotoId ? customFieldsWithUrls[item.mainPhotoId] : null;
 
-                        const fieldsConfig = Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
+                        const fieldsConfig = (Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
                             ? campaignTypeSettings[campaignData.type].fields
-                            : Object.values(campaignTypeSettings[campaignData.type]?.fields || {});
+                            : Object.values(campaignTypeSettings[campaignData.type]?.fields || [])
+                        ).sort((a, b) => (a.order || 0) - (b.order || 0));
 
                         let itemType = campaignData.title; 
                         if (fieldsConfig.length > 0) {
-                            const titleFieldKey = fieldsConfig.find(f => f.isTitle)?.id || fieldsConfig[0].id;
+                            const titleFieldKey = fieldsConfig[0].id;
                             if(customFieldsWithUrls[titleFieldKey]) {
                                 itemType = customFieldsWithUrls[titleFieldKey];
                             }
                         }
 
-                        const finalItemObject = {
-                            ...customFieldsWithUrls,
-                            type: itemType,
-                            photoURL: photoURL,
-                            status: 'pending'
-                        };
-
-                        return finalItemObject;
+                        return { ...customFieldsWithUrls, type: itemType, photoURL: photoURL, status: 'pending' };
                     }));
 
                 const newDonationData = {
@@ -556,7 +552,6 @@
                 
                 // ### CORREÇÃO DA NOTIFICAÇÃO ###
                 const notificationMessage = `O doador ${newDonationData.donorName} ${isRescheduleMode ? 'reagendou' : 'agendou'} uma entrega para a campanha "${newDonationData.campaignTitle}".`;
-                // Se a campanha for do app, notifica o criador (superadmin), senão, notifica a entidade.
                 const targetIdForNotification = newDonationData.entityId === 'app_faz_bem' 
                     ? campaignData.creatorId 
                     : newDonationData.entityId;
