@@ -240,11 +240,17 @@
                 ? typeConfig.fields 
                 : Object.values(typeConfig.fields);
             
+            // ### CORREÇÃO DA ORDEM ###
             const fields = fieldsArray
                 .filter(field => field.active !== false)
-                .sort((a, b) => (a.order || 0) - (b.order || 0));
+                .sort((a, b) => (a.order || 0) - (b.order || 0)); // Garante a ordem definida em configuracoes.html
 
             fields.forEach(field => {
+                if (!field.id || field.id.trim() === '') {
+                    console.warn('Campo dinâmico sem ID foi ignorado:', field);
+                    return;
+                }
+
                 let fieldHtml = '';
                 const requiredStar = field.required ? '<span class="text-red-500">*</span>' : '';
                 const label = `<label for="field-${field.id}" class="block text-sm font-medium text-gray-700">${field.label} ${requiredStar}</label>`;
@@ -341,9 +347,7 @@
                 const addr = campaignData.deliveryAddress;
                 deliveryAddressView.innerHTML = `
                     <div class="flex items-start space-x-3">
-                        <div class="flex-shrink-0">
-                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                        </div>
+                        <div class="flex-shrink-0"><svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></div>
                         <div>
                             <h3 class="text-md font-bold text-gray-800">Local de Entrega</h3>
                             <p class="text-sm text-gray-600 mt-1">
@@ -507,7 +511,7 @@
 
                         let itemType = campaignData.title; 
                         if (fieldsConfig.length > 0) {
-                            const titleFieldKey = fieldsConfig[0].id;
+                            const titleFieldKey = fieldsConfig.find(f => f.isTitle)?.id || fieldsConfig[0].id;
                             if(customFieldsWithUrls[titleFieldKey]) {
                                 itemType = customFieldsWithUrls[titleFieldKey];
                             }
@@ -550,8 +554,13 @@
                     await addDoc(collection(db, paths.donations), newDonationData);
                 }
                 
+                // ### CORREÇÃO DA NOTIFICAÇÃO ###
                 const notificationMessage = `O doador ${newDonationData.donorName} ${isRescheduleMode ? 'reagendou' : 'agendou'} uma entrega para a campanha "${newDonationData.campaignTitle}".`;
-                await createNotification(newDonationData.entityId, notificationMessage, 'gerenciar-agendamentos.html');
+                // Se a campanha for do app, notifica o criador (superadmin), senão, notifica a entidade.
+                const targetIdForNotification = newDonationData.entityId === 'app_faz_bem' 
+                    ? campaignData.creatorId 
+                    : newDonationData.entityId;
+                await createNotification(targetIdForNotification, notificationMessage, 'gerenciar-agendamentos.html');
                 
                 const successMessage = isRescheduleMode ? 'Sua doação foi reagendada com sucesso!' : 'Sua doação foi registrada com sucesso!';
                 await showAlertModal('Sucesso!', successMessage);
