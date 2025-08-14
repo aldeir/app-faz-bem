@@ -22,6 +22,10 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .item-card:hover { transform: scale(1.02); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .tab-button.active { border-color: #16a34a; color: #16a34a; background-color: #f0fdf4; }
+        /* AJUSTE NO TAMANHO DO MODAL */
+        #item-focus-modal .max-w-sm {
+            max-width: 24rem; /* ou max-w-xs para ainda menor */
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -58,7 +62,7 @@
     </main>
 
     <div id="item-focus-modal" class="hidden fixed z-50 inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center relative">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-xs p-6 text-center relative">
             <button id="close-modal-btn" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
@@ -213,17 +217,14 @@
             }
         }
 
-        // ### FUNÇÃO AUXILIAR PARA GERAR HTML DE DETALHES ###
         function generateItemDetailsHtml(item, campaignType) {
             let detailsHtml = '<div class="space-y-1 mt-1">';
             const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
             
-            // Itera sobre a configuração para manter a ordem e a consistência
             fieldsConfig.forEach(field => {
                 const key = field.id;
                 const value = item[key];
-                // Exibe apenas se a chave existir no item e não for de mídia/controle
-                if (value && key !== 'type' && key !== 'photoURL' && !field.type.includes('image') && !field.type.includes('video')) {
+                if (value && key && key !== 'undefined' && key !== 'type' && key !== 'photoURL' && !field.type.includes('image') && !field.type.includes('video')) {
                     detailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
                 }
             });
@@ -334,7 +335,6 @@
 
             let itemsHtml = itemsToDisplay.map((item) => {
                 const itemDetailsHtml = generateItemDetailsHtml(item, campaignType);
-
                 return `
                 <div class="item-card flex items-start space-x-4 p-3 bg-gray-50 rounded-md border transition-all ${item.status !== 'completed' ? 'cursor-pointer' : ''}" 
                      ${item.status !== 'completed' ? `data-donation-id="${donation.id}" data-item-index="${donation.items.indexOf(item)}"` : ''} 
@@ -411,7 +411,7 @@
                 const campaign = campaignsCache.get(donation.campaignId);
                 
                 const itemDetailsHtml = generateItemDetailsHtml(item, campaign?.type || 'default');
-                modalItemDetails.innerHTML = itemDetailsHtml.replace(/text-xs/g, 'text-sm'); // Aumenta a fonte para o modal
+                modalItemDetails.innerHTML = itemDetailsHtml.replace(/text-xs/g, 'text-sm');
                 
                 generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`);
                 itemFocusModal.classList.remove('hidden');
