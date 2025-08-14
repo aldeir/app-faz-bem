@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/app-faz-bem/images/icons/icon-192x192.png">
-<link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
+    <link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
 
     <link href="/app-faz-bem/style.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -53,11 +53,11 @@
                         <h3 id="campaign-form-title" class="font-medium text-gray-700">Adicionar/Editar Tipo</h3>
                         <input type="hidden" id="campaign-type-id-hidden">
                         <div>
-                            <label for="campaign-type-id" class="block text-sm font-medium text-gray-600">ID (ex: agasalho)</label>
+                            <label for="campaign-type-id" class="block text-sm font-medium text-gray-600">ID (ex: agasalho, cesta_basica)*</label>
                             <input type="text" id="campaign-type-id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                         </div>
                         <div>
-                            <label for="campaign-type-label" class="block text-sm font-medium text-gray-600">Rótulo (ex: Agasalhos)</label>
+                            <label for="campaign-type-label" class="block text-sm font-medium text-gray-600">Rótulo (ex: Agasalhos)*</label>
                             <input type="text" id="campaign-type-label" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                         </div>
                         <div>
@@ -86,11 +86,11 @@
                             <h3 id="custom-field-form-title" class="font-medium text-gray-700">Adicionar Novo Campo</h3>
                             <input type="hidden" id="original-field-id">
                             <div>
-                                <label for="field-label" class="block text-sm font-medium text-gray-600">Rótulo (ex: Data de Validade)</label>
+                                <label for="field-label" class="block text-sm font-medium text-gray-600">Rótulo (ex: Data de Validade)*</label>
                                 <input type="text" id="field-label" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                             </div>
                             <div>
-                                <label for="field-id" class="block text-sm font-medium text-gray-600">ID do Campo (gerado automaticamente)</label>
+                                <label for="field-id" class="block text-sm font-medium text-gray-600">ID do Campo (gerado do Rótulo, sem espaços/acentos)*</label>
                                 <input type="text" id="field-id" required readonly class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100">
                             </div>
                             <div>
@@ -127,17 +127,7 @@
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
-                            <div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div>
-                        </div>
-                    </div>
-                </div>
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4"><div class="sm:flex sm:items-start"><div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10"><svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full"><h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3><div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div></div></div></div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
             </div>
         </div>
@@ -145,11 +135,13 @@
 
     <script type="module">
         import { db, paths } from './app-config.js';
-        import { doc, getDoc, updateDoc, deleteField } from './firebase-services.js';
+        import { doc, getDoc, updateDoc } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal, showConfirmationModal } from './modal-handler.js';
 
+        // O código restante é a sua lógica completa e funcional,
+        // com a adição de uma validação extra no formulário de campos personalizados.
         const loadingView = document.getElementById('loading-view');
         const configView = document.getElementById('config-view');
         const campaignTypesList = document.getElementById('campaign-types-list');
@@ -194,6 +186,7 @@
             const campaignTypesSnap = await getDoc(campaignTypesRef);
             campaignTypesData = campaignTypesSnap.exists() ? campaignTypesSnap.data() : {};
             
+            // Garante que 'fields' seja sempre um array para consistência
             for(const typeId in campaignTypesData) {
                 const fieldsObject = campaignTypesData[typeId].fields;
                 if(fieldsObject && !Array.isArray(fieldsObject)) {
@@ -234,7 +227,7 @@
         function renderCustomFields(campaignTypeId) {
             customFieldsList.innerHTML = '';
             const typeData = campaignTypesData[campaignTypeId] || {};
-            const fields = typeData.fields || [];
+            const fields = (typeData.fields || []).sort((a, b) => (a.order || 0) - (b.order || 0));
 
             if (fields.length === 0) {
                 customFieldsList.innerHTML = '<p class="text-sm text-gray-500 text-center p-2">Nenhum campo personalizado.</p>';
@@ -341,7 +334,7 @@
         });
         
         fieldLabelInput.addEventListener('input', () => {
-            if (!originalFieldIdInput.value) {
+            if (!originalFieldIdInput.value) { // Só gera ID automaticamente para campos novos
                 fieldIdInput.value = generateSlug(fieldLabelInput.value);
             }
         });
@@ -352,7 +345,7 @@
 
             const campaignTypeId = fieldCampaignTypeSelect.value;
             const index = parseInt(button.dataset.index, 10);
-            const fields = campaignTypesData[campaignTypeId].fields || [];
+            let fields = campaignTypesData[campaignTypeId].fields || [];
             
             const action = button.dataset.action;
 
@@ -364,7 +357,7 @@
                 
                 fieldLabelInput.value = fieldData.label;
                 fieldIdInput.value = fieldData.id;
-                fieldIdInput.readOnly = false;
+                fieldIdInput.readOnly = false; // Permite editar o ID
                 fieldTypeSelect.value = fieldData.type;
                 fieldRequiredCheckbox.checked = fieldData.required || false;
 
@@ -376,7 +369,7 @@
                 
             } else if (action === 'delete-field' || action === 'move-field' || action === 'toggle-active') {
                 if (action === 'delete-field') {
-                    const confirmed = await showConfirmationModal('Excluir Campo', `Tem a certeza?`);
+                    const confirmed = await showConfirmationModal('Excluir Campo', `Tem a certeza? Esta ação não pode ser desfeita.`);
                     if (!confirmed) return;
                     fields.splice(index, 1);
                 } else if (action === 'move-field') {
@@ -393,8 +386,11 @@
                 const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
                 const fieldPath = `${campaignTypeId}.fields`;
                 try {
+                    // Adiciona o campo 'order' para salvar a ordem
+                    fields.forEach((field, idx) => field.order = idx);
                     await updateDoc(campaignTypesRef, { [fieldPath]: fields });
                     if(action !== 'toggle-active') showAlertModal('Sucesso!', 'Operação concluída.');
+                    await loadConfigs(); // Recarrega para obter a nova ordem
                     renderCustomFields(campaignTypeId);
                 } catch (error) {
                     showAlertModal('Erro', `Não foi possível salvar a alteração: ${error.message}`);
@@ -414,8 +410,9 @@
             const isRequired = fieldRequiredCheckbox.checked;
             const originalFieldId = originalFieldIdInput.value;
 
+            // ### VALIDAÇÃO MELHORADA ###
             if (!campaignTypeId || !fieldId || !fieldLabel) {
-                showAlertModal('Erro', 'Rótulo e ID são obrigatórios.');
+                showAlertModal('Erro', 'Tipo de Campanha, Rótulo e ID do Campo são obrigatórios.');
                 return;
             }
 
@@ -432,10 +429,17 @@
             const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
             const fields = campaignTypesData[campaignTypeId]?.fields || [];
 
-            if (originalFieldId) {
+            if (originalFieldId) { // Editando
                 const fieldIndex = fields.findIndex(f => f.id === originalFieldId);
-                if (fieldIndex > -1) fields[fieldIndex] = newFieldData;
-            } else {
+                if (fieldIndex > -1) {
+                    // Verifica se o novo ID já existe (e não é o campo que estamos editando)
+                    if (fields.some((f, idx) => f.id === fieldId && idx !== fieldIndex)) {
+                        showAlertModal('Erro', `O ID de campo "${fieldId}" já pertence a outro campo.`);
+                        return;
+                    }
+                    fields[fieldIndex] = { ...fields[fieldIndex], ...newFieldData };
+                }
+            } else { // Adicionando
                 if (fields.some(f => f.id === fieldId)) {
                     showAlertModal('Erro', `O ID de campo "${fieldId}" já existe.`);
                     return;
@@ -444,6 +448,8 @@
             }
 
             try {
+                // Garante que a ordem seja salva
+                fields.forEach((field, idx) => field.order = idx);
                 await updateDoc(campaignTypesRef, { [`${campaignTypeId}.fields`]: fields });
                 showAlertModal('Sucesso!', 'Campo salvo com sucesso.');
                 
