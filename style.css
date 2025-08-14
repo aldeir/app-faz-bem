@@ -2635,3 +2635,23 @@ video {
     color: #DC2626; /* hover:text-red-700 */
 }
 
+/* Melhorias visuais para o dropdown */
+#user-menu-dropdown {
+    animation: fade-in 0.15s ease-out;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+#user-menu-dropdown.hidden {
+    animation: fade-out 0.1s ease-in forwards;
+}
+
