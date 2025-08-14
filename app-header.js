@@ -133,8 +133,10 @@ function createUserMenuHTML(userSession) {
             <span id="notification-indicator" class="hidden absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
         </a>
         <div class="relative">
-            <button id="user-menu-button" class="block rounded-full focus:outline-none" title="Menu do usuário">
-                <img src="${photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200">
+            <button id="user-menu-button" class="block bg-gray-200 p-2 rounded-full hover:bg-gray-300 focus:outline-none mr-2" title="Menu do usuário">
+                <svg class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
             </button>
             <div id="user-menu-dropdown" class="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-xl z-50 hidden">
                 <div class="py-1">
@@ -143,6 +145,7 @@ function createUserMenuHTML(userSession) {
                     <button id="header-logout-btn" class="menu-item w-full text-left text-red-600">Sair</button>
                 </div>
             </div>
+            <img src="${photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200">
         </div>
     `;
 }
