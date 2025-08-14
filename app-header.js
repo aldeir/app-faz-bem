@@ -8,11 +8,88 @@ import { showAlertModal } from './modal-handler.js';
 
 let unreadListener = null;
 
-// Funções auxiliares (addFavicon, listenForUnreadNotifications, etc.) permanecem idênticas
-function addFavicon() { if (document.querySelector("link[rel='icon']")) return; const link = document.createElement('link'); link.rel = 'icon'; link.type = 'image/png'; link.href = 'images/icons/icon-72x72.png'; document.head.appendChild(link); }
-function listenForUnreadNotifications(userId) { const bell = document.getElementById('notification-indicator'); if (!bell) return; const q = query(collection(db, paths.notifications), where("userId", "==", userId), where("read", "==", false)); if (unreadListener) unreadListener(); unreadListener = onSnapshot(q, (snapshot) => { bell.classList.toggle('hidden', snapshot.empty); }); }
-function listenForOnlineUsers() { const container = document.getElementById('online-users-container'); if (!container) return; const ref = databaseRef(rtdb, 'status'); onValue(ref, (s) => { const users = s.val(); if (users) { const list = Object.values(users); container.innerHTML = `<div class="flex items-center -space-x-2 mr-2">${list.slice(0, 3).map(u => `<img class="inline-block h-6 w-6 rounded-full ring-2 ring-white" src="${u.photoURL || 'https://placehold.co/24x24/e2e8f0/cbd5e0?text=?'}" title="${u.name}">`).join('')}</div><span class="text-sm font-medium text-green-600">${list.length} online</span>`; } else { container.innerHTML = `<span class="text-sm text-gray-500">0 online</span>`; } }); }
-function showVerificationBlock(user) { const main = document.querySelector('main'); if (!main) return; main.innerHTML = `<div class="min-h-[calc(100vh-200px)] flex items-center justify-center text-center p-4"><div class="max-w-md w-full bg-white p-10 rounded-xl shadow-lg"><h1 class="text-2xl font-bold text-yellow-600">Verificação de E-mail Pendente</h1><p class="mt-4 text-gray-700">Enviámos um link de verificação para o seu e-mail. Por favor, clique no link para ativar a sua conta.</p><p class="mt-2 text-gray-600">Verifique a sua pasta de spam.</p><button id="resend-verification-btn" class="mt-6 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">Reenviar E-mail</button></div></div>`; document.getElementById('resend-verification-btn').addEventListener('click', async (e) => { const btn = e.target; btn.disabled = true; btn.textContent = 'Aguarde...'; try { await sendEmailVerification(user); showAlertModal('E-mail Enviado', 'Um novo e-mail foi enviado.'); } catch (error) { showAlertModal('Erro', 'Não foi possível reenviar o e-mail.'); } finally { setTimeout(() => { btn.disabled = false; btn.textContent = 'Reenviar E-mail de Verificação'; }, 30000); } }); }
+/**
+ * Adiciona dinamicamente a tag do favicon ao <head> da página.
+ */
+function addFavicon() {
+    if (document.querySelector("link[rel='icon']")) return;
+    const faviconLink = document.createElement('link');
+    faviconLink.rel = 'icon';
+    faviconLink.type = 'image/png';
+    faviconLink.href = 'images/icons/icon-72x72.png'; 
+    document.head.appendChild(faviconLink);
+}
+
+/**
+ * Ouve por notificações não lidas e exibe/oculta o indicador no sino.
+ */
+function listenForUnreadNotifications(userId) {
+    const bellIndicator = document.getElementById('notification-indicator');
+    if (!bellIndicator) return;
+    const q = query(collection(db, paths.notifications), where("userId", "==", userId), where("read", "==", false));
+    if (unreadListener) unreadListener();
+    unreadListener = onSnapshot(q, (snapshot) => {
+        bellIndicator.classList.toggle('hidden', snapshot.empty);
+    });
+}
+
+/**
+ * Ouve o status de presença (online/offline) dos usuários no Realtime Database.
+ */
+function listenForOnlineUsers() {
+    const onlineContainer = document.getElementById('online-users-container');
+    if (!onlineContainer) return;
+    const statusRef = databaseRef(rtdb, 'status');
+    onValue(statusRef, (snapshot) => {
+        const users = snapshot.val();
+        if (users) {
+            const userList = Object.values(users);
+            onlineContainer.innerHTML = `
+                <div class="flex items-center -space-x-2 mr-2">
+                    ${userList.slice(0, 3).map(user => `<img class="inline-block h-6 w-6 rounded-full ring-2 ring-white" src="${user.photoURL || 'https://placehold.co/24x24/e2e8f0/cbd5e0?text=?'}" title="${user.name}">`).join('')}
+                </div>
+                <span class="text-sm font-medium text-green-600">${userList.length} online</span>`;
+        } else {
+            onlineContainer.innerHTML = `<span class="text-sm text-gray-500">0 online</span>`;
+        }
+    });
+}
+
+/**
+ * Bloqueia o conteúdo da página e mostra o painel de verificação de e-mail.
+ */
+function showVerificationBlock(user) {
+    const pageContent = document.querySelector('main');
+    if (!pageContent) return;
+    
+    pageContent.innerHTML = `
+        <div class="min-h-[calc(100vh-200px)] flex items-center justify-center text-center p-4">
+            <div class="max-w-md w-full bg-white p-10 rounded-xl shadow-lg">
+                <h1 class="text-2xl font-bold text-yellow-600">Verificação de E-mail Pendente</h1>
+                <p class="mt-4 text-gray-700">Enviámos um link de verificação para o seu e-mail. Por favor, clique no link para ativar a sua conta.</p>
+                <p class="mt-2 text-gray-600">Se não recebeu o e-mail, verifique a sua pasta de spam.</p>
+                <button id="resend-verification-btn" class="mt-6 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">Reenviar E-mail</button>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('resend-verification-btn').addEventListener('click', async (e) => {
+        const button = e.target;
+        button.disabled = true;
+        button.textContent = 'Aguarde...';
+        try {
+            await sendEmailVerification(user);
+            showAlertModal('E-mail Enviado', 'Um novo e-mail de verificação foi enviado.');
+        } catch (error) {
+            showAlertModal('Erro', 'Não foi possível reenviar o e-mail.');
+        } finally {
+            setTimeout(() => {
+                button.disabled = false;
+                button.textContent = 'Reenviar E-mail de Verificação';
+            }, 30000);
+        }
+    });
+}
 
 
 /**
