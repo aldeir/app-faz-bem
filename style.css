@@ -2610,3 +2610,28 @@ video {
     opacity: 1;
   }
 }
+
+
+/* /css/style.css */
+
+/* Estilos para os itens dentro do novo menu dropdown */
+.menu-item {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1rem; /* 12px 16px */
+    font-weight: 500; /* medium */
+    color: #4B5563; /* text-gray-600 */
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.menu-item:hover {
+    background-color: #F3F4F6; /* bg-gray-100 */
+    color: #1F2937; /* text-gray-800 */
+}
+
+/* Estilo específico para o botão Sair */
+.menu-item.text-red-600:hover {
+    background-color: #FEF2F2; /* bg-red-50 */
+    color: #DC2626; /* hover:text-red-700 */
+}
+
