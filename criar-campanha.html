@@ -32,7 +32,6 @@
             border-color: #15803d;
             transform: scale(1.05);
         }
-        /* Estilo para campos de endereço desabilitados durante a busca de CEP */
         .address-field:disabled {
             background-color: #f3f4f6;
             cursor: wait;
@@ -132,14 +131,8 @@
                             </div>
                         </div>
                     </div>
+
                     <div id="availability-section" class="mt-8 pt-6 border-t">
-                        <div class="flex justify-between items-center mb-4">
-                            <div>
-                                <h3 class="text-xl font-semibold">Disponibilidade para Recebimento</h3>
-                                <p class="text-sm text-gray-500">Selecione os dias e horários em que poderá receber as doações.</p>
-                            </div>
-                            <button type="button" id="replicate-hours-btn" class="hidden bg-blue-100 text-blue-800 text-xs font-semibold py-2 px-3 rounded-lg hover:bg-blue-200">Replicar horários do 1º dia</button>
-                        </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label for="campaign-starts-at" class="block text-sm font-medium text-gray-700">Data de Início (Opcional)</label>
@@ -156,7 +149,15 @@
                                 <p class="text-xs text-gray-500 mt-1">Quantas pessoas podem agendar no mesmo intervalo.</p>
                             </div>
                         </div>
-                        <div id="availability-days-container" class="space-y-6 mt-6"></div>
+                        
+                        <div class="flex justify-between items-center mt-6 mb-4">
+                            <div>
+                                <h3 class="text-xl font-semibold">Grade de Horários</h3>
+                                <p class="text-sm text-gray-500">Selecione os dias e horários para recebimento.</p>
+                            </div>
+                            <button type="button" id="replicate-hours-btn" class="hidden bg-blue-100 text-blue-800 text-xs font-semibold py-2 px-3 rounded-lg hover:bg-blue-200">Replicar horários do 1º dia</button>
+                        </div>
+                        <div id="availability-days-container" class="space-y-6"></div>
                     </div>
 
                     <div id="form-error" class="text-red-600 text-sm mt-4 hidden"></div>
@@ -177,17 +178,7 @@
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
         <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div class="sm:flex sm:items-start">
-                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                        <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    </div>
-                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
-                        <div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div>
-                    </div>
-                </div>
-            </div>
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4"><div class="sm:flex sm:items-start"><div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10"><svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full"><h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3><div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div></div></div></div>
             <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
         </div>
     </div>
@@ -288,7 +279,6 @@
             document.getElementById('campaign-priority').value = data.priority || 'normal';
             document.getElementById('campaign-slots').value = data.slots || '1';
             
-            // ### POPULAR CAMPOS DE ENDEREÇO ###
             if (data.deliveryAddress) {
                 cepInput.value = data.deliveryAddress.cep || '';
                 logradouroInput.value = data.deliveryAddress.logradouro || '';
@@ -306,13 +296,12 @@
             if (data.videoUrl) { videoPreviewContainer.classList.remove('hidden'); videoPreview.src = data.videoUrl; videoFileName.textContent = "Vídeo atual. Envie um novo para substituir."; }
         };
         
-        // ### LÓGICA DE BUSCA DE CEP ###
         async function fetchAddressFromCEP(cep) {
-            const cleanCep = cep.replace(/\D/g, ''); // Remove caracteres não numéricos
+            const cleanCep = cep.replace(/\D/g, '');
             if (cleanCep.length !== 8) return;
 
             const addressFields = document.querySelectorAll('.address-field');
-            addressFields.forEach(field => field.disabled = true); // Bloqueia campos durante a busca
+            addressFields.forEach(field => field.disabled = true);
 
             try {
                 const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
@@ -326,22 +315,43 @@
                 bairroInput.value = data.bairro;
                 cidadeInput.value = data.localidade;
                 estadoInput.value = data.uf;
-                document.getElementById('campaign-numero').focus(); // Foca no campo de número após preencher
+                document.getElementById('campaign-numero').focus();
             } catch (error) {
                 console.error("Erro ao buscar CEP:", error);
                 alert("Não foi possível buscar o endereço. Por favor, preencha manualmente.");
             } finally {
-                addressFields.forEach(field => field.disabled = false); // Desbloqueia campos
+                addressFields.forEach(field => field.disabled = false);
             }
         }
         cepInput.addEventListener('blur', () => fetchAddressFromCEP(cepInput.value));
 
         // Event Listeners
-        replicateBtn.addEventListener('click', () => { /* ... (sem alterações) ... */ });
+        replicateBtn.addEventListener('click', () => {
+            const firstDayCheckboxes = document.querySelectorAll('.time-slot-checkbox[data-day-index="0"]');
+            const otherCheckboxes = document.querySelectorAll('.time-slot-checkbox:not([data-day-index="0"])');
+            const firstDaySelections = new Set();
+            firstDayCheckboxes.forEach(cb => {
+                if (cb.checked) firstDaySelections.add(cb.value);
+            });
+            otherCheckboxes.forEach(cb => {
+                cb.checked = firstDaySelections.has(cb.value);
+            });
+        });
         durationSelect.addEventListener('change', () => renderAvailabilityGrid());
         startsAtInput.addEventListener('change', () => renderAvailabilityGrid());
-        mediaUploadInput.addEventListener('change', (e) => { /* ... (sem alterações) ... */ });
-        videoUploadInput.addEventListener('change', (e) => { /* ... (sem alterações) ... */ });
+        mediaUploadInput.addEventListener('change', (e) => {
+            campaignMediaFiles = Array.from(e.target.files).slice(0, 5);
+            if (e.target.files.length > 5) { alert("Máximo de 5 imagens."); }
+            renderMediaPreview(campaignMediaFiles.map(file => URL.createObjectURL(file)));
+        });
+        videoUploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) { campaignVideoFile = null; videoPreviewContainer.classList.add('hidden'); return; }
+            campaignVideoFile = file;
+            videoPreview.src = URL.createObjectURL(file);
+            videoFileName.textContent = file.name;
+            videoPreviewContainer.classList.remove('hidden');
+        });
 
         createCampaignForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -377,7 +387,6 @@
                 });
                 for (const date in availability) { availability[date].sort(); }
                 
-                // ### COLETA DOS DADOS DE ENDEREÇO ###
                 const deliveryAddress = {
                     cep: cepInput.value,
                     logradouro: logradouroInput.value,
@@ -401,7 +410,7 @@
                     startsAt,
                     expiresAt,
                     status: startsAt.toDate() > new Date() ? 'upcoming' : 'active',
-                    deliveryAddress, // Adiciona o objeto de endereço
+                    deliveryAddress,
                     ...(imageUrls && { images: imageUrls }),
                     ...(videoUrl !== undefined && { videoUrl: videoUrl || null }),
                 };
