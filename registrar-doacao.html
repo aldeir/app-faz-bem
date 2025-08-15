@@ -247,7 +247,7 @@
 
             fields.forEach(field => {
                 if (!field.id || field.id.trim() === '') {
-                    console.warn('Campo dinâmico sem ID foi ignorado:', field);
+                    console.warn(`Campo dinâmico sem ID foi ignorado no tipo de campanha "${campaignType}":`, field);
                     return;
                 }
 
@@ -268,13 +268,17 @@
                         fieldHtml = `<div class="col-span-1">${label}<input type="date" id="field-${field.id}" name="${field.id}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>`;
                         break;
                     case 'image':
+                    case 'camera':
                     case 'video':
-                        const accept = field.type === 'image' ? 'image/*' : 'video/*';
+                        const isCamera = field.type === 'camera';
+                        const accept = isCamera ? 'image/*' : (field.type === 'image' ? 'image/*' : 'video/*');
+                        const capture = isCamera ? 'capture="environment"' : '';
+
                         fieldHtml = `<div class="col-span-1 sm:col-span-2">${label}
                                         <label class="mt-1 flex justify-center items-center w-full px-4 py-3 bg-white text-blue-500 rounded-lg shadow-sm tracking-wide uppercase border border-blue-500 cursor-pointer hover:bg-blue-500 hover:text-white">
                                             <svg class="w-6 h-6 mr-2" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M16.88 9.1A4 4 0 0 1 16 17H5a5 5 0 0 1-1-9.9V7a3 3 0 0 1 4.52-2.59A4.98 4.98 0 0 1 17 8c0 .38-.04.74-.12 1.1zM11 11h3l-4 4-4-4h3V9h2v2z" /></svg>
                                             <span id="file-label-${field.id}" class="text-sm leading-normal">Selecionar ficheiro</span>
-                                            <input type='file' id="field-${field.id}" name="${field.id}" ${required} accept="${accept}" class="hidden" onchange="document.getElementById('file-label-${field.id}').textContent = this.files[0] ? this.files[0].name : 'Selecionar ficheiro';" />
+                                            <input type='file' id="field-${field.id}" name="${field.id}" ${required} accept="${accept}" ${capture} class="hidden" onchange="document.getElementById('file-label-${field.id}').textContent = this.files[0] ? this.files[0].name : 'Selecionar ficheiro';" />
                                         </label>
                                        </div>`;
                         break;
@@ -303,9 +307,10 @@
                 }
 
                 const fieldsToRender = isReschedule ? item : item.customFields;
-                const fieldsConfig = Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
+                const fieldsConfig = (Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
                     ? campaignTypeSettings[campaignData.type].fields
-                    : Object.values(campaignTypeSettings[campaignData.type]?.fields || {});
+                    : Object.values(campaignTypeSettings[campaignData.type]?.fields || [])
+                ).sort((a,b) => (a.order || 0) - (b.order || 0));
                 
                 let itemTitle = 'Item Adicionado';
                 let detailsHtml = '';
@@ -318,6 +323,7 @@
                     }
                     fieldsConfig.forEach(fieldConfig => {
                         const key = fieldConfig.id;
+                        if (!key) return;
                         const value = fieldsToRender[key];
                         if (value && key !== titleFieldKey && key !== item.mainPhotoId) {
                             const displayValue = (value instanceof File) ? value.name : value;
@@ -430,7 +436,7 @@
                 ? campaignTypeSettings[campaignData.type].fields
                 : Object.values(campaignTypeSettings[campaignData.type]?.fields || {});
 
-            const activeImageFields = fieldsConfig.filter(f => f.type === 'image' && f.active !== false);
+            const activeImageFields = fieldsConfig.filter(f => (f.type === 'image' || f.type === 'camera') && f.active !== false);
             
             if (activeImageFields.length > 0) {
                 mainPhotoId = activeImageFields[0].id;
@@ -441,7 +447,7 @@
                     allFieldsValid = false;
                 }
                 const file = input.type === 'file' ? input.files[0] : null;
-                if(input.name) { // Segurança extra para evitar o bug 'undefined'
+                if(input.name) {
                     customFieldsData[input.name] = file || input.value; 
                 }
 
@@ -550,7 +556,6 @@
                     await addDoc(collection(db, paths.donations), newDonationData);
                 }
                 
-                // ### CORREÇÃO DA NOTIFICAÇÃO ###
                 const notificationMessage = `O doador ${newDonationData.donorName} ${isRescheduleMode ? 'reagendou' : 'agendou'} uma entrega para a campanha "${newDonationData.campaignTitle}".`;
                 const targetIdForNotification = newDonationData.entityId === 'app_faz_bem' 
                     ? campaignData.creatorId 
