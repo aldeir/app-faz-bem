@@ -22,10 +22,6 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .item-card:hover { transform: scale(1.02); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .tab-button.active { border-color: #16a34a; color: #16a34a; background-color: #f0fdf4; }
-        /* AJUSTE NO TAMANHO DO MODAL */
-        #item-focus-modal .max-w-sm {
-            max-width: 24rem; /* ou max-w-xs para ainda menor */
-        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -219,15 +215,19 @@
 
         function generateItemDetailsHtml(item, campaignType) {
             let detailsHtml = '<div class="space-y-1 mt-1">';
-            const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
+            const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) 
+                ? campaignTypeSettings[campaignType].fields 
+                : Object.values(campaignTypeSettings[campaignType]?.fields || {});
             
-            fieldsConfig.forEach(field => {
-                const key = field.id;
-                const value = item[key];
-                if (value && key && key !== 'undefined' && key !== 'type' && key !== 'photoURL' && !field.type.includes('image') && !field.type.includes('video')) {
-                    detailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
-                }
-            });
+            fieldsConfig
+                .sort((a, b) => (a.order || 0) - (b.order || 0))
+                .forEach(field => {
+                    const key = field.id;
+                    const value = item[key];
+                    if (value && key && key !== 'undefined' && key !== 'type' && key !== 'photoURL' && !field.type.includes('image') && !field.type.includes('video')) {
+                        detailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
+                    }
+                });
             detailsHtml += '</div>';
             return detailsHtml;
         }
