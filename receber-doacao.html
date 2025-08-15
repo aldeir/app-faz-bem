@@ -8,7 +8,6 @@
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/app-faz-bem/images/icons/icon-192x192.png">
-<link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
     <link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
 
     <link href="/app-faz-bem/style.css" rel="stylesheet">
@@ -65,7 +64,7 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4m12 0h-4v4m0 12v-4h4m-12 0H4v-4"></path></svg>
                         Ler QR Code
                     </button>
-                    <a href="admin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar</a>
+                    <a id="back-link" href="admin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar</a>
                 </div>
             </div>
 
@@ -120,17 +119,7 @@
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
-                            <div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div>
-                        </div>
-                    </div>
-                </div>
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4"><div class="sm:flex sm:items-start"><div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10"><svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full"><h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3><div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div></div></div></div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
             </div>
         </div>
@@ -166,6 +155,7 @@
         const toggleListBtn = document.getElementById('toggle-list-view');
         const agendaView = document.getElementById('agenda-view');
         const listView = document.getElementById('list-view');
+        const backLink = document.getElementById('back-link');
         
         let allDonations = [];
         let campaignsData = new Map();
@@ -178,24 +168,36 @@
         async function initializeApp() {
             await injectHeader();
             const userSession = await getCurrentUser();
-            if (userSession?.profile?.role === 'entidade' && auth.currentUser) {
+            
+            // ### CORREÇÃO 1: Controle de Acesso para Entidade e Superadmin ###
+            if (userSession?.auth && ['entidade', 'superadmin'].includes(userSession.profile?.role)) {
                 const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
                 campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
-                await loadAllCampaignsForEntity(auth.currentUser.uid);
-                loadAllDonations(auth.currentUser.uid);
+
+                let idToQuery;
+                if (userSession.profile.role === 'superadmin') {
+                    backLink.href = 'superadmin.html';
+                    idToQuery = 'app_faz_bem'; // Superadmin gerencia campanhas do app
+                } else {
+                    backLink.href = 'admin.html';
+                    idToQuery = userSession.auth.uid; // Entidade gerencia suas próprias campanhas
+                }
+
+                await loadAllCampaignsForEntity(idToQuery);
+                loadAllDonations(idToQuery);
             } else {
                 window.location.href = 'index.html';
             }
         }
         
-        async function loadAllCampaignsForEntity(entityId) {
-            const q = query(collection(db, paths.campaigns), where("entityId", "==", entityId));
+        async function loadAllCampaignsForEntity(idToQuery) {
+            const q = query(collection(db, paths.campaigns), where("entityId", "==", idToQuery));
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach(doc => campaignsData.set(doc.id, { id: doc.id, ...doc.data() }));
         }
 
-        function loadAllDonations(entityId) {
-            const q = query(collection(db, paths.donations), where('entityId', '==', entityId));
+        function loadAllDonations(idToQuery) {
+            const q = query(collection(db, paths.donations), where('entityId', '==', idToQuery));
             
             onSnapshot(q, (snapshot) => {
                 allDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -308,18 +310,7 @@
                         statusHtml = `<p class="text-xs text-gray-500 font-semibold">Campanha Encerrada</p>`;
                     }
 
-                    let itemDetailsHtml = '<div class="space-y-1 mt-1">';
-                    const fieldsConfig = Array.isArray(campaignTypeSettings[campaign?.type]?.fields) ? campaignTypeSettings[campaign.type].fields : Object.values(campaignTypeSettings[campaign?.type]?.fields || {});
-                    const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
-                    
-                    fieldsConfig.forEach(field => {
-                        const key = field.id;
-                        const value = item[key];
-                        if (value && !mediaFieldIds.has(key) && key !== 'type' && key !== 'photoURL') {
-                            itemDetailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
-                        }
-                    });
-                    itemDetailsHtml += '</div>';
+                    let itemDetailsHtml = generateItemDetailsHtml(item, campaign?.type);
 
                     return `
                         <div class="bg-white p-3 rounded-lg shadow-sm flex items-center justify-between border-l-4 ${borderColor}">
@@ -343,6 +334,23 @@
             });
         }
         
+        // ### NOVA FUNÇÃO REUTILIZÁVEL ###
+        function generateItemDetailsHtml(item, campaignType) {
+            let detailsHtml = '<div class="space-y-1">';
+            const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
+            
+            fieldsConfig
+                .sort((a, b) => (a.order || 0) - (b.order || 0))
+                .forEach(field => {
+                    const value = item[field.id];
+                    if (value && field.id !== 'type' && field.id !== 'photoURL' && !field.type.includes('image') && !field.type.includes('video')) {
+                        detailsHtml += `<p><strong class="font-semibold">${field.label}:</strong> ${value}</p>`;
+                    }
+                });
+            detailsHtml += '</div>';
+            return detailsHtml;
+        }
+
         async function processItemReception(donationId, itemIndex) {
             const donationRef = doc(db, paths.donationDoc(donationId));
             const docSnap = await getDoc(donationRef);
@@ -384,14 +392,7 @@
             if (!item) return;
 
             const campaign = campaignsData.get(donation.campaignId);
-            const fieldsConfig = Array.isArray(campaignTypeSettings[campaign?.type]?.fields) ? campaignTypeSettings[campaign.type].fields : Object.values(campaignTypeSettings[campaign?.type]?.fields || {});
-            let detailsHtml = '';
-            fieldsConfig.forEach(field => {
-                const value = item[field.id];
-                if (value && field.type !== 'image' && field.type !== 'video') {
-                    detailsHtml += `<p><strong class="font-semibold">${field.label}:</strong> ${value}</p>`;
-                }
-            });
+            const detailsHtml = generateItemDetailsHtml(item, campaign?.type);
 
             const modalContentHtml = `
                 <div class="text-center">
@@ -421,12 +422,6 @@
         prevDayBtn.addEventListener('click', () => { if (currentDateIndex > 0) { currentDateIndex--; renderScheduleForSelectedDate(); } });
         nextDayBtn.addEventListener('click', () => { if (currentDateIndex < availableDates.length - 1) { currentDateIndex++; renderScheduleForSelectedDate(); } });
         
-        function onScanSuccess(decodedText, decodedResult) {
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => processDecodedText(decodedText)).catch(err => console.error("Falha ao parar o scanner", err));
-            }
-        }
-        
         async function processDecodedText(decodedText) {
             qrReaderContainer.classList.add('hidden');
             qrReaderStatus.textContent = 'QR Code lido! A processar...';
@@ -454,8 +449,17 @@
                     closeAndResetQrModal();
                     return;
                 }
-
-                qrItemDetails.innerHTML = `...`; // Seu código de detalhes do item
+                
+                // ### CORREÇÃO 2: Reutiliza a função de detalhes no QR Modal ###
+                const itemDetailsHtml = generateItemDetailsHtml(item, campaign?.type);
+                qrItemDetails.innerHTML = `
+                    <img src="${item.photoURL || 'https://placehold.co/64x64/e2e8f0/e2e8f0'}" class="w-16 h-16 rounded-md object-cover flex-shrink-0">
+                    <div class="flex-grow">
+                        <p class="font-bold">${item.type}</p>
+                        ${itemDetailsHtml.replace(/text-xs/g, 'text-sm')}
+                    </div>
+                `;
+                
                 qrResultContainer.classList.remove('hidden');
                 qrConfirmBtn.onclick = () => confirmQrReception(donationId, itemIndex);
 
@@ -480,6 +484,11 @@
             }
         }
 
+        function onScanSuccess(decodedText, decodedResult) {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => processDecodedText(decodedText)).catch(err => console.error("Falha ao parar o scanner", err));
+            }
+        }
         function onScanFailure(error) { /* Ignorar intencionalmente */ }
 
         function startScanner() {
