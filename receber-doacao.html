@@ -310,7 +310,7 @@
                         statusHtml = `<p class="text-xs text-gray-500 font-semibold">Campanha Encerrada</p>`;
                     }
 
-                    let itemDetailsHtml = generateItemDetailsHtml(item, campaign?.type);
+                    const itemDetailsHtml = generateItemDetailsHtml(item, campaign?.type);
 
                     return `
                         <div class="bg-white p-3 rounded-lg shadow-sm flex items-center justify-between border-l-4 ${borderColor}">
@@ -334,7 +334,6 @@
             });
         }
         
-        // ### NOVA FUNÇÃO REUTILIZÁVEL ###
         function generateItemDetailsHtml(item, campaignType) {
             let detailsHtml = '<div class="space-y-1">';
             const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
@@ -454,7 +453,7 @@
                 const itemDetailsHtml = generateItemDetailsHtml(item, campaign?.type);
                 qrItemDetails.innerHTML = `
                     <img src="${item.photoURL || 'https://placehold.co/64x64/e2e8f0/e2e8f0'}" class="w-16 h-16 rounded-md object-cover flex-shrink-0">
-                    <div class="flex-grow">
+                    <div class="flex-grow text-left">
                         <p class="font-bold">${item.type}</p>
                         ${itemDetailsHtml.replace(/text-xs/g, 'text-sm')}
                     </div>
