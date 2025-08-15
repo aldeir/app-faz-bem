@@ -101,6 +101,7 @@
                                     <option value="select">Lista de Opções</option>
                                     <option value="date">Data</option>
                                     <option value="image">Upload de Imagem</option>
+                                    <option value="camera">Foto (Câmera)</option>
                                     <option value="video">Upload de Vídeo</option>
                                 </select>
                             </div>
@@ -177,7 +178,7 @@
                 return;
             }
             await loadConfigs();
-            setupEventListeners(); // Mover para cá para garantir que os listeners sejam adicionados apenas uma vez
+            setupEventListeners();
             loadingView.classList.add('hidden');
             configView.classList.remove('hidden');
         }
@@ -279,7 +280,7 @@
             cancelFieldEditBtn.classList.add('hidden');
             fieldOptionsContainer.classList.add('hidden');
         }
-
+        
         function setupEventListeners() {
             campaignTypesList.addEventListener('click', (e) => {
                 const button = e.target.closest('button[data-action="edit-type"]');
@@ -309,29 +310,21 @@
                 if (!id || !label) { showAlertModal('Erro', 'ID e Rótulo são obrigatórios.'); return; }
                 
                 const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-                
-                // Atualiza o dado local primeiro (UI otimista)
                 if (!campaignTypesData[id]) {
-                    campaignTypesData[id] = { fields: [] }; // Cria a estrutura se for novo
+                    campaignTypesData[id] = { fields: [] };
                 }
                 campaignTypesData[id].label = label;
                 campaignTypesData[id].color = color;
-
-                const updateData = {
-                    [`${id}.label`]: label,
-                    [`${id}.color`]: color
-                };
-
+                const updateData = { [`${id}.label`]: label, [`${id}.color`]: color };
                 try {
                     await updateDoc(campaignTypesRef, updateData, { merge: true });
                     showAlertModal('Sucesso!', 'Tipo de campanha salvo com sucesso.');
-                    // Apenas re-renderiza, não recarrega do DB
                     renderCampaignTypes();
                     populateFieldCampaignTypeSelect();
                     cancelEditBtn.click();
                 } catch (error) {
                     showAlertModal('Erro', `Não foi possível salvar: ${error.message}`);
-                    await loadConfigs(); // Recarrega do DB se der erro
+                    await loadConfigs();
                 }
             });
             
@@ -380,7 +373,7 @@
 
                     fieldOptionsContainer.classList.toggle('hidden', fieldData.type !== 'select');
                     if (fieldData.type === 'select') {
-                        fieldOptionsInput.value = fieldData.options.join(', ');
+                        fieldOptionsInput.value = (fieldData.options || []).join(', ');
                     }
                     cancelFieldEditBtn.classList.remove('hidden');
                     
@@ -405,12 +398,11 @@
                     try {
                         fields.forEach((field, idx) => field.order = idx);
                         await updateDoc(campaignTypesRef, { [fieldPath]: fields });
-                        // Atualiza o estado local
                         campaignTypesData[campaignTypeId].fields = fields;
-                        renderCustomFields(campaignTypeId); // Re-renderiza a lista
+                        renderCustomFields(campaignTypeId);
                     } catch (error) {
                         showAlertModal('Erro', `Não foi possível salvar a alteração: ${error.message}`);
-                        await loadConfigs(); // Recarrega do DB se der erro
+                        await loadConfigs();
                     }
                 }
             });
@@ -434,7 +426,7 @@
                 const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
                 const fields = campaignTypesData[campaignTypeId]?.fields || [];
 
-                if (originalFieldId) { // Editando
+                if (originalFieldId) {
                     const fieldIndex = fields.findIndex(f => f.id === originalFieldId);
                     if (fieldIndex > -1) {
                         if (fields.some((f, idx) => f.id === fieldId && idx !== fieldIndex)) {
@@ -447,7 +439,7 @@
                         }
                         fields[fieldIndex] = newFieldData;
                     }
-                } else { // Adicionando
+                } else {
                     const uniqueSuffix = Math.random().toString(36).substring(2, 8);
                     fieldId = `${fieldId}_${uniqueSuffix}`;
 
@@ -472,14 +464,13 @@
                     await updateDoc(campaignTypesRef, { [`${campaignTypeId}.fields`]: fields });
                     showAlertModal('Sucesso!', 'Campo salvo com sucesso.');
                     
-                    // Atualiza o estado local e re-renderiza
                     campaignTypesData[campaignTypeId].fields = fields;
                     renderCustomFields(campaignTypeId);
                     resetCustomFieldForm();
 
                 } catch (error) {
                     showAlertModal('Erro', `Não foi possível salvar o campo: ${error.message}`);
-                    await loadConfigs(); // Recarrega se der erro
+                    await loadConfigs();
                 }
             });
         }
