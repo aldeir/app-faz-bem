@@ -177,6 +177,7 @@
                 return;
             }
             await loadConfigs();
+            setupEventListeners(); // Mover para cá para garantir que os listeners sejam adicionados apenas uma vez
             loadingView.classList.add('hidden');
             configView.classList.remove('hidden');
         }
@@ -217,10 +218,12 @@
         }
 
         function populateFieldCampaignTypeSelect() {
+            const currentVal = fieldCampaignTypeSelect.value;
             fieldCampaignTypeSelect.innerHTML = '<option value="">Selecione um tipo...</option>';
             Object.entries(campaignTypesData).forEach(([id, data]) => {
                 fieldCampaignTypeSelect.innerHTML += `<option value="${id}">${data.label}</option>`;
             });
+            fieldCampaignTypeSelect.value = currentVal;
         }
         
         function renderCustomFields(campaignTypeId) {
@@ -276,195 +279,210 @@
             cancelFieldEditBtn.classList.add('hidden');
             fieldOptionsContainer.classList.add('hidden');
         }
-        
-        campaignTypesList.addEventListener('click', (e) => {
-            const button = e.target.closest('button[data-action="edit-type"]');
-            if (!button) return;
-            const id = button.dataset.id;
-            const data = campaignTypesData[id];
-            campaignFormTitle.textContent = 'Editar Tipo de Campanha';
-            campaignTypeIdInput.value = id;
-            campaignTypeIdInput.disabled = true;
-            campaignTypeLabelInput.value = data.label;
-            campaignTypeColorSelect.value = data.color;
-            cancelEditBtn.classList.remove('hidden');
-        });
 
-        cancelEditBtn.addEventListener('click', () => {
-            campaignTypeForm.reset();
-            campaignFormTitle.textContent = 'Adicionar Novo Tipo';
-            campaignTypeIdInput.disabled = false;
-            cancelEditBtn.classList.add('hidden');
-        });
+        function setupEventListeners() {
+            campaignTypesList.addEventListener('click', (e) => {
+                const button = e.target.closest('button[data-action="edit-type"]');
+                if (!button) return;
+                const id = button.dataset.id;
+                const data = campaignTypesData[id];
+                campaignFormTitle.textContent = 'Editar Tipo de Campanha';
+                campaignTypeIdInput.value = id;
+                campaignTypeIdInput.disabled = true;
+                campaignTypeLabelInput.value = data.label;
+                campaignTypeColorSelect.value = data.color;
+                cancelEditBtn.classList.remove('hidden');
+            });
 
-        campaignTypeForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = campaignTypeIdInput.value.trim().toLowerCase();
-            const label = campaignTypeLabelInput.value.trim();
-            const color = campaignTypeColorSelect.value;
-            if (!id || !label) { showAlertModal('Erro', 'ID e Rótulo são obrigatórios.'); return; }
-            
-            const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-            const fieldPathPrefix = `${id}`;
-            const updateData = {
-                [`${fieldPathPrefix}.label`]: label,
-                [`${fieldPathPrefix}.color`]: color
-            };
+            cancelEditBtn.addEventListener('click', () => {
+                campaignTypeForm.reset();
+                campaignFormTitle.textContent = 'Adicionar Novo Tipo';
+                campaignTypeIdInput.disabled = false;
+                cancelEditBtn.classList.add('hidden');
+            });
 
-            try {
-                await updateDoc(campaignTypesRef, updateData, { merge: true });
-                showAlertModal('Sucesso!', 'Tipo de campanha salvo com sucesso.');
-                await loadConfigs();
-                cancelEditBtn.click();
-            } catch (error) {
-                showAlertModal('Erro', `Não foi possível salvar: ${error.message}`);
-            }
-        });
-        
-        fieldCampaignTypeSelect.addEventListener('change', (e) => {
-            const selectedType = e.target.value;
-            customFieldsEditor.classList.toggle('hidden', !selectedType);
-            if (selectedType) {
-                renderCustomFields(selectedType);
-            }
-            resetCustomFieldForm();
-        });
-
-        fieldTypeSelect.addEventListener('change', (e) => {
-            fieldOptionsContainer.classList.toggle('hidden', e.target.value !== 'select');
-        });
-        
-        fieldLabelInput.addEventListener('input', () => {
-            if (!originalFieldIdInput.value) { // Só gera ID automaticamente para campos novos
-                fieldIdInput.value = generateSlug(fieldLabelInput.value);
-            }
-        });
-
-        customFieldsList.addEventListener('click', async (e) => {
-            const button = e.target.closest('button, input[type="checkbox"]');
-            if (!button) return;
-
-            const campaignTypeId = fieldCampaignTypeSelect.value;
-            const index = parseInt(button.dataset.index, 10);
-            let fields = campaignTypesData[campaignTypeId].fields || [];
-            
-            const action = button.dataset.action;
-
-            if (action === 'edit-field') {
-                const fieldData = fields[index];
-                customFieldFormTitle.textContent = 'Editar Campo';
-                submitFieldBtn.textContent = 'Salvar Alterações';
-                originalFieldIdInput.value = fieldData.id;
+            campaignTypeForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = campaignTypeIdInput.value.trim().toLowerCase();
+                const label = campaignTypeLabelInput.value.trim();
+                const color = campaignTypeColorSelect.value;
+                if (!id || !label) { showAlertModal('Erro', 'ID e Rótulo são obrigatórios.'); return; }
                 
-                fieldLabelInput.value = fieldData.label;
-                fieldIdInput.value = fieldData.id;
-                fieldIdInput.readOnly = false; // Permite editar o ID
-                fieldIdInput.classList.remove('bg-gray-100');
-                fieldIdWarning.classList.remove('hidden');
-                fieldTypeSelect.value = fieldData.type;
-                fieldRequiredCheckbox.checked = fieldData.required || false;
-
-                fieldOptionsContainer.classList.toggle('hidden', fieldData.type !== 'select');
-                if (fieldData.type === 'select') {
-                    fieldOptionsInput.value = fieldData.options.join(', ');
+                const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
+                
+                // Atualiza o dado local primeiro (UI otimista)
+                if (!campaignTypesData[id]) {
+                    campaignTypesData[id] = { fields: [] }; // Cria a estrutura se for novo
                 }
-                cancelFieldEditBtn.classList.remove('hidden');
+                campaignTypesData[id].label = label;
+                campaignTypesData[id].color = color;
+
+                const updateData = {
+                    [`${id}.label`]: label,
+                    [`${id}.color`]: color
+                };
+
+                try {
+                    await updateDoc(campaignTypesRef, updateData, { merge: true });
+                    showAlertModal('Sucesso!', 'Tipo de campanha salvo com sucesso.');
+                    // Apenas re-renderiza, não recarrega do DB
+                    renderCampaignTypes();
+                    populateFieldCampaignTypeSelect();
+                    cancelEditBtn.click();
+                } catch (error) {
+                    showAlertModal('Erro', `Não foi possível salvar: ${error.message}`);
+                    await loadConfigs(); // Recarrega do DB se der erro
+                }
+            });
+            
+            fieldCampaignTypeSelect.addEventListener('change', (e) => {
+                const selectedType = e.target.value;
+                customFieldsEditor.classList.toggle('hidden', !selectedType);
+                if (selectedType) {
+                    renderCustomFields(selectedType);
+                }
+                resetCustomFieldForm();
+            });
+
+            fieldTypeSelect.addEventListener('change', (e) => {
+                fieldOptionsContainer.classList.toggle('hidden', e.target.value !== 'select');
+            });
+            
+            fieldLabelInput.addEventListener('input', () => {
+                if (!originalFieldIdInput.value) {
+                    fieldIdInput.value = generateSlug(fieldLabelInput.value);
+                }
+            });
+
+            customFieldsList.addEventListener('click', async (e) => {
+                const button = e.target.closest('button, input[type="checkbox"]');
+                if (!button) return;
+
+                const campaignTypeId = fieldCampaignTypeSelect.value;
+                const index = parseInt(button.dataset.index, 10);
+                let fields = campaignTypesData[campaignTypeId].fields || [];
                 
-            } else if (action === 'delete-field' || action === 'move-field' || action === 'toggle-active') {
-                if (action === 'delete-field') {
-                    const confirmed = await showConfirmationModal('Excluir Campo', `Tem a certeza? Esta ação não pode ser desfeita.`);
-                    if (!confirmed) return;
-                    fields.splice(index, 1);
-                } else if (action === 'move-field') {
-                    const direction = button.dataset.direction;
-                    if (direction === 'up' && index > 0) {
-                        [fields[index], fields[index - 1]] = [fields[index - 1], fields[index]];
-                    } else if (direction === 'down' && index < fields.length - 1) {
-                        [fields[index], fields[index + 1]] = [fields[index + 1], fields[index]];
+                const action = button.dataset.action;
+
+                if (action === 'edit-field') {
+                    const fieldData = fields[index];
+                    customFieldFormTitle.textContent = 'Editar Campo';
+                    submitFieldBtn.textContent = 'Salvar Alterações';
+                    originalFieldIdInput.value = fieldData.id;
+                    
+                    fieldLabelInput.value = fieldData.label;
+                    fieldIdInput.value = fieldData.id;
+                    fieldIdInput.readOnly = false;
+                    fieldIdInput.classList.remove('bg-gray-100');
+                    fieldIdWarning.classList.remove('hidden');
+                    fieldTypeSelect.value = fieldData.type;
+                    fieldRequiredCheckbox.checked = fieldData.required || false;
+
+                    fieldOptionsContainer.classList.toggle('hidden', fieldData.type !== 'select');
+                    if (fieldData.type === 'select') {
+                        fieldOptionsInput.value = fieldData.options.join(', ');
                     }
-                } else if (action === 'toggle-active') {
-                    fields[index].active = button.checked;
+                    cancelFieldEditBtn.classList.remove('hidden');
+                    
+                } else if (action === 'delete-field' || action === 'move-field' || action === 'toggle-active') {
+                    if (action === 'delete-field') {
+                        const confirmed = await showConfirmationModal('Excluir Campo', `Tem a certeza? Esta ação não pode ser desfeita.`);
+                        if (!confirmed) return;
+                        fields.splice(index, 1);
+                    } else if (action === 'move-field') {
+                        const direction = button.dataset.direction;
+                        if (direction === 'up' && index > 0) {
+                            [fields[index], fields[index - 1]] = [fields[index - 1], fields[index]];
+                        } else if (direction === 'down' && index < fields.length - 1) {
+                            [fields[index], fields[index + 1]] = [fields[index + 1], fields[index]];
+                        }
+                    } else if (action === 'toggle-active') {
+                        fields[index].active = button.checked;
+                    }
+
+                    const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
+                    const fieldPath = `${campaignTypeId}.fields`;
+                    try {
+                        fields.forEach((field, idx) => field.order = idx);
+                        await updateDoc(campaignTypesRef, { [fieldPath]: fields });
+                        // Atualiza o estado local
+                        campaignTypesData[campaignTypeId].fields = fields;
+                        renderCustomFields(campaignTypeId); // Re-renderiza a lista
+                    } catch (error) {
+                        showAlertModal('Erro', `Não foi possível salvar a alteração: ${error.message}`);
+                        await loadConfigs(); // Recarrega do DB se der erro
+                    }
+                }
+            });
+
+            cancelFieldEditBtn.addEventListener('click', resetCustomFieldForm);
+
+            customFieldForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const campaignTypeId = fieldCampaignTypeSelect.value;
+                let fieldId = fieldIdInput.value.trim();
+                const fieldLabel = fieldLabelInput.value.trim();
+                const fieldType = fieldTypeSelect.value;
+                const isRequired = fieldRequiredCheckbox.checked;
+                const originalFieldId = originalFieldIdInput.value;
+
+                if (!campaignTypeId || !fieldId || !fieldLabel) {
+                    showAlertModal('Erro', 'Tipo de Campanha, Rótulo e ID do Campo são obrigatórios.');
+                    return;
                 }
 
                 const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-                const fieldPath = `${campaignTypeId}.fields`;
+                const fields = campaignTypesData[campaignTypeId]?.fields || [];
+
+                if (originalFieldId) { // Editando
+                    const fieldIndex = fields.findIndex(f => f.id === originalFieldId);
+                    if (fieldIndex > -1) {
+                        if (fields.some((f, idx) => f.id === fieldId && idx !== fieldIndex)) {
+                            showAlertModal('Erro', `O ID de campo "${fieldId}" já pertence a outro campo.`);
+                            return;
+                        }
+                        const newFieldData = { ...fields[fieldIndex], id: fieldId, label: fieldLabel, type: fieldType, required: isRequired };
+                        if (fieldType === 'select') {
+                            newFieldData.options = fieldOptionsInput.value.split(',').map(opt => opt.trim()).filter(Boolean);
+                        }
+                        fields[fieldIndex] = newFieldData;
+                    }
+                } else { // Adicionando
+                    const uniqueSuffix = Math.random().toString(36).substring(2, 8);
+                    fieldId = `${fieldId}_${uniqueSuffix}`;
+
+                    if (fields.some(f => f.id === fieldId)) {
+                        showAlertModal('Erro', `O ID de campo "${fieldId}" já existe. Tente um Rótulo ligeiramente diferente.`);
+                        return;
+                    }
+                    const newFieldData = { id: fieldId, label: fieldLabel, type: fieldType, required: isRequired, active: true };
+                    if (fieldType === 'select') {
+                        const options = fieldOptionsInput.value.split(',').map(opt => opt.trim()).filter(Boolean);
+                        if (options.length === 0) {
+                            showAlertModal('Erro', 'Para "Lista de Opções", forneça as opções separadas por vírgula.');
+                            return;
+                        }
+                        newFieldData.options = options;
+                    }
+                    fields.push(newFieldData);
+                }
+
                 try {
-                    fields.forEach((field, idx) => field.order = idx); // Atualiza a ordem
-                    await updateDoc(campaignTypesRef, { [fieldPath]: fields });
-                    if(action !== 'toggle-active') showAlertModal('Sucesso!', 'Operação concluída.');
-                    await loadConfigs(); // Recarrega para obter os dados atualizados
+                    fields.forEach((field, idx) => field.order = idx);
+                    await updateDoc(campaignTypesRef, { [`${campaignTypeId}.fields`]: fields });
+                    showAlertModal('Sucesso!', 'Campo salvo com sucesso.');
+                    
+                    // Atualiza o estado local e re-renderiza
+                    campaignTypesData[campaignTypeId].fields = fields;
                     renderCustomFields(campaignTypeId);
+                    resetCustomFieldForm();
+
                 } catch (error) {
-                    showAlertModal('Erro', `Não foi possível salvar a alteração: ${error.message}`);
-                    await loadConfigs();
+                    showAlertModal('Erro', `Não foi possível salvar o campo: ${error.message}`);
+                    await loadConfigs(); // Recarrega se der erro
                 }
-            }
-        });
-
-        cancelFieldEditBtn.addEventListener('click', resetCustomFieldForm);
-
-        customFieldForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const campaignTypeId = fieldCampaignTypeSelect.value;
-            let fieldId = fieldIdInput.value.trim();
-            const fieldLabel = fieldLabelInput.value.trim();
-            const fieldType = fieldTypeSelect.value;
-            const isRequired = fieldRequiredCheckbox.checked;
-            const originalFieldId = originalFieldIdInput.value;
-
-            if (!campaignTypeId || !fieldId || !fieldLabel) {
-                showAlertModal('Erro', 'Tipo de Campanha, Rótulo e ID do Campo são obrigatórios.');
-                return;
-            }
-
-            const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-            const fields = campaignTypesData[campaignTypeId]?.fields || [];
-
-            if (originalFieldId) { // Editando
-                const fieldIndex = fields.findIndex(f => f.id === originalFieldId);
-                if (fieldIndex > -1) {
-                    if (fields.some((f, idx) => f.id === fieldId && idx !== fieldIndex)) {
-                        showAlertModal('Erro', `O ID de campo "${fieldId}" já pertence a outro campo.`);
-                        return;
-                    }
-                    fields[fieldIndex] = { ...fields[fieldIndex], id: fieldId, label: fieldLabel, type: fieldType, required: isRequired };
-                }
-            } else { // Adicionando
-                // ### LÓGICA DE ID ÚNICO ###
-                const uniqueSuffix = Math.random().toString(36).substring(2, 8);
-                fieldId = `${fieldId}_${uniqueSuffix}`;
-
-                if (fields.some(f => f.id === fieldId)) {
-                    showAlertModal('Erro', `O ID de campo "${fieldId}" já existe. Tente um Rótulo ligeiramente diferente.`);
-                    return;
-                }
-                const newFieldData = { id: fieldId, label: fieldLabel, type: fieldType, required: isRequired, active: true };
-                if (fieldType === 'select') {
-                    const options = fieldOptionsInput.value.split(',').map(opt => opt.trim()).filter(Boolean);
-                    if (options.length === 0) {
-                        showAlertModal('Erro', 'Para "Lista de Opções", forneça as opções separadas por vírgula.');
-                        return;
-                    }
-                    newFieldData.options = options;
-                }
-                fields.push(newFieldData);
-            }
-
-            try {
-                fields.forEach((field, idx) => field.order = idx);
-                await updateDoc(campaignTypesRef, { [`${campaignTypeId}.fields`]: fields });
-                showAlertModal('Sucesso!', 'Campo salvo com sucesso.');
-                
-                await loadConfigs();
-                fieldCampaignTypeSelect.value = campaignTypeId;
-                customFieldsEditor.classList.remove('hidden');
-                renderCustomFields(campaignTypeId);
-                resetCustomFieldForm();
-
-            } catch (error) {
-                showAlertModal('Erro', `Não foi possível salvar o campo: ${error.message}`);
-            }
-        });
+            });
+        }
         
         initializeApp();
     </script>
