@@ -8,6 +8,7 @@
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/app-faz-bem/images/icons/icon-192x192.png">
+<link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
     <link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
 
     <link href="/app-faz-bem/style.css" rel="stylesheet">
@@ -24,15 +25,32 @@
         .donor-avatar { transition: transform 0.2s ease-in-out; }
         .donor-avatar:hover { transform: scale(1.1); z-index: 10; }
         .star-badge {
-            position: absolute; bottom: -4px; right: -8px; background-color: #f59e0b;
-            color: white; border-radius: 50%; width: 24px; height: 24px; display: flex;
-            align-items: center; justify-content: center; border: 2px solid white; z-index: 11;
+            position: absolute;
+            bottom: -4px;
+            right: -8px;
+            background-color: #f59e0b;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            z-index: 11;
         }
         .like-button {
-            cursor: pointer; display: flex; align-items: center; gap: 4px;
-            font-size: 12px; color: #6b7280; transition: color 0.2s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #6b7280;
+            transition: color 0.2s;
         }
-        .like-button:hover, .like-button.liked { color: #ef4444; }
+        .like-button:hover, .like-button.liked {
+            color: #ef4444;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -50,22 +68,24 @@
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
             <div class="grid grid-cols-1 lg:grid-cols-5">
                 <div class="lg:col-span-3 p-6">
-                    <div id="media-container" class="mb-6">
+                    <div id="media-gallery" class="mb-6">
+                        <div class="w-full h-96 bg-black rounded-xl shadow-md mb-4 flex items-center justify-center">
+                            <img id="main-image" src="https://placehold.co/800x600/e2e8f0/e2e8f0" class="w-full h-full object-cover rounded-xl" alt="Imagem principal">
+                            <video id="main-video" class="hidden w-full h-full rounded-xl" controls></video>
                         </div>
-                    <div id="descricao-container" class="mt-6">
-                        </div>
+                        <div id="thumbnail-container" class="flex space-x-2 overflow-x-auto p-1"></div>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Sobre a Campanha</h2>
+                    <p id="campaign-description" class="text-gray-600 leading-relaxed"></p>
                 </div>
-
                 <div class="lg:col-span-2 bg-gray-50 p-6">
                     <div class="sticky top-24">
                         <h1 id="campaign-title" class="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight"></h1>
                         <p class="mt-2 text-md text-gray-500">por <span id="entity-name" class="font-semibold text-gray-700"></span></p>
-                        
                         <div id="countdown-container" class="mt-6 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 p-4 rounded-r-lg">
                             <h3 class="font-bold">Esta campanha termina em:</h3>
                             <div id="countdown-timer" class="text-2xl font-mono font-bold"></div>
                         </div>
-
                         <div id="goal-container" class="mt-6">
                             <div class="flex justify-between items-end">
                                 <span class="text-lg font-bold text-green-600">Meta: <span id="goal-progress-text"></span></span>
@@ -75,9 +95,32 @@
                                 <div id="progress-bar" class="bg-green-500 h-4 rounded-full transition-all duration-500"></div>
                             </div>
                         </div>
-                        
-                        <div id="informacoes-container" class="mt-8 pt-6 border-t space-y-4"></div>
-                        <div id="detalhes-adicionais-container" class="mt-6 pt-6 border-t"></div>
+                        <div class="mt-8 pt-6 border-t">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">Como Ajudar</h3>
+                            <div class="space-y-4">
+                                <div id="address-block" class="flex items-start">
+                                    <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    <div>
+                                        <h4 class="font-semibold">Local de Entrega</h4>
+                                        <p id="campaign-address" class="text-gray-600"></p>
+                                    </div>
+                                </div>
+                                <div id="hours-block" class="flex items-start">
+                                    <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <div>
+                                        <h4 class="font-semibold">Horário</h4>
+                                        <p id="campaign-hours" class="text-gray-600"></p>
+                                    </div>
+                                </div>
+                                <div id="docs-block" class="flex items-start">
+                                    <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    <div>
+                                        <h4 class="font-semibold">Documentos Necessários</h4>
+                                        <p id="campaign-docs" class="text-gray-600"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                         <div id="donors-section" class="mt-8 pt-6 border-t">
                             <h3 class="text-xl font-bold text-gray-800 mb-4">Apoiadores desta Causa</h3>
@@ -117,7 +160,7 @@
 
     <script type="module">
         import { db, paths } from './app-config.js';
-        import { doc, collection, getDoc, getDocs, query, where, onSnapshot, serverTimestamp, deleteDoc, setDoc } from './firebase-services.js';
+        import { doc, collection, query, where, onSnapshot, serverTimestamp, deleteDoc, setDoc } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal } from './modal-handler.js';
@@ -133,150 +176,67 @@
         
         let currentUserSession = null;
         let campaignId = null;
-        let campaignData = null;
-        let fieldConfigs = {};
+        let campaignData = null; // Armazena os dados da campanha
+        let campaignUnsubscribe = null;
+        let donationsUnsubscribe = null;
+        let likesUnsubscribe = null;
         let countdownInterval;
-        let campaignUnsubscribe, donationsUnsubscribe, likesUnsubscribe;
 
         async function initializeApp() {
             await injectHeader();
             currentUserSession = await getCurrentUser();
             const params = new URLSearchParams(window.location.search);
             campaignId = params.get('id');
-
             if (!campaignId) {
                 loadingContainer.innerHTML = '<p class="text-red-500 text-center">Erro: ID da campanha não encontrado.</p>';
                 return;
             }
-
-            await loadFieldConfigs();
             loadCampaignDetails();
         }
 
-        async function loadFieldConfigs() {
-            const configSnapshot = await getDocs(collection(db, paths.configs));
-            configSnapshot.forEach(doc => {
-                fieldConfigs[doc.id] = doc.data();
-            });
-        }
-
-        function loadCampaignDetails() {
-            if (campaignUnsubscribe) campaignUnsubscribe();
-            const campaignRef = doc(db, paths.campaignDoc(campaignId));
-            
-            campaignUnsubscribe = onSnapshot(campaignRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    campaignData = { id: docSnap.id, ...docSnap.data() };
-                    renderCampaignPage(campaignData);
-                    loadDonationsAndLikes(campaignId); 
-                    loadingContainer.classList.add('hidden');
-                    campaignContent.classList.remove('hidden');
-                } else {
-                    loadingContainer.innerHTML = '<p class="text-red-500 text-center">Campanha não encontrada.</p>';
-                }
-            });
-        }
-
-        function renderCampaignPage(campaign) {
+        function renderCampaignInfo(campaign) {
             document.title = `${campaign.title} - App Faz Bem`;
             document.getElementById('campaign-title').textContent = campaign.title;
             document.getElementById('entity-name').textContent = campaign.entityName;
-
-            if (campaign.expiresAt) {
-                updateCountdown(campaign.expiresAt.toDate());
-            }
-            renderizarCamposDinamicos(campaign.camposPersonalizados || {});
-        }
-        
-        function renderizarCamposDinamicos(campos) {
-            const mediaContainer = document.getElementById('media-container');
-            const descContainer = document.getElementById('descricao-container');
-            const infoContainer = document.getElementById('informacoes-container');
-            const detalhesContainer = document.getElementById('detalhes-adicionais-container');
+            document.getElementById('campaign-description').textContent = campaign.description;
             
-            mediaContainer.innerHTML = '';
-            descContainer.innerHTML = '';
-            infoContainer.innerHTML = '';
-            detalhesContainer.innerHTML = '';
+            const mainImage = document.getElementById('main-image');
+            const mainVideo = document.getElementById('main-video');
+            const thumbContainer = document.getElementById('thumbnail-container');
+            thumbContainer.innerHTML = '';
 
-            const mediaFields = ['imagem_principal', 'video_principal', 'galeria_imagens'];
-            const infoFields = {
-                'endereco_entrega': `<svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>`,
-                'horario_funcionamento': `<svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`,
-                'documentos_necessarios': `<svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>`
-            };
-            const descField = 'descricao_longa';
-            renderMediaGallery(campos, mediaContainer);
-            for (const key in campos) {
-                if (!campos[key] || mediaFields.includes(key)) continue;
-                const config = fieldConfigs[key] || { label: key, type: 'text' };
-                let targetContainer;
-                let isInfoBlock = false;
-                if (key === descField) {
-                    targetContainer = descContainer;
-                } else if (infoFields[key]) {
-                    targetContainer = infoContainer;
-                    isInfoBlock = true;
-                } else {
-                    if(!detalhesContainer.hasChildNodes()){
-                        detalhesContainer.innerHTML = '<h3 class="text-xl font-bold text-gray-800 mb-4">Detalhes Adicionais</h3>';
-                    }
-                    targetContainer = detalhesContainer;
-                }
-                if (isInfoBlock) {
-                    targetContainer.innerHTML += `
-                        <div class="flex items-start">
-                            ${infoFields[key]}
-                            <div>
-                                <h4 class="font-semibold">${config.label}</h4>
-                                <p class="text-gray-600">${campos[key]}</p>
-                            </div>
-                        </div>`;
-                } else if (key === descField) {
-                     targetContainer.innerHTML += `
-                        <h2 class="text-2xl font-bold text-gray-800 mb-2">${config.label}</h2>
-                        <p class="text-gray-600 leading-relaxed">${campos[key]}</p>`;
-                } else {
-                    targetContainer.innerHTML += `<div class="mb-3"><p class="font-semibold">${config.label}</p><p class="text-gray-700">${campos[key]}</p></div>`;
-                }
-            }
-        }
-        function renderMediaGallery(campos, container) {
-            const mainImageUrl = campos.imagem_principal;
-            const videoUrl = campos.video_principal;
-            const galleryImages = campos.galeria_imagens || [];
-            container.innerHTML = `
-                <div class="w-full h-96 bg-gray-200 rounded-xl shadow-md mb-4 flex items-center justify-center">
-                    <img id="main-image" class="w-full h-full object-cover rounded-xl" alt="Imagem principal">
-                    <video id="main-video" class="hidden w-full h-full rounded-xl" controls></video>
-                </div>
-                <div id="thumbnail-container" class="flex space-x-2 overflow-x-auto p-1"></div>
-            `;
-            const mainImageEl = container.querySelector('#main-image');
-            const mainVideoEl = container.querySelector('#main-video');
-            const thumbContainer = container.querySelector('#thumbnail-container');
-            const showImage = (url) => { mainVideoEl.classList.add('hidden'); mainVideoEl.pause(); mainImageEl.classList.remove('hidden'); mainImageEl.src = url; };
-            const showVideo = (url) => { mainImageEl.classList.add('hidden'); mainVideoEl.classList.remove('hidden'); mainVideoEl.src = url; };
-            if (videoUrl) {
+            const showImage = (url) => { mainVideo.classList.add('hidden'); mainVideo.pause(); mainImage.classList.remove('hidden'); mainImage.src = url; };
+            const showVideo = (url) => { mainImage.classList.add('hidden'); mainVideo.classList.remove('hidden'); mainVideo.src = url; };
+
+            if (campaign.videoUrl) {
                 const thumb = document.createElement('div');
                 thumb.className = 'w-20 h-16 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-blue-500 flex-shrink-0 bg-black flex items-center justify-center';
                 thumb.innerHTML = `<svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>`;
-                thumb.onclick = () => showVideo(videoUrl);
+                thumb.onclick = () => showVideo(campaign.videoUrl);
                 thumbContainer.appendChild(thumb);
             }
-            const allImages = mainImageUrl ? [mainImageUrl, ...galleryImages.filter(url => url !== mainImageUrl)] : galleryImages;
-            
-            allImages.forEach(imgUrl => {
+            (campaign.images || []).forEach(imgUrl => {
                 const thumb = document.createElement('img');
                 thumb.src = imgUrl;
                 thumb.className = 'w-20 h-16 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-green-500 flex-shrink-0';
                 thumb.onclick = () => showImage(imgUrl);
                 thumbContainer.appendChild(thumb);
             });
-            if (videoUrl) showVideo(videoUrl);
-            else if (mainImageUrl) showImage(mainImageUrl);
-            else if (galleryImages.length > 0) showImage(galleryImages[0]);
-            else showImage('https://placehold.co/800x600/e2e8f0/e2e8f0?text=Sem+Mídia');
+
+            if (campaign.videoUrl) { showVideo(campaign.videoUrl); }
+            else if (campaign.images && campaign.images.length > 0) { showImage(campaign.images[0]); }
+            else { showImage('https://placehold.co/800x600/e2e8f0/e2e8f0?text=Sem+Mídia'); }
+
+            const address = campaign.address || {};
+            const operation = campaign.operation || {};
+            document.getElementById('campaign-address').textContent = `${address.street || ''}, ${address.number || ''} - ${address.district || ''}`;
+            document.getElementById('address-block').style.display = address.street ? 'flex' : 'none';
+            document.getElementById('campaign-hours').textContent = `${operation.hoursStart || ''} - ${operation.hoursEnd || ''}`;
+            document.getElementById('hours-block').style.display = operation.hoursStart ? 'flex' : 'none';
+            document.getElementById('campaign-docs').textContent = operation.requiredDocs || '';
+            document.getElementById('docs-block').style.display = operation.requiredDocs ? 'flex' : 'none';
+
+            if (campaign.expiresAt) { updateCountdown(campaign.expiresAt.toDate()); }
         }
 
         function updateCountdown(expiresAt) {
@@ -303,7 +263,25 @@
                 timerEl.innerHTML = `${String(days).padStart(2, '0')}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
             }, 1000);
         }
-        
+
+        function loadCampaignDetails() {
+            if (campaignUnsubscribe) campaignUnsubscribe();
+            const campaignRef = doc(db, paths.campaignDoc(campaignId));
+            
+            campaignUnsubscribe = onSnapshot(campaignRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    campaignData = docSnap.data(); // Armazena os dados da campanha
+                    renderCampaignInfo(campaignData);
+                    // Inicia os listeners de doações e curtidas aqui, pois dependem da campanha
+                    loadDonationsAndLikes(campaignId); 
+                    loadingContainer.classList.add('hidden');
+                    campaignContent.classList.remove('hidden');
+                } else {
+                    loadingContainer.innerHTML = '<p class="text-red-500 text-center">Campanha não encontrada.</p>';
+                }
+            });
+        }
+
         function updateGoalProgress(currentAmount, goal) {
             if (goal) {
                 const percentage = Math.min(100, (currentAmount / goal) * 100);
@@ -316,6 +294,7 @@
             }
         }
         
+        // --- FUNÇÃO REESTRUTURADA ---
         function loadDonationsAndLikes(campaignId) {
             if (donationsUnsubscribe) donationsUnsubscribe();
             if (likesUnsubscribe) likesUnsubscribe();
@@ -327,11 +306,13 @@
             let likesData = {};
 
             const render = () => {
+                // 1. Calcula o progresso
                 const completedItemsCount = donationsData.reduce((total, donation) => {
                     return total + (Array.isArray(donation.items) ? donation.items.filter(item => item.status === 'completed').length : 0);
                 }, 0);
                 updateGoalProgress(completedItemsCount, campaignData.goal);
 
+                // 2. Renderiza a lista de doadores
                 if (donationsData.length === 0) {
                     donorsList.innerHTML = '';
                     donorsPlaceholder.classList.remove('hidden');
@@ -343,9 +324,11 @@
                 const uniqueDonors = {};
 
                 donationsData.forEach(donation => {
-                     if (!uniqueDonors[donation.donorId] || (uniqueDonors[donation.donorId].privacy === 'anonymous' && donation.privacy !== 'anonymous') || (Array.isArray(donation.items) && donation.items.some(i => i.status === 'completed') && !uniqueDonors[donation.donorId].items.some(i => i.status === 'completed'))) {
-                         uniqueDonors[donation.donorId] = donation;
-                     }
+                     if (!uniqueDonors[donation.donorId] || 
+                        (uniqueDonors[donation.donorId].privacy === 'anonymous' && donation.privacy !== 'anonymous') ||
+                        (Array.isArray(donation.items) && donation.items.some(i => i.status === 'completed') && !uniqueDonors[donation.donorId].items.some(i => i.status === 'completed'))) {
+                        uniqueDonors[donation.donorId] = donation;
+                    }
                 });
 
                 Object.values(uniqueDonors).forEach(donation => {
@@ -362,7 +345,10 @@
                     donorElement.innerHTML = `
                         <div class="donor-avatar-container">
                             <img src="${photoURL}" alt="Foto de ${displayName}" title="${displayName}" class="donor-avatar inline-block h-12 w-12 rounded-full ring-2 ring-white object-cover">
-                            ${isCompleted ? `<div class="star-badge" title="Doação Concluída!"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></div>` : ''}
+                            ${isCompleted ? `
+                            <div class="star-badge" title="Doação Concluída!">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                            </div>` : ''}
                         </div>
                         <div class="like-button mt-1 ${userHasLiked ? 'liked' : ''}" data-donor-id="${donation.donorId}" title="Curtir">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path></svg>
@@ -389,7 +375,7 @@
                 render();
             });
         }
-        
+
         donorsList.addEventListener('click', async (e) => {
             const likeButton = e.target.closest('.like-button');
             if (!likeButton) return;
