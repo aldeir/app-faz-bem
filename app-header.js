@@ -108,7 +108,7 @@ function createUserMenuHTML(userSession) {
     let menuItems = '';
     switch (userRole) {
         case 'superadmin':
-            menuItems = `<a href="superadmin.html" class="menu-item">Painel Superadmin</a><a href="gerenciar-entidades.html" class="menu-item">Entidades</a><a href="configuracoes.html" class="menu-item">Configurações</a>`;
+            menuItems = `<a href="superadmin.html" class="menu-item">Painel Superadmin</a><a href="gerenciar-entidades.html" class="menu-item">Entidades</a><a href="receber-doacao.html" class="menu-item">Receber Doação</a><a href="gerenciar-agendamentos-global.html" class="menu-item">Gernciar Agenda</a><a href="configuracoes.html" class="menu-item">Configurações</a>`;
             break;
         case 'entidade':
             menuItems = `<a href="admin.html" class="menu-item">Painel da Entidade</a><a href="criar-campanha.html" class="menu-item">Criar Campanha</a><a href="gerenciar-agendamentos.html" class="menu-item">Agendamentos</a>`;
