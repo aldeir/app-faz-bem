@@ -56,7 +56,7 @@
             </div>
         </div>
     </main>
-    
+
     <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
@@ -204,33 +204,34 @@
                 loadMoreContainer.classList.add('hidden');
             }
         }
-
+        
         // --- INÍCIO DA ALTERAÇÃO ---
         function generateItemDetailsHtml(item, campaignType) {
-            let detailsHtml = '<div class="space-y-1 mt-1">';
+            let detailsHtml = '<div class="space-y-1">';
             const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) 
                 ? campaignTypeSettings[campaignType].fields 
                 : Object.values(campaignTypeSettings[campaignType]?.fields || {});
             
-            const hasVisibleFields = fieldsConfig.some(field => {
-                const value = item[field.id];
-                return value && field.id && field.id !== 'type' && field.id !== 'photoURL' && !field.type.includes('image') && !field.type.includes('video');
-            });
-
-            if (!hasVisibleFields) {
-                return '<div class="space-y-1 mt-1"><p class="text-xs text-gray-500">Nenhum detalhe adicional.</p></div>';
-            }
-
+            let hasVisibleFields = false;
             fieldsConfig
                 .sort((a, b) => (a.order || 0) - (b.order || 0))
                 .forEach(field => {
                     const key = field.id;
                     const value = item[key];
-                    // Renderiza apenas se tiver valor e NÃO for um tipo de imagem/vídeo (tratados separadamente)
-                    if (value && key && key !== 'type' && key !== 'photoURL' && !field.type.includes('image') && !field.type.includes('video')) {
-                        detailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
+                    
+                    // Condição corrigida para ignorar todos os tipos de mídia
+                    const isMediaField = field.type === 'image' || field.type === 'camera' || field.type === 'video';
+
+                    if (value && key && key !== 'type' && key !== 'photoURL' && !isMediaField) {
+                        detailsHtml += `<p><strong class="font-semibold">${field.label}:</strong> ${value}</p>`;
+                        hasVisibleFields = true;
                     }
                 });
+            
+            if (!hasVisibleFields) {
+                detailsHtml += '<p>Nenhum detalhe adicional.</p>';
+            }
+
             detailsHtml += '</div>';
             return detailsHtml;
         }
@@ -338,7 +339,7 @@
             }
 
             let itemsHtml = itemsToDisplay.map((item) => {
-                const itemDetailsHtml = generateItemDetailsHtml(item, campaignType);
+                const itemDetailsHtml = generateItemDetailsHtml(item, campaignType); // Alterado para chamar a função corrigida
                 return `
                 <div class="item-card flex items-start space-x-4 p-3 bg-gray-50 rounded-md border transition-all ${item.status !== 'completed' ? 'cursor-pointer' : ''}" 
                      ${item.status !== 'completed' ? `data-donation-id="${donation.id}" data-item-index="${donation.items.indexOf(item)}"` : ''}>
@@ -398,7 +399,7 @@
             currentPage++;
             renderActiveTabData(true);
         });
-
+        
         // --- INÍCIO DA ALTERAÇÃO ---
         deliveriesList.addEventListener('click', async (e) => {
             const itemCard = e.target.closest('.item-card[data-donation-id]');
@@ -411,7 +412,7 @@
                 const campaign = campaignsCache.get(donation.campaignId);
                 
                 // A função agora retorna apenas o HTML dos detalhes em texto
-                const detailsHtml = generateItemDetailsHtml(item, campaign?.type);
+                const detailsHtml = generateItemDetailsHtml(item, campaign?.type || 'default');
 
                 // Construímos o conteúdo do modal de forma segura, com uma imagem principal e os detalhes
                 const modalContentHtml = `
@@ -452,7 +453,7 @@
             }
         });
         // --- FIM DA ALTERAÇÃO ---
-
+        
         initializeApp();
     </script>
 </body>
