@@ -56,7 +56,7 @@
             </div>
         </div>
     </main>
-
+    
     <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
@@ -83,7 +83,7 @@
         import { collection, query, where, onSnapshot, doc, getDoc } from "./firebase-services.js";
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
-        import { showDetailsModal } from './modal-handler.js'; // Importação Chave
+        import { showDetailsModal } from './modal-handler.js';
 
         const loadingView = document.getElementById('loading-view');
         const deliveriesView = document.getElementById('deliveries-view');
@@ -207,28 +207,32 @@
 
         // --- INÍCIO DA ALTERAÇÃO ---
         function generateItemDetailsHtml(item, campaignType) {
-            let detailsHtml = '';
+            let detailsHtml = '<div class="space-y-1 mt-1">';
             const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) 
                 ? campaignTypeSettings[campaignType].fields 
                 : Object.values(campaignTypeSettings[campaignType]?.fields || {});
             
+            const hasVisibleFields = fieldsConfig.some(field => {
+                const value = item[field.id];
+                return value && field.id && field.id !== 'type' && field.id !== 'photoURL' && !field.type.includes('image') && !field.type.includes('video');
+            });
+
+            if (!hasVisibleFields) {
+                return '<div class="space-y-1 mt-1"><p class="text-xs text-gray-500">Nenhum detalhe adicional.</p></div>';
+            }
+
             fieldsConfig
                 .sort((a, b) => (a.order || 0) - (b.order || 0))
                 .forEach(field => {
-                    const value = item[field.id];
-                    if (value) {
-                         if (field.type === 'image' || field.type === 'camera') {
-                             detailsHtml += `
-                                <div class="mt-2">
-                                    <p class="font-semibold">${field.label}</p>
-                                    <img src="${value}" class="max-w-full h-auto rounded-md border mt-1">
-                                </div>`;
-                         } else if (field.id !== 'type' && field.id !== 'photoURL' && !field.type.includes('video')) {
-                            detailsHtml += `<p><strong class="font-semibold">${field.label}:</strong> ${value}</p>`;
-                        }
+                    const key = field.id;
+                    const value = item[key];
+                    // Renderiza apenas se tiver valor e NÃO for um tipo de imagem/vídeo (tratados separadamente)
+                    if (value && key && key !== 'type' && key !== 'photoURL' && !field.type.includes('image') && !field.type.includes('video')) {
+                        detailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
                     }
                 });
-            return detailsHtml || '<p>Sem detalhes adicionais.</p>';
+            detailsHtml += '</div>';
+            return detailsHtml;
         }
         // --- FIM DA ALTERAÇÃO ---
 
@@ -334,14 +338,14 @@
             }
 
             let itemsHtml = itemsToDisplay.map((item) => {
-                const itemDetailsHtml = generateItemDetailsHtml(item, campaignType).substring(21, generateItemDetailsHtml(item, campaignType).length - 6);
+                const itemDetailsHtml = generateItemDetailsHtml(item, campaignType);
                 return `
                 <div class="item-card flex items-start space-x-4 p-3 bg-gray-50 rounded-md border transition-all ${item.status !== 'completed' ? 'cursor-pointer' : ''}" 
                      ${item.status !== 'completed' ? `data-donation-id="${donation.id}" data-item-index="${donation.items.indexOf(item)}"` : ''}>
                     <img src="${item.photoURL || 'https://placehold.co/64x64/e2e8f0/e2e8f0?text=Item'}" class="w-16 h-16 rounded-md object-cover flex-shrink-0">
                     <div class="flex-grow">
                         <p class="font-bold">${item.type || 'Item sem título'}</p>
-                        <div class="text-xs text-gray-500">${itemDetailsHtml}</div>
+                        ${itemDetailsHtml}
                     </div>
                     ${item.status !== 'completed' ? `<div id="qr-${donation.id}-${donation.items.indexOf(item)}" class="w-20 h-20 pointer-events-none flex-shrink-0"></div>` : '<div class="w-20 h-20 flex items-center justify-center"><span class="text-sm font-bold text-green-600">Entregue</span></div>'}
                 </div>`;
@@ -394,7 +398,7 @@
             currentPage++;
             renderActiveTabData(true);
         });
-        
+
         // --- INÍCIO DA ALTERAÇÃO ---
         deliveriesList.addEventListener('click', async (e) => {
             const itemCard = e.target.closest('.item-card[data-donation-id]');
@@ -405,14 +409,16 @@
                 const donation = allUserDonations.find(d => d.id === donationId);
                 const item = donation.items[itemIndex];
                 const campaign = campaignsCache.get(donation.campaignId);
+                
+                // A função agora retorna apenas o HTML dos detalhes em texto
+                const detailsHtml = generateItemDetailsHtml(item, campaign?.type);
 
-                const detailsHtml = generateItemDetailsHtml(item, campaign?.type || 'default');
-
+                // Construímos o conteúdo do modal de forma segura, com uma imagem principal e os detalhes
                 const modalContentHtml = `
                     <div class="text-center">
                         <img src="${item.photoURL || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem'}" class="w-full h-64 object-contain rounded-md mb-4 bg-gray-100">
                         <p class="text-sm text-gray-500 mb-4">Campanha: ${donation.campaignTitle}</p>
-                        <div class="text-left text-sm space-y-1 p-4 bg-gray-50 rounded-lg border">${detailsHtml}</div>
+                        <div class="text-left text-sm space-y-2 p-4 bg-gray-50 rounded-lg border">${detailsHtml}</div>
                         <div class="mt-6">
                             <div id="modal-item-qrcode" class="mx-auto w-40 h-40"></div>
                             <p class="text-sm text-gray-500 mt-2">Apresente este QR Code para a entidade confirmar o recebimento.</p>
@@ -420,12 +426,13 @@
                     </div>
                 `;
 
+                // Usamos o modal handler padrão da aplicação
                 showDetailsModal(item.type || 'Detalhes do Item', modalContentHtml);
 
-                // Gerar QR Code dentro do novo modal
+                // Geramos o QR Code dentro do novo modal depois que ele é exibido
                 setTimeout(() => {
                     generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`);
-                }, 50); // Um pequeno delay para garantir que o elemento está no DOM
+                }, 50);
             }
             
             if (rescheduleBtn) {
@@ -445,7 +452,7 @@
             }
         });
         // --- FIM DA ALTERAÇÃO ---
-        
+
         initializeApp();
     </script>
 </body>
