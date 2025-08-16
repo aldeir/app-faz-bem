@@ -169,7 +169,6 @@
             await injectHeader();
             const userSession = await getCurrentUser();
             
-            // ### CORREÇÃO 1: Controle de Acesso para Entidade e Superadmin ###
             if (userSession?.auth && ['entidade', 'superadmin'].includes(userSession.profile?.role)) {
                 const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
                 campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
@@ -177,10 +176,10 @@
                 let idToQuery;
                 if (userSession.profile.role === 'superadmin') {
                     backLink.href = 'superadmin.html';
-                    idToQuery = 'app_faz_bem'; // Superadmin gerencia campanhas do app
+                    idToQuery = 'app_faz_bem';
                 } else {
                     backLink.href = 'admin.html';
-                    idToQuery = userSession.auth.uid; // Entidade gerencia suas próprias campanhas
+                    idToQuery = userSession.auth.uid;
                 }
 
                 await loadAllCampaignsForEntity(idToQuery);
@@ -334,21 +333,32 @@
             });
         }
         
+        // --- INÍCIO DA ALTERAÇÃO ---
         function generateItemDetailsHtml(item, campaignType) {
             let detailsHtml = '<div class="space-y-1">';
             const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
             
+            let hasVisibleFields = false;
             fieldsConfig
                 .sort((a, b) => (a.order || 0) - (b.order || 0))
                 .forEach(field => {
                     const value = item[field.id];
-                    if (value && field.id !== 'type' && field.id !== 'photoURL' && !field.type.includes('image') && !field.type.includes('video')) {
+                    const isMediaField = field.type === 'image' || field.type === 'camera' || field.type === 'video';
+
+                    if (value && field.id && field.id !== 'type' && field.id !== 'photoURL' && !isMediaField) {
                         detailsHtml += `<p><strong class="font-semibold">${field.label}:</strong> ${value}</p>`;
+                        hasVisibleFields = true;
                     }
                 });
+            
+            if (!hasVisibleFields) {
+                detailsHtml += '<p>Nenhum detalhe adicional.</p>';
+            }
+
             detailsHtml += '</div>';
             return detailsHtml;
         }
+        // --- FIM DA ALTERAÇÃO ---
 
         async function processItemReception(donationId, itemIndex) {
             const donationRef = doc(db, paths.donationDoc(donationId));
@@ -398,7 +408,7 @@
                     <img src="${item.photoURL || 'https://placehold.co/400x400/e2e8f0/e2e8f0?text=Sem+Imagem'}" class="w-full h-64 object-contain rounded-md mb-4 bg-gray-100">
                     <h4 class="font-bold text-xl">${item.type}</h4>
                     <p class="text-sm text-gray-500 mb-4">Campanha: ${donation.campaignTitle}</p>
-                    <div class="text-left text-sm space-y-1 p-2 bg-gray-50 rounded">${detailsHtml || '<p>Sem detalhes adicionais.</p>'}</div>
+                    <div class="text-left text-sm space-y-1 p-2 bg-gray-50 rounded">${detailsHtml}</div>
                 </div>
                 <div class="mt-6 flex justify-end gap-3">
                     <button id="modal-cancel-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">Cancelar</button>
@@ -449,7 +459,6 @@
                     return;
                 }
                 
-                // ### CORREÇÃO 2: Reutiliza a função de detalhes no QR Modal ###
                 const itemDetailsHtml = generateItemDetailsHtml(item, campaign?.type);
                 qrItemDetails.innerHTML = `
                     <img src="${item.photoURL || 'https://placehold.co/64x64/e2e8f0/e2e8f0'}" class="w-16 h-16 rounded-md object-cover flex-shrink-0">
