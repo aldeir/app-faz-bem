@@ -34,8 +34,10 @@ export {
     arrayUnion,
     arrayRemove,
     deleteField,
-    orderBy // <-- FUNÇÃO ADICIONADA AQUI
+    orderBy, 
+    limit// <-- FUNÇÃO ADICIONADA AQUI
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
 
 // Storage (com alias para 'ref')
 export { 
