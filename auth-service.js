@@ -25,10 +25,9 @@ export const getCurrentUser = () => {
             }
 
             let profile = null;
-            // --- INÍCIO DA ALTERAÇÃO ---
-            // A verificação de e-mail agora é um dado central do utilizador
-            const isVerified = user.emailVerified;
-            // --- FIM DA ALTERAÇÃO ---
+            // Verifica se o provedor é de senha e se o e-mail foi verificado.
+            const isPasswordProvider = user.providerData.some(p => p.providerId === 'password');
+            const isVerified = !isPasswordProvider || user.emailVerified;
 
             if (user.email === ADMIN_EMAIL) {
                 profile = {
@@ -52,7 +51,7 @@ export const getCurrentUser = () => {
 
             if (profile) {
                 managePresence(user, profile);
-                // Retorna o estado de verificação junto com os dados do utilizador.
+                // Retorna o status de verificação junto com os dados do usuário.
                 resolve({ auth: user, profile: profile, isVerified: isVerified });
             } else {
                 resolve({ auth: user, profile: null, isVerified: isVerified });
