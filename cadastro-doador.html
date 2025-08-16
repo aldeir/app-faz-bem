@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/app-faz-bem/images/icons/icon-192x192.png">
-<link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
+    <link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
 
     <link href="/app-faz-bem/style.css" rel="stylesheet">
     
@@ -24,7 +24,8 @@
 </head>
 <body class="bg-gray-100">
 
-    <div id="app-container">
+    <div id="app-header"></div>
+    <div id="app-modal" class="hidden"></div> <div id="app-container">
         <div class="min-h-screen flex items-center justify-center py-12 px-4">
             <div id="form-container" class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
                 <div>
@@ -72,7 +73,6 @@
                             </label>
                         </div>
                     </div>
-                    <div id="signup-error" class="text-red-500 text-sm hidden pt-2"></div>
                     
                     <button type="submit" id="submit-btn" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
                         Finalizar Cadastro
@@ -88,16 +88,31 @@
     <script type="module">
         import { auth, db, paths } from './app-config.js';
         import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, doc, setDoc } from './firebase-services.js';
+        import { injectHeader } from './app-header.js';
+        import { showAlertModal } from './modal-handler.js'; // --- INÍCIO DA ALTERAÇÃO ---
 
         const signupForm = document.getElementById('signup-form');
-        const errorDiv = document.getElementById('signup-error');
         const submitBtn = document.getElementById('submit-btn');
         const phoneInput = document.getElementById('signup-phone');
         const cepInput = document.getElementById('signup-cep');
-        const termsAgreeCheckbox = document.getElementById('terms-agree'); // <-- INÍCIO DA ALTERAÇÃO: Referência à checkbox
+        const termsAgreeCheckbox = document.getElementById('terms-agree');
+
+        injectHeader();
 
         IMask(phoneInput, { mask: [{ mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' }] });
         IMask(cepInput, { mask: '00000-000' });
+        
+        // --- INÍCIO DA ALTERAÇÃO: Adição da função para traduzir erros ---
+        const traduzErroFirebase = (code) => {
+            const erros = {
+                'auth/email-already-in-use': 'Este e-mail já está a ser utilizado por outra conta.',
+                'auth/invalid-email': 'O formato do e-mail é inválido.',
+                'auth/weak-password': 'A senha é muito fraca. Tente uma com pelo menos 6 caracteres.',
+                'auth/operation-not-allowed': 'O registo por e-mail e senha não está ativado.',
+            };
+            return erros[code] || 'Ocorreu um erro inesperado durante o registo. Por favor, tente novamente.';
+        };
+        // --- FIM DA ALTERAÇÃO ---
 
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -114,23 +129,23 @@
                 number: document.getElementById('signup-number').value,
                 district: document.getElementById('signup-district').value,
             };
-
-            errorDiv.classList.add('hidden');
-            errorDiv.textContent = '';
-
+            
+            // --- INÍCIO DA ALTERAÇÃO: Substituição dos 'errorDiv' por 'showAlertModal' ---
             if (password !== passwordConfirm) {
-                errorDiv.textContent = "As senhas não coincidem.";
-                errorDiv.classList.remove('hidden');
+                showAlertModal("Erro de Validação", "As senhas não coincidem.");
                 return;
             }
 
-            // <-- INÍCIO DA ALTERAÇÃO: Validação da checkbox -->
-            if (!termsAgreeCheckbox.checked) {
-                errorDiv.textContent = "Você precisa de aceitar os Termos de Serviço e a Política de Privacidade para continuar.";
-                errorDiv.classList.remove('hidden');
+            if (password.length < 6) {
+                showAlertModal("Erro de Validação", "A sua senha deve ter no mínimo 6 caracteres.");
                 return;
             }
-            // <-- FIM DA ALTERAÇÃO -->
+
+            if (!termsAgreeCheckbox.checked) {
+                showAlertModal("Termos e Condições", "Você precisa de aceitar os Termos de Serviço e a Política de Privacidade para continuar.");
+                return;
+            }
+            // --- FIM DA ALTERAÇÃO ---
 
             submitBtn.disabled = true;
             submitBtn.textContent = 'A registar...';
@@ -157,14 +172,14 @@
                 window.location.href = 'verificar-email.html';
 
             } catch (error) {
-                errorDiv.textContent = "Erro: " + error.message;
-                errorDiv.classList.remove('hidden');
+                // --- INÍCIO DA ALTERAÇÃO ---
+                showAlertModal("Erro no Registo", traduzErroFirebase(error.code));
+                // --- FIM DA ALTERAÇÃO ---
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Finalizar Cadastro';
             }
         });
 
-        // Lógica para mostrar/ocultar senha
         document.querySelectorAll('[data-toggle-password]').forEach(button => {
             button.addEventListener('click', () => {
                 const inputId = button.dataset.togglePassword;
