@@ -1,4 +1,4 @@
-// /js/app-header.js (Versão 7.3 - Controlo de Acesso rigoroso para e-mail não verificado)
+// /js/app-header.js (Versão 7.3 - Com controlo de verificação e UX melhorada)
 
 import { db, rtdb, logout } from './app-config.js';
 import { collection, query, where, onSnapshot, getDocs, limit, databaseRef, onValue, sendEmailVerification } from './firebase-services.js';
@@ -46,6 +46,7 @@ function listenForOnlineUsers() {
     });
 }
 
+// --- INÍCIO DA ALTERAÇÃO: Restauração da sua função de bloqueio original ---
 function showVerificationBlock(user) {
     const pageContent = document.querySelector('main');
     if (!pageContent) return;
@@ -78,6 +79,7 @@ function showVerificationBlock(user) {
         }
     });
 }
+// --- FIM DA ALTERAÇÃO ---
 
 async function donorHasDonations(donorId) {
     if (!donorId) return false;
@@ -146,6 +148,7 @@ export async function injectHeader() {
 
     const userSession = await getCurrentUser();
 
+    // --- INÍCIO DA ALTERAÇÃO: Lógica de exibição e bloqueio corrigida ---
     const verificationBanner = (userSession && !userSession.isVerified) 
         ? `<div class="bg-yellow-300 text-yellow-800 text-center text-sm p-2">
                Por favor, verifique o seu e-mail para ter acesso a todas as funcionalidades. <a href="verificar-email.html" class="font-bold underline hover:text-yellow-900">Verificar agora</a>
@@ -181,14 +184,17 @@ export async function injectHeader() {
         const isPublicPage = ['/index.html', '/', '/verificar-email.html', '/termos-de-servico.html', '/politica-de-privacidade.html'].some(path => window.location.pathname.endsWith(path));
         
         if (!isVerified) {
+            // Se não está verificado, mostra apenas o botão de sair.
             userMenuContainer.innerHTML = `<button id="header-logout-btn" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Sair</button>`;
             document.getElementById('header-logout-btn').addEventListener('click', () => logout().then(() => window.location.href = 'login.html'));
             
+            // E se a página não for pública, bloqueia o conteúdo.
             if (!isPublicPage) {
                 showVerificationBlock(auth);
-                return false;
+                return false; // Impede o resto da página de carregar
             }
         } else {
+            // Se está verificado, mostra o menu completo.
             userMenuContainer.innerHTML = await createUserMenuHTML(userSession);
             listenForUnreadNotifications(auth.uid);
             
@@ -209,8 +215,10 @@ export async function injectHeader() {
             }
         }
     } else {
+        // Se não há sessão, mostra o botão de Entrar.
         userMenuContainer.innerHTML = `<a href="login.html" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 shadow">Entrar / Registar</a>`;
     }
     
-    return true;
+    return true; // Permite que a página continue a carregar
 }
+// --- FIM DA ALTERAÇÃO ---
