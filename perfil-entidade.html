@@ -5,11 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Perfil da Entidade - Faz Bem</title>
     
-    <!-- PWA Tags -->
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/app-faz-bem/images/icons/icon-192x192.png">
-<link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
+    <link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
 
     <link href="/app-faz-bem/style.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,6 +17,7 @@
     
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <script src="https://unpkg.com/imask"></script>
 
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -26,6 +26,7 @@
         .cropper-container-modal { max-height: 60vh; }
         #image-to-crop { display: block; max-width: 100%; }
         input[type="file"] { display: none; }
+        input:disabled, textarea:disabled { background-color: #f3f4f6; cursor: not-allowed; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -36,7 +37,7 @@
         <div class="text-center"><div class="loader mx-auto !w-10 !h-10 !border-4"></div><p class="mt-4 text-gray-600">A carregar perfil...</p></div>
     </div>
 
-    <main id="profile-view" class="hidden container mx-auto max-w-3xl p-4 sm:p-6 my-8">
+    <main id="profile-view" class="hidden container mx-auto max-w-4xl p-4 sm:p-6 my-8">
         <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Perfil da Entidade</h1>
 
@@ -50,16 +51,47 @@
                 </div>
             </div>
 
-            <form id="profile-form" class="space-y-6">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div><label for="publicName" class="block text-sm font-medium text-gray-700">Nome Público / Apelido</label><input type="text" id="publicName" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
-                    <div><label for="responsibleName" class="block text-sm font-medium text-gray-700">Nome do Responsável</label><input type="text" id="responsibleName" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
-                </div>
-                <div><label for="description" class="block text-sm font-medium text-gray-700">Sobre a Entidade</label><textarea id="description" rows="4" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea></div>
-                
+            <form id="profile-form" class="space-y-8">
+                <fieldset class="space-y-6">
+                    <legend class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Dados da Entidade</legend>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div><label for="ent-nome-fantasia" class="block text-sm font-medium text-gray-700">Nome Fantasia</label><input type="text" id="ent-nome-fantasia" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
+                        <div><label for="ent-razao-social" class="block text-sm font-medium text-gray-700">Razão Social</label><input type="text" id="ent-razao-social" disabled class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
+                    </div>
+                    <div><label for="ent-cnpj" class="block text-sm font-medium text-gray-700">CNPJ</label><input type="text" id="ent-cnpj" disabled class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
+                    <div><label for="ent-descricao" class="block text-sm font-medium text-gray-700">Sobre a Entidade</label><textarea id="ent-descricao" rows="4" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea></div>
+                    
+                    <div class="pt-4 border-t space-y-4">
+                        <p class="text-sm font-medium text-gray-700">Endereço da Entidade</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            <div><label for="ent-cep" class="block text-sm font-medium text-gray-700">CEP</label><input type="text" id="ent-cep" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
+                            <div class="col-span-2"><label for="ent-rua" class="block text-sm font-medium text-gray-700">Rua / Avenida</label><input type="text" id="ent-rua" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            <div><label for="ent-numero" class="block text-sm font-medium text-gray-700">Nº</label><input type="text" id="ent-numero" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
+                            <div class="col-span-2"><label for="ent-bairro" class="block text-sm font-medium text-gray-700">Bairro</label><input type="text" id="ent-bairro" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="space-y-6 pt-6 border-t">
+                    <legend class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Dados do Representante Principal</legend>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div><label for="rep-name" class="block text-sm font-medium text-gray-700">Nome Completo</label><input type="text" id="rep-name" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
+                        <div><label for="rep-email" class="block text-sm font-medium text-gray-700">E-mail (Login)</label><input type="email" id="rep-email" disabled class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
+                        <div><label for="rep-cpf" class="block text-sm font-medium text-gray-700">CPF</label><input type="text" id="rep-cpf" disabled class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
+                        <div><label for="rep-dob" class="block text-sm font-medium text-gray-700">Data de Nascimento</label><input type="text" id="rep-dob" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
+                        <div><label for="rep-phone" class="block text-sm font-medium text-gray-700">Telefone Pessoal</label><input type="tel" id="rep-phone" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
+                        <div><label for="rep-cargo" class="block text-sm font-medium text-gray-700">Cargo na Entidade</label><input type="text" id="rep-cargo" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>
+                    </div>
+                </fieldset>
+
                 <div class="pt-4 flex justify-end items-center">
-                     <span id="save-feedback" class="text-sm text-green-600 mr-4"></span>
-                    <button type="submit" id="save-profile-btn" class="inline-flex items-center justify-center rounded-md border shadow-sm px-6 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700"><span id="save-btn-text">Salvar Alterações</span><div id="save-btn-spinner" class="hidden loader"></div></button>
+                    <span id="save-feedback" class="text-sm text-green-600 mr-4"></span>
+                    <button type="submit" id="save-profile-btn" class="inline-flex items-center justify-center rounded-md border shadow-sm px-6 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 disabled:bg-green-400">
+                        <span id="save-btn-text">Salvar Alterações</span>
+                        <div id="save-btn-spinner" class="hidden loader"></div>
+                    </button>
                 </div>
             </form>
         </div>
@@ -76,129 +108,8 @@
         </div>
     </div>
 
-    <script type="module">
-        import { db, storage, paths } from './app-config.js';
-        import { doc, updateDoc, storageRef, uploadBytes, getDownloadURL } from './firebase-services.js';
-        import { injectHeader } from './app-header.js';
-        import { getCurrentUser } from './auth-service.js';
-
-        const loadingView = document.getElementById('loading-view');
-        const profileView = document.getElementById('profile-view');
-        const profileForm = document.getElementById('profile-form');
-        const saveBtn = document.getElementById('save-profile-btn');
-        const saveBtnText = document.getElementById('save-btn-text');
-        const saveBtnSpinner = document.getElementById('save-btn-spinner');
-        const saveFeedback = document.getElementById('save-feedback');
-        
-        const logoPreview = document.getElementById('logo-preview');
-        const logoUploadInput = document.getElementById('logo-upload-input');
-        const cropperModal = document.getElementById('cropper-modal');
-        const imageToCrop = document.getElementById('image-to-crop');
-        const cancelCropBtn = document.getElementById('cancel-crop-btn');
-        const confirmCropBtn = document.getElementById('confirm-crop-btn');
-
-        let currentUserSession = null;
-        let cropper;
-        let croppedImageBlob = null;
-
-        async function initializeApp() {
-            await injectHeader();
-            currentUserSession = await getCurrentUser();
-
-            if (currentUserSession && currentUserSession.profile?.role === 'entidade') {
-                loadProfileData(currentUserSession.profile);
-                loadingView.classList.add('hidden');
-                profileView.classList.remove('hidden');
-            } else {
-                window.location.href = 'login.html';
-            }
-        }
-
-        function loadProfileData(profile) {
-            document.getElementById('entity-name-display').textContent = profile.publicName || 'Nome não definido';
-            document.getElementById('entity-email-display').textContent = profile.email || '';
-            logoPreview.src = profile.logoUrl || 'https://placehold.co/128x128/e2e8f0/cbd5e0?text=Logo';
-            document.getElementById('publicName').value = profile.publicName || '';
-            document.getElementById('responsibleName').value = profile.responsibleName || '';
-            document.getElementById('description').value = profile.description || '';
-        }
-
-        profileForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            showLoadingButton(true);
-            saveFeedback.textContent = '';
-
-            const dataToUpdate = {
-                publicName: document.getElementById('publicName').value,
-                responsibleName: document.getElementById('responsibleName').value,
-                description: document.getElementById('description').value,
-            };
-
-            try {
-                if (croppedImageBlob) {
-                    const fileName = `logos/logo_${currentUserSession.auth.uid}.webp`;
-                    const fileRef = storageRef(storage, fileName);
-                    await uploadBytes(fileRef, croppedImageBlob);
-                    dataToUpdate.logoUrl = await getDownloadURL(fileRef);
-                }
-
-                const entityDocRef = doc(db, paths.entidadeDoc(currentUserSession.auth.uid));
-                await updateDoc(entityDocRef, dataToUpdate);
-                
-                showSaveFeedback('Perfil atualizado com sucesso!', 'success');
-                if (dataToUpdate.logoUrl) logoPreview.src = dataToUpdate.logoUrl;
-                document.getElementById('entity-name-display').textContent = dataToUpdate.publicName;
-                await injectHeader(); // Recarrega o cabeçalho
-            } catch (error) {
-                console.error("Erro ao atualizar perfil:", error);
-                showSaveFeedback('Erro ao salvar. Tente novamente.', 'error');
-            } finally {
-                showLoadingButton(false);
-            }
-        });
-
-        logoUploadInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                imageToCrop.src = event.target.result;
-                cropperModal.classList.remove('hidden');
-                if (cropper) cropper.destroy();
-                cropper = new Cropper(imageToCrop, { aspectRatio: 1, viewMode: 1 });
-            };
-            reader.readAsDataURL(file);
-            logoUploadInput.value = '';
-        });
-
-        cancelCropBtn.addEventListener('click', () => cropperModal.classList.add('hidden'));
-
-        confirmCropBtn.addEventListener('click', () => {
-            if (!cropper) return;
-            const canvas = cropper.getCroppedCanvas({ width: 256, height: 256 });
-            canvas.toBlob((blob) => {
-                croppedImageBlob = blob;
-                logoPreview.src = URL.createObjectURL(blob);
-                cropperModal.classList.add('hidden');
-            }, 'image/webp', 0.9);
-        });
-
-        function showLoadingButton(isLoading) {
-            saveBtnText.classList.toggle('hidden', isLoading);
-            saveBtnSpinner.classList.toggle('hidden', !isLoading);
-            saveBtn.disabled = isLoading;
-        }
-
-        function showSaveFeedback(message, type = 'success') {
-            saveFeedback.textContent = message;
-            saveFeedback.className = `text-sm mr-4 ${type === 'success' ? 'text-green-600' : 'text-red-600'}`;
-            setTimeout(() => { saveFeedback.textContent = ''; }, 4000);
-        }
-
-        initializeApp();
-    </script>
+    <script type="module" src="perfil-entidade.js"></script>
     
-    <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
