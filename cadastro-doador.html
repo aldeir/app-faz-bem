@@ -20,18 +20,17 @@
     
     <style>
         body { font-family: 'Inter', sans-serif; }
-        /* INÍCIO DA ALTERAÇÃO: Estilos para feedback de validação */
         .input-error {
             border-color: #ef4444 !important; /* red-500 */
         }
         .input-success {
             border-color: #22c55e !important; /* green-500 */
         }
-        /* FIM DA ALTERAÇÃO */
     </style>
 </head>
 <body class="bg-gray-100">
-
+    
+    <div id="app-header"></div>
     <div id="app-container">
         <div class="min-h-screen flex items-center justify-center py-12 px-4">
             <div id="form-container" class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
@@ -39,30 +38,36 @@
                     <h1 class="text-center text-3xl font-bold text-green-600">Junte-se a Nós!</h1>
                     <h2 class="mt-2 text-center text-xl font-semibold text-gray-800">Crie sua conta de Doador</h2>
                 </div>
-                <form id="signup-form" class="mt-8 space-y-5" novalidate> <div>
+                <form id="signup-form" class="mt-8 space-y-5" novalidate>
+                    
+                    <div>
                         <input id="signup-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Nome Completo">
                         <span id="name-error" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
+                    
                     <input id="signup-phone" type="tel" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Telefone (Opcional)">
                     
                     <div>
                         <input id="signup-email" type="email" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Seu melhor e-mail">
                         <span id="email-error" class="text-red-500 text-xs mt-1 hidden"></span>
                     </div>
+                                        
                     <div class="relative">
                         <input id="signup-password" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Crie uma senha (mínimo 6 caracteres)">
                         <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5" data-toggle-password="signup-password">
                             <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                         </button>
                     </div>
-                     <span id="password-error" class="text-red-500 text-xs -mt-3 block hidden"></span>
+                    <span id="password-error" class="text-red-500 text-xs -mt-3 block hidden"></span>
+
                     <div class="relative">
                         <input id="signup-password-confirm" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Confirme sua senha">
                          <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5" data-toggle-password="signup-password-confirm">
                              <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                          </button>
                     </div>
-                     <span id="password-confirm-error" class="text-red-500 text-xs -mt-3 block hidden"></span>
+                    <span id="password-confirm-error" class="text-red-500 text-xs -mt-3 block hidden"></span>
+                    
                     <div class="pt-4 border-t space-y-4">
                         <p class="text-sm text-gray-600">Endereço (opcional, para facilitar doações futuras)</p>
                         <input id="signup-cep" type="text" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="CEP">
@@ -95,7 +100,7 @@
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                     </button>
-                    </form>
+                </form>
                 <div class="text-center mt-6">
                     <p class="text-sm text-gray-600">Já tem uma conta? <a href="login.html" class="font-medium text-green-600 hover:text-green-500">Faça Login</a></p>
                 </div>
@@ -106,8 +111,10 @@
     <script type="module">
         import { auth, db, paths } from './app-config.js';
         import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, doc, setDoc } from './firebase-services.js';
+        import { injectHeader } from './app-header.js';
 
-        // --- INÍCIO DA ALTERAÇÃO: Seleção dos elementos do formulário e de erro ---
+        injectHeader();
+
         const signupForm = document.getElementById('signup-form');
         const errorDiv = document.getElementById('signup-error');
         const submitBtn = document.getElementById('submit-btn');
@@ -124,71 +131,116 @@
         const emailError = document.getElementById('email-error');
         const passwordError = document.getElementById('password-error');
         const passwordConfirmError = document.getElementById('password-confirm-error');
-        // --- FIM DA ALTERAÇÃO ---
 
         IMask(phoneInput, { mask: [{ mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' }] });
         IMask(cepInput, { mask: '00000-000' });
 
-        // --- INÍCIO DA ALTERAÇÃO: Função de loading e lógica de validação ---
         const setButtonLoading = (button, isLoading) => {
             const btnText = button.querySelector('.btn-text');
             const btnSpinner = button.querySelector('.btn-spinner');
             if (isLoading) {
                 button.disabled = true;
-                btnText.textContent = 'A registar...'; // Mantém o texto, mas poderia ser removido
                 btnSpinner.classList.remove('hidden');
+                btnText.textContent = 'A registar...';
             } else {
                 button.disabled = false;
-                btnText.textContent = 'Finalizar Cadastro';
                 btnSpinner.classList.add('hidden');
+                btnText.textContent = 'Finalizar Cadastro';
             }
         };
 
-        const validateField = (input, errorEl, validationFn, message) => {
-            if (validationFn(input.value)) {
-                input.classList.remove('input-error');
-                input.classList.add('input-success');
-                errorEl.classList.add('hidden');
+        const validations = {
+            name: {
+                fn: val => val.trim().length > 2,
+                el: nameInput,
+                errorEl: nameError,
+                msg: "Por favor, insira o seu nome completo."
+            },
+            email: {
+                fn: val => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
+                el: emailInput,
+                errorEl: emailError,
+                msg: "Por favor, insira um e-mail válido."
+            },
+            password: {
+                fn: val => val.length >= 6,
+                el: passwordInput,
+                errorEl: passwordError,
+                msg: "A senha deve ter no mínimo 6 caracteres."
+            },
+            passwordConfirm: {
+                fn: val => val === passwordInput.value && val.length > 0,
+                el: passwordConfirmInput,
+                errorEl: passwordConfirmError,
+                msg: "As senhas não coincidem."
+            }
+        };
+
+        const validateField = (fieldName) => {
+            const field = validations[fieldName];
+            // Não valida campos vazios a não ser que o formulário esteja sendo submetido
+            if (field.el.value.trim() === '') {
+                field.el.classList.remove('input-error', 'input-success');
+                field.errorEl.classList.add('hidden');
+                return false; // Retorna false se vazio, para a validação geral
+            }
+
+            if (field.fn(field.el.value)) {
+                field.el.classList.remove('input-error');
+                field.el.classList.add('input-success');
+                field.errorEl.classList.add('hidden');
                 return true;
             } else {
-                input.classList.add('input-error');
-                input.classList.remove('input-success');
-                errorEl.textContent = message;
-                errorEl.classList.remove('hidden');
+                field.el.classList.add('input-error');
+                field.el.classList.remove('input-success');
+                field.errorEl.textContent = field.msg;
+                field.errorEl.classList.remove('hidden');
                 return false;
             }
         };
-        
-        const validateForm = () => {
-            let isValid = true;
-            isValid = validateField(nameInput, nameError, val => val.trim().length > 2, "Por favor, insira o seu nome completo.") && isValid;
-            isValid = validateField(emailInput, emailError, val => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), "Por favor, insira um e-mail válido.") && isValid;
-            isValid = validateField(passwordInput, passwordError, val => val.length >= 6, "A senha deve ter no mínimo 6 caracteres.") && isValid;
-            isValid = validateField(passwordConfirmInput, passwordConfirmError, val => val === passwordInput.value, "As senhas não coincidem.") && isValid;
+
+        const validateFormOnSubmit = () => {
+            let isFormValid = true;
+            // Valida todos os campos, incluindo os que estiverem vazios
+            Object.keys(validations).forEach(fieldName => {
+                const field = validations[fieldName];
+                if (!field.fn(field.el.value)) {
+                    field.el.classList.add('input-error');
+                    field.el.classList.remove('input-success');
+                    field.errorEl.textContent = field.msg;
+                    field.errorEl.classList.remove('hidden');
+                    isFormValid = false;
+                }
+            });
             
             if (!termsAgreeCheckbox.checked) {
                 errorDiv.textContent = "Você precisa de aceitar os Termos de Serviço e a Política de Privacidade para continuar.";
                 errorDiv.classList.remove('hidden');
-                isValid = false;
-            } else {
+                isFormValid = false;
+            } else if (isFormValid) {
                  errorDiv.classList.add('hidden');
             }
-
-            return isValid;
+            return isFormValid;
         };
-        
-        // Adiciona validação em tempo real
-        [nameInput, emailInput, passwordInput, passwordConfirmInput].forEach(input => {
-            input.addEventListener('input', () => validateForm());
+
+        // Adiciona validação no evento 'blur' (quando o usuário sai do campo)
+        Object.keys(validations).forEach(fieldName => {
+            const field = validations[fieldName];
+            field.el.addEventListener('blur', () => validateField(fieldName));
         });
-        // --- FIM DA ALTERAÇÃO ---
+
+        passwordInput.addEventListener('input', () => {
+            if (passwordConfirmInput.value.length > 0) {
+                validateField('passwordConfirm');
+            }
+        });
 
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             errorDiv.classList.add('hidden');
             
-            if (!validateForm()) {
-                return; // Impede o envio se o formulário for inválido
+            if (!validateFormOnSubmit()) {
+                return;
             }
 
             setButtonLoading(submitBtn, true);
@@ -199,7 +251,8 @@
                 
                 await updateProfile(user, { displayName: nameInput.value });
                 
-                await setDoc(doc(db, paths.userDoc(user.uid)), {
+                const userDocRef = doc(db, paths.userDoc(user.uid));
+                await setDoc(userDocRef, {
                     uid: user.uid,
                     displayName: nameInput.value,
                     email: user.email,
@@ -218,7 +271,7 @@
                 window.location.href = 'verificar-email.html';
 
             } catch (error) {
-                 const traduzErroFirebase = (code) => { // Movida para dentro para escopo
+                 const traduzErroFirebase = (code) => {
                     const erros = {
                         'auth/email-already-in-use': 'Este e-mail já está a ser utilizado.',
                         'auth/invalid-email': 'E-mail inválido.',
@@ -236,13 +289,28 @@
             button.addEventListener('click', () => {
                 const inputId = button.dataset.togglePassword;
                 const input = document.getElementById(inputId);
+                const icon = button.querySelector('svg');
+                
                 if (input.type === 'password') {
                     input.type = 'text';
+                    icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .946-3.11 3.56-5.448 6.804-6.304M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.582 17.582A10.012 10.012 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .946-3.11 3.56-5.448 6.804-6.304m.02-3.65A12.01 12.01 0 0112 5c4.478 0 8.268 2.943 9.542 7a12.01 12.01 0 01-2.008 3.934M1 1l22 22"></path>`;
                 } else {
                     input.type = 'password';
+                    icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>`;
                 }
             });
         });
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
