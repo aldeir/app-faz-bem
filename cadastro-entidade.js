@@ -4,7 +4,6 @@ import {
     updateProfile, 
     sendEmailVerification, 
     doc, 
-    setDoc, 
     writeBatch,
     serverTimestamp 
 } from './firebase-services.js';
@@ -24,11 +23,15 @@ const errorDiv = document.getElementById('signup-error');
 let currentStep = 0;
 const formData = {};
 
+// --- MÁSCARAS DE INPUT ---
 IMask(document.getElementById('rep-cpf'), { mask: '000.000.000-00' });
+IMask(document.getElementById('rep-dob'), { mask: '00/00/0000' });
 IMask(document.getElementById('ent-cnpj'), { mask: '00.000.000/0000-00' });
 IMask(document.getElementById('rep-phone'), { mask: [{ mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' }] });
 IMask(document.getElementById('ent-cep'), { mask: '00000-000' });
 
+
+// --- LÓGICA DE NAVEGAÇÃO E UI ---
 const updateUI = () => {
     steps.forEach((step, index) => {
         step.classList.toggle('hidden', index !== currentStep);
@@ -50,12 +53,18 @@ const setButtonLoading = (isLoading) => {
     const btnText = submitBtn.querySelector('.btn-text');
     const btnSpinner = submitBtn.querySelector('.btn-spinner');
     submitBtn.disabled = isLoading;
-    btnText.classList.toggle('hidden', isLoading);
-    btnSpinner.classList.toggle('hidden', !isLoading);
+    if (isLoading) {
+        btnText.classList.add('hidden');
+        btnSpinner.classList.remove('hidden');
+    } else {
+        btnText.classList.remove('hidden');
+        btnSpinner.classList.add('hidden');
+    }
 };
 
+// --- LÓGICA DE VALIDAÇÃO ---
 const validateStep = (stepIndex) => {
-    const inputs = steps[stepIndex].querySelectorAll('input[required], textarea[required]');
+    const inputs = steps[stepIndex].querySelectorAll('input[required]');
     let isValid = true;
     
     steps[stepIndex].querySelectorAll('.text-red-500').forEach(el => el.classList.add('hidden'));
@@ -115,6 +124,7 @@ const validateStep = (stepIndex) => {
     return isValid;
 };
 
+// --- EVENT LISTENERS ---
 nextBtn.addEventListener('click', () => {
     if (validateStep(currentStep)) {
         currentStep++;
@@ -193,6 +203,7 @@ signupForm.addEventListener('submit', async (e) => {
         batch.set(representanteDocRef, {
             nomeCompleto: formData['rep-name'],
             cpf: formData['rep-cpf'],
+            dataNascimento: formData['rep-dob'],
             email: formData['rep-email'],
             telefone: formData['rep-phone'],
             cargo: formData['rep-cargo'],
@@ -200,7 +211,7 @@ signupForm.addEventListener('submit', async (e) => {
         });
 
         await batch.commit();
-        await sendEmailVerification(user); // Enviar e-mail após salvar no banco com sucesso
+        await sendEmailVerification(user);
         
         window.location.href = 'aguardando-aprovacao.html';
 
