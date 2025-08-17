@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aguardando Aprovação - Faz Bem</title>
+    
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
+    <link href="/app-faz-bem/style.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="app-header"></div>
+
+    <div id="app-container">
+        <div class="min-h-screen flex items-center justify-center py-12 px-4">
+            <div class="max-w-md w-full text-center bg-white p-10 rounded-xl shadow-lg">
+                <svg class="mx-auto h-12 w-12 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h1 class="mt-4 text-2xl font-bold text-gray-900">Cadastro Enviado!</h1>
+                <p class="mt-2 text-gray-600">
+                    Obrigado por se juntar à nossa comunidade! Primeiro, por favor, **verifique seu e-mail** para confirmar sua conta.
+                </p>
+                <p class="mt-4 text-gray-600">
+                    Após a confirmação, nossa equipe irá analisar os dados da sua entidade. Você receberá uma notificação por e-mail assim que seu cadastro for aprovado.
+                </p>
+                <div class="mt-8">
+                    <a href="index.html" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                        Voltar para a Página Inicial
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { injectHeader } from './app-header.js';
+        injectHeader();
+    </script>
+
+</body>
+</html>
