@@ -25,7 +25,6 @@
         .step-inactive { background-color: #e5e7eb; color: #4b5563; }
         .step-line { background-color: #e5e7eb; transition: background-color 0.3s ease;}
         .step-line-active { background-color: #22c55e; }
-        /* Estilo para o asterisco */
         label > span.required { color: #ef4444; margin-left: 2px; }
     </style>
 </head>
@@ -84,7 +83,7 @@
                             <div class="relative">
                                 <input id="rep-password-confirm" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300">
                                 <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center" data-toggle-password="rep-password-confirm">
-                                    <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                   <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                 </button>
                             </div>
                             <span id="rep-password-confirm-error" class="text-red-500 text-xs mt-1 hidden"></span>
@@ -97,6 +96,11 @@
                             <label for="rep-cpf" class="block text-sm font-medium text-gray-700 mb-1">Seu CPF<span class="required">*</span></label>
                             <input id="rep-cpf" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300">
                             <span id="rep-cpf-error" class="text-red-500 text-xs mt-1 hidden"></span>
+                        </div>
+                        <div>
+                            <label for="rep-dob" class="block text-sm font-medium text-gray-700 mb-1">Sua Data de Nascimento<span class="required">*</span></label>
+                            <input id="rep-dob" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="dd/mm/aaaa">
+                            <span id="rep-dob-error" class="text-red-500 text-xs mt-1 hidden"></span>
                         </div>
                         <div>
                             <label for="rep-phone" class="block text-sm font-medium text-gray-700 mb-1">Seu Telefone Pessoal<span class="required">*</span></label>
