@@ -1,13 +1,16 @@
-// /js/app-header.js (Versão 7.3 - Com controlo de verificação e UX melhorada)
+// /js/app-header.js (Versão 6.0 - Menu Refinado com Ordem e Estilo Finais)
 
 import { db, rtdb, logout } from './app-config.js';
-import { collection, query, where, onSnapshot, getDocs, limit, databaseRef, onValue, sendEmailVerification } from './firebase-services.js';
+import { collection, query, where, onSnapshot, databaseRef, onValue, sendEmailVerification } from './firebase-services.js';
 import { paths } from './firestore-paths.js';
 import { getCurrentUser } from './auth-service.js';
 import { showAlertModal } from './modal-handler.js';
 
 let unreadListener = null;
 
+/**
+ * Adiciona dinamicamente a tag do favicon ao <head> da página.
+ */
 function addFavicon() {
     if (document.querySelector("link[rel='icon']")) return;
     const faviconLink = document.createElement('link');
@@ -17,6 +20,9 @@ function addFavicon() {
     document.head.appendChild(faviconLink);
 }
 
+/**
+ * Ouve por notificações não lidas e exibe/oculta o indicador no sino.
+ */
 function listenForUnreadNotifications(userId) {
     const bellIndicator = document.getElementById('notification-indicator');
     if (!bellIndicator) return;
@@ -27,6 +33,9 @@ function listenForUnreadNotifications(userId) {
     });
 }
 
+/**
+ * Ouve o status de presença (online/offline) dos usuários no Realtime Database.
+ */
 function listenForOnlineUsers() {
     const onlineContainer = document.getElementById('online-users-container');
     if (!onlineContainer) return;
@@ -46,7 +55,9 @@ function listenForOnlineUsers() {
     });
 }
 
-// --- INÍCIO DA ALTERAÇÃO: Restauração da sua função de bloqueio original ---
+/**
+ * Bloqueia o conteúdo da página e mostra o painel de verificação de e-mail.
+ */
 function showVerificationBlock(user) {
     const pageContent = document.querySelector('main');
     if (!pageContent) return;
@@ -74,21 +85,17 @@ function showVerificationBlock(user) {
         } finally {
             setTimeout(() => {
                 button.disabled = false;
-                button.textContent = 'Reenviar E-mail';
+                button.textContent = 'Reenviar E-mail de Verificação';
             }, 30000);
         }
     });
 }
-// --- FIM DA ALTERAÇÃO ---
 
-async function donorHasDonations(donorId) {
-    if (!donorId) return false;
-    const donationsQuery = query(collection(db, paths.donations), where("donorId", "==", donorId), limit(1));
-    const snapshot = await getDocs(donationsQuery);
-    return !snapshot.empty;
-}
 
-async function createUserMenuHTML(userSession) {
+/**
+ * Cria o HTML para o novo menu de usuário sanduíche (VERSÃO REFINADA).
+ */
+function createUserMenuHTML(userSession) {
     const { auth, profile } = userSession;
     const userRole = profile?.role || 'doador';
     const photoURL = profile?.photoURL || auth.photoURL || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
@@ -101,17 +108,13 @@ async function createUserMenuHTML(userSession) {
     let menuItems = '';
     switch (userRole) {
         case 'superadmin':
-            menuItems = `<a href="superadmin.html" class="menu-item">Painel Superadmin</a><a href="configuracoes.html" class="menu-item">Configurações</a>`;
+            menuItems = `<a href="superadmin.html" class="menu-item">Painel Superadmin</a><a href="gerenciar-entidades.html" class="menu-item">Entidades</a><a href="receber-doacao.html" class="menu-item">Receber Doação</a><a href="gerenciar-agendamentos-global.html" class="menu-item">Gernciar Agenda</a><a href="configuracoes.html" class="menu-item">Configurações</a>`;
             break;
         case 'entidade':
-            menuItems = `<a href="admin.html" class="menu-item">Painel da Entidade</a><a href="${profileLink}" class="menu-item">Perfil da Entidade</a>`;
+            menuItems = `<a href="admin.html" class="menu-item">Painel da Entidade</a><a href="criar-campanha.html" class="menu-item">Criar Campanha</a><a href="gerenciar-agendamentos.html" class="menu-item">Agendamentos</a>`;
             break;
-        default: // Doador
-            menuItems = `<a href="${profileLink}" class="menu-item">Meu Perfil</a>`;
-            const hasDonations = await donorHasDonations(auth.uid);
-            if (hasDonations) {
-                menuItems += `<a href="minhas-entregas.html" class="menu-item">Minhas Entregas</a>`;
-            }
+        default:
+            menuItems = `<a href="minhas-entregas.html" class="menu-item">Minhas Entregas</a><a href="${profileLink}" class="menu-item">Meu Perfil</a>`;
             break;
     }
 
@@ -120,12 +123,15 @@ async function createUserMenuHTML(userSession) {
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             <span id="notification-indicator" class="hidden absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
         </a>
+
         <a href="${profileLink}" class="text-sm font-medium text-gray-700 hidden sm:block hover:text-green-600" title="Ver perfil">${displayName}</a>
+        
         <a href="${profileLink}" title="Ver perfil">
             <img src="${photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200 hover:border-green-500 transition">
         </a>
+        
         <div class="relative">
-            <button id="user-menu-button" class="p-2 rounded-full hover:bg-gray-100 focus:outline-none" title="Menu de opções">
+            <button id="user-menu-button" class="focus:outline-none" title="Menu de opções">
                 <svg class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
@@ -141,84 +147,62 @@ async function createUserMenuHTML(userSession) {
     `;
 }
 
+/**
+ * Função principal que injeta o cabeçalho.
+ */
 export async function injectHeader() {
     addFavicon();
     const headerContainer = document.getElementById('app-header');
-    if (!headerContainer) return true;
-
-    const userSession = await getCurrentUser();
-
-    // --- INÍCIO DA ALTERAÇÃO: Lógica de exibição e bloqueio corrigida ---
-    const verificationBanner = (userSession && !userSession.isVerified) 
-        ? `<div class="bg-yellow-300 text-yellow-800 text-center text-sm p-2">
-               Por favor, verifique o seu e-mail para ter acesso a todas as funcionalidades. <a href="verificar-email.html" class="font-bold underline hover:text-yellow-900">Verificar agora</a>
-           </div>`
-        : '';
+    if (!headerContainer) return null;
 
     headerContainer.innerHTML = `
-        <style>
-            .menu-item { display: block; padding: 0.75rem 1rem; font-medium; color: #374151; transition: background-color 0.2s; }
-            .menu-item:hover { background-color: #f3f4f6; }
-            .menu-item.logout { color: #ef4444; }
-        </style>
         <header class="bg-white shadow-sm sticky top-0 z-40">
-            ${verificationBanner}
-            <nav class="container mx-auto max-w-5xl p-4 flex justify-between items-center h-16">
-                <a href="index.html" class="flex items-center gap-2 text-2xl font-bold text-green-600" title="Voltar à página inicial">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                    Faz Bem
-                </a>
+            <nav class="container mx-auto max-w-5xl p-4 flex justify-between items-center">
                 <div class="flex items-center space-x-2 sm:space-x-4">
+                    <a href="index.html" class="text-2xl font-bold text-green-600" title="Voltar para a página inicial">Faz Bem</a>
                     <div id="online-users-container" class="flex items-center pl-2 sm:pl-4 border-l border-gray-200"></div>
-                    <div id="header-user-menu" class="flex items-center space-x-2 sm:space-x-4"></div>
                 </div>
+                <div id="header-user-menu" class="flex items-center space-x-2 sm:space-x-4"></div>
             </nav>
-        </header>`;
+        </header>
+    `;
 
     const userMenuContainer = document.getElementById('header-user-menu');
     listenForOnlineUsers();
-    
+    const userSession = await getCurrentUser();
+
     if (userSession?.auth) {
         const { auth, isVerified } = userSession;
-        
-        const isPublicPage = ['/index.html', '/', '/verificar-email.html', '/termos-de-servico.html', '/politica-de-privacidade.html'].some(path => window.location.pathname.endsWith(path));
-        
         if (!isVerified) {
-            // Se não está verificado, mostra apenas o botão de sair.
-            userMenuContainer.innerHTML = `<button id="header-logout-btn" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Sair</button>`;
-            document.getElementById('header-logout-btn').addEventListener('click', () => logout().then(() => window.location.href = 'login.html'));
-            
-            // E se a página não for pública, bloqueia o conteúdo.
+            const isPublicPage = ['/index.html', '/', '/verificar-email.html'].some(path => window.location.pathname.endsWith(path));
             if (!isPublicPage) {
                 showVerificationBlock(auth);
-                return false; // Impede o resto da página de carregar
-            }
-        } else {
-            // Se está verificado, mostra o menu completo.
-            userMenuContainer.innerHTML = await createUserMenuHTML(userSession);
-            listenForUnreadNotifications(auth.uid);
-            
-            document.getElementById('header-logout-btn').addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
-            
-            const menuButton = document.getElementById('user-menu-button');
-            const dropdown = document.getElementById('user-menu-dropdown');
-            if (menuButton && dropdown) {
-                menuButton.addEventListener('click', (event) => {
-                    event.stopPropagation();
-                    dropdown.classList.toggle('hidden');
-                });
-                window.addEventListener('click', (e) => {
-                    if (!e.target.closest('#user-menu-button')) {
-                        dropdown.classList.add('hidden');
-                    }
-                });
+                userMenuContainer.innerHTML = `<button id="header-logout-btn" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Sair</button>`;
+                document.getElementById('header-logout-btn').addEventListener('click', () => logout().then(() => window.location.href = 'login.html'));
+                return false;
             }
         }
+
+        userMenuContainer.innerHTML = createUserMenuHTML(userSession);
+        document.getElementById('header-logout-btn').addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
+        listenForUnreadNotifications(auth.uid);
+        
+        const menuButton = document.getElementById('user-menu-button');
+        const dropdown = document.getElementById('user-menu-dropdown');
+        if (menuButton && dropdown) {
+            menuButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                dropdown.classList.toggle('hidden');
+            });
+            window.addEventListener('click', (e) => {
+                if (!e.target.closest('#user-menu-button')) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+        }
+
     } else {
-        // Se não há sessão, mostra o botão de Entrar.
         userMenuContainer.innerHTML = `<a href="login.html" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 shadow">Entrar / Registar</a>`;
     }
-    
-    return true; // Permite que a página continue a carregar
+    return userSession;
 }
-// --- FIM DA ALTERAÇÃO ---
