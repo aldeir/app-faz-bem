@@ -183,7 +183,7 @@
         let countdownInterval;
 
         async function initializeApp() {
-            const canProceed = await injectHeader();
+            const canProceed = await injectHeader(); 
             if (!canProceed) return; 
 
             currentUserSession = await getCurrentUser();
