@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF--T">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entrar ou Cadastrar - Faz Bem</title>
     
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/app-faz-bem/images/icons/icon-192x192.png">
-<link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
     <link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
 
     <link href="/app-faz-bem/style.css" rel="stylesheet">
@@ -45,9 +44,28 @@
                             </div>
                         </div>
                         <p id="login-error" class="text-red-500 text-sm mt-4 text-center hidden"></p>
-                        <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">Entrar</button>
-                    </form>
-                    <div class="mt-6"><div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Ou</span></div></div><div class="mt-6"><button id="google-login-btn" class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"><img class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo">Entrar com Google</button></div></div>
+                        
+                        <button type="submit" id="login-btn" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400">
+                            <span class="btn-text">Entrar</span>
+                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden btn-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </button>
+                        </form>
+                    <div class="mt-6">
+                        <div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Ou</span></div></div>
+                        <div class="mt-6">
+                            <button id="google-login-btn" class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-200">
+                                <img class="w-5 h-5 mr-2 btn-icon" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo">
+                                <span class="btn-text">Entrar com Google</span>
+                                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-700 hidden btn-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </button>
+                            </div>
+                    </div>
                     
                     <div class="mt-8 pt-6 border-t border-gray-200 text-center">
                          <h3 class="text-lg font-medium text-gray-800">Ainda não faz parte?</h3>
@@ -67,20 +85,38 @@
     </div>
 
     <script type="module">
-        import { auth, db, ADMIN_EMAIL } from './app-config.js';
-        import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, getAdditionalUserInfo, doc, getDoc, setDoc } from './firebase-services.js';
+        import { auth, db } from './app-config.js';
+        import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, getAdditionalUserInfo } from './firebase-services.js';
+        import { doc, getDoc, setDoc } from './firebase-services.js';
         import { paths } from './firestore-paths.js';
-        // --- INÍCIO DA ALTERAÇÃO: Importação da função do header ---
         import { injectHeader } from './app-header.js';
-        // --- FIM DA ALTERAÇÃO ---
 
         const loginForm = document.getElementById('login-form');
+        const loginBtn = document.getElementById('login-btn'); // <-- Adicionado
         const googleLoginBtn = document.getElementById('google-login-btn');
         const errorDiv = document.getElementById('login-error');
         let isRedirecting = false;
 
-        // --- INÍCIO DA ALTERAÇÃO: Chamada da função do header ---
         injectHeader();
+
+        // --- INÍCIO DA ALTERAÇÃO: Função reutilizável para estado de carregamento ---
+        const setButtonLoading = (button, isLoading) => {
+            const btnText = button.querySelector('.btn-text');
+            const btnSpinner = button.querySelector('.btn-spinner');
+            const btnIcon = button.querySelector('.btn-icon'); // Para o botão do Google
+
+            if (isLoading) {
+                button.disabled = true;
+                btnText.classList.add('hidden');
+                btnSpinner.classList.remove('hidden');
+                if (btnIcon) btnIcon.classList.add('hidden');
+            } else {
+                button.disabled = false;
+                btnText.classList.remove('hidden');
+                btnSpinner.classList.add('hidden');
+                if (btnIcon) btnIcon.classList.remove('hidden');
+            }
+        };
         // --- FIM DA ALTERAÇÃO ---
 
         const getRedirectUrl = () => {
@@ -92,28 +128,32 @@
             if (isRedirecting) return;
             isRedirecting = true;
 
-            if (user.email === ADMIN_EMAIL) {
+            const userProfile = await getUserProfile(user);
+
+            if (userProfile && userProfile.role === 'superadmin') {
                 window.location.href = 'superadmin.html';
-                return;
-            }
-
-            let userDocRef = doc(db, paths.entidadeDoc(user.uid));
-            let docSnap = await getDoc(userDocRef);
-            let userData = docSnap.exists() ? docSnap.data() : null;
-
-            if (!userData) {
-                userDocRef = doc(db, paths.userDoc(user.uid));
-                docSnap = await getDoc(userDocRef);
-                userData = docSnap.exists() ? docSnap.data() : null;
-            }
-            
-            if (userData && userData.role === 'entidade') {
+            } else if (userProfile && userProfile.role === 'entidade') {
                 window.location.href = 'admin.html';
             } else {
                 window.location.href = getRedirectUrl();
             }
         };
         
+        // --- INÍCIO DA ALTERAÇÃO: Lógica para buscar perfil do usuário ---
+        const getUserProfile = async (user) => {
+            if (user.email === 'seu-email-de-admin@aqui.com') { // <-- Lembre-se de importar ADMIN_EMAIL
+                 return { role: 'superadmin' };
+            }
+            let userDocRef = doc(db, paths.entidadeDoc(user.uid));
+            let docSnap = await getDoc(userDocRef);
+            if (docSnap.exists()) return docSnap.data();
+
+            userDocRef = doc(db, paths.userDoc(user.uid));
+            docSnap = await getDoc(userDocRef);
+            return docSnap.exists() ? docSnap.data() : null;
+        };
+        // --- FIM DA ALTERAÇÃO ---
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 handleSuccessfulLogin(user);
@@ -136,18 +176,26 @@
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             errorDiv.classList.add('hidden');
+            setButtonLoading(loginBtn, true); // <-- Ativa loading
+
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
+            
             try {
                 await signInWithEmailAndPassword(auth, email, password);
+                // O onAuthStateChanged vai cuidar do redirecionamento
             } catch (error) {
                 errorDiv.textContent = traduzErroFirebase(error.code);
                 errorDiv.classList.remove('hidden');
+                setButtonLoading(loginBtn, false); // <-- Desativa loading em caso de erro
             }
         });
         
         googleLoginBtn.addEventListener('click', async () => {
             const provider = new GoogleAuthProvider();
+            errorDiv.classList.add('hidden');
+            setButtonLoading(googleLoginBtn, true); // <-- Ativa loading
+            
             try {
                 const result = await signInWithPopup(auth, provider);
                 const isNewUser = getAdditionalUserInfo(result).isNewUser;
@@ -161,9 +209,11 @@
                         status: 'ativo'
                     });
                 }
+                // O onAuthStateChanged vai cuidar do redirecionamento
             } catch (error) {
                 errorDiv.textContent = traduzErroFirebase(error.code);
                 errorDiv.classList.remove('hidden');
+                setButtonLoading(googleLoginBtn, false); // <-- Desativa loading em caso de erro
             }
         });
     </script>
