@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro de Entidade - Faz Bem</title>
-    
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/app-faz-bem/images/icons/icon-192x192.png">
@@ -12,115 +11,68 @@
 
     <link href="/app-faz-bem/style.css" rel="stylesheet">
     
+    <script src="https://unpkg.com/imask"></script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <script src="https://unpkg.com/imask"></script>
-
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
-    
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .file-input-button {
-            cursor: pointer;
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border-radius: 9999px;
-            border-width: 0;
-            font-size: 0.875rem;
-            font-weight: 600;
-            transition: background-color 0.2s, color 0.2s;
+        .input-error {
+            border-color: #ef4444 !important;
         }
-        input[type="file"] { display: none; }
-        .cropper-container-modal { max-height: 60vh; }
-        #image-to-crop { display: block; max-width: 100%; }
+        .input-success {
+            border-color: #22c55e !important;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
 
-    <div id="app-header"></div>
-    
-    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
-                            <div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
-            </div>
-        </div>
-    </div>
-    <main id="app-container">
-        <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-            <div id="form-container" class="max-w-lg w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
+    <div id="app-container">
+        <div class="min-h-screen flex items-center justify-center py-12 px-4">
+            <div id="form-container" class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
                 <div>
-                    <h1 class="text-center text-3xl font-bold text-green-600">Cadastre a sua Organização</h1>
-                    <p class="mt-2 text-center text-gray-600">Preencha os dados abaixo para análise.</p>
-                </div>
+                    <h1 class="text-center text-3xl font-bold text-green-600">Junte-se a Nós!</h1>
+                    <h2 class="mt-2 text-center text-xl font-semibold text-gray-800">Crie sua conta de Entidade</h2>
+                    </div>
+                <form id="signup-form" class="mt-8 space-y-5" novalidate>
+                    
+                    <div>
+                        <input id="signup-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Nome da Entidade">
+                        <span id="name-error" class="text-red-500 text-xs mt-1 hidden"></span>
+                    </div>
+                    
+                    <input id="signup-phone" type="tel" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Telefone de Contato">
+                    
+                    <div>
+                        <input id="signup-email" type="email" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="E-mail da Entidade">
+                        <span id="email-error" class="text-red-500 text-xs mt-1 hidden"></span>
+                    </div>
+                                        
+                    <div class="relative">
+                        <input id="signup-password" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Crie uma senha (mínimo 6 caracteres)">
+                        <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5" data-toggle-password="signup-password">
+                            <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        </button>
+                    </div>
+                    <span id="password-error" class="text-red-500 text-xs -mt-3 block hidden"></span>
 
-                <form id="signup-form" class="mt-8 space-y-6" novalidate>
-                    <div class="space-y-4">
-                        <h3 class="text-lg font-semibold text-gray-700 border-b pb-2">Dados da Entidade</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input id="entity-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Nome Oficial da Entidade*">
-                            <input id="entity-public-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Nome Público / Apelido*">
-                        </div>
-                        <input id="entity-cnpj" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="CNPJ*">
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Logotipo da Entidade*</label>
-                            <div class="flex items-center space-x-4">
-                                <img id="logo-preview" src="https://placehold.co/100x100/e2e8f0/cbd5e0?text=Logo" class="h-24 w-24 rounded-full object-cover bg-gray-200 border">
-                                <label for="entity-logo-upload" id="file-input-label" class="file-input-button bg-green-50 text-green-800 hover:bg-green-100">
-                                    <span id="file-input-label-text">Escolher Imagem</span>
-                                </label>
-                                <input id="entity-logo-upload" type="file" accept="image/png, image/jpeg, image/webp">
-                            </div>
-                        </div>
-                        <textarea id="entity-description" rows="3" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Sobre a Entidade (missão, histórico, etc.)"></textarea>
+                    <div class="relative">
+                        <input id="signup-password-confirm" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Confirme sua senha">
+                         <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5" data-toggle-password="signup-password-confirm">
+                             <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                         </button>
                     </div>
+                    <span id="password-confirm-error" class="text-red-500 text-xs -mt-3 block hidden"></span>
                     
-                    <div class="space-y-4">
-                        <h3 class="text-lg font-semibold text-gray-700 border-b pb-2 pt-4">Dados de Contato e Endereço</h3>
-                        <input id="responsible-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Nome do Responsável*">
-                        <input id="signup-phone" type="tel" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Telefone de Contato">
-                        <input id="address-street" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Endereço (Rua, Av.)*">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input id="address-number" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Nº*">
-                            <input id="address-district" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Bairro*">
-                            <input id="address-city" type="text" value="Guaçuí" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Cidade*">
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-4">
-                        <h3 class="text-lg font-semibold text-gray-700 border-b pb-2 pt-4">Dados de Acesso</h3>
-                        <p class="text-sm text-gray-500 -mt-2">Este será o seu login para aceder à plataforma.</p>
-                        <input id="signup-email" type="email" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="E-mail de Acesso*">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="relative">
-                                <input id="signup-password" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Crie uma senha*">
-                                <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5" data-toggle-password="signup-password">
-                                    <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                </button>
-                            </div>
-                            <div class="relative">
-                                <input id="signup-password-confirm" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Confirme a senha*">
-                                <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5" data-toggle-password="signup-password-confirm">
-                                    <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                </button>
-                            </div>
+                    <div class="pt-4 border-t space-y-4">
+                        <p class="text-sm text-gray-600">Endereço da Entidade</p>
+                        <input id="signup-cep" type="text" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="CEP">
+                        <input id="signup-street" type="text" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Rua / Avenida">
+                        <div class="grid grid-cols-3 gap-4">
+                            <input id="signup-number" type="text" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 col-span-1" placeholder="Nº">
+                            <input id="signup-district" type="text" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 col-span-2" placeholder="Bairro">
                         </div>
                     </div>
                     
@@ -137,10 +89,14 @@
                             </label>
                         </div>
                     </div>
+                    <div id="signup-error" class="text-red-500 text-sm hidden pt-2 text-center"></div>
                     
-                    <button type="submit" id="submit-btn" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                        <span id="submit-btn-text">Enviar para Análise</span>
-                        <div id="submit-btn-spinner" class="hidden animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <button type="submit" id="submit-btn" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400">
+                        <span class="btn-text">Finalizar Cadastro</span>
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden btn-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
                     </button>
                 </form>
                 <div class="text-center mt-6">
@@ -148,204 +104,130 @@
                 </div>
             </div>
         </div>
-    </main>
-
-    <div id="cropper-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 space-y-4">
-            <h2 class="text-xl font-bold text-gray-800">Ajuste o seu Logotipo</h2>
-            <div class="cropper-container-modal bg-gray-100">
-                <img id="image-to-crop">
-            </div>
-            <div class="flex justify-end space-x-3 pt-4">
-                <button id="cancel-crop-btn" type="button" class="px-4 py-2 rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300">Cancelar</button>
-                <button id="confirm-crop-btn" type="button" class="px-4 py-2 rounded-md text-white bg-green-600 hover:bg-green-700">Confirmar</button>
-            </div>
-        </div>
     </div>
 
     <script type="module">
-        import { auth, db, storage, paths } from './app-config.js';
-        import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, doc, setDoc, storageRef, uploadBytes, getDownloadURL } from './firebase-services.js';
-        import { injectHeader } from './app-header.js';
-        import { getCurrentUser } from './auth-service.js';
-        import { showAlertModal } from './modal-handler.js';
+        // A lógica do JavaScript aqui é idêntica à de 'cadastro-doador.html'.
+        // A única diferença é o 'role' e o documento de destino no Firestore.
+        import { auth, db, paths } from './app-config.js';
+        import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, doc, setDoc } from './firebase-services.js';
 
         const signupForm = document.getElementById('signup-form');
+        const errorDiv = document.getElementById('signup-error');
         const submitBtn = document.getElementById('submit-btn');
-        const submitBtnText = document.getElementById('submit-btn-text');
-        const submitBtnSpinner = document.getElementById('submit-btn-spinner');
-        
-        const logoUploadInput = document.getElementById('entity-logo-upload');
-        const logoPreview = document.getElementById('logo-preview');
-        const fileInputLabel = document.getElementById('file-input-label');
-        const fileInputLabelText = document.getElementById('file-input-label-text');
 
-        const cnpjInput = document.getElementById('entity-cnpj');
+        const nameInput = document.getElementById('signup-name');
+        const emailInput = document.getElementById('signup-email');
         const phoneInput = document.getElementById('signup-phone');
-
-        const cropperModal = document.getElementById('cropper-modal');
-        const imageToCrop = document.getElementById('image-to-crop');
-        const cancelCropBtn = document.getElementById('cancel-crop-btn');
-        const confirmCropBtn = document.getElementById('confirm-crop-btn');
-        
+        const passwordInput = document.getElementById('signup-password');
+        const passwordConfirmInput = document.getElementById('signup-password-confirm');
+        const cepInput = document.getElementById('signup-cep');
         const termsAgreeCheckbox = document.getElementById('terms-agree');
-        
-        let cropper;
-        let croppedImageBlob = null;
 
-        const cnpjMask = IMask(cnpjInput, { mask: '00.000.000/0000-00', lazy: true });
-        const phoneMask = IMask(phoneInput, { mask: [ { mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' } ], lazy: true });
+        const nameError = document.getElementById('name-error');
+        const emailError = document.getElementById('email-error');
+        const passwordError = document.getElementById('password-error');
+        const passwordConfirmError = document.getElementById('password-confirm-error');
 
-        async function initializeApp() {
-            await injectHeader();
-            const userSession = await getCurrentUser();
-            if (userSession) {
-                window.location.href = userSession.profile?.role === 'entidade' ? 'admin.html' : 'index.html';
+        IMask(phoneInput, { mask: [{ mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' }] });
+        IMask(cepInput, { mask: '00000-000' });
+
+        const setButtonLoading = (button, isLoading) => {
+            const btnText = button.querySelector('.btn-text');
+            const btnSpinner = button.querySelector('.btn-spinner');
+            if (isLoading) {
+                button.disabled = true;
+                btnText.textContent = 'A registar...';
+                btnSpinner.classList.remove('hidden');
+            } else {
+                button.disabled = false;
+                btnText.textContent = 'Finalizar Cadastro';
+                btnSpinner.classList.add('hidden');
             }
-        }
-
-        logoUploadInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file || !file.type.startsWith('image/')) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                imageToCrop.src = event.target.result;
-                cropperModal.classList.remove('hidden');
-                if (cropper) cropper.destroy();
-                cropper = new Cropper(imageToCrop, { aspectRatio: 1, viewMode: 1 });
-            };
-            reader.readAsDataURL(file);
-            logoUploadInput.value = '';
-        });
-
-        cancelCropBtn.addEventListener('click', () => cropperModal.classList.add('hidden'));
-
-        confirmCropBtn.addEventListener('click', () => {
-            if (!cropper) return;
-            const canvas = cropper.getCroppedCanvas({ width: 256, height: 256 });
-            canvas.toBlob((blob) => {
-                croppedImageBlob = blob;
-                logoPreview.src = URL.createObjectURL(blob);
-                fileInputLabelText.textContent = 'Imagem Confirmada ✓';
-                fileInputLabel.classList.replace('bg-green-50', 'bg-blue-100');
-                fileInputLabel.classList.replace('text-green-800', 'text-blue-800');
-                cropperModal.classList.add('hidden');
-            }, 'image/webp', 0.9);
-        });
-
-        // --- INÍCIO DA ALTERAÇÃO: Função de validação centralizada ---
-        function validateForm() {
-            const inputs = {
-                entityName: document.getElementById('entity-name').value,
-                publicName: document.getElementById('entity-public-name').value,
-                cnpj: cnpjMask.unmaskedValue,
-                responsibleName: document.getElementById('responsible-name').value,
-                street: document.getElementById('address-street').value,
-                number: document.getElementById('address-number').value,
-                district: document.getElementById('address-district').value,
-                city: document.getElementById('address-city').value,
-                email: document.getElementById('signup-email').value,
-                password: document.getElementById('signup-password').value,
-                passwordConfirm: document.getElementById('signup-password-confirm').value,
-                terms: termsAgreeCheckbox.checked,
-                logo: croppedImageBlob
-            };
-
-            if (!inputs.entityName || !inputs.publicName || !inputs.responsibleName || !inputs.street || !inputs.number || !inputs.district || !inputs.city || !inputs.email || !inputs.password) {
-                return { valid: false, message: "Todos os campos marcados com * são obrigatórios." };
-            }
-            if (inputs.password !== inputs.passwordConfirm) {
-                return { valid: false, message: "As senhas não coincidem." };
-            }
-            if (inputs.password.length < 6) {
-                return { valid: false, message: "A senha deve ter no mínimo 6 caracteres." };
-            }
-            if (!inputs.logo) {
-                return { valid: false, message: "Por favor, selecione e confirme um logotipo." };
-            }
-            if (inputs.cnpj.length !== 14) {
-                return { valid: false, message: "O CNPJ está incompleto." };
-            }
-            if (!inputs.terms) {
-                return { valid: false, message: "Você precisa de aceitar os Termos de Serviço e a Política de Privacidade." };
-            }
-            
-            return { valid: true, data: inputs };
-        }
-
-        const traduzErroFirebase = (code) => {
-            const erros = {
-                'auth/email-already-in-use': 'Este e-mail já está a ser utilizado por outra conta.',
-                'auth/invalid-email': 'O formato do e-mail é inválido.',
-                'auth/weak-password': 'A senha é muito fraca. Tente uma com pelo menos 6 caracteres.',
-            };
-            return erros[code] || 'Ocorreu um erro inesperado. Por favor, tente novamente.';
         };
-        // --- FIM DA ALTERAÇÃO ---
+
+        const validateField = (input, errorEl, validationFn, message) => {
+            if (validationFn(input.value)) {
+                input.classList.remove('input-error');
+                input.classList.add('input-success');
+                errorEl.classList.add('hidden');
+                return true;
+            } else {
+                input.classList.add('input-error');
+                input.classList.remove('input-success');
+                errorEl.textContent = message;
+                errorEl.classList.remove('hidden');
+                return false;
+            }
+        };
+        
+        const validateForm = () => {
+            let isValid = true;
+            isValid = validateField(nameInput, nameError, val => val.trim().length > 2, "Por favor, insira o nome da entidade.") && isValid;
+            isValid = validateField(emailInput, emailError, val => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), "Por favor, insira um e-mail válido.") && isValid;
+            isValid = validateField(passwordInput, passwordError, val => val.length >= 6, "A senha deve ter no mínimo 6 caracteres.") && isValid;
+            isValid = validateField(passwordConfirmInput, passwordConfirmError, val => val === passwordInput.value, "As senhas não coincidem.") && isValid;
+            
+            if (!termsAgreeCheckbox.checked) {
+                errorDiv.textContent = "Você precisa de aceitar os Termos de Serviço e a Política de Privacidade para continuar.";
+                errorDiv.classList.remove('hidden');
+                isValid = false;
+            } else {
+                 errorDiv.classList.add('hidden');
+            }
+
+            return isValid;
+        };
+        
+        [nameInput, emailInput, passwordInput, passwordConfirmInput].forEach(input => {
+            input.addEventListener('input', () => validateForm());
+        });
 
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // --- INÍCIO DA ALTERAÇÃO: Lógica de submissão reestruturada ---
-            const validationResult = validateForm();
-            if (!validationResult.valid) {
-                showAlertModal("Formulário Incompleto", validationResult.message);
-                return;
-            }
-            // --- FIM DA ALTERAÇÃO ---
+            if (!validateForm()) return;
 
-            submitBtn.disabled = true;
-            submitBtnText.classList.add('hidden');
-            submitBtnSpinner.classList.remove('hidden');
+            setButtonLoading(submitBtn, true);
 
             try {
-                const userCredential = await createUserWithEmailAndPassword(auth, validationResult.data.email, validationResult.data.password);
+                const userCredential = await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
                 const user = userCredential.user;
                 
-                await updateProfile(user, { displayName: validationResult.data.entityName });
-
-                const fileName = `logo_${user.uid}.webp`;
-                const fileRef = storageRef(storage, `logos/${fileName}`);
-                await uploadBytes(fileRef, croppedImageBlob);
-                const logoUrl = await getDownloadURL(fileRef);
-
-                const profileData = {
-                    publicName: validationResult.data.publicName,
-                    cnpj: validationResult.data.cnpj,
-                    phone: phoneMask.unmaskedValue,
-                    logoUrl: logoUrl,
-                    description: document.getElementById('entity-description').value,
-                    responsibleName: validationResult.data.responsibleName,
+                await updateProfile(user, { displayName: nameInput.value });
+                
+                // --- ALTERAÇÃO PRINCIPAL: Salva na coleção de 'entidades' ---
+                const entidadeDocRef = doc(db, paths.entidadeDoc(user.uid));
+                await setDoc(entidadeDocRef, {
+                    uid: user.uid,
+                    displayName: nameInput.value,
+                    email: user.email,
+                    phone: phoneInput.value,
                     address: {
-                        street: validationResult.data.street,
-                        number: validationResult.data.number,
-                        district: validationResult.data.district,
-                        city: validationResult.data.city,
+                        cep: cepInput.value,
+                        street: document.getElementById('signup-street').value,
+                        number: document.getElementById('signup-number').value,
+                        district: document.getElementById('signup-district').value,
                     },
                     role: 'entidade',
-                    status: 'pendente_aprovacao',
-                    email: user.email
-                };
-                await setDoc(doc(db, paths.entidadeDoc(user.uid)), profileData);
-                
-                await sendEmailVerification(user);
+                    status: 'pendente' // Entidades começam como pendentes para aprovação
+                });
 
-                submitBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
-                submitBtn.classList.add('bg-blue-500');
-                submitBtnText.textContent = 'Sucesso! A redirecionar...';
-                submitBtnSpinner.classList.add('hidden');
-                submitBtnText.classList.remove('hidden');
-                
-                setTimeout(() => {
-                    window.location.href = 'verificar-email.html';
-                }, 2000);
+                await sendEmailVerification(user);
+                window.location.href = 'verificar-email.html';
 
             } catch (error) {
-                showAlertModal("Erro no Registo", traduzErroFirebase(error.code));
-                submitBtn.disabled = false;
-                submitBtnText.textContent = 'Enviar para Análise';
-                submitBtnText.classList.remove('hidden');
-                submitBtnSpinner.classList.add('hidden');
+                 const traduzErroFirebase = (code) => {
+                    const erros = {
+                        'auth/email-already-in-use': 'Este e-mail já está a ser utilizado.',
+                        'auth/invalid-email': 'E-mail inválido.',
+                        'auth/weak-password': 'A senha é muito fraca.'
+                    };
+                    return erros[code] || 'Ocorreu um erro. Tente novamente.';
+                };
+                errorDiv.textContent = traduzErroFirebase(error.code);
+                errorDiv.classList.remove('hidden');
+                setButtonLoading(submitBtn, false);
             }
         });
 
@@ -353,31 +235,13 @@
             button.addEventListener('click', () => {
                 const inputId = button.dataset.togglePassword;
                 const input = document.getElementById(inputId);
-                const icon = button.querySelector('svg');
-                
                 if (input.type === 'password') {
                     input.type = 'text';
-                    icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .946-3.11 3.56-5.448 6.804-6.304M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.582 17.582A10.012 10.012 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .946-3.11 3.56-5.448 6.804-6.304m.02-3.65A12.01 12.01 0 0112 5c4.478 0 8.268 2.943 9.542 7a12.01 12.01 0 01-2.008 3.934M1 1l22 22"></path>`;
                 } else {
                     input.type = 'password';
-                    icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>`;
                 }
             });
         });
-
-        initializeApp();
-    </script>
-    
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js').then(registration => {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                }, err => {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
-            });
-        }
     </script>
 </body>
 </html>
