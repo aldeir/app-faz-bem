@@ -25,6 +25,7 @@
         .step-inactive { background-color: #e5e7eb; color: #4b5563; }
         .step-line { background-color: #e5e7eb; transition: background-color 0.3s ease;}
         .step-line-active { background-color: #22c55e; }
+        label > span.required { color: #ef4444; } /* Estilo para o asterisco */
     </style>
 </head>
 <body class="bg-gray-100">
@@ -36,122 +37,63 @@
             <div id="form-container" class="max-w-2xl w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
                 
                 <div class="w-full mb-8">
-                    <div class="flex items-center justify-between">
-                        <div class="flex flex-col items-center">
-                            <div id="step-1-indicator" class="step step-active w-8 h-8 rounded-full flex items-center justify-center font-bold">1</div>
-                            <span class="text-xs mt-1">Acesso</span>
-                        </div>
-                        <div id="step-line-1" class="step-line flex-1 h-1 mx-2"></div>
-                        <div class="flex flex-col items-center">
-                            <div id="step-2-indicator" class="step step-inactive w-8 h-8 rounded-full flex items-center justify-center font-bold">2</div>
-                            <span class="text-xs mt-1">Representante</span>
-                        </div>
-                        <div id="step-line-2" class="step-line flex-1 h-1 mx-2"></div>
-                        <div class="flex flex-col items-center">
-                            <div id="step-3-indicator" class="step step-inactive w-8 h-8 rounded-full flex items-center justify-center font-bold">3</div>
-                            <span class="text-xs mt-1">Entidade</span>
-                        </div>
                     </div>
-                </div>
 
                 <form id="signup-form" class="mt-8 space-y-5" novalidate>
                     <div id="step-1" class="space-y-5">
                         <h2 class="text-xl font-semibold text-gray-800 text-center">Dados de Acesso do Representante</h2>
                         <div>
-                            <input id="rep-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Seu Nome Completo">
+                            <label for="rep-name" class="block text-sm font-medium text-gray-700 mb-1">Seu Nome Completo <span class="required">*</span></label>
+                            <input id="rep-name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300">
                             <span id="rep-name-error" class="text-red-500 text-xs mt-1 hidden"></span>
                         </div>
                         <div>
-                            <input id="rep-email" type="email" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Seu melhor e-mail (será seu login)">
+                            <label for="rep-email" class="block text-sm font-medium text-gray-700 mb-1">Seu E-mail (será seu login) <span class="required">*</span></label>
+                            <input id="rep-email" type="email" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300">
                             <span id="rep-email-error" class="text-red-500 text-xs mt-1 hidden"></span>
                         </div>
-                        <div class="relative">
-                            <input id="rep-password" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Crie uma senha (mínimo 6 caracteres)">
-                            <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center" data-toggle-password="rep-password">
-                                <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                            </button>
+                        <div>
+                            <label for="rep-password" class="block text-sm font-medium text-gray-700 mb-1">Crie uma Senha <span class="required">*</span></label>
+                            <div class="relative">
+                                <input id="rep-password" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Mínimo 6 caracteres">
+                                <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center" data-toggle-password="rep-password"></button>
+                            </div>
+                            <span id="rep-password-error" class="text-red-500 text-xs mt-1 hidden"></span>
                         </div>
-                        <span id="rep-password-error" class="text-red-500 text-xs -mt-3 block hidden"></span>
-                        <div class="relative">
-                            <input id="rep-password-confirm" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Confirme sua senha">
-                            <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center" data-toggle-password="rep-password-confirm">
-                                <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                            </button>
+                        <div>
+                            <label for="rep-password-confirm" class="block text-sm font-medium text-gray-700 mb-1">Confirme sua Senha <span class="required">*</span></label>
+                            <div class="relative">
+                                <input id="rep-password-confirm" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300">
+                                <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center" data-toggle-password="rep-password-confirm"></button>
+                            </div>
+                            <span id="rep-password-confirm-error" class="text-red-500 text-xs mt-1 hidden"></span>
                         </div>
-                        <span id="rep-password-confirm-error" class="text-red-500 text-xs -mt-3 block hidden"></span>
                     </div>
 
                     <div id="step-2" class="space-y-5 hidden">
                         <h2 class="text-xl font-semibold text-gray-800 text-center">Sobre Você (O Representante)</h2>
-                         <div>
-                            <input id="rep-cpf" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Seu CPF">
+                        <div>
+                            <label for="rep-cpf" class="block text-sm font-medium text-gray-700 mb-1">Seu CPF <span class="required">*</span></label>
+                            <input id="rep-cpf" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300">
                             <span id="rep-cpf-error" class="text-red-500 text-xs mt-1 hidden"></span>
                         </div>
                         <div>
-                            <input id="rep-phone" type="tel" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Seu Telefone Pessoal">
+                            <label for="rep-phone" class="block text-sm font-medium text-gray-700 mb-1">Seu Telefone Pessoal <span class="required">*</span></label>
+                            <input id="rep-phone" type="tel" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300">
                             <span id="rep-phone-error" class="text-red-500 text-xs mt-1 hidden"></span>
                         </div>
                         <div>
-                            <input id="rep-cargo" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Seu Cargo na Entidade (Ex: Presidente)">
+                            <label for="rep-cargo" class="block text-sm font-medium text-gray-700 mb-1">Seu Cargo na Entidade <span class="required">*</span></label>
+                            <input id="rep-cargo" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Ex: Presidente, Diretor, Voluntário">
                             <span id="rep-cargo-error" class="text-red-500 text-xs mt-1 hidden"></span>
                         </div>
                     </div>
 
                     <div id="step-3" class="space-y-5 hidden">
-                         <h2 class="text-xl font-semibold text-gray-800 text-center">Sobre a Entidade</h2>
-                        <div>
-                            <input id="ent-cnpj" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="CNPJ da Entidade">
-                            <span id="ent-cnpj-error" class="text-red-500 text-xs mt-1 hidden"></span>
                         </div>
-                         <div>
-                            <input id="ent-razao-social" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Razão Social (Nome Oficial)">
-                            <span id="ent-razao-social-error" class="text-red-500 text-xs mt-1 hidden"></span>
-                        </div>
-                        <div>
-                            <input id="ent-nome-fantasia" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Nome Fantasia (Como será exibida)">
-                            <span id="ent-nome-fantasia-error" class="text-red-500 text-xs mt-1 hidden"></span>
-                        </div>
-                         <div>
-                            <textarea id="ent-descricao" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Descreva brevemente a missão da entidade..."></textarea>
-                            <span id="ent-descricao-error" class="text-red-500 text-xs mt-1 hidden"></span>
-                        </div>
-                        <div class="pt-4 border-t space-y-4">
-                             <p class="text-sm text-gray-600">Endereço da Entidade</p>
-                            <input id="ent-cep" type="text" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="CEP">
-                            <input id="ent-rua" type="text" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300" placeholder="Rua / Avenida">
-                            <div class="grid grid-cols-3 gap-4">
-                                <input id="ent-numero" type="text" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 col-span-1" placeholder="Nº">
-                                <input id="ent-bairro" type="text" class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 col-span-2" placeholder="Bairro">
-                            </div>
-                        </div>
-                        <div class="flex items-start pt-4">
-                            <div class="flex items-center h-5">
-                                <input id="terms-agree" name="terms-agree" type="checkbox" required class="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 rounded">
-                            </div>
-                            <div class="ml-3 text-sm">
-                                <label for="terms-agree" class="font-medium text-gray-700">
-                                    Eu li e concordo com os 
-                                    <a href="termos-de-servico.html" target="_blank" class="text-green-600 hover:underline">Termos de Serviço</a> 
-                                    e a 
-                                    <a href="politica-de-privacidade.html" target="_blank" class="text-green-600 hover:underline">Política de Privacidade</a>.
-                                </label>
-                            </div>
-                        </div>
-                    </div>
 
                     <div id="signup-error" class="text-red-500 text-sm hidden pt-2 text-center"></div>
-
-                    <div class="flex justify-between pt-4">
-                        <button type="button" id="prev-btn" class="py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hidden">Voltar</button>
-                        <button type="button" id="next-btn" class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">Próximo</button>
-                        <button type="submit" id="submit-btn" class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 hidden">
-                             <span class="btn-text">Finalizar Cadastro</span>
-                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden btn-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        </button>
-                    </div>
+                    <div class="flex justify-between pt-4"></div>
                 </form>
             </div>
         </div>
