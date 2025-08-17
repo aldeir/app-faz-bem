@@ -1,5 +1,15 @@
-import { auth, db, paths, serverTimestamp } from './app-config.js';
-import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, doc, setDoc, writeBatch } from './firebase-services.js';
+import { auth, db, paths } from './app-config.js';
+// --- INÍCIO DA CORREÇÃO: Importando 'serverTimestamp' do local correto ---
+import { 
+    createUserWithEmailAndPassword, 
+    updateProfile, 
+    sendEmailVerification, 
+    doc, 
+    setDoc, 
+    writeBatch,
+    serverTimestamp // Movido para cá
+} from './firebase-services.js';
+// --- FIM DA CORREÇÃO ---
 import { injectHeader } from './app-header.js';
 
 injectHeader();
@@ -50,8 +60,12 @@ const updateUI = () => {
 };
 
 const validateStep = (stepIndex) => {
-    const inputs = steps[stepIndex].querySelectorAll('input[required]');
+    const inputs = steps[stepIndex].querySelectorAll('input[required], textarea[required]');
     let isValid = true;
+    
+    // Limpa erros antigos da etapa atual
+    steps[stepIndex].querySelectorAll('.text-red-500').forEach(el => el.classList.add('hidden'));
+
     inputs.forEach(input => {
         const errorEl = document.getElementById(`${input.id}-error`);
         if (!input.value.trim()) {
@@ -63,25 +77,36 @@ const validateStep = (stepIndex) => {
             isValid = false;
         } else {
              input.classList.remove('input-error');
-            if (errorEl) errorEl.classList.add('hidden');
+             input.classList.add('input-success');
         }
     });
 
     // Validações específicas da etapa 1
     if (stepIndex === 0) {
+        const emailInput = document.getElementById('rep-email');
+        const emailError = document.getElementById('rep-email-error');
         const password = document.getElementById('rep-password').value;
         const passwordConfirm = document.getElementById('rep-password-confirm').value;
+        const passwordInput = document.getElementById('rep-password');
+        const passwordConfirmInput = document.getElementById('rep-password-confirm');
         const passwordError = document.getElementById('rep-password-error');
         const passwordConfirmError = document.getElementById('rep-password-confirm-error');
 
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value)) {
+            emailInput.classList.add('input-error');
+            emailError.textContent = "Por favor, insira um e-mail válido.";
+            emailError.classList.remove('hidden');
+            isValid = false;
+        }
+
         if (password.length < 6) {
-            document.getElementById('rep-password').classList.add('input-error');
+            passwordInput.classList.add('input-error');
             passwordError.textContent = "A senha deve ter no mínimo 6 caracteres.";
             passwordError.classList.remove('hidden');
             isValid = false;
         }
          if (password !== passwordConfirm) {
-            document.getElementById('rep-password-confirm').classList.add('input-error');
+            passwordConfirmInput.classList.add('input-error');
             passwordConfirmError.textContent = "As senhas não coincidem.";
             passwordConfirmError.classList.remove('hidden');
             isValid = false;
@@ -129,6 +154,16 @@ const setButtonLoading = (isLoading) => {
 
 signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+     // Salva os dados da última etapa antes de submeter
+    const inputs = steps[currentStep].querySelectorAll('input, textarea, input[type=checkbox]');
+    inputs.forEach(input => {
+        if (input.type === 'checkbox') {
+            formData[input.id] = input.checked;
+        } else {
+            formData[input.id] = input.value;
+        }
+    });
+
     if (!validateStep(2)) return;
 
     setButtonLoading(true);
