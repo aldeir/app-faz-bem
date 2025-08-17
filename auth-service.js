@@ -25,10 +25,10 @@ export const getCurrentUser = () => {
             }
 
             let profile = null;
-            // --- LÓGICA RESTAURADA ---
+            // --- INÍCIO DA CORREÇÃO: Lógica de verificação restaurada ---
             const isPasswordProvider = user.providerData.some(p => p.providerId === 'password');
             const isVerified = !isPasswordProvider || user.emailVerified;
-            // --- FIM DA RESTAURAÇÃO ---
+            // --- FIM DA CORREÇÃO ---
 
             if (user.email === ADMIN_EMAIL) {
                 profile = {
