@@ -1,4 +1,4 @@
-// /js/app-header.js (Versão 8.2 - Com logo.png integrado)
+// /js/app-header.js (Versão 8.3 - Com redirecionamento de segurança)
 
 import { db, rtdb, logout } from './app-config.js';
 import { collection, query, where, onSnapshot, getDocs, limit, databaseRef, onValue, sendEmailVerification } from './firebase-services.js';
@@ -57,39 +57,6 @@ function listenForOnlineUsers() {
     });
 }
 
-function showVerificationBlock(user) {
-    const pageContent = document.querySelector('main');
-    if (!pageContent) return;
-    
-    pageContent.innerHTML = `
-        <div class="min-h-[calc(100vh-200px)] flex items-center justify-center text-center p-4">
-            <div class="max-w-md w-full bg-white p-10 rounded-xl shadow-lg">
-                <h1 class="text-2xl font-bold text-yellow-600">Verificação de E-mail Pendente</h1>
-                <p class="mt-4 text-gray-700">Enviámos um link de verificação para o seu e-mail. Por favor, clique no link para ativar a sua conta.</p>
-                <p class="mt-2 text-gray-600">Se não recebeu o e-mail, verifique a sua pasta de spam.</p>
-                <button id="resend-verification-btn" class="mt-6 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">Reenviar E-mail</button>
-            </div>
-        </div>
-    `;
-    
-    document.getElementById('resend-verification-btn').addEventListener('click', async (e) => {
-        const button = e.target;
-        button.disabled = true;
-        button.textContent = 'Aguarde...';
-        try {
-            await sendEmailVerification(user);
-            showAlertModal('E-mail Enviado', 'Um novo e-mail de verificação foi enviado.');
-        } catch (error) {
-            showAlertModal('Erro', 'Não foi possível reenviar o e-mail.');
-        } finally {
-            setTimeout(() => {
-                button.disabled = false;
-                button.textContent = 'Reenviar E-mail de Verificação';
-            }, 30000);
-        }
-    });
-}
-
 async function donorHasDonations(donorId) {
     if (!donorId) return false;
     const donationsQuery = query(collection(db, paths.donations), where("donorId", "==", donorId), limit(1));
@@ -125,8 +92,7 @@ async function createUserMenuHTML(userSession) {
     }
 
     return `
-        <div id="notification-bell-container" class="flex items-center">
-            </div>
+        <div id="notification-bell-container" class="flex items-center"></div>
         <a href="${profileLink}" class="text-sm font-medium text-gray-700 hidden sm:block hover:text-green-600" title="Ver perfil">${displayName}</a>
         <a href="${profileLink}" title="Ver perfil">
             <img src="${photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200 hover:border-green-500 transition">
@@ -155,13 +121,23 @@ export async function injectHeader() {
 
     const userSession = await getCurrentUser();
     
+    // --- INÍCIO DA ALTERAÇÃO: Lógica de controlo e redirecionamento ---
+    const isPublicPage = ['/index.html', '/', '/verificar-email.html', '/login.html', '/cadastro-doador.html', '/cadastro-entidade.html', '/termos-de-servico.html', '/politica-de-privacidade.html'].some(path => window.location.pathname.endsWith(path));
+
+    if (userSession && !userSession.isVerified && !isPublicPage) {
+        // Se o utilizador NÃO está verificado E tenta aceder a uma página protegida,
+        // redireciona-o para a página de verificação e pára tudo.
+        window.location.href = 'verificar-email.html';
+        return false; // Impede a continuação do carregamento da página atual.
+    }
+    // --- FIM DA ALTERAÇÃO ---
+    
     const verificationBanner = (userSession && !userSession.isVerified) 
         ? `<div class="bg-yellow-300 text-yellow-800 text-center text-sm p-2">
                Por favor, verifique o seu e-mail para ter acesso a todas as funcionalidades. <a href="verificar-email.html" class="font-bold underline hover:text-yellow-900">Verificar agora</a>
            </div>`
         : '';
 
-    // --- INÍCIO DA ALTERAÇÃO: Substituição do texto/svg pela imagem da logo ---
     headerContainer.innerHTML = `
         <style>
             .menu-item { display: block; padding: 0.75rem 1rem; font-medium; color: #374151; transition: background-color 0.2s; }
@@ -172,7 +148,7 @@ export async function injectHeader() {
             ${verificationBanner}
             <nav class="container mx-auto max-w-5xl p-4 flex justify-between items-center h-16">
                 <a href="index.html" class="flex items-center" title="Voltar à página inicial">
-                    <img src="/app-faz-bem/logo.png" alt="Logótipo Faz Bem" class="h-12">
+                    <img src="logo.png" alt="Logótipo Faz Bem" class="h-12">
                 </a>
                 <div class="flex items-center space-x-2 sm:space-x-4">
                     <div id="online-users-container" class="flex items-center pl-2 sm:pl-4 border-l border-gray-200"></div>
@@ -180,26 +156,15 @@ export async function injectHeader() {
                 </div>
             </nav>
         </header>`;
-    // --- FIM DA ALTERAÇÃO ---
 
     const userMenuContainer = document.getElementById('header-user-menu');
     listenForOnlineUsers();
     
     if (userSession?.auth) {
-        const { auth, isVerified } = userSession;
-        
-        const isPublicPage = ['/index.html', '/', '/verificar-email.html', '/termos-de-servico.html', '/politica-de-privacidade.html'].some(path => window.location.pathname.endsWith(path));
-        
-        if (!isVerified) {
-            if (!isPublicPage) {
-                window.location.href = 'verificar-email.html';
-                return false; 
-            }
-            userMenuContainer.innerHTML = `<button id="header-logout-btn" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Sair</button>`;
-            document.getElementById('header-logout-btn').addEventListener('click', () => logout().then(() => window.location.href = 'login.html'));
-        } else {
+        if (userSession.isVerified) {
+            // Se está verificado, mostra o menu completo.
             userMenuContainer.innerHTML = await createUserMenuHTML(userSession);
-            listenForUnreadNotifications(auth.uid);
+            listenForUnreadNotifications(userSession.auth.uid);
             
             document.getElementById('header-logout-btn').addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
             
@@ -216,8 +181,13 @@ export async function injectHeader() {
                     }
                 });
             }
+        } else {
+            // Se não está verificado, mostra apenas o botão de sair.
+            userMenuContainer.innerHTML = `<button id="header-logout-btn" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Sair</button>`;
+            document.getElementById('header-logout-btn').addEventListener('click', () => logout().then(() => window.location.href = 'login.html'));
         }
     } else {
+        // Se não há sessão, mostra o botão de Entrar.
         userMenuContainer.innerHTML = `<a href="login.html" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 shadow">Entrar / Registar</a>`;
     }
     
