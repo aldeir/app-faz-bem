@@ -172,7 +172,7 @@ export async function injectHeader() {
             ${verificationBanner}
             <nav class="container mx-auto max-w-5xl p-4 flex justify-between items-center h-16">
                 <a href="index.html" class="flex items-center" title="Voltar à página inicial">
-                    <img src="/app-faz-bem/logo.png" alt="Logótipo Faz Bem" class="h-15">
+                    <img src="/app-faz-bem/logo.png" alt="Logótipo Faz Bem" class="h-12">
                 </a>
                 <div class="flex items-center space-x-2 sm:space-x-4">
                     <div id="online-users-container" class="flex items-center pl-2 sm:pl-4 border-l border-gray-200"></div>
