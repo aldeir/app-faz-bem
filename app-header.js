@@ -1,4 +1,4 @@
-// /js/app-header.js (Versão 7.2 - Restaura o menu sanduíche e mantém as melhorias de UX)
+// /js/app-header.js (Versão 7.3 - Controlo de Acesso rigoroso para e-mail não verificado)
 
 import { db, rtdb, logout } from './app-config.js';
 import { collection, query, where, onSnapshot, getDocs, limit, databaseRef, onValue, sendEmailVerification } from './firebase-services.js';
@@ -119,15 +119,10 @@ async function createUserMenuHTML(userSession) {
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             <span id="notification-indicator" class="hidden absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
         </a>
-        <a href="${profileLink}" class="text-sm font-medium text-gray-700 hidden sm:block hover:text-green-600" title="Ver perfil">${displayName}</a>
-        <a href="${profileLink}" title="Ver perfil">
-            <img src="${photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200 hover:border-green-500 transition">
-        </a>
         <div class="relative">
-            <button id="user-menu-button" class="p-2 rounded-full hover:bg-gray-100 focus:outline-none" title="Menu de opções">
-                <svg class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+            <button id="user-menu-button" class="flex items-center space-x-2 focus:outline-none">
+                <span class="text-sm font-medium text-gray-700 hidden sm:block">${displayName}</span>
+                <img class="h-10 w-10 rounded-full object-cover border-2 border-transparent hover:border-green-500 transition" src="${photoURL}" alt="Foto do Utilizador">
             </button>
             <div id="user-menu-dropdown" class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-50">
                 <div class="py-1" role="menu" aria-orientation="vertical">
@@ -149,12 +144,9 @@ export async function injectHeader() {
     if (!headerContainer) return true;
 
     const userSession = await getCurrentUser();
-
-    const verificationBanner = (userSession && userSession.auth.providerData.some(p => p.providerId === 'password') && !userSession.isVerified) 
-        ? `<div class="bg-yellow-300 text-yellow-800 text-center text-sm p-2">
-               Por favor, verifique o seu e-mail para ter acesso a todas as funcionalidades. <a href="verificar-email.html" class="font-bold underline hover:text-yellow-900">Verificar agora</a>
-           </div>`
-        : '';
+    
+    // --- INÍCIO DA ALTERAÇÃO ---
+    // A lógica foi completamente reestruturada para seguir as novas regras
 
     headerContainer.innerHTML = `
         <style>
@@ -162,7 +154,7 @@ export async function injectHeader() {
             .menu-item:hover { background-color: #f3f4f6; color: #1f2937; }
         </style>
         <header class="bg-white shadow-sm sticky top-0 z-40">
-            ${verificationBanner}
+            <div id="verification-banner-container"></div>
             <nav class="container mx-auto max-w-5xl p-4 flex justify-between items-center h-16">
                 <a href="index.html" class="flex items-center gap-2 text-2xl font-bold text-green-600" title="Voltar à página inicial">
                     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
@@ -181,37 +173,48 @@ export async function injectHeader() {
     if (userSession?.auth) {
         const { auth, isVerified } = userSession;
         
-        const isPublicPage = ['/index.html', '/', '/verificar-email.html', '/termos-de-servico.html', '/politica-de-privacidade.html'].some(path => window.location.pathname.endsWith(path));
-        
-        if (!isVerified && !isPublicPage) {
-            showVerificationBlock(auth);
+        if (isVerified) {
+            // UTILIZADOR VERIFICADO: Mostra o menu completo
+            userMenuContainer.innerHTML = await createUserMenuHTML(userSession);
+            listenForUnreadNotifications(auth.uid);
+            
+            document.getElementById('header-logout-btn').addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
+            
+            const menuButton = document.getElementById('user-menu-button');
+            const dropdown = document.getElementById('user-menu-dropdown');
+            if (menuButton && dropdown) {
+                menuButton.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    dropdown.classList.toggle('hidden');
+                });
+                window.addEventListener('click', (e) => {
+                    if (!menuButton.contains(e.target) && !e.target.closest('#user-menu-dropdown')) {
+                        dropdown.classList.add('hidden');
+                    }
+                });
+            }
+        } else {
+            // UTILIZADOR NÃO VERIFICADO: Mostra a tarja e apenas o botão de sair
+            document.getElementById('verification-banner-container').innerHTML = `
+                <div class="bg-yellow-300 text-yellow-800 text-center text-sm p-2">
+                    Por favor, verifique o seu e-mail para ter acesso a todas as funcionalidades. <a href="verificar-email.html" class="font-bold underline hover:text-yellow-900">Verificar agora</a>
+                </div>`;
+            
             userMenuContainer.innerHTML = `<button id="header-logout-btn" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Sair</button>`;
             document.getElementById('header-logout-btn').addEventListener('click', () => logout().then(() => window.location.href = 'login.html'));
-            return false;
+            
+            // Bloqueia o conteúdo se não for uma página pública
+            const isPublicPage = ['/index.html', '/', '/verificar-email.html', '/termos-de-servico.html', '/politica-de-privacidade.html'].some(path => window.location.pathname.endsWith(path));
+            if (!isPublicPage) {
+                showVerificationBlock(auth);
+                return false; // Indica que a página não deve continuar a carregar
+            }
         }
-        
-        userMenuContainer.innerHTML = await createUserMenuHTML(userSession);
-        listenForUnreadNotifications(auth.uid);
-        
-        document.getElementById('header-logout-btn').addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
-        
-        const menuButton = document.getElementById('user-menu-button');
-        const dropdown = document.getElementById('user-menu-dropdown');
-        if (menuButton && dropdown) {
-            menuButton.addEventListener('click', (event) => {
-                event.stopPropagation();
-                dropdown.classList.toggle('hidden');
-            });
-            window.addEventListener('click', (e) => {
-                if (!menuButton.contains(e.target) && !e.target.closest('#user-menu-dropdown')) {
-                    dropdown.classList.add('hidden');
-                }
-            });
-        }
-
     } else {
+        // Sem sessão (visitante)
         userMenuContainer.innerHTML = `<a href="login.html" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 shadow">Entrar / Registar</a>`;
     }
     
-    return true;
+    return true; // Indica que a página pode continuar a carregar
 }
+// --- FIM DA ALTERAÇÃO ---
