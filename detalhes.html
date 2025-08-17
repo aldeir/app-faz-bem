@@ -183,7 +183,9 @@
         let countdownInterval;
 
         async function initializeApp() {
-            await injectHeader();
+            const canProceed = await injectHeader(); // Alterado para receber o status
+            if (!canProceed) return; // Bloqueia a execução se o e-mail não estiver verificado
+
             currentUserSession = await getCurrentUser();
             const params = new URLSearchParams(window.location.search);
             campaignId = params.get('id');
@@ -270,9 +272,8 @@
             
             campaignUnsubscribe = onSnapshot(campaignRef, (docSnap) => {
                 if (docSnap.exists()) {
-                    campaignData = docSnap.data(); // Armazena os dados da campanha
+                    campaignData = docSnap.data(); 
                     renderCampaignInfo(campaignData);
-                    // Inicia os listeners de doações e curtidas aqui, pois dependem da campanha
                     loadDonationsAndLikes(campaignId); 
                     loadingContainer.classList.add('hidden');
                     campaignContent.classList.remove('hidden');
@@ -294,7 +295,6 @@
             }
         }
         
-        // --- FUNÇÃO REESTRUTURADA ---
         function loadDonationsAndLikes(campaignId) {
             if (donationsUnsubscribe) donationsUnsubscribe();
             if (likesUnsubscribe) likesUnsubscribe();
@@ -306,13 +306,11 @@
             let likesData = {};
 
             const render = () => {
-                // 1. Calcula o progresso
                 const completedItemsCount = donationsData.reduce((total, donation) => {
                     return total + (Array.isArray(donation.items) ? donation.items.filter(item => item.status === 'completed').length : 0);
                 }, 0);
                 updateGoalProgress(completedItemsCount, campaignData.goal);
 
-                // 2. Renderiza a lista de doadores
                 if (donationsData.length === 0) {
                     donorsList.innerHTML = '';
                     donorsPlaceholder.classList.remove('hidden');
