@@ -1,5 +1,5 @@
 // Arquivo: firestore-paths.js
-// Versão 3.2 - Caminhos Corretos com Estrutura Aninhada
+// Versão 3.3 - Adicionado caminho para subcoleção de representantes
 
 const paths = {
     _projectId: null,
@@ -41,6 +41,11 @@ const paths = {
     // --- Funções para Documentos ---
     userDoc: function(uid) { this._checkInit(); return `${this.users}/${uid}`; },
     entidadeDoc: function(uid) { this._checkInit(); return `${this.entidades}/${uid}`; },
+    
+    // --- INÍCIO DA ADIÇÃO: Nova função para o documento do representante na subcoleção ---
+    representanteDoc: function(entidadeId, representanteId) { this._checkInit(); return `${this.entidades}/${entidadeId}/representantes/${representanteId}`; },
+    // --- FIM DA ADIÇÃO ---
+
     campaignDoc: function(campaignId) { this._checkInit(); return `${this.campaigns}/${campaignId}`; },
     donationDoc: function(donationId) { this._checkInit(); return `${this.donations}/${donationId}`; },
     likeDoc: function(likeId) { this._checkInit(); return `${this.likes}/${likeId}`; },
