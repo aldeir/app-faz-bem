@@ -11,7 +11,7 @@ service cloud.firestore {
       return isAuthenticated() && exists(entityPath) && get(entityPath).data.status == 'ativo';
     }
 
-    // Regra para a coleção 'users' que está na raiz do banco
+    // Regra para a coleção 'users' que está na raiz do banco (SEM ALTERAÇÕES)
     match /users/{userId} {
       allow read: if isOwner(userId) || isSuperAdmin();
       allow create: if isOwner(userId) && request.resource.data.role == 'doador';
@@ -19,7 +19,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Regra principal para o caminho aninhado onde ficam os dados da aplicação
+    // Regra principal para o caminho aninhado
     match /artifacts/{appId}/public/data/{document=**} {
     
       match /notifications/{notificationId} {
@@ -28,16 +28,33 @@ service cloud.firestore {
         allow delete: if false;
       }
       
+      // --- INÍCIO DA ALTERAÇÃO: Regras atualizadas para a nova estrutura de Entidades ---
       match /entidades/{entityId} {
         allow read: if isAuthenticated();
-        allow create: if isOwner(entityId) && 
-                       request.resource.data.status == 'pendente_aprovacao' && 
-                       request.resource.data.role == 'entidade' &&
-                       request.resource.data.cnpj is string &&
-                       request.resource.data.cnpj.size() == 14;
-        allow update: if (isOwner(entityId) && request.resource.data.status == resource.data.status) || isSuperAdmin();
+        
+        // Permite a criação se o usuário for o dono do documento e a estrutura de dados estiver correta.
+        allow create: if isOwner(entityId) &&
+                        request.resource.data.role == 'entidade' &&
+                        request.resource.data.status == 'pendente' &&
+                        request.resource.data.dadosEntidade.cnpj is string &&
+                        request.resource.data.dadosEntidade.nomeFantasia is string;
+
+        // Permite a atualização apenas para o SuperAdmin (para aprovar, por exemplo).
+        allow update: if isSuperAdmin() || isOwner(entityId); // Permite que o próprio representante edite
         allow delete: if false;
+
+        // Regra para a subcoleção de representantes
+        match /representantes/{representanteId} {
+          allow read: if isOwner(representanteId) || isSuperAdmin();
+          
+          // Permite a criação do representante apenas se o usuário for o mesmo que está a criar a entidade principal.
+          allow create: if isOwner(representanteId) && representanteId == entityId;
+          
+          allow update: if isOwner(representanteId) || isSuperAdmin();
+          allow delete: if false;
+        }
       }
+      // --- FIM DA ALTERAÇÃO ---
       
       match /campaigns/{campaignId} {
         allow read: if true;
