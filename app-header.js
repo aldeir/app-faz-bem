@@ -1,4 +1,4 @@
-// /js/app-header.js (Versão 7.1 - Com controlo de verificação de e-mail e melhorias de UX)
+// /js/app-header.js (Versão 7.2 - Restaura o menu sanduíche e mantém as melhorias de UX)
 
 import { db, rtdb, logout } from './app-config.js';
 import { collection, query, where, onSnapshot, getDocs, limit, databaseRef, onValue, sendEmailVerification } from './firebase-services.js';
@@ -47,7 +47,7 @@ function listenForOnlineUsers() {
 }
 
 function showVerificationBlock(user) {
-    const pageContent = document.getElementById('page-content'); // Usar um ID padrão
+    const pageContent = document.getElementById('page-content');
     if (!pageContent) return;
     
     pageContent.innerHTML = `
@@ -99,7 +99,7 @@ async function createUserMenuHTML(userSession) {
     let menuItems = '';
     switch (userRole) {
         case 'superadmin':
-            menuItems = `<a href="superadmin.html" class="menu-item"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>Painel SuperAdmin</a>`;
+             menuItems = `<a href="superadmin.html" class="menu-item"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>Painel SuperAdmin</a>`;
             break;
         case 'entidade':
             menuItems = `<a href="admin.html" class="menu-item"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 012-2h2a2 2 0 012 2v6m-8 0h-2.586a1 1 0 01-.707-.293l-2.414-2.414a1 1 0 010-1.414l2.414-2.414a1 1 0 01.707-.293H9m4 0h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 010 1.414l-2.414 2.414a1 1 0 01-.707-.293H15m-4 0v-6a2 2 0 012-2h2a2 2 0 012 2v6m0 0v-6a2 2 0 00-2-2h-2a2 2 0 00-2 2v6"></path></svg>Painel da Entidade</a>
@@ -119,10 +119,15 @@ async function createUserMenuHTML(userSession) {
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             <span id="notification-indicator" class="hidden absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
         </a>
+        <a href="${profileLink}" class="text-sm font-medium text-gray-700 hidden sm:block hover:text-green-600" title="Ver perfil">${displayName}</a>
+        <a href="${profileLink}" title="Ver perfil">
+            <img src="${photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200 hover:border-green-500 transition">
+        </a>
         <div class="relative">
-            <button id="user-menu-button" class="flex items-center space-x-2 focus:outline-none">
-                <span class="text-sm font-medium text-gray-700 hidden sm:block">${displayName}</span>
-                <img class="h-10 w-10 rounded-full object-cover border-2 border-transparent hover:border-green-500 transition" src="${photoURL}" alt="Foto do Utilizador">
+            <button id="user-menu-button" class="p-2 rounded-full hover:bg-gray-100 focus:outline-none" title="Menu de opções">
+                <svg class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
             </button>
             <div id="user-menu-dropdown" class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-50">
                 <div class="py-1" role="menu" aria-orientation="vertical">
@@ -144,52 +149,47 @@ export async function injectHeader() {
     if (!headerContainer) return true;
 
     const userSession = await getCurrentUser();
-    
-    // 1. Renderiza o esqueleto do header primeiro
+
+    const verificationBanner = (userSession && userSession.auth.providerData.some(p => p.providerId === 'password') && !userSession.isVerified) 
+        ? `<div class="bg-yellow-300 text-yellow-800 text-center text-sm p-2">
+               Por favor, verifique o seu e-mail para ter acesso a todas as funcionalidades. <a href="verificar-email.html" class="font-bold underline hover:text-yellow-900">Verificar agora</a>
+           </div>`
+        : '';
+
     headerContainer.innerHTML = `
         <style>
-            .menu-item { display: flex; align-items: center; text-align: left; padding: 0.75rem 1rem; font-medium; color: #374151; transition: background-color 0.2s, color 0.2s; }
+            .menu-item { display: flex; align-items: center; text-align: left; padding: 0.75rem 1rem; font-medium; color: #374151; transition: background-color 0.2s, color 0.2s; border-radius: 0.25rem; margin: 0.25rem; }
             .menu-item:hover { background-color: #f3f4f6; color: #1f2937; }
         </style>
         <header class="bg-white shadow-sm sticky top-0 z-40">
-            <div id="verification-banner-container"></div>
+            ${verificationBanner}
             <nav class="container mx-auto max-w-5xl p-4 flex justify-between items-center h-16">
+                <a href="index.html" class="flex items-center gap-2 text-2xl font-bold text-green-600" title="Voltar à página inicial">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    Faz Bem
+                </a>
                 <div class="flex items-center space-x-2 sm:space-x-4">
-                    <a href="index.html" class="flex items-center gap-2 text-2xl font-bold text-green-600" title="Voltar à página inicial">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                        Faz Bem
-                    </a>
                     <div id="online-users-container" class="flex items-center pl-2 sm:pl-4 border-l border-gray-200"></div>
+                    <div id="header-user-menu" class="flex items-center space-x-2 sm:space-x-4"></div>
                 </div>
-                <div id="header-user-menu" class="flex items-center space-x-2 sm:space-x-4"></div>
             </nav>
         </header>`;
 
     const userMenuContainer = document.getElementById('header-user-menu');
     listenForOnlineUsers();
-
+    
     if (userSession?.auth) {
         const { auth, isVerified } = userSession;
         
-        // 2. Lógica de bloqueio de conteúdo
         const isPublicPage = ['/index.html', '/', '/verificar-email.html', '/termos-de-servico.html', '/politica-de-privacidade.html'].some(path => window.location.pathname.endsWith(path));
         
         if (!isVerified && !isPublicPage) {
             showVerificationBlock(auth);
             userMenuContainer.innerHTML = `<button id="header-logout-btn" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Sair</button>`;
             document.getElementById('header-logout-btn').addEventListener('click', () => logout().then(() => window.location.href = 'login.html'));
-            return false; // Indica que a página não deve continuar a carregar
+            return false;
         }
-
-        // 3. Exibe a tarja amarela, se necessário (mesmo em páginas públicas)
-        if (!isVerified) {
-            document.getElementById('verification-banner-container').innerHTML = `
-                <div class="bg-yellow-300 text-yellow-800 text-center text-sm p-2">
-                    Por favor, verifique o seu e-mail para ter acesso a todas as funcionalidades. <a href="verificar-email.html" class="font-bold underline hover:text-yellow-900">Verificar agora</a>
-                </div>`;
-        }
-
-        // 4. Renderiza o menu do utilizador
+        
         userMenuContainer.innerHTML = await createUserMenuHTML(userSession);
         listenForUnreadNotifications(auth.uid);
         
@@ -213,5 +213,5 @@ export async function injectHeader() {
         userMenuContainer.innerHTML = `<a href="login.html" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 shadow">Entrar / Registar</a>`;
     }
     
-    return true; // Indica que a página pode continuar a carregar
+    return true;
 }
