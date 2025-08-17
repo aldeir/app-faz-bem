@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/app-faz-bem/images/icons/icon-192x192.png">
-<link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
+    <link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
 
     <link href="/app-faz-bem/style.css" rel="stylesheet">
     
@@ -41,8 +41,7 @@
 <body class="bg-gray-100">
 
     <div id="app-header"></div>
-
-    <main id="app-container">
+    <div id="app-modal" class="hidden"></div> <main id="app-container">
         <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
             <div id="form-container" class="max-w-lg w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
                 <div>
@@ -118,8 +117,6 @@
                         </div>
                     </div>
                     
-                    <div id="signup-error" class="text-red-500 text-sm hidden pt-2"></div>
-                    
                     <button type="submit" id="submit-btn" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                         <span id="submit-btn-text">Enviar para Análise</span>
                         <div id="submit-btn-spinner" class="hidden animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -150,9 +147,9 @@
         import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, doc, setDoc, storageRef, uploadBytes, getDownloadURL } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
+        import { showAlertModal } from './modal-handler.js'; // Importado para usar nos erros
 
         const signupForm = document.getElementById('signup-form');
-        const errorDiv = document.getElementById('signup-error');
         const submitBtn = document.getElementById('submit-btn');
         const submitBtnText = document.getElementById('submit-btn-text');
         const submitBtnSpinner = document.getElementById('submit-btn-spinner');
@@ -175,15 +172,12 @@
         let cropper;
         let croppedImageBlob = null;
 
-        // <-- INÍCIO DA ALTERAÇÃO: MUDANÇA DE 'lazy: false' PARA 'lazy: true' -->
         const cnpjMask = IMask(cnpjInput, { mask: '00.000.000/0000-00', lazy: true });
         const phoneMask = IMask(phoneInput, { mask: [ { mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' } ], lazy: true });
-        // <-- FIM DA ALTERAÇÃO -->
 
         async function initializeApp() {
             await injectHeader();
             const userSession = await getCurrentUser();
-            // Se o usuário já estiver logado, redireciona para o painel apropriado
             if (userSession) {
                 window.location.href = userSession.profile?.role === 'entidade' ? 'admin.html' : 'index.html';
             }
@@ -218,68 +212,113 @@
             }, 'image/webp', 0.9);
         });
 
+        // --- INÍCIO DA ALTERAÇÃO: Função de validação centralizada ---
+        function validateForm() {
+            // Coleta de todos os valores dos campos
+            const inputs = {
+                entityName: document.getElementById('entity-name').value,
+                publicName: document.getElementById('entity-public-name').value,
+                cnpj: cnpjMask.unmaskedValue,
+                responsibleName: document.getElementById('responsible-name').value,
+                street: document.getElementById('address-street').value,
+                number: document.getElementById('address-number').value,
+                district: document.getElementById('address-district').value,
+                city: document.getElementById('address-city').value,
+                email: document.getElementById('signup-email').value,
+                password: document.getElementById('signup-password').value,
+                passwordConfirm: document.getElementById('signup-password-confirm').value,
+                terms: termsAgreeCheckbox.checked,
+                logo: croppedImageBlob
+            };
+
+            // Verificações
+            if (!inputs.entityName || !inputs.publicName || !inputs.responsibleName || !inputs.street || !inputs.number || !inputs.district || !inputs.city || !inputs.email || !inputs.password) {
+                return { valid: false, message: "Todos os campos marcados com * são obrigatórios." };
+            }
+            if (inputs.password !== inputs.passwordConfirm) {
+                return { valid: false, message: "As senhas não coincidem." };
+            }
+            if (inputs.password.length < 6) {
+                return { valid: false, message: "A senha deve ter no mínimo 6 caracteres." };
+            }
+            if (!inputs.logo) {
+                return { valid: false, message: "Por favor, selecione e confirme um logotipo." };
+            }
+            if (inputs.cnpj.length !== 14) {
+                return { valid: false, message: "O CNPJ está incompleto." };
+            }
+            if (!inputs.terms) {
+                return { valid: false, message: "Você precisa de aceitar os Termos de Serviço e a Política de Privacidade." };
+            }
+            
+            return { valid: true, data: inputs };
+        }
+
+        const traduzErroFirebase = (code) => {
+            const erros = {
+                'auth/email-already-in-use': 'Este e-mail já está a ser utilizado por outra conta.',
+                'auth/invalid-email': 'O formato do e-mail é inválido.',
+                'auth/weak-password': 'A senha é muito fraca. Tente uma com pelo menos 6 caracteres.',
+            };
+            return erros[code] || 'Ocorreu um erro inesperado. Por favor, tente novamente.';
+        };
+        // --- FIM DA ALTERAÇÃO ---
+
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            errorDiv.classList.add('hidden');
-            const password = document.getElementById('signup-password').value;
-            const passwordConfirm = document.getElementById('signup-password-confirm').value;
-
-            if (password !== passwordConfirm) {
-                errorDiv.textContent = "As senhas não coincidem.";
-                errorDiv.classList.remove('hidden'); return;
+            // --- INÍCIO DA ALTERAÇÃO: Lógica de submissão reestruturada ---
+            const validationResult = validateForm();
+            if (!validationResult.valid) {
+                showAlertModal("Formulário Incompleto", validationResult.message);
+                return; // Pára a execução aqui se o formulário for inválido
             }
-            if (!croppedImageBlob) {
-                errorDiv.textContent = "Por favor, selecione e confirme um logotipo.";
-                errorDiv.classList.remove('hidden'); return;
-            }
-            if (cnpjMask.unmaskedValue.length !== 14) {
-                errorDiv.textContent = "O CNPJ está incompleto.";
-                errorDiv.classList.remove('hidden'); return;
-            }
-            if (!termsAgreeCheckbox.checked) {
-                errorDiv.textContent = "Você precisa de aceitar os Termos de Serviço e a Política de Privacidade para continuar.";
-                errorDiv.classList.remove('hidden');
-                return;
-            }
+            // --- FIM DA ALTERAÇÃO ---
 
             submitBtn.disabled = true;
             submitBtnText.classList.add('hidden');
             submitBtnSpinner.classList.remove('hidden');
 
             try {
-                const userCredential = await createUserWithEmailAndPassword(auth, document.getElementById('signup-email').value, password);
+                // Se a validação passou, só então criamos o utilizador
+                const userCredential = await createUserWithEmailAndPassword(auth, validationResult.data.email, validationResult.data.password);
                 const user = userCredential.user;
-                await updateProfile(user, { displayName: document.getElementById('entity-name').value });
-                await sendEmailVerification(user);
+                
+                await updateProfile(user, { displayName: validationResult.data.entityName });
 
+                // Faz o upload do logo
                 const fileName = `logo_${user.uid}.webp`;
                 const fileRef = storageRef(storage, `logos/${fileName}`);
                 await uploadBytes(fileRef, croppedImageBlob);
                 const logoUrl = await getDownloadURL(fileRef);
 
+                // Prepara e guarda os dados no Firestore
                 const profileData = {
-                    publicName: document.getElementById('entity-public-name').value,
-                    cnpj: cnpjMask.unmaskedValue,
+                    publicName: validationResult.data.publicName,
+                    cnpj: validationResult.data.cnpj,
                     phone: phoneMask.unmaskedValue,
                     logoUrl: logoUrl,
                     description: document.getElementById('entity-description').value,
-                    responsibleName: document.getElementById('responsible-name').value,
+                    responsibleName: validationResult.data.responsibleName,
                     address: {
-                        street: document.getElementById('address-street').value,
-                        number: document.getElementById('address-number').value,
-                        district: document.getElementById('address-district').value,
-                        city: document.getElementById('address-city').value,
+                        street: validationResult.data.street,
+                        number: validationResult.data.number,
+                        district: validationResult.data.district,
+                        city: validationResult.data.city,
                     },
                     role: 'entidade',
                     status: 'pendente_aprovacao',
                     email: user.email
                 };
                 await setDoc(doc(db, paths.entidadeDoc(user.uid)), profileData);
+                
+                // Só agora, com tudo pronto, enviamos o e-mail de verificação
+                await sendEmailVerification(user);
 
+                // Feedback visual e redirecionamento
                 submitBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
                 submitBtn.classList.add('bg-blue-500');
-                submitBtnText.textContent = 'Sucesso! Redirecionando...';
+                submitBtnText.textContent = 'Sucesso! A redirecionar...';
                 submitBtnSpinner.classList.add('hidden');
                 submitBtnText.classList.remove('hidden');
                 
@@ -288,11 +327,11 @@
                 }, 2000);
 
             } catch (error) {
-                errorDiv.textContent = `Erro: ${error.code} - ${error.message}`;
+                showAlertModal("Erro no Registo", traduzErroFirebase(error.code));
                 submitBtn.disabled = false;
+                submitBtnText.textContent = 'Enviar para Análise';
                 submitBtnText.classList.remove('hidden');
                 submitBtnSpinner.classList.add('hidden');
-                errorDiv.classList.remove('hidden');
             }
         });
 
