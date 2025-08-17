@@ -176,15 +176,15 @@
         
         let currentUserSession = null;
         let campaignId = null;
-        let campaignData = null; // Armazena os dados da campanha
+        let campaignData = null; 
         let campaignUnsubscribe = null;
         let donationsUnsubscribe = null;
         let likesUnsubscribe = null;
         let countdownInterval;
 
         async function initializeApp() {
-            const canProceed = await injectHeader(); // Alterado para receber o status
-            if (!canProceed) return; // Bloqueia a execução se o e-mail não estiver verificado
+            const canProceed = await injectHeader();
+            if (!canProceed) return; 
 
             currentUserSession = await getCurrentUser();
             const params = new URLSearchParams(window.location.search);
@@ -272,7 +272,7 @@
             
             campaignUnsubscribe = onSnapshot(campaignRef, (docSnap) => {
                 if (docSnap.exists()) {
-                    campaignData = docSnap.data(); 
+                    campaignData = docSnap.data();
                     renderCampaignInfo(campaignData);
                     loadDonationsAndLikes(campaignId); 
                     loadingContainer.classList.add('hidden');
