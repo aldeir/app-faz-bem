@@ -1,4 +1,4 @@
-// Arquivo: auth-service.js (Versão 2.3 - Com Lógica de Verificação)
+// Arquivo: auth-service.js (Versão 2.3 - Com Lógica de Verificação Restaurada)
 
 import { auth, db, rtdb, ADMIN_EMAIL } from './app-config.js';
 import { onAuthStateChanged, getDoc, doc, databaseRef, set, onDisconnect, serverTimestamp } from './firebase-services.js';
@@ -25,9 +25,10 @@ export const getCurrentUser = () => {
             }
 
             let profile = null;
-            // Verifica se o provedor é de senha e se o e-mail foi verificado.
+            // --- LÓGICA RESTAURADA ---
             const isPasswordProvider = user.providerData.some(p => p.providerId === 'password');
             const isVerified = !isPasswordProvider || user.emailVerified;
+            // --- FIM DA RESTAURAÇÃO ---
 
             if (user.email === ADMIN_EMAIL) {
                 profile = {
@@ -51,7 +52,6 @@ export const getCurrentUser = () => {
 
             if (profile) {
                 managePresence(user, profile);
-                // Retorna o status de verificação junto com os dados do usuário.
                 resolve({ auth: user, profile: profile, isVerified: isVerified });
             } else {
                 resolve({ auth: user, profile: null, isVerified: isVerified });
