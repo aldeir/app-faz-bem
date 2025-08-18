@@ -1,10 +1,9 @@
-// /js/app-header.js (Versão 8.3 - Com redirecionamento de segurança)
+// /js/app-header.js (Versão 8.4 - Compatível com a nova estrutura de dados da Entidade)
 
 import { db, rtdb, logout } from './app-config.js';
-import { collection, query, where, onSnapshot, getDocs, limit, databaseRef, onValue, sendEmailVerification } from './firebase-services.js';
+import { collection, query, where, onSnapshot, getDocs, limit, databaseRef, onValue } from './firebase-services.js';
 import { paths } from './firestore-paths.js';
 import { getCurrentUser } from './auth-service.js';
-import { showAlertModal } from './modal-handler.js';
 
 let unreadListener = null;
 
@@ -26,9 +25,8 @@ function listenForUnreadNotifications(userId) {
 
     unreadListener = onSnapshot(q, (snapshot) => {
         if (snapshot.empty) {
-            bellContainer.innerHTML = ''; // Esconde o sino se não houver notificações
+            bellContainer.innerHTML = '';
         } else {
-            // Mostra o sino com o indicador vermelho
             bellContainer.innerHTML = `
                 <a href="notificacoes.html" class="relative text-gray-500 hover:text-gray-700 p-2 rounded-full" title="Notificações">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
@@ -67,12 +65,30 @@ async function donorHasDonations(donorId) {
 async function createUserMenuHTML(userSession) {
     const { auth, profile } = userSession;
     const userRole = profile?.role || 'doador';
-    const photoURL = profile?.photoURL || auth.photoURL || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
-    
-    let displayName = auth.displayName;
+
+    // --- INÍCIO DA ALTERAÇÃO: Lógica para buscar nome e foto da nova estrutura ---
+    let displayName = 'Utilizador';
+    let photoURL = profile?.photoURL || auth.photoURL || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
     let profileLink = 'perfil-doador.html';
-    if (profile?.role === 'entidade') { displayName = profile.publicName; profileLink = 'perfil-entidade.html'; }
-    else if (profile?.role === 'superadmin') { displayName = profile.displayName; profileLink = 'perfil-admin.html'; }
+
+    if (profile) {
+        switch (userRole) {
+            case 'entidade':
+                // Busca os dados da nova estrutura aninhada
+                displayName = profile.dadosEntidade?.nomeFantasia || 'Entidade sem nome';
+                photoURL = profile.logoUrl || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Logo';
+                profileLink = 'perfil-entidade.html';
+                break;
+            case 'superadmin':
+                displayName = profile.displayName || 'Super Admin';
+                profileLink = 'perfil-admin.html'; // Assumindo que existe ou será criado
+                break;
+            default: // Doador
+                displayName = profile.displayName || auth.displayName;
+                break;
+        }
+    }
+    // --- FIM DA ALTERAÇÃO ---
     
     let menuItems = `<a href="notificacoes.html" class="menu-item">Notificações</a>`;
     switch (userRole) {
@@ -93,7 +109,7 @@ async function createUserMenuHTML(userSession) {
 
     return `
         <div id="notification-bell-container" class="flex items-center"></div>
-        <a href="${profileLink}" class="text-sm font-medium text-gray-700 hidden sm:block hover:text-green-600" title="Ver perfil">${displayName}</a>
+        <a href="${profileLink}" class="text-sm font-medium text-gray-700 hidden sm:block hover:text-green-600 truncate max-w-[150px]" title="Ver perfil">${displayName}</a>
         <a href="${profileLink}" title="Ver perfil">
             <img src="${photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200 hover:border-green-500 transition">
         </a>
@@ -121,20 +137,16 @@ export async function injectHeader() {
 
     const userSession = await getCurrentUser();
     
-    // --- INÍCIO DA ALTERAÇÃO: Lógica de controlo e redirecionamento ---
     const isPublicPage = ['/index.html', '/', '/verificar-email.html', '/login.html', '/cadastro-doador.html', '/cadastro-entidade.html', '/termos-de-servico.html', '/politica-de-privacidade.html'].some(path => window.location.pathname.endsWith(path));
 
     if (userSession && !userSession.isVerified && !isPublicPage) {
-        // Se o utilizador NÃO está verificado E tenta aceder a uma página protegida,
-        // redireciona-o para a página de verificação e pára tudo.
         window.location.href = 'verificar-email.html';
-        return false; // Impede a continuação do carregamento da página atual.
+        return false;
     }
-    // --- FIM DA ALTERAÇÃO ---
     
     const verificationBanner = (userSession && !userSession.isVerified) 
         ? `<div class="bg-yellow-300 text-yellow-800 text-center text-sm p-2">
-               Por favor, verifique o seu e-mail para ter acesso a todas as funcionalidades. <a href="verificar-email.html" class="font-bold underline hover:text-yellow-900">Verificar agora</a>
+             Por favor, verifique o seu e-mail para ter acesso a todas as funcionalidades. <a href="verificar-email.html" class="font-bold underline hover:text-yellow-900">Verificar agora</a>
            </div>`
         : '';
 
@@ -162,7 +174,6 @@ export async function injectHeader() {
     
     if (userSession?.auth) {
         if (userSession.isVerified) {
-            // Se está verificado, mostra o menu completo.
             userMenuContainer.innerHTML = await createUserMenuHTML(userSession);
             listenForUnreadNotifications(userSession.auth.uid);
             
@@ -182,12 +193,10 @@ export async function injectHeader() {
                 });
             }
         } else {
-            // Se não está verificado, mostra apenas o botão de sair.
             userMenuContainer.innerHTML = `<button id="header-logout-btn" class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">Sair</button>`;
             document.getElementById('header-logout-btn').addEventListener('click', () => logout().then(() => window.location.href = 'login.html'));
         }
     } else {
-        // Se não há sessão, mostra o botão de Entrar.
         userMenuContainer.innerHTML = `<a href="login.html" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 shadow">Entrar / Registar</a>`;
     }
     
