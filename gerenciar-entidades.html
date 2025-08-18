@@ -5,11 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Entidades - Faz Bem</title>
     
-    <!-- PWA Tags -->
     <meta name="theme-color" content="#22c55e">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/app-faz-bem/images/icons/icon-192x192.png">
-<link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
+    <link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
 
     <link href="/app-faz-bem/style.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -50,14 +49,13 @@
             </div>
             
             <div class="mb-6">
-                <input type="search" id="entity-search-input" placeholder="Buscar por nome..." class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                <input type="search" id="entity-search-input" placeholder="Buscar por nome da entidade, CNPJ ou nome do representante..." class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500">
             </div>
 
-            <!-- Abas de Filtro -->
             <div class="border-b border-gray-200 mb-6">
                 <nav id="tabs-container" class="-mb-px flex space-x-8" aria-label="Tabs">
                     <button data-status="all" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Todas</button>
-                    <button data-status="pendente_aprovacao" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Pendentes</button>
+                    <button data-status="pendente" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Pendentes</button>
                     <button data-status="ativo" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Ativas</button>
                     <button data-status="bloqueado" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Bloqueadas</button>
                 </nav>
@@ -66,7 +64,6 @@
             <div id="all-entities-list" class="bg-white rounded-lg shadow overflow-hidden"></div>
             <div id="no-entities-placeholder" class="hidden p-6 text-center text-gray-500 bg-white rounded-lg shadow">Nenhuma entidade encontrada.</div>
 
-            <!-- Paginação -->
             <div id="pagination-controls" class="hidden mt-6 flex justify-end items-center space-x-4 text-sm text-gray-700">
                 <span id="page-counter"></span>
                 <button id="prev-page-btn" class="pagination-btn p-2 rounded-md hover:bg-gray-200">
@@ -83,7 +80,7 @@
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
                         <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
@@ -106,7 +103,7 @@
 
     <script type="module">
         import { db } from './app-config.js';
-        import { collection, query, onSnapshot, doc, updateDoc } from './firebase-services.js';
+        import { collection, query, onSnapshot, doc, updateDoc, getDocs, where } from './firebase-services.js';
         import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
@@ -154,11 +151,24 @@
             if (!cnpj || typeof cnpj !== 'string') return 'N/A';
             return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
         };
+        
+        const formatCpf = (cpf) => {
+             if (!cpf || typeof cpf !== 'string') return 'N/A';
+             return cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+        };
 
-        function loadAllEntities() {
+        async function loadAllEntities() {
             const q = query(collection(db, paths.entidades));
-            onSnapshot(q, (snapshot) => {
-                allEntitiesData = snapshot.docs;
+            onSnapshot(q, async (snapshot) => {
+                const entitiesPromises = snapshot.docs.map(async (docSnapshot) => {
+                    const entityData = docSnapshot.data();
+                    const representanteQuery = query(collection(db, paths.representanteDoc(docSnapshot.id, '')), where('isPrincipal', '==', true));
+                    const repSnapshot = await getDocs(representanteQuery);
+                    const representanteData = repSnapshot.empty ? {} : repSnapshot.docs[0].data();
+                    return { id: docSnapshot.id, ...entityData, representante: representanteData };
+                });
+                
+                allEntitiesData = await Promise.all(entitiesPromises);
                 currentPage = 1;
                 filterAndRender();
                 loadingView.classList.add('hidden');
@@ -170,15 +180,15 @@
             const searchTerm = entitySearchInput.value.toLowerCase().trim();
             const activeTab = tabsContainer.querySelector('.tab-button.active').dataset.status;
 
-            let filtered = allEntitiesData.filter(doc => {
-                const entity = doc.data();
+            let filtered = allEntitiesData.filter(entity => {
                 const matchesSearch = searchTerm === '' ||
-                    (entity.publicName || '').toLowerCase().includes(searchTerm) ||
-                    (entity.responsibleName || '').toLowerCase().includes(searchTerm);
+                    (entity.dadosEntidade?.nomeFantasia || '').toLowerCase().includes(searchTerm) ||
+                    (entity.dadosEntidade?.cnpj || '').toLowerCase().includes(searchTerm) ||
+                    (entity.representante?.nomeCompleto || '').toLowerCase().includes(searchTerm);
 
                 if (!matchesSearch) return false;
 
-                const status = entity.status || 'pendente_aprovacao';
+                const status = entity.status || 'pendente';
                 if (activeTab === 'all') return true;
                 return status === activeTab;
             });
@@ -214,24 +224,23 @@
         function renderEntitiesList(entities) {
             allEntitiesList.innerHTML = '';
             
-            const statusOrder = { 'pendente_aprovacao': 1, 'ativo': 2, 'bloqueado': 3 };
-            entities.sort((a, b) => (statusOrder[a.data().status] || 99) - (statusOrder[b.data().status] || 99));
+            const statusOrder = { 'pendente': 1, 'ativo': 2, 'bloqueado': 3 };
+            entities.sort((a, b) => (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99));
 
-            entities.forEach(docSnapshot => {
-                const entity = docSnapshot.data();
-                const entityId = docSnapshot.id;
+            entities.forEach(entity => {
+                const entityId = entity.id;
                 const card = document.createElement('div');
                 card.className = 'p-4 border-b last:border-b-0';
                 
-                const status = entity.status || 'pendente_aprovacao';
+                const status = entity.status || 'pendente';
                 const statusInfo = {
-                    'pendente_aprovacao': { text: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },
+                    'pendente': { text: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },
                     'ativo': { text: 'Ativa', color: 'bg-green-100 text-green-800' },
                     'bloqueado': { text: 'Bloqueada', color: 'bg-red-100 text-red-800' }
                 };
 
                 let actionButton = '';
-                if (status === 'pendente_aprovacao') {
+                if (status === 'pendente') {
                     actionButton = `<button data-action="approve-entity" data-uid="${entityId}" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Aprovar</button>`;
                 } else if (status === 'ativo') {
                     actionButton = `<button data-action="block-entity" data-uid="${entityId}" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600">Bloquear</button>`;
@@ -244,8 +253,8 @@
                         <div class="flex items-center space-x-4">
                             <img src="${entity.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border">
                             <div>
-                                <h4 class="font-bold">${entity.publicName}</h4>
-                                <p class="text-sm text-gray-600">Responsável: ${entity.responsibleName}</p>
+                                <h4 class="font-bold">${entity.dadosEntidade?.nomeFantasia || 'Nome não preenchido'}</h4>
+                                <p class="text-sm text-gray-600">Responsável: ${entity.representante?.nomeCompleto || 'Não informado'}</p>
                             </div>
                         </div>
                         <div class="flex items-center space-x-4">
@@ -294,20 +303,33 @@
             const uid = target.dataset.uid;
             const action = target.dataset.action;
             const entityDocRef = doc(db, paths.entidadeDoc(uid));
-            const entityDoc = allEntitiesData.find(doc => doc.id === uid);
-            const entityName = entityDoc?.data().publicName || 'a entidade';
+            const entity = allEntitiesData.find(e => e.id === uid);
+            const entityName = entity?.dadosEntidade?.nomeFantasia || 'a entidade';
 
             if (action === 'view-entity-details') {
-                if (!entityDoc) return showAlertModal('Erro', 'Dados da entidade não encontrados.');
-                const entity = entityDoc.data();
-                const address = entity.address || {};
+                if (!entity) return showAlertModal('Erro', 'Dados da entidade não encontrados.');
+                const address = entity.dadosEntidade.endereco || {};
+                const rep = entity.representante || {};
                 const detailsHtml = `
-                    <p><strong>Nome Público:</strong> ${entity.publicName || 'N/A'}</p>
-                    <p><strong>Responsável:</strong> ${entity.responsibleName || 'N/A'}</p>
-                    <p><strong>CNPJ:</strong> ${formatCnpj(entity.cnpj)}</p>
-                    <p><strong>E-mail:</strong> ${entity.email || 'N/A'}</p>
-                    <p><strong>Telefone:</strong> ${formatPhoneNumber(entity.phone)}</p>
-                    <p class="pt-2 border-t mt-2"><strong>Endereço:</strong> ${address.street || 'Não informado'}, Nº ${address.number || 'S/N'}, ${address.district || ''}</p>
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-md border-b pb-1 mb-2">Dados da Entidade</h4>
+                            <p><strong>Nome Fantasia:</strong> ${entity.dadosEntidade.nomeFantasia || 'N/A'}</p>
+                            <p><strong>Razão Social:</strong> ${entity.dadosEntidade.razaoSocial || 'N/A'}</p>
+                            <p><strong>CNPJ:</strong> ${formatCnpj(entity.dadosEntidade.cnpj)}</p>
+                            <p><strong>Descrição:</strong> ${entity.dadosEntidade.descricao || 'N/A'}</p>
+                            <p class="pt-2 border-t mt-2"><strong>Endereço:</strong> ${address.rua || 'Não informado'}, Nº ${address.numero || 'S/N'}, ${address.bairro || ''} - CEP: ${address.cep || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-md border-b pb-1 mb-2 mt-4">Dados do Representante Principal</h4>
+                            <p><strong>Nome:</strong> ${rep.nomeCompleto || 'N/A'}</p>
+                            <p><strong>E-mail:</strong> ${rep.email || 'N/A'}</p>
+                            <p><strong>CPF:</strong> ${formatCpf(rep.cpf)}</p>
+                            <p><strong>Data de Nasc.:</strong> ${rep.dataNascimento || 'N/A'}</p>
+                            <p><strong>Telefone:</strong> ${formatPhoneNumber(rep.telefone)}</p>
+                            <p><strong>Cargo:</strong> ${rep.cargo || 'N/A'}</p>
+                        </div>
+                    </div>
                 `;
                 await showDetailsModal(`Detalhes de ${entityName}`, detailsHtml);
                 return;
@@ -335,7 +357,6 @@
         initializeApp();
     </script>
 
-    <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
