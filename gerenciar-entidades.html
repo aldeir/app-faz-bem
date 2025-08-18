@@ -19,8 +19,15 @@
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #16a34a; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .tab-button.active { border-color: #16a34a; color: #16a34a; background-color: #f0fdf4; }
-        .pagination-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .tab-button.active {
+            border-color: #16a34a;
+            color: #16a34a;
+            background-color: #f0fdf4;
+        }
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -70,10 +77,10 @@
     </main>
     
     <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-       <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
                         <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
@@ -147,8 +154,7 @@
                         
                         const representanteData = repSnapshot.empty ? {} : repSnapshot.docs[0].data();
                         
-                        const combinedData = { id: docSnapshot.id, ...entityData, representante: representanteData };
-                        return combinedData;
+                        return { id: docSnapshot.id, ...entityData, representante: representanteData };
                     } catch (error) {
                         console.error(`[Depurador] Falha ao processar entidade ${docSnapshot.id}`, error);
                         return null; 
@@ -157,15 +163,14 @@
                 
                 const resolvedEntities = await Promise.all(entitiesPromises);
                 allEntitiesData = resolvedEntities.filter(e => e !== null);
-                console.log("[Depurador] Dados finais combinados:", allEntitiesData);
-
+                
                 currentPage = 1;
                 filterAndRender();
                 loadingView.classList.add('hidden');
                 managementView.classList.remove('hidden');
             });
         }
-
+        
         // --- Funções de Formatação ---
         const formatPhoneNumber = (phone) => {
             if (!phone || typeof phone !== 'string') return 'N/A';
