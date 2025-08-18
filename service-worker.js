@@ -1,6 +1,6 @@
 // /service-worker.js
 
-const CACHE_NAME = 'app-faz-bem-v1.4'; // Versão incrementada
+const CACHE_NAME = 'app-faz-bem-v1.5'; // Versão incrementada para forçar a atualização
 const urlsToCache = [
     // As páginas principais do seu app
     './',
@@ -18,7 +18,6 @@ const urlsToCache = [
     './termos-de-servico.html',
     './detalhes.html',
     './notificacoes.html',
-    // Adicionar novas páginas essenciais
     './perfil-entidade.html',
     './perfil-doador.html',
     './gerenciar-entidades.html',
@@ -27,7 +26,6 @@ const urlsToCache = [
 
     // Arquivos de estilo e script essenciais
     './style.css',
-    // --- CORREÇÃO: Caminho dos scripts JS (removido /js/) ---
     './app-header.js',
     './auth-service.js',
     './app-config.js',
@@ -35,7 +33,7 @@ const urlsToCache = [
     './firestore-paths.js',
     './modal-handler.js',
     './notification-service.js',
-    './perfil-entidade.js', 
+    './perfil-entidade.js',
     './cadastro-entidade.js',
 
     // Imagens e Ícones principais
@@ -56,19 +54,10 @@ self.addEventListener('install', event => {
         caches.open(CACHE_NAME)
             .then(cache => {
                 console.log('Service Worker: Cache aberto, adicionando URLs essenciais.');
-                // Usamos `fetch` para cada recurso para ignorar falhas individuais
-                const promises = urlsToCache.map(url => {
-                    return fetch(url, { cache: 'no-store' }).then(response => {
-                        if (response.ok) {
-                            return cache.put(url, response);
-                        }
-                        console.warn(`Service Worker: Falha ao fazer cache de ${url}, status: ${response.status}`);
-                        return Promise.resolve(); // Continua mesmo se um falhar
-                    }).catch(err => {
-                        console.error(`Service Worker: Erro de rede ao buscar ${url}`, err);
-                    });
-                });
-                return Promise.all(promises);
+                return cache.addAll(urlsToCache);
+            })
+            .catch(error => {
+                console.error('Service Worker: Falha ao fazer cache dos arquivos na instalação.', error);
             })
             .then(() => self.skipWaiting())
     );
@@ -95,25 +84,29 @@ self.addEventListener('fetch', event => {
         return;
     }
     
-    // Estratégia: Stale-While-Revalidate para recursos do mesmo domínio
+    // Para recursos do mesmo domínio, use a estratégia Cache First
     if (new URL(event.request.url).origin === self.location.origin) {
         event.respondWith(
-            caches.open(CACHE_NAME).then(cache => {
-                return cache.match(event.request).then(cachedResponse => {
-                    const fetchPromise = fetch(event.request).then(networkResponse => {
-                        cache.put(event.request, networkResponse.clone());
-                        return networkResponse;
-                    });
-                    return cachedResponse || fetchPromise;
+            caches.match(event.request).then(cachedResponse => {
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                return fetch(event.request).then(networkResponse => {
+                    if (networkResponse && networkResponse.status === 200) {
+                        const responseToCache = networkResponse.clone();
+                        caches.open(CACHE_NAME).then(cache => {
+                            cache.put(event.request, responseToCache);
+                        });
+                    }
+                    return networkResponse;
                 });
             })
         );
     }
-    // Para recursos externos (como fontes), usa a estratégia de network first
+    // Para recursos externos (como fontes), usa Network First para garantir que estão sempre atualizados
     else {
         event.respondWith(
             fetch(event.request).catch(() => {
-                // Se a rede falhar, tenta encontrar no cache (se já tiver sido cacheado dinamicamente)
                 return caches.match(event.request);
             })
         );
