@@ -19,15 +19,8 @@
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #16a34a; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .tab-button.active {
-            border-color: #16a34a;
-            color: #16a34a;
-            background-color: #f0fdf4;
-        }
-        .pagination-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        .tab-button.active { border-color: #16a34a; color: #16a34a; background-color: #f0fdf4; }
+        .pagination-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -77,7 +70,7 @@
     </main>
     
     <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+       <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
@@ -194,10 +187,14 @@
             const activeTab = tabsContainer.querySelector('.tab-button.active').dataset.status;
 
             let filtered = allEntitiesData.filter(entity => {
+                const searchName = entity.dadosEntidade?.nomeFantasia || entity.publicName || '';
+                const searchRepName = entity.representante?.nomeCompleto || entity.responsibleName || '';
+                const searchCnpj = entity.dadosEntidade?.cnpj || entity.cnpj || '';
+
                 const matchesSearch = searchTerm === '' ||
-                    (entity.dadosEntidade?.nomeFantasia || '').toLowerCase().includes(searchTerm) ||
-                    (entity.dadosEntidade?.cnpj || '').toLowerCase().includes(searchTerm) ||
-                    (entity.representante?.nomeCompleto || '').toLowerCase().includes(searchTerm);
+                    searchName.toLowerCase().includes(searchTerm) ||
+                    searchCnpj.toLowerCase().includes(searchTerm) ||
+                    searchRepName.toLowerCase().includes(searchTerm);
 
                 if (!matchesSearch) return false;
 
@@ -264,15 +261,19 @@
                 } else if (status === 'bloqueado') {
                     actionButtons = `<button data-action="unblock-entity" data-uid="${entityId}" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">Desbloquear</button>`;
                 }
+                
+                const displayName = entity.dadosEntidade?.nomeFantasia || entity.publicName || 'Nome não preenchido';
+                const repName = entity.representante?.nomeCompleto || entity.responsibleName || 'Não informado';
+                const repEmail = entity.representante?.email || entity.email || 'E-mail não informado';
 
                 card.innerHTML = `
                     <div class="flex justify-between items-center">
                         <div class="flex items-center space-x-4 min-w-0">
                             <img src="${entity.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border flex-shrink-0">
                             <div class="truncate">
-                                <h4 class="font-bold truncate" title="${entity.dadosEntidade?.nomeFantasia || ''}">${entity.dadosEntidade?.nomeFantasia || 'Nome não preenchido'}</h4>
-                                <p class="text-sm text-gray-600 truncate" title="${entity.representante?.nomeCompleto || ''}">Responsável: ${entity.representante?.nomeCompleto || 'Não informado'}</p>
-                                <p class="text-xs text-gray-500 truncate" title="${entity.representante?.email || ''}">${entity.representante?.email || 'E-mail não informado'}</p>
+                                <h4 class="font-bold truncate" title="${displayName}">${displayName}</h4>
+                                <p class="text-sm text-gray-600 truncate" title="${repName}">Responsável: ${repName}</p>
+                                <p class="text-xs text-gray-500 truncate" title="${repEmail}">${repEmail}</p>
                             </div>
                         </div>
                         <div class="flex items-center space-x-4 flex-shrink-0">
@@ -322,33 +323,49 @@
             const action = target.dataset.action;
             const entityDocRef = doc(db, paths.entidadeDoc(uid));
             const entity = allEntitiesData.find(e => e.id === uid);
-            const entityName = entity?.dadosEntidade?.nomeFantasia || 'a entidade';
+            const entityName = entity?.dadosEntidade?.nomeFantasia || entity?.publicName || 'a entidade';
 
             if (action === 'view-entity-details') {
                 if (!entity) return showAlertModal('Erro', 'Dados da entidade não encontrados.');
-                const address = entity.dadosEntidade.endereco || {};
-                const rep = entity.representante || {};
-                const detailsHtml = `
-                    <div class="space-y-4">
-                        <div>
-                            <h4 class="font-bold text-gray-800 text-md border-b pb-1 mb-2">Dados da Entidade</h4>
-                            <p><strong>Nome Fantasia:</strong> ${entity.dadosEntidade.nomeFantasia || 'N/A'}</p>
-                            <p><strong>Razão Social:</strong> ${entity.dadosEntidade.razaoSocial || 'N/A'}</p>
-                            <p><strong>CNPJ:</strong> ${formatCnpj(entity.dadosEntidade.cnpj)}</p>
-                            <p><strong>Descrição:</strong> ${entity.dadosEntidade.descricao || 'N/A'}</p>
-                            <p class="pt-2 border-t mt-2"><strong>Endereço:</strong> ${address.rua || 'Não informado'}, Nº ${address.numero || 'S/N'}, ${address.bairro || ''} - CEP: ${address.cep || 'N/A'}</p>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-gray-800 text-md border-b pb-1 mb-2 mt-4">Dados do Representante Principal</h4>
-                            <p><strong>Nome:</strong> ${rep.nomeCompleto || 'N/A'}</p>
-                            <p><strong>E-mail:</strong> ${rep.email || 'N/A'}</p>
-                            <p><strong>CPF:</strong> ${formatCpf(rep.cpf)}</p>
-                            <p><strong>Data de Nasc.:</strong> ${rep.dataNascimento || 'N/A'}</p>
-                            <p><strong>Telefone:</strong> ${formatPhoneNumber(rep.telefone)}</p>
-                            <p><strong>Cargo:</strong> ${rep.cargo || 'N/A'}</p>
-                        </div>
-                    </div>
-                `;
+                
+                const isNewStructure = !!entity.dadosEntidade;
+                let detailsHtml;
+
+                if (isNewStructure) {
+                    const address = entity.dadosEntidade.endereco || {};
+                    const rep = entity.representante || {};
+                    detailsHtml = `
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-md border-b pb-1 mb-2">Dados da Entidade</h4>
+                                <p><strong>Nome Fantasia:</strong> ${entity.dadosEntidade.nomeFantasia || 'N/A'}</p>
+                                <p><strong>Razão Social:</strong> ${entity.dadosEntidade.razaoSocial || 'N/A'}</p>
+                                <p><strong>CNPJ:</strong> ${formatCnpj(entity.dadosEntidade.cnpj)}</p>
+                                <p><strong>Descrição:</strong> ${entity.dadosEntidade.descricao || 'N/A'}</p>
+                                <p class="pt-2 border-t mt-2"><strong>Endereço:</strong> ${address.rua || 'Não informado'}, Nº ${address.numero || 'S/N'}, ${address.bairro || ''} - CEP: ${address.cep || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-md border-b pb-1 mb-2 mt-4">Dados do Representante Principal</h4>
+                                <p><strong>Nome:</strong> ${rep.nomeCompleto || 'N/A'}</p>
+                                <p><strong>E-mail:</strong> ${rep.email || 'N/A'}</p>
+                                <p><strong>CPF:</strong> ${formatCpf(rep.cpf)}</p>
+                                <p><strong>Data de Nasc.:</strong> ${rep.dataNascimento || 'N/A'}</p>
+                                <p><strong>Telefone:</strong> ${formatPhoneNumber(rep.telefone)}</p>
+                                <p><strong>Cargo:</strong> ${rep.cargo || 'N/A'}</p>
+                            </div>
+                        </div>`;
+                } else {
+                    const address = entity.address || {};
+                    detailsHtml = `
+                        <p><strong>Nome Público:</strong> ${entity.publicName || 'N/A'}</p>
+                        <p><strong>Responsável:</strong> ${entity.responsibleName || 'N/A'}</p>
+                        <p><strong>CNPJ:</strong> ${formatCnpj(entity.cnpj)}</p>
+                        <p><strong>E-mail:</strong> ${entity.email || 'N/A'}</p>
+                        <p><strong>Telefone:</strong> ${formatPhoneNumber(entity.phone)}</p>
+                        <p class="pt-2 border-t mt-2"><strong>Endereço:</strong> ${address.street || 'Não informado'}, Nº ${address.number || 'S/N'}, ${address.district || ''}</p>
+                    `;
+                }
+
                 await showDetailsModal(`Detalhes de ${entityName}`, detailsHtml);
                 return;
             }
