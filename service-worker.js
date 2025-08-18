@@ -1,6 +1,6 @@
 // /service-worker.js
 
-const CACHE_NAME = 'app-faz-bem-v1.3'; // Mude a versão sempre que alterar os arquivos cacheados
+const CACHE_NAME = 'app-faz-bem-v1.4'; // Versão incrementada
 const urlsToCache = [
     // As páginas principais do seu app
     './',
@@ -18,19 +18,28 @@ const urlsToCache = [
     './termos-de-servico.html',
     './detalhes.html',
     './notificacoes.html',
+    // Adicionar novas páginas essenciais
+    './perfil-entidade.html',
+    './perfil-doador.html',
+    './gerenciar-entidades.html',
+    './aguardando-aprovacao.html',
+    './verificar-email.html',
 
     // Arquivos de estilo e script essenciais
     './style.css',
-    './js/app-header.js',
-    './js/auth-service.js',
-    './js/app-config.js',
-    './js/firebase-services.js',
-    './js/firestore-paths.js',
-    './js/modal-handler.js',
-    './js/notification-service.js',
+    // --- CORREÇÃO: Caminho dos scripts JS ---
+    './app-header.js',
+    './auth-service.js',
+    './app-config.js',
+    './firebase-services.js',
+    './firestore-paths.js',
+    './modal-handler.js',
+    './notification-service.js',
+    './perfil-entidade.js', // Novo script adicionado
+    './cadastro-entidade.js', // Novo script adicionado
 
     // Imagens e Ícones principais
-    './images/logo.png',
+    './logo.png',
     './images/icons/icon-72x72.png',
     './images/icons/icon-96x96.png',
     './images/icons/icon-128x128.png',
@@ -40,8 +49,7 @@ const urlsToCache = [
     './images/icons/icon-384x384.png',
     './images/icons/icon-512x512.png',
 
-    // Fontes (opcional, mas bom para performance offline)
-    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+    // A URL externa do Google Fonts foi removida do cache.addAll
 ];
 
 self.addEventListener('install', event => {
@@ -73,36 +81,23 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-    // Apenas para requisições GET
-    if (event.request.method !== 'GET') {
+    if (event.request.method !== 'GET' || event.request.url.startsWith('chrome-extension://')) {
         return;
     }
-
-    event.respondWith(
-        caches.match(event.request)
-            .then(cachedResponse => {
-                // Estratégia: Cache First (Primeiro no Cache)
-                // Se o recurso estiver no cache, retorna ele.
-                if (cachedResponse) {
-                    return cachedResponse;
-                }
-
-                // Se não estiver no cache, busca na rede.
-                return fetch(event.request).then(networkResponse => {
-                    // Opcional: Adiciona a nova requisição ao cache dinamicamente.
-                    // Isso é bom para imagens de campanhas, etc.
-                    // Apenas para requisições bem-sucedidas e do mesmo domínio.
-                    if (networkResponse && networkResponse.status === 200 && new URL(event.request.url).origin === self.location.origin) {
-                        const responseToCache = networkResponse.clone();
-                        caches.open(CACHE_NAME).then(cache => {
-                            cache.put(event.request, responseToCache);
-                        });
-                    }
-                    return networkResponse;
-                }).catch(() => {
-                    // Se a rede falhar, você pode retornar uma página offline padrão (opcional)
-                    // return caches.match('offline.html');
+    
+    // Estratégia: Stale-While-Revalidate para recursos do mesmo domínio
+    if (new URL(event.request.url).origin === self.location.origin) {
+        event.respondWith(
+            caches.open(CACHE_NAME).then(cache => {
+                return cache.match(event.request).then(cachedResponse => {
+                    const fetchPromise = fetch(event.request).then(networkResponse => {
+                        cache.put(event.request, networkResponse.clone());
+                        return networkResponse;
+                    });
+                    return cachedResponse || fetchPromise;
                 });
             })
-    );
+        );
+    }
+    // Para recursos externos (como fontes do Google), apenas busca na rede.
 });
