@@ -1,6 +1,6 @@
 // /service-worker.js
 
-const CACHE_NAME = 'app-faz-bem-v1.5'; // Versão incrementada para forçar a atualização
+const CACHE_NAME = 'app-faz-bem-v1.6'; // Versão incrementada para forçar a atualização
 const urlsToCache = [
     // As páginas principais do seu app
     './',
@@ -103,7 +103,7 @@ self.addEventListener('fetch', event => {
             })
         );
     }
-    // Para recursos externos (como fontes), usa Network First para garantir que estão sempre atualizados
+    // Para recursos externos (como fontes), usa Network First
     else {
         event.respondWith(
             fetch(event.request).catch(() => {
