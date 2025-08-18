@@ -103,7 +103,7 @@
 
     <script type="module">
         import { db } from './app-config.js';
-        import { collection, query, onSnapshot, doc, updateDoc, getDocs, where } from './firebase-services.js';
+        import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, getDocs, where, limit } from './firebase-services.js';
         import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
@@ -162,9 +162,10 @@
             onSnapshot(q, async (snapshot) => {
                 const entitiesPromises = snapshot.docs.map(async (docSnapshot) => {
                     const entityData = docSnapshot.data();
-                    const representanteQuery = query(collection(db, paths.representanteDoc(docSnapshot.id, '')), where('isPrincipal', '==', true));
-                    const repSnapshot = await getDocs(representanteQuery);
+                    const repQuery = query(collection(db, paths.representanteDoc(docSnapshot.id, '')), limit(1));
+                    const repSnapshot = await getDocs(repQuery);
                     const representanteData = repSnapshot.empty ? {} : repSnapshot.docs[0].data();
+                    
                     return { id: docSnapshot.id, ...entityData, representante: representanteData };
                 });
                 
@@ -233,34 +234,40 @@
                 card.className = 'p-4 border-b last:border-b-0';
                 
                 const status = entity.status || 'pendente';
+                // --- INÍCIO DA CORREÇÃO: Chave do status ajustada ---
                 const statusInfo = {
                     'pendente': { text: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },
                     'ativo': { text: 'Ativa', color: 'bg-green-100 text-green-800' },
                     'bloqueado': { text: 'Bloqueada', color: 'bg-red-100 text-red-800' }
                 };
+                // --- FIM DA CORREÇÃO ---
 
-                let actionButton = '';
+                let actionButtons = '';
                 if (status === 'pendente') {
-                    actionButton = `<button data-action="approve-entity" data-uid="${entityId}" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Aprovar</button>`;
+                    actionButtons = `
+                        <button data-action="approve-entity" data-uid="${entityId}" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Aprovar</button>
+                        <button data-action="reject-entity" data-uid="${entityId}" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 ml-2">Reprovar</button>
+                    `;
                 } else if (status === 'ativo') {
-                    actionButton = `<button data-action="block-entity" data-uid="${entityId}" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600">Bloquear</button>`;
+                    actionButtons = `<button data-action="block-entity" data-uid="${entityId}" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600">Bloquear</button>`;
                 } else if (status === 'bloqueado') {
-                    actionButton = `<button data-action="unblock-entity" data-uid="${entityId}" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">Desbloquear</button>`;
+                    actionButtons = `<button data-action="unblock-entity" data-uid="${entityId}" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">Desbloquear</button>`;
                 }
 
                 card.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <div class="flex items-center space-x-4">
-                            <img src="${entity.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border">
-                            <div>
-                                <h4 class="font-bold">${entity.dadosEntidade?.nomeFantasia || 'Nome não preenchido'}</h4>
-                                <p class="text-sm text-gray-600">Responsável: ${entity.representante?.nomeCompleto || 'Não informado'}</p>
+                        <div class="flex items-center space-x-4 min-w-0">
+                            <img src="${entity.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border flex-shrink-0">
+                            <div class="truncate">
+                                <h4 class="font-bold truncate" title="${entity.dadosEntidade?.nomeFantasia || ''}">${entity.dadosEntidade?.nomeFantasia || 'Nome não preenchido'}</h4>
+                                <p class="text-sm text-gray-600 truncate" title="${entity.representante?.nomeCompleto || ''}">Responsável: ${entity.representante?.nomeCompleto || 'Não informado'}</p>
+                                <p class="text-xs text-gray-500 truncate" title="${entity.representante?.email || ''}">${entity.representante?.email || 'E-mail não informado'}</p>
                             </div>
                         </div>
-                        <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-4 flex-shrink-0">
                             <a href="#" data-action="view-entity-details" data-uid="${entityId}" class="text-sm text-blue-600 hover:underline">Ver Detalhes</a>
                             <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${statusInfo[status].color}">${statusInfo[status].text}</span>
-                            <div class="w-28 text-right">${actionButton}</div>
+                            <div class="w-40 text-right">${actionButtons}</div>
                         </div>
                     </div>`;
                 allEntitiesList.appendChild(card);
@@ -335,6 +342,20 @@
                 return;
             }
             
+            if (action === 'reject-entity') {
+                const confirmed = await showConfirmationModal('Reprovar Entidade', `Tem a certeza que quer REPROVAR e APAGAR permanentemente o registo de "${entityName}"? Esta ação não pode ser desfeita.`);
+                if (confirmed) {
+                    try {
+                        await deleteDoc(entityDocRef);
+                        // Idealmente, aqui também se deveria apagar o utilizador da Auth e a subcoleção, mas isso é mais complexo (requer Cloud Functions).
+                        showAlertModal('Sucesso!', `O registo de ${entityName} foi reprovado e apagado.`);
+                    } catch (error) {
+                        showAlertModal('Erro', `Ocorreu um erro ao apagar: ${error.message}`);
+                    }
+                }
+                return;
+            }
+
             const actions = {
                 'approve-entity': { title: 'Aprovar Entidade', message: `Aprovar "${entityName}"? A entidade receberá um e-mail de notificação.`, status: 'ativo' },
                 'block-entity': { title: 'Bloquear Entidade', message: `Bloquear "${entityName}"? Isso impedirá a criação de novas campanhas.`, status: 'bloqueado' },
