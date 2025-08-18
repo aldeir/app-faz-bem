@@ -27,7 +27,7 @@ const urlsToCache = [
 
     // Arquivos de estilo e script essenciais
     './style.css',
-    // --- CORREÇÃO: Caminho dos scripts JS ---
+    // --- CORREÇÃO: Caminho dos scripts JS (removido /js/) ---
     './app-header.js',
     './auth-service.js',
     './app-config.js',
@@ -35,8 +35,8 @@ const urlsToCache = [
     './firestore-paths.js',
     './modal-handler.js',
     './notification-service.js',
-    './perfil-entidade.js', // Novo script adicionado
-    './cadastro-entidade.js', // Novo script adicionado
+    './perfil-entidade.js', 
+    './cadastro-entidade.js',
 
     // Imagens e Ícones principais
     './logo.png',
@@ -48,8 +48,6 @@ const urlsToCache = [
     './images/icons/icon-192x192.png',
     './images/icons/icon-384x384.png',
     './images/icons/icon-512x512.png',
-
-    // A URL externa do Google Fonts foi removida do cache.addAll
 ];
 
 self.addEventListener('install', event => {
@@ -58,7 +56,19 @@ self.addEventListener('install', event => {
         caches.open(CACHE_NAME)
             .then(cache => {
                 console.log('Service Worker: Cache aberto, adicionando URLs essenciais.');
-                return cache.addAll(urlsToCache);
+                // Usamos `fetch` para cada recurso para ignorar falhas individuais
+                const promises = urlsToCache.map(url => {
+                    return fetch(url, { cache: 'no-store' }).then(response => {
+                        if (response.ok) {
+                            return cache.put(url, response);
+                        }
+                        console.warn(`Service Worker: Falha ao fazer cache de ${url}, status: ${response.status}`);
+                        return Promise.resolve(); // Continua mesmo se um falhar
+                    }).catch(err => {
+                        console.error(`Service Worker: Erro de rede ao buscar ${url}`, err);
+                    });
+                });
+                return Promise.all(promises);
             })
             .then(() => self.skipWaiting())
     );
@@ -99,5 +109,13 @@ self.addEventListener('fetch', event => {
             })
         );
     }
-    // Para recursos externos (como fontes do Google), apenas busca na rede.
+    // Para recursos externos (como fontes), usa a estratégia de network first
+    else {
+        event.respondWith(
+            fetch(event.request).catch(() => {
+                // Se a rede falhar, tenta encontrar no cache (se já tiver sido cacheado dinamicamente)
+                return caches.match(event.request);
+            })
+        );
+    }
 });
