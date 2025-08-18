@@ -633,10 +633,6 @@ video {
   bottom: 0px;
 }
 
-.left-2 {
-  left: 0.5rem;
-}
-
 .right-0 {
   right: 0px;
 }
@@ -651,6 +647,10 @@ video {
 
 .top-24 {
   top: 6rem;
+}
+
+.z-10 {
+  z-index: 10;
 }
 
 .z-40 {
@@ -681,6 +681,11 @@ video {
   grid-column: 1 / -1;
 }
 
+.mx-2 {
+  margin-left: 0.5rem;
+  margin-right: 0.5rem;
+}
+
 .mx-auto {
   margin-left: auto;
   margin-right: auto;
@@ -695,8 +700,16 @@ video {
   margin-bottom: -1px;
 }
 
-.-mt-2 {
-  margin-top: -0.5rem;
+.-ml-1 {
+  margin-left: -0.25rem;
+}
+
+.-mt-3 {
+  margin-top: -0.75rem;
+}
+
+.mb-1 {
+  margin-bottom: 0.25rem;
 }
 
 .mb-2 {
@@ -775,10 +788,6 @@ video {
   margin-top: 2rem;
 }
 
-.mt-auto {
-  margin-top: auto;
-}
-
 .block {
   display: block;
 }
@@ -809,6 +818,10 @@ video {
 
 .\!h-6 {
   height: 1.5rem !important;
+}
+
+.h-1 {
+  height: 0.25rem;
 }
 
 .h-10 {
@@ -845,6 +858,10 @@ video {
 
 .h-4 {
   height: 1rem;
+}
+
+.h-40 {
+  height: 10rem;
 }
 
 .h-48 {
@@ -885,6 +902,10 @@ video {
 
 .h-screen {
   height: 100vh;
+}
+
+.min-h-\[22px\] {
+  min-height: 22px;
 }
 
 .min-h-\[calc\(100vh-150px\)\] {
@@ -955,6 +976,10 @@ video {
   width: 1rem;
 }
 
+.w-40 {
+  width: 10rem;
+}
+
 .w-48 {
   width: 12rem;
 }
@@ -977,6 +1002,10 @@ video {
 
 .w-full {
   width: 100%;
+}
+
+.min-w-0 {
+  min-width: 0px;
 }
 
 .max-w-2xl {
@@ -1011,7 +1040,15 @@ video {
   max-width: 24rem;
 }
 
+.flex-1 {
+  flex: 1 1 0%;
+}
+
 .flex-shrink-0 {
+  flex-shrink: 0;
+}
+
+.shrink-0 {
   flex-shrink: 0;
 }
 
@@ -1107,6 +1144,10 @@ video {
   justify-content: space-around;
 }
 
+.gap-1 {
+  gap: 0.25rem;
+}
+
 .gap-2 {
   gap: 0.5rem;
 }
@@ -1130,6 +1171,11 @@ video {
 .gap-x-2 {
   -moz-column-gap: 0.5rem;
        column-gap: 0.5rem;
+}
+
+.gap-x-6 {
+  -moz-column-gap: 1.5rem;
+       column-gap: 1.5rem;
 }
 
 .gap-x-8 {
@@ -1349,11 +1395,6 @@ video {
   border-color: rgb(239 68 68 / var(--tw-border-opacity, 1)) !important;
 }
 
-.border-blue-200 {
-  --tw-border-opacity: 1;
-  border-color: rgb(191 219 254 / var(--tw-border-opacity, 1));
-}
-
 .border-blue-500 {
   --tw-border-opacity: 1;
   border-color: rgb(59 130 246 / var(--tw-border-opacity, 1));
@@ -1478,11 +1519,6 @@ video {
   background-color: rgb(75 85 99 / var(--tw-bg-opacity, 1));
 }
 
-.bg-gray-700 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(55 65 81 / var(--tw-bg-opacity, 1));
-}
-
 .bg-gray-900 {
   --tw-bg-opacity: 1;
   background-color: rgb(17 24 39 / var(--tw-bg-opacity, 1));
@@ -1543,8 +1579,8 @@ video {
   background-color: rgb(234 179 8 / var(--tw-bg-opacity, 1));
 }
 
-.bg-opacity-50 {
-  --tw-bg-opacity: 0.5;
+.bg-opacity-60 {
+  --tw-bg-opacity: 0.6;
 }
 
 .bg-opacity-75 {
@@ -1587,6 +1623,11 @@ video {
 
 .p-8 {
   padding: 2rem;
+}
+
+.px-0 {
+  padding-left: 0px;
+  padding-right: 0px;
 }
 
 .px-1 {
@@ -1664,6 +1705,10 @@ video {
   padding-bottom: 2rem;
 }
 
+.pb-1 {
+  padding-bottom: 0.25rem;
+}
+
 .pb-2 {
   padding-bottom: 0.5rem;
 }
@@ -1706,6 +1751,10 @@ video {
 
 .pr-3 {
   padding-right: 0.75rem;
+}
+
+.pt-1 {
+  padding-top: 0.25rem;
 }
 
 .pt-2 {
@@ -1978,8 +2027,16 @@ video {
   color: rgb(107 114 128 / var(--tw-placeholder-opacity, 1));
 }
 
+.opacity-25 {
+  opacity: 0.25;
+}
+
 .opacity-50 {
   opacity: 0.5;
+}
+
+.opacity-75 {
+  opacity: 0.75;
 }
 
 .shadow {
@@ -2021,6 +2078,11 @@ video {
 .ring-white {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(255 255 255 / var(--tw-ring-opacity, 1));
+}
+
+.blur {
+  --tw-blur: blur(8px);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 
 .grayscale {
@@ -2123,6 +2185,11 @@ video {
   border-bottom-width: 0px;
 }
 
+.hover\:-translate-y-1:hover {
+  --tw-translate-y: -0.25rem;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
 .hover\:border-blue-500:hover {
   --tw-border-opacity: 1;
   border-color: rgb(59 130 246 / var(--tw-border-opacity, 1));
@@ -2193,11 +2260,6 @@ video {
   background-color: rgb(55 65 81 / var(--tw-bg-opacity, 1));
 }
 
-.hover\:bg-green-100:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(220 252 231 / var(--tw-bg-opacity, 1));
-}
-
 .hover\:bg-green-600:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(22 163 74 / var(--tw-bg-opacity, 1));
@@ -2206,6 +2268,11 @@ video {
 .hover\:bg-green-700:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(21 128 61 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:bg-red-600:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(220 38 38 / var(--tw-bg-opacity, 1));
 }
 
 .hover\:bg-yellow-600:hover {
@@ -2279,6 +2346,12 @@ video {
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
+.hover\:shadow-xl:hover {
+  --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
 .hover\:file\:bg-blue-100::file-selector-button:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(219 234 254 / var(--tw-bg-opacity, 1));
@@ -2318,9 +2391,19 @@ video {
   cursor: not-allowed;
 }
 
+.disabled\:bg-gray-200:disabled {
+  --tw-bg-opacity: 1;
+  background-color: rgb(229 231 235 / var(--tw-bg-opacity, 1));
+}
+
 .disabled\:bg-gray-400:disabled {
   --tw-bg-opacity: 1;
   background-color: rgb(156 163 175 / var(--tw-bg-opacity, 1));
+}
+
+.disabled\:bg-green-400:disabled {
+  --tw-bg-opacity: 1;
+  background-color: rgb(74 222 128 / var(--tw-bg-opacity, 1));
 }
 
 .disabled\:text-gray-400:disabled {
@@ -2520,6 +2603,10 @@ video {
 }
 
 @media (min-width: 768px) {
+  .md\:col-span-1 {
+    grid-column: span 1 / span 1;
+  }
+
   .md\:col-span-2 {
     grid-column: span 2 / span 2;
   }
@@ -2528,16 +2615,16 @@ video {
     grid-column: span 3 / span 3;
   }
 
+  .md\:col-span-4 {
+    grid-column: span 4 / span 4;
+  }
+
   .md\:col-span-5 {
     grid-column: span 5 / span 5;
   }
 
   .md\:grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .md\:grid-cols-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .md\:grid-cols-4 {
@@ -2571,87 +2658,3 @@ video {
     padding-right: 2rem;
   }
 }
-
-/* Estilos para o sistema de Abas de Campanhas */
-
-.tab-button {
-  padding: 10px 20px;
-  cursor: pointer;
-  border: none;
-  background-color: transparent;
-  border-bottom: 3px solid transparent;
-  font-weight: 500;
-  color: #6b7280; /* Cor de texto padrão (cinza) */
-  transition: all 0.2s ease-in-out;
-}
-
-.tab-button:hover {
-  color: #16a34a; /* Cor de texto ao passar o mouse (verde) */
-}
-
-/* Estilo para a aba ativa */
-.tab-button.active-tab {
-  color: #15803d; /* Cor de texto da aba ativa (verde escuro) */
-  border-bottom: 3px solid #15803d; /* Borda inferior da aba ativa */
-  font-weight: 600;
-}
-
-/* O conteúdo das abas inativas fica escondido */
-.tab-content {
-  display: block; /* Por padrão, é visível, o JS vai controlar */
-  animation: fadeIn 0.5s; /* Animação suave ao trocar de aba */
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-
-/* /css/style.css */
-
-/* Estilos para os itens dentro do novo menu dropdown */
-.menu-item {
-    display: block;
-    width: 100%;
-    padding: 0.75rem 1rem; /* 12px 16px */
-    font-weight: 500; /* medium */
-    color: #4B5563; /* text-gray-600 */
-    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-}
-
-.menu-item:hover {
-    background-color: #F3F4F6; /* bg-gray-100 */
-    color: #1F2937; /* text-gray-800 */
-}
-
-/* Estilo específico para o botão Sair */
-.menu-item.text-red-600:hover {
-    background-color: #FEF2F2; /* bg-red-50 */
-    color: #DC2626; /* hover:text-red-700 */
-}
-
-/* Melhorias visuais para o dropdown */
-#user-menu-dropdown {
-    animation: fade-in 0.15s ease-out;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-@keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes fade-out {
-    from { opacity: 1; }
-    to { opacity: 0; }
-}
-
-#user-menu-dropdown.hidden {
-    animation: fade-out 0.1s ease-in forwards;
-}
-
