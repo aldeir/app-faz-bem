@@ -174,15 +174,15 @@
     </main>
 
     <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4"><div class="sm:flex sm:items-start"><div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10"><svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full"><h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3><div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div></div></div></div>
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4"><div class="sm:flex sm:items-start"><div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10"><svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full"><h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3><div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div></div></div></div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
+            </div>
         </div>
     </div>
-</div>
 
     <script type="module">
         import { auth, db, storage, ADMIN_EMAIL, paths } from './app-config.js';
@@ -190,7 +190,7 @@
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         
-        // Seleção de todos os elementos do DOM
+        // --- SELEÇÃO DE ELEMENTOS DO DOM ---
         const pageTitle = document.getElementById('page-title');
         const loadingView = document.getElementById('loading-view');
         const formView = document.getElementById('form-view');
@@ -209,8 +209,6 @@
         const startsAtInput = document.getElementById('campaign-starts-at');
         const availabilityContainer = document.getElementById('availability-days-container');
         const replicateBtn = document.getElementById('replicate-hours-btn');
-
-        // ### CAMPOS DE ENDEREÇO ###
         const cepInput = document.getElementById('campaign-cep');
         const logradouroInput = document.getElementById('campaign-logradouro');
         const bairroInput = document.getElementById('campaign-bairro');
@@ -218,6 +216,7 @@
         const estadoInput = document.getElementById('campaign-estado');
         const telefoneInput = document.getElementById('campaign-telefone');
 
+        // --- ESTADO DA APLICAÇÃO ---
         const urlParams = new URLSearchParams(window.location.search);
         const campaignIdToEdit = urlParams.get('editId');
         const isEditMode = !!campaignIdToEdit;
@@ -225,9 +224,17 @@
         let campaignVideoFile = null;
         let allEntities = [];
 
-        // Funções auxiliares (generateTimeSlots, renderEntityHeader, etc.)
+        // --- FUNÇÕES AUXILIARES ---
         function generateTimeSlots() { let s = []; for (let h = 7; h < 20; h++) { s.push(`${String(h).padStart(2, '0')}:00`); s.push(`${String(h).padStart(2, '0')}:30`); } return s; }
-        const renderEntityHeader = (p) => { entityInfoContainer.innerHTML = `<div class="p-4 bg-green-50 rounded-lg border-l-4 border-green-400 flex items-center space-x-4"><img src="${p.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo'}" class="w-16 h-16 rounded-full object-cover border-2 border-green-200 shrink-0"><div><p class="font-bold text-lg text-green-800">${p.publicName}</p><p class="text-sm text-green-700">Publicando/Editando como Entidade Verificada.</p></div></div>`; };
+        
+        // --- INÍCIO DA ALTERAÇÃO: Atualiza renderEntityHeader para a nova estrutura ---
+        const renderEntityHeader = (profile) => {
+            const entityName = profile.dadosEntidade?.nomeFantasia || profile.publicName || 'Nome da Entidade';
+            const logoUrl = profile.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo';
+            entityInfoContainer.innerHTML = `<div class="p-4 bg-green-50 rounded-lg border-l-4 border-green-400 flex items-center space-x-4"><img src="${logoUrl}" class="w-16 h-16 rounded-full object-cover border-2 border-green-200 shrink-0"><div><p class="font-bold text-lg text-green-800">${entityName}</p><p class="text-sm text-green-700">A publicar/editar como Entidade Verificada.</p></div></div>`;
+        };
+        // --- FIM DA ALTERAÇÃO ---
+
         const setupEditModeUI = () => { pageTitle.textContent = "Editar Campanha - Faz Bem"; document.getElementById('form-title').textContent = "Editar Detalhes da Campanha"; document.getElementById('submit-btn-text').textContent = "Salvar Alterações"; };
         const showLoadingButton = (l) => { document.getElementById('submit-btn-text').classList.toggle('hidden', l); document.getElementById('submit-btn-spinner').classList.toggle('hidden', !l); submitCampaignBtn.disabled = l; };
         const renderMediaPreview = (urls) => { mediaPreviewContainer.innerHTML = ''; urls.forEach(url => { const img = document.createElement('img'); img.src = url; img.className = 'w-full h-24 object-cover rounded-md border'; mediaPreviewContainer.appendChild(img); }); };
@@ -323,9 +330,9 @@
                 addressFields.forEach(field => field.disabled = false);
             }
         }
+        
+        // --- EVENT LISTENERS ---
         cepInput.addEventListener('blur', () => fetchAddressFromCEP(cepInput.value));
-
-        // Event Listeners
         replicateBtn.addEventListener('click', () => {
             const firstDayCheckboxes = document.querySelectorAll('.time-slot-checkbox[data-day-index="0"]');
             const otherCheckboxes = document.querySelectorAll('.time-slot-checkbox:not([data-day-index="0"])');
@@ -422,20 +429,29 @@
                 } else {
                     let entityInfo;
                     const entitySelector = document.getElementById('entity-selector');
-                    if (entitySelector) {
+
+                    if (entitySelector) { // Modo Superadmin
                         const selectedId = entitySelector.value;
+                        const selectedEntity = allEntities.find(e => e.id === selectedId);
                         entityInfo = (selectedId === 'app_faz_bem') ? 
                             { name: "App Faz Bem", uid: "app_faz_bem" } :
-                            { name: allEntities.find(e => e.id === selectedId).publicName, uid: selectedId };
-                    } else {
+                            { name: selectedEntity.dadosEntidade?.nomeFantasia || selectedEntity.publicName, uid: selectedId };
+                    } else { // Modo Entidade
                         const userSession = await getCurrentUser();
-                        entityInfo = { name: userSession.profile.publicName, uid: user.uid };
+                        // --- INÍCIO DA ALTERAÇÃO: Obter nome da nova estrutura ---
+                        const entityName = userSession.profile.dadosEntidade?.nomeFantasia || userSession.profile.publicName;
+                        entityInfo = { name: entityName, uid: user.uid };
+                        // --- FIM DA ALTERAÇÃO ---
                     }
                     
                     const finalData = {
                         ...dataToSave,
-                        entityName: entityInfo.name, creatorId: user.uid, entityId: entityInfo.uid,
-                        currentAmount: 0, createdAt: Timestamp.now(),
+                        entityName: entityInfo.name, 
+                        creatorId: user.uid, 
+                        entityId: entityInfo.uid,
+                        entityVerified: true, // Assumindo que a entidade que cria está ativa
+                        currentAmount: 0, 
+                        createdAt: Timestamp.now(),
                     };
                     await addDoc(collection(db, paths.campaigns), finalData);
                     document.getElementById('submit-feedback').textContent = 'Campanha publicada!';
@@ -452,6 +468,7 @@
             }
         });
 
+        // --- INICIALIZAÇÃO DA PÁGINA ---
         async function initializeApp() {
             const canProceed = await injectHeader();
             if (!canProceed) return;
@@ -461,6 +478,14 @@
                 window.location.href = 'index.html';
                 return;
             }
+
+            // --- INÍCIO DA ALTERAÇÃO: Adicionada verificação de status para entidade ---
+            if (userSession.profile.role === 'entidade' && userSession.profile.status !== 'ativo') {
+                alert('A sua entidade precisa de estar aprovada para criar campanhas. Por favor, aguarde a aprovação do administrador.');
+                window.location.href = 'admin.html';
+                return;
+            }
+            // --- FIM DA ALTERAÇÃO ---
 
             const user = userSession.auth;
             await loadCampaignTypes();
@@ -486,23 +511,27 @@
                 const q = query(collection(db, paths.entidades), where("status", "==", "ativo"));
                 const querySnapshot = await getDocs(q);
                 allEntities = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // --- INÍCIO DA ALTERAÇÃO: Obter nome da nova estrutura para o dropdown do superadmin ---
                 let optionsHtml = '<option value="app_faz_bem">App Faz Bem (Campanha Geral)</option>';
-                allEntities.forEach(entity => { optionsHtml += `<option value="${entity.id}">${entity.publicName}</option>`; });
+                allEntities.forEach(entity => {
+                    const displayName = entity.dadosEntidade?.nomeFantasia || entity.publicName;
+                    optionsHtml += `<option value="${entity.id}">${displayName}</option>`;
+                });
+                // --- FIM DA ALTERAÇÃO ---
+
                 entityInfoContainer.innerHTML = `<label for="entity-selector" class="block text-sm font-medium text-gray-700 mb-2">Publicar em nome de:</label><select id="entity-selector" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 bg-yellow-50">${optionsHtml}</select>`;
                 if (isEditMode) { 
                     const entitySelector = document.getElementById('entity-selector');
                     entitySelector.value = campaignDataForEdit.entityId;
                     entitySelector.disabled = true;
                 }
-            } else if (userSession.profile?.status === 'ativo') {
-                renderEntityHeader(userSession.profile);
             } else {
-                alert('Acesso negado.'); window.location.href = 'index.html'; 
+                renderEntityHeader(userSession.profile);
             }
             loadingView.classList.add('hidden');
             formView.classList.remove('hidden');
 
-            // ### INICIALIZAÇÃO DAS MÁSCARAS ###
             IMask(cepInput, { mask: '00000-000' });
             IMask(telefoneInput, { mask: '(00) 00000-0000' });
         }
