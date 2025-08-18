@@ -19,15 +19,8 @@
         body { font-family: 'Inter', sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #16a34a; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .tab-button.active {
-            border-color: #16a34a;
-            color: #16a34a;
-            background-color: #f0fdf4;
-        }
-        .pagination-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        .tab-button.active { border-color: #16a34a; color: #16a34a; background-color: #f0fdf4; }
+        .pagination-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -160,6 +153,7 @@
         function loadAllEntities() {
             const q = query(collection(db, paths.entidades));
             onSnapshot(q, async (snapshot) => {
+                console.log(`[Depurador] Foram encontradas ${snapshot.docs.length} entidades.`);
                 const entitiesPromises = snapshot.docs.map(async (docSnapshot) => {
                     try {
                         const entityData = docSnapshot.data();
@@ -172,13 +166,14 @@
                         const combinedData = { id: docSnapshot.id, ...entityData, representante: representanteData };
                         return combinedData;
                     } catch (error) {
-                        console.error(`Falha ao processar entidade ${docSnapshot.id}`, error);
-                        return null; 
+                        console.error(`[Depurador] Falha ao processar entidade ${docSnapshot.id}`, error);
+                        return null;
                     }
                 });
                 
                 const resolvedEntities = await Promise.all(entitiesPromises);
                 allEntitiesData = resolvedEntities.filter(e => e !== null);
+                console.log("[Depurador] Dados finais combinados:", allEntitiesData);
 
                 currentPage = 1;
                 filterAndRender();
@@ -356,7 +351,6 @@
                 if (confirmed) {
                     try {
                         await deleteDoc(entityDocRef);
-                        // Idealmente, aqui também se deveria apagar o utilizador da Auth e a subcoleção, mas isso é mais complexo (requer Cloud Functions).
                         showAlertModal('Sucesso!', `O registo de ${entityName} foi reprovado e apagado.`);
                     } catch (error) {
                         showAlertModal('Erro', `Ocorreu um erro ao apagar: ${error.message}`);
