@@ -102,6 +102,7 @@
         import { getCurrentUser } from './auth-service.js';
         import { showConfirmationModal, showAlertModal, showDetailsModal } from './modal-handler.js';
 
+        // --- Variáveis Globais e Seletores de DOM ---
         const loadingView = document.getElementById('loading-view');
         const managementView = document.getElementById('management-view');
         const allEntitiesList = document.getElementById('all-entities-list');
@@ -117,6 +118,7 @@
         let currentPage = 1;
         const ITEMS_PER_PAGE = 15;
 
+        // --- Funções de Inicialização e Carregamento de Dados ---
         async function initializeApp() {
             const canProceed = await injectHeader();
             if (!canProceed) {
@@ -131,24 +133,6 @@
             }
             loadAllEntities();
         }
-
-        const formatPhoneNumber = (phone) => {
-            if (!phone || typeof phone !== 'string') return 'N/A';
-            const cleaned = phone.replace(/\D/g, '');
-            if (cleaned.length === 11) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
-            if (cleaned.length === 10) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
-            return phone;
-        };
-
-        const formatCnpj = (cnpj) => {
-            if (!cnpj || typeof cnpj !== 'string') return 'N/A';
-            return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
-        };
-        
-        const formatCpf = (cpf) => {
-             if (!cpf || typeof cpf !== 'string') return 'N/A';
-             return cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
-        };
 
         function loadAllEntities() {
             const q = query(collection(db, paths.entidades));
@@ -182,6 +166,26 @@
             });
         }
 
+        // --- Funções de Formatação ---
+        const formatPhoneNumber = (phone) => {
+            if (!phone || typeof phone !== 'string') return 'N/A';
+            const cleaned = phone.replace(/\D/g, '');
+            if (cleaned.length === 11) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
+            if (cleaned.length === 10) return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
+            return phone;
+        };
+
+        const formatCnpj = (cnpj) => {
+            if (!cnpj || typeof cnpj !== 'string') return 'N/A';
+            return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+        };
+        
+        const formatCpf = (cpf) => {
+             if (!cpf || typeof cpf !== 'string') return 'N/A';
+             return cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+        };
+
+        // --- Funções de Renderização e Filtro ---
         function filterAndRender() {
             const searchTerm = entitySearchInput.value.toLowerCase().trim();
             const activeTab = tabsContainer.querySelector('.tab-button.active').dataset.status;
@@ -286,6 +290,7 @@
             });
         }
 
+        // --- Event Listeners para Interação ---
         entitySearchInput.addEventListener('input', () => {
             currentPage = 1;
             filterAndRender();
@@ -321,12 +326,17 @@
             
             const uid = target.dataset.uid;
             const action = target.dataset.action;
-            const entityDocRef = doc(db, paths.entidadeDoc(uid));
+            console.log(`[Depurador] Ação clicada: ${action}, para o UID: ${uid}`);
+
             const entity = allEntitiesData.find(e => e.id === uid);
             const entityName = entity?.dadosEntidade?.nomeFantasia || entity?.publicName || 'a entidade';
 
             if (action === 'view-entity-details') {
-                if (!entity) return showAlertModal('Erro', 'Dados da entidade não encontrados.');
+                console.log("[Depurador] A chamar showDetailsModal...");
+                if (!entity) {
+                    console.error("[Depurador] Entidade não encontrada nos dados locais.");
+                    return showAlertModal('Erro', 'Dados da entidade não encontrados.');
+                }
                 
                 const isNewStructure = !!entity.dadosEntidade;
                 let detailsHtml;
@@ -367,11 +377,16 @@
                 }
 
                 await showDetailsModal(`Detalhes de ${entityName}`, detailsHtml);
+                console.log("[Depurador] showDetailsModal foi concluído.");
                 return;
             }
+
+            const entityDocRef = doc(db, paths.entidadeDoc(uid));
             
             if (action === 'reject-entity') {
+                console.log("[Depurador] A chamar showConfirmationModal para Reprovar...");
                 const confirmed = await showConfirmationModal('Reprovar Entidade', `Tem a certeza que quer REPROVAR e APAGAR permanentemente o registo de "${entityName}"? Esta ação não pode ser desfeita.`);
+                console.log(`[Depurador] Confirmação para reprovar: ${confirmed}`);
                 if (confirmed) {
                     try {
                         await deleteDoc(entityDocRef);
@@ -391,7 +406,9 @@
 
             const currentAction = actions[action];
             if (currentAction) {
+                console.log(`[Depurador] A chamar showConfirmationModal para ${action}...`);
                 const confirmed = await showConfirmationModal(currentAction.title, currentAction.message);
+                console.log(`[Depurador] Confirmação para ${action}: ${confirmed}`);
                 if (confirmed) {
                     try { 
                         await updateDoc(entityDocRef, { status: currentAction.status }); 
