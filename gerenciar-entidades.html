@@ -160,7 +160,6 @@
         function loadAllEntities() {
             const q = query(collection(db, paths.entidades));
             onSnapshot(q, async (snapshot) => {
-                console.log(`[Depurador] Foram encontradas ${snapshot.docs.length} entidades.`);
                 const entitiesPromises = snapshot.docs.map(async (docSnapshot) => {
                     try {
                         const entityData = docSnapshot.data();
@@ -171,16 +170,15 @@
                         const representanteData = repSnapshot.empty ? {} : repSnapshot.docs[0].data();
                         
                         const combinedData = { id: docSnapshot.id, ...entityData, representante: representanteData };
-                        console.log(`[Depurador] Dados combinados para ${entityData.dadosEntidade?.nomeFantasia}:`, combinedData);
                         return combinedData;
                     } catch (error) {
-                        console.error(`[Depurador] Falha ao processar entidade ${docSnapshot.id}`, error);
-                        return null; // Retorna nulo para ser filtrado depois
+                        console.error(`Falha ao processar entidade ${docSnapshot.id}`, error);
+                        return null; 
                     }
                 });
                 
                 const resolvedEntities = await Promise.all(entitiesPromises);
-                allEntitiesData = resolvedEntities.filter(e => e !== null); // Remove qualquer entidade que tenha falhado ao carregar
+                allEntitiesData = resolvedEntities.filter(e => e !== null);
 
                 currentPage = 1;
                 filterAndRender();
@@ -368,7 +366,7 @@
             }
 
             const actions = {
-                'approve-entity': { title: 'Aprovar Entidade', message: `Aprovar "${entityName}"? A entidade receberá um e-mail de notificação.`, status: 'ativo' },
+                'approve-entity': { title: 'Aprovar Entidade', message: `Aprovar "${entityName}"?`, status: 'ativo' },
                 'block-entity': { title: 'Bloquear Entidade', message: `Bloquear "${entityName}"? Isso impedirá a criação de novas campanhas.`, status: 'bloqueado' },
                 'unblock-entity': { title: 'Desbloquear Entidade', message: `Desbloquear "${entityName}"?`, status: 'ativo' }
             };
