@@ -165,6 +165,71 @@
         let html5QrCode;
         let lastScannedDonation = null;
 
+        // Utility functions for media handling and entity ID resolution
+        function getEntityIds(userSession) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlEntityId = urlParams.get('entityId') || urlParams.get('entidadeId');
+            
+            if (urlEntityId) {
+                return [urlEntityId];
+            }
+            
+            if (userSession?.profile?.role === 'superadmin') {
+                return ['app_faz_bem']; // Default for superadmin or could be [] for all
+            }
+            
+            // For entity users: prefer profile.entityId, then profile.id, then auth.uid
+            const entityId = userSession?.profile?.entityId || 
+                            userSession?.profile?.id || 
+                            userSession?.auth?.uid;
+            
+            return entityId ? [entityId] : [];
+        }
+        
+        function generateItemDetailsHtml(item, campaignType) {
+            const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
+            const mediaFieldTypes = ['camera', 'image', 'video', 'upload', 'photo', 'file'];
+            const reservedFields = ['type', 'photoURL'];
+            
+            const lines = fieldsConfig.map(field => {
+                const key = field.id || field.key || field.name;
+                const value = item[key];
+                
+                if (!value || mediaFieldTypes.includes(field.type) || reservedFields.includes(key)) {
+                    return null;
+                }
+                
+                let displayValue = value;
+                
+                // Handle different field types for proper display
+                if (field.type === 'select' || field.type === 'radio') {
+                    if (field.options && Array.isArray(field.options)) {
+                        const option = field.options.find(opt => opt.value === value || opt === value);
+                        displayValue = option?.label || option || value;
+                    }
+                } else if (field.type === 'boolean' || field.type === 'checkbox') {
+                    displayValue = value ? 'Sim' : 'Não';
+                } else if (field.type === 'date' || field.type === 'datetime') {
+                    try {
+                        const date = value.toDate ? value.toDate() : new Date(value);
+                        displayValue = date.toLocaleDateString('pt-BR');
+                        if (field.type === 'datetime') {
+                            displayValue += ' ' + date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        }
+                    } catch (e) {
+                        displayValue = value;
+                    }
+                } else if (Array.isArray(value)) {
+                    displayValue = value.join(', ');
+                }
+                
+                const label = field.label || field.name || key;
+                return `<p><strong class="font-semibold">${label}:</strong> ${displayValue}</p>`;
+            }).filter(Boolean);
+            
+            return `<div class="space-y-1">${lines.length ? lines.join('') : '<p class="text-gray-500">Nenhum detalhe adicional.</p>'}</div>`;
+        }
+
         async function initializeApp() {
             await injectHeader();
             const userSession = await getCurrentUser();
@@ -173,30 +238,45 @@
                 const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
                 campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
 
-                let idToQuery;
+                const entityIds = getEntityIds(userSession);
                 if (userSession.profile.role === 'superadmin') {
                     backLink.href = 'superadmin.html';
-                    idToQuery = 'app_faz_bem';
                 } else {
                     backLink.href = 'admin.html';
-                    idToQuery = userSession.auth.uid;
                 }
 
-                await loadAllCampaignsForEntity(idToQuery);
-                loadAllDonations(idToQuery);
+                await loadAllCampaignsForEntity(entityIds);
+                loadAllDonations(entityIds);
             } else {
                 window.location.href = 'index.html';
             }
         }
         
-        async function loadAllCampaignsForEntity(idToQuery) {
-            const q = query(collection(db, paths.campaigns), where("entityId", "==", idToQuery));
+        async function loadAllCampaignsForEntity(entityIds) {
+            let q;
+            
+            if (entityIds.length === 0) {
+                q = query(collection(db, paths.campaigns));
+            } else if (entityIds.length === 1) {
+                q = query(collection(db, paths.campaigns), where("entityId", "==", entityIds[0]));
+            } else {
+                q = query(collection(db, paths.campaigns), where("entityId", "in", entityIds.slice(0, 10)));
+            }
+            
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach(doc => campaignsData.set(doc.id, { id: doc.id, ...doc.data() }));
         }
 
-        function loadAllDonations(idToQuery) {
-            const q = query(collection(db, paths.donations), where('entityId', '==', idToQuery));
+        function loadAllDonations(entityIds) {
+            let q;
+            
+            if (entityIds.length === 0) {
+                q = query(collection(db, paths.donations));
+            } else if (entityIds.length === 1) {
+                q = query(collection(db, paths.donations), where('entityId', '==', entityIds[0]));
+            } else {
+                q = query(collection(db, paths.donations), where('entityId', 'in', entityIds.slice(0, 10)));
+            }
             
             onSnapshot(q, (snapshot) => {
                 allDonations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -334,30 +414,6 @@
         }
         
         // --- INÍCIO DA ALTERAÇÃO ---
-        function generateItemDetailsHtml(item, campaignType) {
-            let detailsHtml = '<div class="space-y-1">';
-            const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
-            
-            let hasVisibleFields = false;
-            fieldsConfig
-                .sort((a, b) => (a.order || 0) - (b.order || 0))
-                .forEach(field => {
-                    const value = item[field.id];
-                    const isMediaField = field.type === 'image' || field.type === 'camera' || field.type === 'video';
-
-                    if (value && field.id && field.id !== 'type' && field.id !== 'photoURL' && !isMediaField) {
-                        detailsHtml += `<p><strong class="font-semibold">${field.label}:</strong> ${value}</p>`;
-                        hasVisibleFields = true;
-                    }
-                });
-            
-            if (!hasVisibleFields) {
-                detailsHtml += '<p>Nenhum detalhe adicional.</p>';
-            }
-
-            detailsHtml += '</div>';
-            return detailsHtml;
-        }
         // --- FIM DA ALTERAÇÃO ---
 
         async function processItemReception(donationId, itemIndex) {
