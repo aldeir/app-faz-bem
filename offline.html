@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Você está offline – Faz Bem</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, sans-serif;
+      display: grid; place-items: center; min-height: 100dvh; background: #f6f7f9; color: #111827;
+    }
+    .card {
+      max-width: 560px; background: white; color: inherit;
+      border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.08);
+      margin: 16px;
+    }
+    h1 { font-size: 1.25rem; margin: 0 0 8px; }
+    p { margin: 0 0 12px; line-height: 1.5; }
+    .muted { color: #6b7280; font-size: .95rem; }
+    .btn {
+      display: inline-block; margin-top: 10px; padding: 10px 14px; border-radius: 10px;
+      background: #2563eb; color: #fff; text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <main class="card" role="main" aria-label="Página offline">
+    <h1>Você está offline</h1>
+    <p>Não foi possível carregar a página agora.</p>
+    <p class="muted">Tente novamente quando sua conexão voltar. Páginas visitadas recentemente podem abrir do cache.</p>
+    <a class="btn" href="index.html" rel="noopener">Voltar ao início</a>
+  </main>
+</body>
+</html>
