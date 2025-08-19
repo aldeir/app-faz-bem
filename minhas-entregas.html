@@ -96,6 +96,67 @@
         let allUserDonations = [];
         let campaignsCache = new Map();
         let campaignTypeSettings = {};
+
+        // Utility functions for dynamic field rendering and border classes
+        function asDate(v) {
+            try { return v?.toDate ? v.toDate() : v ? new Date(v) : null; } catch { return null; }
+        }
+
+        // Tailwind-safe border mapping
+        const BORDER_COLOR_MAP = {
+            green: 'border-green-500',
+            blue: 'border-blue-500',
+            yellow: 'border-yellow-500',
+            red: 'border-red-500',
+            purple: 'border-purple-500',
+            gray: 'border-gray-500',
+            default: 'border-gray-500'
+        };
+        function getBorderClass(typeConfig) {
+            return BORDER_COLOR_MAP[typeConfig?.color] || BORDER_COLOR_MAP.default;
+        }
+
+        // Dynamic fields normalization and rendering
+        function normalizeFieldsConfig(campaignType, campaignTypeSettings) {
+            const cfg = campaignTypeSettings?.[campaignType];
+            const fieldsRaw = Array.isArray(cfg?.fields) ? cfg.fields : Object.values(cfg?.fields || {});
+            return fieldsRaw.map(f => ({
+                id: f.id || f.key || f.name,
+                label: f.label || f.title || f.name || f.id || f.key,
+                type: f.type || 'text',
+                options: f.options || f.choices || f.values || []
+            })).filter(f => f.id && !['type','photoURL'].includes(f.id));
+        }
+
+        function resolveFieldValue(field, raw) {
+            if (raw === null || raw === undefined || raw === '') return null;
+            if (Array.isArray(raw)) return raw.map(v => resolveFieldValue(field, v)).filter(Boolean).join(', ');
+            if (typeof raw === 'boolean') return raw ? 'Sim' : 'Não';
+            if (['select','radio','dropdown'].includes(field.type)) {
+                const opts = field.options || [];
+                const m = opts.find(o => String(o.value ?? o.id ?? o.key ?? o.code ?? o.label) === String(raw));
+                return m ? (m.label ?? m.name ?? String(raw)) : String(raw);
+            }
+            if (field.type === 'date' || field.type === 'datetime') {
+                const d = asDate(raw);
+                return d && !isNaN(d) ? d.toLocaleString('pt-BR') : String(raw);
+            }
+            return String(raw);
+        }
+
+        function generateItemDetailsHtml(item, campaignType, campaignTypeSettings) {
+            const fields = normalizeFieldsConfig(campaignType, campaignTypeSettings)
+                .filter(f => !['image','camera','video'].includes(f.type));
+            let hasVisible = false;
+            const lines = fields.map(f => {
+                const v = resolveFieldValue(f, item?.[f.id]);
+                if (v === null || v === '') return '';
+                hasVisible = true;
+                return `<p><strong class="font-semibold">${f.label}:</strong> ${v}</p>`;
+            }).filter(Boolean);
+            if (!hasVisible) lines.push('<p>Nenhum detalhe adicional.</p>');
+            return `<div class="space-y-1">${lines.join('')}</div>`;
+        }
         let currentPage = 1;
         const DONATIONS_PER_PAGE = 5;
 
@@ -205,38 +266,6 @@
             }
         }
         
-        // --- INÍCIO DA ALTERAÇÃO ---
-        function generateItemDetailsHtml(item, campaignType) {
-            let detailsHtml = '<div class="space-y-1">';
-            const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) 
-                ? campaignTypeSettings[campaignType].fields 
-                : Object.values(campaignTypeSettings[campaignType]?.fields || {});
-            
-            let hasVisibleFields = false;
-            fieldsConfig
-                .sort((a, b) => (a.order || 0) - (b.order || 0))
-                .forEach(field => {
-                    const key = field.id;
-                    const value = item[key];
-                    
-                    // Condição corrigida para ignorar todos os tipos de mídia
-                    const isMediaField = field.type === 'image' || field.type === 'camera' || field.type === 'video';
-
-                    if (value && key && key !== 'type' && key !== 'photoURL' && !isMediaField) {
-                        detailsHtml += `<p><strong class="font-semibold">${field.label}:</strong> ${value}</p>`;
-                        hasVisibleFields = true;
-                    }
-                });
-            
-            if (!hasVisibleFields) {
-                detailsHtml += '<p>Nenhum detalhe adicional.</p>';
-            }
-
-            detailsHtml += '</div>';
-            return detailsHtml;
-        }
-        // --- FIM DA ALTERAÇÃO ---
-
         function createDeliveryCard(donation, campaign, tab) {
             const itemsToDisplay = (donation.items || []).filter(item => {
                 if ((tab === 'scheduled' || tab === 'overdue') && item.status === 'completed') {
@@ -252,10 +281,10 @@
             const card = document.createElement('div');
             const campaignType = campaign?.type || 'default';
             const typeSettings = campaignTypeSettings[campaignType] || { color: 'gray' };
-            const borderColorClass = `border-${typeSettings.color}-500`;
+            const borderColorClass = getBorderClass(typeSettings);
             card.className = `bg-white rounded-xl shadow-lg overflow-hidden border-l-4 ${borderColorClass}`;
 
-            const scheduledDate = donation.scheduledAt.toDate();
+            const scheduledDate = asDate(donation.scheduledAt);
             const formattedDate = scheduledDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
             const formattedTime = scheduledDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
@@ -339,7 +368,7 @@
             }
 
             let itemsHtml = itemsToDisplay.map((item) => {
-                const itemDetailsHtml = generateItemDetailsHtml(item, campaignType); // Alterado para chamar a função corrigida
+                const itemDetailsHtml = generateItemDetailsHtml(item, campaignType, campaignTypeSettings);
                 return `
                 <div class="item-card flex items-start space-x-4 p-3 bg-gray-50 rounded-md border transition-all ${item.status !== 'completed' ? 'cursor-pointer' : ''}" 
                      ${item.status !== 'completed' ? `data-donation-id="${donation.id}" data-item-index="${donation.items.indexOf(item)}"` : ''}>
@@ -412,7 +441,7 @@
                 const campaign = campaignsCache.get(donation.campaignId);
                 
                 // A função agora retorna apenas o HTML dos detalhes em texto
-                const detailsHtml = generateItemDetailsHtml(item, campaign?.type || 'default');
+                const detailsHtml = generateItemDetailsHtml(item, campaign?.type || 'default', campaignTypeSettings);
 
                 // Construímos o conteúdo do modal de forma segura, com uma imagem principal e os detalhes
                 const modalContentHtml = `
