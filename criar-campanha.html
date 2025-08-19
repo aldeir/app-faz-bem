@@ -188,7 +188,7 @@
         import { auth, db, storage, ADMIN_EMAIL, paths } from './app-config.js';
         import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, Timestamp, storageRef, uploadBytes, getDownloadURL } from "./firebase-services.js";
         import { injectHeader } from './app-header.js';
-        import { getCurrentUser } from './auth-service.js';
+        import { guard } from './route-guard.js';
         
         // --- SELEÇÃO DE ELEMENTOS DO DOM ---
         const pageTitle = document.getElementById('page-title');
@@ -437,10 +437,10 @@
                             { name: "App Faz Bem", uid: "app_faz_bem" } :
                             { name: selectedEntity.dadosEntidade?.nomeFantasia || selectedEntity.publicName, uid: selectedId };
                     } else { // Modo Entidade
-                        const userSession = await getCurrentUser();
+                        // Use the userSession from the guard instead of calling getCurrentUser again
                         // --- INÍCIO DA ALTERAÇÃO: Obter nome da nova estrutura ---
                         const entityName = userSession.profile.dadosEntidade?.nomeFantasia || userSession.profile.publicName;
-                        entityInfo = { name: entityName, uid: user.uid };
+                        entityInfo = { name: entityName, uid: userSession.auth.uid };
                         // --- FIM DA ALTERAÇÃO ---
                     }
                     
@@ -473,9 +473,15 @@
             const canProceed = await injectHeader();
             if (!canProceed) return;
 
-            const userSession = await getCurrentUser();
-            if (!userSession || !['superadmin', 'entidade'].includes(userSession.profile?.role)) {
-                window.location.href = 'index.html';
+            // Use route guard for authentication and authorization
+            const userSession = await guard({
+                requireAuth: true,
+                requiredRoles: ['superadmin', 'entidade'],
+                requireApprovedEntity: true
+            });
+
+            // If guard returns null, user was redirected
+            if (!userSession) {
                 return;
             }
 
