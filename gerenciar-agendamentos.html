@@ -22,11 +22,11 @@
   <style>
     body { 
       font-family: 'Inter', sans-serif;
-      /* Background image support - uncomment and add image URL when available */
-      /* background-image: url('background.jpg'); */
-      /* background-size: cover; */
-      /* background-position: center; */
-      /* background-attachment: fixed; */
+      background-color: #e6f9ed;
+      background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xMDAgMTBMMTUwIDUwTDE1MCA5MEwxMDAgMTMwTDUwIDkwTDUwIDUwTDEwMCAxMFoiIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIi8+CjxwYXRoIGQ9Ik0xMDAgNzBMMTMwIDkwTDEzMCAxMTBMMTAwIDEzMEw3MCA1MFoiIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPgo8L3N2Zz4K');
+      background-size: 200px 200px;
+      background-position: center;
+      background-repeat: repeat;
     }
     
     /* Background overlay to ensure legibility when background image is used */
@@ -662,7 +662,7 @@
     document.getElementById('load-more').addEventListener('click', loadMore);
 
     // Modal: abrir ao clicar na miniatura/placeholder do item
-    listView.addEventListener('click', (ev) => {
+    listView.addEventListener('click', async (ev) => {
       const btn = ev.target.closest('.item-photo-btn');
       if (!btn) {
         const actionBtn = ev.target.closest('[data-action]');
@@ -870,7 +870,7 @@
       const session = await getCurrentUser();
       const role = session?.profile?.role;
       if (!session?.auth || !['entidade','superadmin'].includes(role)) {
-        window.location.href = 'index.html';
+        window.location.href = '403.html';
         return;
       }
       backLink.href = role === 'superadmin' ? 'superadmin.html' : 'admin.html';

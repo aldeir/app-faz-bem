@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso Negado - Faz Bem</title>
+    
+    <meta name="theme-color" content="#22c55e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="logo.png" type="image/png">
+    <link href="/app-faz-bem/style.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #e6f9ed;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xMDAgMTBMMTUwIDUwTDE1MCA5MEwxMDAgMTMwTDUwIDkwTDUwIDUwTDEwMCAxMFoiIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIi8+CjxwYXRoIGQ9Ik0xMDAgNzBMMTMwIDkwTDEzMCAxMTBMMTAwIDEzMEw3MCA1MFoiIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPgo8L3N2Zz4K');
+            background-size: 200px 200px;
+            background-position: center;
+            background-repeat: repeat;
+        }
+        
+        /* Background overlay to ensure legibility */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        /* Mobile responsiveness for background */
+        @media (max-width: 640px) {
+            body::before {
+                background: rgba(255, 255, 255, 0.9); /* Stronger overlay on mobile for better legibility */
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <div id="app-header"></div>
+
+    <div id="app-container">
+        <div class="min-h-screen flex items-center justify-center py-12 px-4">
+            <div class="max-w-md w-full text-center bg-white p-10 rounded-xl shadow-lg">
+                <svg class="mx-auto h-12 w-12 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                <h1 class="mt-4 text-2xl font-bold text-gray-900">Acesso Negado</h1>
+                <p class="mt-2 text-gray-600">
+                    Você não tem permissão para acessar esta página. O acesso é restrito apenas a usuários com perfil de entidade ou superadmin.
+                </p>
+                <p class="mt-4 text-gray-600">
+                    Se você acredita que isso é um erro, entre em contato com o administrador do sistema.
+                </p>
+                <div class="mt-8 space-y-3">
+                    <a href="index.html" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                        Voltar para a Página Inicial
+                    </a>
+                    <a href="javascript:history.back()" class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        Voltar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { injectHeader } from './app-header.js';
+        injectHeader();
+    </script>
+
+</body>
+</html>
