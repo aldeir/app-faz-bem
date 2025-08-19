@@ -4,9 +4,23 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gerenciar Agendamentos</title>
+
+  <!-- PWA e estilos -->
+  <meta name="theme-color" content="#22c55e">
   <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="logo.png">
   <link rel="icon" href="logo.png" type="image/png">
+
+  <!-- Tailwind compilado do projeto -->
+  <link href="/app-faz-bem/style.css" rel="stylesheet">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
+    body { font-family: 'Inter', sans-serif; }
     .avatar-fallback {
       background: #e2e8f0; color: #1f2937;
       display: inline-flex; align-items: center; justify-content: center;
@@ -132,7 +146,6 @@
       if (typeof v !== 'string') return false;
       const s = v.trim().toLowerCase();
       if (!s.startsWith('http')) return false;
-      // cobre googleapis + domínios app do Firebase e extensões comuns
       if (s.includes('firebasestorage')) return true;
       return /\.(jpg|jpeg|png|gif|webp|heic|heif|bmp|svg)(\?|$)/i.test(s);
     }
@@ -144,7 +157,7 @@
       const mediaKeywords = ['foto','photo','imagem','image','picture','camera'];
       if (mediaTypes.includes(type)) return true;
       if (mediaKeywords.some(k => id.includes(k) || label.includes(k))) return true;
-      if (isLikelyMediaUrl(rawValue)) return true; // valor é uma URL de mídia
+      if (isLikelyMediaUrl(rawValue)) return true;
       return false;
     }
     function resolveFieldValue(field, raw) {
@@ -160,7 +173,6 @@
         const d = asDate(raw);
         return d && !isNaN(d) ? d.toLocaleString('pt-BR') : String(raw);
       }
-      // Se for um valor textual começando com http, não mostrar como detalhe
       if (typeof raw === 'string' && isLikelyMediaUrl(raw)) return null;
       return String(raw);
     }
