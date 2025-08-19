@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gerenciar Agendamentos</title>
+  <title>Gerenciar Entregas</title>
 
-  <!-- PWA e estilos -->
+  <!-- PWA + ícones sem 404 -->
   <meta name="theme-color" content="#22c55e">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="logo.png">
@@ -29,39 +29,119 @@
     }
     .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 50; }
     .modal-backdrop.active { display: flex; }
-    .modal-content { max-width: 90vw; max-height: 90vh; }
-    .modal-content img { max-width: 100%; max-height: 90vh; border-radius: 8px; }
+    .modal-content { width: min(900px, 96vw); max-height: 92vh; background: #fff; border-radius: 12px; overflow: hidden; }
+    .modal-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+    .modal-media { background: #0f172a; display: flex; align-items: center; justify-content: center; }
+    .modal-media img { width: 100%; height: 100%; object-fit: contain; background: #0f172a; }
+    .modal-details { padding: 16px; overflow: auto; }
+    .chip { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+    .chip-gray { background:#f3f4f6; color:#374151; }
+    .chip-green { background:#ecfdf5; color:#065f46; }
+    .chip-yellow { background:#fffbeb; color:#92400e; }
+    .chip-red { background:#fef2f2; color:#991b1b; }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
   <header id="app-header"></header>
 
-  <main class="max-w-5xl mx-auto p-4">
-    <div class="mb-6">
+  <main class="max-w-7xl mx-auto p-4">
+    <div class="mb-4 flex items-center justify-between">
       <a id="backLink" href="admin.html" class="text-sm text-blue-600 hover:underline">&larr; Voltar</a>
-    </div>
-
-    <h1 class="text-2xl font-bold mb-4">Gerenciar Agendamentos</h1>
-
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-      <div>
-        <label class="text-sm text-gray-600">Filtrar por entidade (URL):</label>
-        <code class="text-xs bg-gray-200 px-2 py-1 rounded">?entityId=SEU_ID</code>
-      </div>
       <div class="text-sm text-gray-600 hidden" id="active-entity-filter"></div>
     </div>
 
-    <div id="loading-view" class="bg-white rounded-md p-6 shadow-sm">Carregando agendamentos...</div>
-    <div id="schedules-view" class="hidden space-y-6"></div>
-    <div id="no-schedules-placeholder" class="hidden bg-white rounded-md p-6 shadow-sm text-gray-600">
-      Nenhum agendamento encontrado para este filtro.
+    <div class="flex items-center justify-between mb-3">
+      <h1 class="text-2xl font-bold">Gerenciar Entregas</h1>
+      <a href="receber-doacao.html" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm shadow-sm">Receber via QR Code</a>
+    </div>
+
+    <!-- Filtros -->
+    <section class="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <div class="flex flex-col md:flex-row gap-3 items-start md:items-end">
+        <div class="flex-1">
+          <label class="block text-xs text-gray-600 mb-1">Busca</label>
+          <input id="search-input" type="search" placeholder="Doação, campanha, entidade, doador(a), item..."
+                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-600 mb-1">Status</label>
+          <select id="status-filter" class="border border-gray-300 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500">
+            <option value="all">Todos</option>
+            <option value="pending">Pendentes</option>
+            <option value="overdue">Vencidas</option>
+            <option value="delivered">Entregues</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-600 mb-1">Data inicial</label>
+          <input id="date-start" type="date" class="border border-gray-300 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-600 mb-1">Data final</label>
+          <input id="date-end" type="date" class="border border-gray-300 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500">
+        </div>
+        <div>
+          <button id="apply-filters" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">Aplicar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cards resumo -->
+    <section class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+      <div class="bg-white p-4 rounded-lg shadow-sm">
+        <div class="text-xs text-gray-500">Pendentes</div>
+        <div id="metric-pending" class="mt-1 text-2xl font-semibold text-gray-900">0</div>
+      </div>
+      <div class="bg-white p-4 rounded-lg shadow-sm">
+        <div class="text-xs text-gray-500">Vencidas</div>
+        <div id="metric-overdue" class="mt-1 text-2xl font-semibold text-red-600">0</div>
+      </div>
+      <div class="bg-white p-4 rounded-lg shadow-sm">
+        <div class="text-xs text-gray-500">Entregues (30d)</div>
+        <div id="metric-delivered" class="mt-1 text-2xl font-semibold text-green-600">0</div>
+      </div>
+      <div class="bg-white p-4 rounded-lg shadow-sm">
+        <div class="text-xs text-gray-500">Total</div>
+        <div id="metric-total" class="mt-1 text-2xl font-semibold text-blue-600">0</div>
+      </div>
+    </section>
+
+    <!-- Abas -->
+    <nav class="mb-3 border-b border-gray-200">
+      <ul class="-mb-px flex space-x-6 text-sm" id="tabs">
+        <li><button data-tab="pending" class="tab-btn py-3 border-b-2 border-green-600 text-green-700">Pendentes</button></li>
+        <li><button data-tab="overdue" class="tab-btn py-3 border-b-2 border-transparent text-gray-600">Vencidas</button></li>
+        <li><button data-tab="delivered" class="tab-btn py-3 border-b-2 border-transparent text-gray-600">Entregues</button></li>
+        <li><button data-tab="all" class="tab-btn py-3 border-b-2 border-transparent text-gray-600">Todas</button></li>
+      </ul>
+    </nav>
+
+    <div id="loading-view" class="bg-white rounded-lg p-6 shadow-sm">Carregando entregas...</div>
+    <section id="list-view" class="hidden space-y-6"></section>
+    <div id="no-data" class="hidden bg-white rounded-lg p-6 shadow-sm text-gray-600">Nenhum registro encontrado.</div>
+
+    <div class="flex justify-center mt-4">
+      <button id="load-more" class="hidden bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md">Mostrar mais</button>
     </div>
   </main>
 
-  <!-- Modal de visualização de imagem -->
-  <div id="image-preview-modal" class="modal-backdrop" aria-hidden="true">
+  <!-- Modal de detalhes do item (imagem + dados) -->
+  <div id="item-modal" class="modal-backdrop" aria-hidden="true">
     <div class="modal-content">
-      <img id="image-preview-el" src="" alt="Visualização do item">
+      <div class="modal-body">
+        <div class="modal-media">
+          <img id="modal-img" src="" alt="Item">
+        </div>
+        <div class="modal-details">
+          <h3 id="modal-title" class="text-lg font-semibold text-gray-900"></h3>
+          <div id="modal-meta" class="text-sm text-gray-600 mt-1"></div>
+          <div id="modal-details-container" class="mt-3 text-sm text-gray-800 space-y-1"></div>
+          <div id="modal-reception" class="mt-4 text-sm text-gray-700"></div>
+          <div class="mt-4">
+            <button id="modal-close" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md">Fechar</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -72,28 +152,66 @@
     import { injectHeader } from './app-header.js';
     import { getCurrentUser } from './auth-service.js';
 
-    const loadingView = document.getElementById('loading-view');
-    const schedulesView = document.getElementById('schedules-view');
-    const noSchedulesPlaceholder = document.getElementById('no-schedules-placeholder');
-    const activeEntityFilterEl = document.getElementById('active-entity-filter');
     const backLink = document.getElementById('backLink');
+    const loadingView = document.getElementById('loading-view');
+    const listView = document.getElementById('list-view');
+    const noView = document.getElementById('no-data');
+    const activeEntityFilterEl = document.getElementById('active-entity-filter');
 
-    const imageModal = document.getElementById('image-preview-modal');
-    const imageModalImg = document.getElementById('image-preview-el');
+    const metricPending = document.getElementById('metric-pending');
+    const metricOverdue = document.getElementById('metric-overdue');
+    const metricDelivered = document.getElementById('metric-delivered');
+    const metricTotal = document.getElementById('metric-total');
+
+    const tabs = document.getElementById('tabs');
+    const searchInput = document.getElementById('search-input');
+    const statusFilter = document.getElementById('status-filter');
+    const dateStart = document.getElementById('date-start');
+    const dateEnd = document.getElementById('date-end');
+    const applyFiltersBtn = document.getElementById('apply-filters');
+    const loadMoreBtn = document.getElementById('load-more');
+
+    const itemModal = document.getElementById('item-modal');
+    const modalImg = document.getElementById('modal-img');
+    const modalTitle = document.getElementById('modal-title');
+    const modalMeta = document.getElementById('modal-meta');
+    const modalDetailsContainer = document.getElementById('modal-details-container');
+    const modalReception = document.getElementById('modal-reception');
+    const modalClose = document.getElementById('modal-close');
 
     let campaignTypeSettings = {};
-    let unsubDonations = null;
+    let unsub = null;
+    let rawDonations = [];
+    let currentTab = 'pending';
+    let renderLimitPerDay = 50;
+    const dayRenderCount = new Map();
 
-    // --- Helpers gerais ---
-    function qs() { return new URLSearchParams(location.search); }
-    function asDate(v) { try { return v?.toDate ? v.toDate() : (v ? new Date(v) : null); } catch { return null; } }
-    function escapeHtml(s) {
+    // Helpers base
+    function qs(){ return new URLSearchParams(location.search); }
+    function asDate(v){ try { return v?.toDate ? v.toDate() : (v ? new Date(v) : null); } catch { return null; } }
+    function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+    function endOfDay(d){ const x=new Date(d); x.setHours(23,59,59,999); return x; }
+    function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+    function cap(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
+    function formatDateLongBR(date){
+      const d = asDate(date); if (!d || isNaN(d)) return '';
+      const weekday = cap(new Intl.DateTimeFormat('pt-BR', { weekday:'long' }).format(d));
+      const day = new Intl.DateTimeFormat('pt-BR', { day:'2-digit' }).format(d);
+      const month = cap(new Intl.DateTimeFormat('pt-BR', { month:'long' }).format(d));
+      const year = new Intl.DateTimeFormat('pt-BR', { year:'numeric' }).format(d);
+      return `${weekday}, ${day} de ${month} de ${year}`;
+    }
+    function formatTimeBR(date){
+      const d = asDate(date); if (!d || isNaN(d)) return '--:--';
+      return new Intl.DateTimeFormat('pt-BR', { hour:'2-digit', minute:'2-digit' }).format(d);
+    }
+    function escapeHtml(s){
       return String(s ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;')
         .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
     }
-    function escapeAttr(s) { return escapeHtml(s).replaceAll('`','&#096;'); }
+    function escapeAttr(s){ return escapeHtml(s).replaceAll('`','&#096;'); }
 
-    function getEffectiveEntityIds(userSession) {
+    function getEffectiveEntityIds(userSession){
       const query = qs();
       const forced = query.get('entityId') || query.get('entidadeId');
       const ids = [];
@@ -105,34 +223,13 @@
     }
 
     const BORDER_COLOR_MAP = {
-      green: 'border-green-500',
-      blue: 'border-blue-500',
-      yellow: 'border-yellow-500',
-      red: 'border-red-500',
-      purple: 'border-purple-500',
-      gray: 'border-gray-500',
-      default: 'border-blue-500'
+      green:'border-green-500', blue:'border-blue-500', yellow:'border-yellow-500',
+      red:'border-red-500', purple:'border-purple-500', gray:'border-gray-500', default:'border-blue-500'
     };
-    function getBorderClass(typeConfig) {
-      return BORDER_COLOR_MAP[typeConfig?.color] || BORDER_COLOR_MAP.default;
-    }
+    function getBorderClass(cfg){ return BORDER_COLOR_MAP[cfg?.color] || BORDER_COLOR_MAP.default; }
 
-    function formatDateLongBR(date) {
-      const d = asDate(date); if (!d || isNaN(d)) return '';
-      const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
-      const weekday = cap(new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(d));
-      const day = new Intl.DateTimeFormat('pt-BR', { day: '2-digit' }).format(d);
-      const month = cap(new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(d));
-      const year = new Intl.DateTimeFormat('pt-BR', { year: 'numeric' }).format(d);
-      return `${weekday}, ${day} de ${month} de ${year}`;
-    }
-    function formatTimeBR(date) {
-      const d = asDate(date); if (!d || isNaN(d)) return '';
-      return new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(d);
-    }
-
-    // --- Campos dinâmicos (robustos) ---
-    function normalizeFieldsConfig(campaignType) {
+    // Campos dinâmicos
+    function normalizeFieldsConfig(campaignType){
       const cfg = campaignTypeSettings?.[campaignType];
       const fieldsRaw = Array.isArray(cfg?.fields) ? cfg.fields : Object.values(cfg?.fields || {});
       return fieldsRaw.map(f => ({
@@ -140,16 +237,16 @@
         label: f.label || f.title || f.name || f.id || f.key,
         type: (f.type || '').toLowerCase(),
         options: f.options || f.choices || f.values || []
-      })).filter(f => f.id && !['type', 'photoURL'].includes(f.id));
+      })).filter(f => f.id && !['type','photoURL','status'].includes(f.id));
     }
-    function isLikelyMediaUrl(v) {
+    function isLikelyMediaUrl(v){
       if (typeof v !== 'string') return false;
       const s = v.trim().toLowerCase();
       if (!s.startsWith('http')) return false;
       if (s.includes('firebasestorage')) return true;
       return /\.(jpg|jpeg|png|gif|webp|heic|heif|bmp|svg)(\?|$)/i.test(s);
     }
-    function isMediaField(field, rawValue) {
+    function isMediaField(field, rawValue){
       const id = (field?.id || '').toLowerCase();
       const label = (field?.label || '').toLowerCase();
       const type = (field?.type || '').toLowerCase();
@@ -160,7 +257,7 @@
       if (isLikelyMediaUrl(rawValue)) return true;
       return false;
     }
-    function resolveFieldValue(field, raw) {
+    function resolveFieldValue(field, raw){
       if (raw === null || raw === undefined || raw === '') return null;
       if (Array.isArray(raw)) return raw.map(v => resolveFieldValue(field, v)).filter(Boolean).join(', ');
       if (typeof raw === 'boolean') return raw ? 'Sim' : 'Não';
@@ -176,9 +273,29 @@
       if (typeof raw === 'string' && isLikelyMediaUrl(raw)) return null;
       return String(raw);
     }
-    function extractItemPhotoUrl(item, campaignType) {
+    function smartLabel(key){
+      if (!key) return '';
+      const map = { qty:'Quantidade', quantidade:'Quantidade' };
+      if (map[key]) return map[key];
+      const s = String(key).replace(/[_\-]+/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2');
+      return s.charAt(0).toUpperCase()+s.slice(1);
+    }
+    function fallbackDetailsFromItem(item){
+      const ignore = new Set(['type','photoURL','status','id','campaignType']);
+      const lines = [];
+      for (const [k,v] of Object.entries(item||{})){
+        if (ignore.has(k)) continue;
+        if (v === null || v === undefined || v === '') continue;
+        if (Array.isArray(v) && v.length===0) continue;
+        if (typeof v === 'string' && isLikelyMediaUrl(v)) continue;
+        const val = Array.isArray(v) ? v.join(', ') : (typeof v==='boolean'? (v?'Sim':'Não') : String(v));
+        lines.push(`<p><strong class="font-semibold">${smartLabel(k)}:</strong> ${escapeHtml(val)}</p>`);
+      }
+      return `<div class="space-y-1">${lines.length ? lines.join('') : '<p class="text-gray-500">Nenhum detalhe adicional.</p>'}</div>`;
+    }
+    function extractItemPhotoUrl(item, donationCampaignType){
       if (item?.photoURL && isLikelyMediaUrl(item.photoURL)) return item.photoURL;
-      const fields = normalizeFieldsConfig(campaignType);
+      const fields = normalizeFieldsConfig(donationCampaignType);
       for (const f of fields) {
         const v = item?.[f.id];
         if (!v) continue;
@@ -191,87 +308,135 @@
       }
       return null;
     }
-    function generateItemDetailsHtml(item, campaignType) {
-      const fields = normalizeFieldsConfig(campaignType).filter(f => !isMediaField(f, item?.[f.id]));
-      const lines = fields.map(f => {
+    function generateItemDetailsHtml(item, donationCampaignType){
+      const fields = normalizeFieldsConfig(donationCampaignType);
+      if (!fields.length) return fallbackDetailsFromItem(item);
+      const filtered = fields.filter(f => !isMediaField(f, item?.[f.id]));
+      const lines = filtered.map(f => {
         const v = resolveFieldValue(f, item?.[f.id]);
         if (v === null || v === '') return '';
-        return `<p><strong class="font-semibold">${f.label}:</strong> ${v}</p>`;
+        return `<p><strong class="font-semibold">${escapeHtml(f.label)}:</strong> ${escapeHtml(v)}</p>`;
       }).filter(Boolean);
-      return `<div class="space-y-1">${lines.length ? lines.join('') : '<p class="text-gray-500">Nenhum detalhe adicional.</p>'}</div>`;
+      return `<div class="space-y-1">${lines.length ? lines.join('') : fallbackDetailsFromItem(item)}</div>`;
     }
 
-    function getCampaignTypeConfig(item) {
-      const key = item?.campaignType || item?.type || item?.category;
-      return key ? campaignTypeSettings[key] || {} : {};
+    // Status/recebimento
+    function isDonationDelivered(d){
+      const s = (d.status||'').toLowerCase();
+      const done = ['completed','entregue','received'].includes(s);
+      const itemsDone = Array.isArray(d.items) && d.items.length>0 && d.items.every(it => (it.status||'').toLowerCase()==='completed');
+      return done || itemsDone || Boolean(d.receivedAt || d.entregueEm);
     }
-    function getItemTitle(item, typeConfig) {
-      return item?.title || item?.name || item?.type || typeConfig?.title || 'Item';
+    function getReceiverName(d){
+      return d.receivedByName || d.receiverName || d.entreguePara || '';
+    }
+    function getReceivedAt(d){
+      return d.receivedAt || d.entregueEm || d.updatedAt || null;
     }
 
-    // --- Render ---
-    function renderAvatar(name, photoURL) {
+    // Render básicos
+    function renderAvatar(name, photoURL){
       if (photoURL) return `<img src="${escapeAttr(photoURL)}" alt="${escapeAttr(name)}" class="w-10 h-10 rounded-full object-cover border" loading="lazy">`;
       const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
       return `<div class="avatar-fallback">${escapeHtml(initial)}</div>`;
     }
-    function renderDonationHeader(donation) {
-      const campaignTitle = donation.campaignTitle || donation.campaign?.title || '';
-      const entityTitle = donation.entityName || donation.entityTitle || '';
-      const extra = donation.campaignType ? ` (${escapeHtml(donation.campaignType)})` : '';
-      const subtitle = entityTitle ? ` para ${escapeHtml(entityTitle)}` : '';
-      if (!campaignTitle && !entityTitle) return '';
-      return `<div class="text-gray-800"><span class="font-semibold">${escapeHtml(campaignTitle)}</span>${subtitle}.<span class="text-gray-500">${escapeHtml(extra)}</span></div>`;
+    function statusChip(d){
+      if (isDonationDelivered(d)) return '<span class="chip chip-green">Entregue</span>';
+      const when = asDate(d.scheduledAt);
+      if (when && when < new Date()) return '<span class="chip chip-red">Vencida</span>';
+      return '<span class="chip chip-yellow">Pendente</span>';
     }
-    function renderDonationItem(item) {
-      const campaignTypeKey = item.campaignType || item.type || item.category;
-      const typeCfg = getCampaignTypeConfig(item);
+
+    function renderHeader(d){
+      const campaignTitle = d.campaignTitle || d.campaign?.title || '';
+      const entityTitle = d.entityName || d.entityTitle || '';
+      const typeKey = d.campaignType ? ` (${escapeHtml(d.campaignType)})` : '';
+      const subtitle = entityTitle ? ` para ${escapeHtml(entityTitle)}` : '';
+      return `
+        <div class="flex items-center justify-between">
+          <div class="text-gray-800">
+            <span class="font-semibold">${escapeHtml(campaignTitle)}</span>${subtitle}
+            <span class="text-gray-500">${escapeHtml(typeKey)}</span>
+          </div>
+          ${statusChip(d)}
+        </div>
+      `;
+    }
+
+    function itemDisplayTitle(item, typeCfg){
+      return item?.title || item?.name || item?.type || typeCfg?.title || 'Item';
+    }
+
+    // Armazena referência para abrir modal por data-attrs
+    function renderItem(donation, item, donationIndex, itemIndex){
+      const campaignTypeKey = donation.campaignType || 'default';
+      const typeCfg = campaignTypeSettings?.[campaignTypeKey] || {};
       const borderClass = getBorderClass(typeCfg);
-      const title = getItemTitle(item, typeCfg);
-      const details = generateItemDetailsHtml(item, campaignTypeKey);
+      const title = itemDisplayTitle(item, typeCfg);
+      const detailsHtml = generateItemDetailsHtml(item, campaignTypeKey);
       const photoUrl = extractItemPhotoUrl(item, campaignTypeKey);
 
       const thumb = photoUrl
-        ? `<button type="button" class="item-photo-btn" data-full="${escapeAttr(photoUrl)}" title="Ampliar imagem">
+        ? `<button type="button" class="item-photo-btn" data-d-idx="${donationIndex}" data-i-idx="${itemIndex}" title="Ver detalhes">
              <img src="${escapeAttr(photoUrl)}" alt="Foto do item" class="w-10 h-10 rounded object-cover border" loading="lazy">
            </button>`
-        : `<div class="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-gray-400" title="Sem foto">
-             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h4l2-3h6l2 3h4v13H3V7z"/></svg>
-           </div>`;
+        : `<button type="button" class="item-photo-btn" data-d-idx="${donationIndex}" data-i-idx="${itemIndex}" title="Ver detalhes">
+             <div class="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h4l2-3h6l2 3h4v13H3V7z"/></svg>
+             </div>
+           </button>`;
 
       return `
         <div class="bg-white p-3 rounded-lg shadow-sm flex items-start gap-3 border-l-4 ${borderClass}">
           ${thumb}
           <div class="flex-1">
             <div class="font-medium text-gray-900">${escapeHtml(title)}</div>
-            <div class="mt-1 text-sm text-gray-700">${details}</div>
+            <div class="mt-1 text-sm text-gray-700">${detailsHtml}</div>
+          </div>
+          <div class="text-xs text-gray-500 self-center">
+            ${(item.status||'').toLowerCase()==='completed' ? 'Recebido' : 'Pendente'}
           </div>
         </div>
       `;
     }
-    function renderDonationCard(donation) {
+
+    function renderCard(donation, donationIndex){
       const donorName = donation.donorName || donation.donor?.name || 'Doador Anônimo';
       const donorPhoto = donation.donor?.photoURL || donation.donorPhoto || '';
-      const timeStr = formatTimeBR(donation.scheduledAt) || '--:--';
+      const when = asDate(donation.scheduledAt);
+      const timeStr = formatTimeBR(when);
+      const receiver = getReceiverName(donation);
+      const rAt = getReceivedAt(donation);
+      const rAtStr = rAt ? `${formatDateLongBR(rAt)} às ${formatTimeBR(rAt)}` : '';
+
+      const actions = `
+        <div class="flex gap-2">
+          <button class="chip chip-green" data-action="mark-received" data-id="${escapeAttr(donation.id||'')}">Marcar recebida</button>
+          <button class="chip chip-gray" data-action="reschedule" data-id="${escapeAttr(donation.id||'')}">Reagendar</button>
+          <button class="chip chip-red" data-action="cancel" data-id="${escapeAttr(donation.id||'')}">Cancelar</button>
+        </div>
+      `;
+
       const items = Array.isArray(donation.items) ? donation.items : [];
-      const itemsHtml = items.map(renderDonationItem).join('');
+      const itemsHtml = items.map((it, idx) => renderItem(donation, it, donationIndex, idx)).join('');
 
       return `
-        <div class="bg-white rounded-lg shadow-sm border border-blue-200">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
           <div class="px-4 py-3 border-b">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
                 ${renderAvatar(donorName, donorPhoto)}
                 <div>
                   <div class="font-semibold text-gray-900">${escapeHtml(donorName)}</div>
-                  <div class="text-sm text-emerald-600">Horário: ${escapeHtml(timeStr)}</div>
+                  <div class="text-sm text-emerald-600">Agendado: ${escapeHtml(timeStr)}</div>
+                  ${receiver ? `<div class="text-xs text-gray-500">Recebido por: ${escapeHtml(receiver)}${rAt ? ` — ${escapeHtml(rAtStr)}` : ''}</div>` : ``}
                 </div>
               </div>
-              <div class="text-gray-400">...</div>
+              ${actions}
             </div>
           </div>
           <div class="p-4">
-            ${renderDonationHeader(donation)}
+            ${renderHeader(donation)}
             <div class="mt-3 space-y-3">
               ${itemsHtml || '<p class="text-gray-500">Nenhum item cadastrado.</p>'}
             </div>
@@ -279,116 +444,272 @@
         </div>
       `;
     }
-    function renderDonations(donations) {
-      const scheduled = donations
-        .filter(d => (d.status || '').toLowerCase() === 'scheduled' && asDate(d.scheduledAt))
-        .sort((a, b) => asDate(a.scheduledAt) - asDate(b.scheduledAt));
 
-      if (!scheduled.length) {
+    // Buckets e métricas
+    function computeBuckets(list){
+      const now = new Date();
+      const last30 = addDays(now, -30);
+      const buckets = { pending:[], overdue:[], delivered:[], all:[] };
+      for (const d of list){
+        buckets.all.push(d);
+        if (isDonationDelivered(d)) { if (asDate(getReceivedAt(d)) >= last30) buckets.delivered.push(d); continue; }
+        const when = asDate(d.scheduledAt);
+        if (when && when < now) buckets.overdue.push(d);
+        else buckets.pending.push(d);
+      }
+      return buckets;
+    }
+    function groupByDate(list, tab){
+      const map = new Map();
+      for (const d of list){
+        const dateFor = tab==='delivered' && getReceivedAt(d) ? getReceivedAt(d) : d.scheduledAt;
+        const when = asDate(dateFor);
+        if (!when || isNaN(when)) continue;
+        const key = when.toISOString().slice(0,10);
+        const arr = map.get(key) || [];
+        arr.push(d);
+        map.set(key, arr);
+      }
+      return [...map.entries()].sort((a,b)=> a[0].localeCompare(b[0]));
+    }
+
+    // Filtros
+    function applyFilters(list){
+      const q = (searchInput.value||'').trim().toLowerCase();
+      const sFilter = statusFilter.value;
+      const ds = dateStart.value ? new Date(dateStart.value+'T00:00:00') : null;
+      const de = dateEnd.value ? new Date(dateEnd.value+'T23:59:59') : null;
+
+      let filtered = list.slice();
+
+      if (sFilter && sFilter!=='all'){
+        const b = computeBuckets(filtered);
+        filtered = b[sFilter] || [];
+      }
+
+      if (ds || de){
+        filtered = filtered.filter(d => {
+          const baseDate = (currentTab==='delivered' && getReceivedAt(d)) ? getReceivedAt(d) : d.scheduledAt;
+          const when = asDate(baseDate);
+          if (!when || isNaN(when)) return false;
+          if (ds && when < ds) return false;
+          if (de && when > de) return false;
+          return true;
+        });
+      }
+
+      if (q){
+        filtered = filtered.filter(d => {
+          const donor = (d.donorName||'').toLowerCase();
+          const campaign = (d.campaignTitle||'').toLowerCase();
+          const entity = (d.entityName||d.entityTitle||'').toLowerCase();
+          const items = Array.isArray(d.items) ? d.items : [];
+          const itemText = items.map(it => [
+            it.title, it.name, it.type,
+            ...Object.values(it).filter(v => typeof v==='string' && !isLikelyMediaUrl(v))
+          ].filter(Boolean).join(' ')).join(' ').toLowerCase();
+          return donor.includes(q) || campaign.includes(q) || entity.includes(q) || itemText.includes(q);
+        });
+      }
+      return filtered;
+    }
+
+    function renderList(){
+      const bucketsAll = computeBuckets(rawDonations);
+      metricPending.textContent = bucketsAll.pending.length;
+      metricOverdue.textContent = bucketsAll.overdue.length;
+      metricDelivered.textContent = bucketsAll.delivered.length;
+      metricTotal.textContent = rawDonations.length;
+
+      const base = currentTab==='all' ? rawDonations : (bucketsAll[currentTab] || []);
+      const list = applyFilters(base);
+      if (!list.length){
         loadingView.classList.add('hidden');
-        schedulesView.classList.add('hidden');
-        noSchedulesPlaceholder.classList.remove('hidden');
+        listView.classList.add('hidden');
+        noView.classList.remove('hidden');
+        loadMoreBtn.classList.add('hidden');
         return;
       }
 
-      const groupMap = new Map();
-      for (const d of scheduled) {
-        const date = asDate(d.scheduledAt);
-        if (!date || isNaN(date)) continue;
-        const key = date.toISOString().slice(0,10);
-        const list = groupMap.get(key) || [];
-        list.push(d);
-        groupMap.set(key, list);
-      }
+      const grouped = groupByDate(list, currentTab);
+      dayRenderCount.clear();
 
-      const groupKeys = [...groupMap.keys()].sort();
-      const html = groupKeys.map(key => {
-        const list = groupMap.get(key) || [];
-        const dateObj = new Date(key + 'T00:00:00');
+      const html = grouped.map(([key, arr], idx) => {
+        dayRenderCount.set(key, Math.min(arr.length, renderLimitPerDay));
+        const dateObj = new Date(key+'T00:00:00');
+        const rendered = arr.slice(0, dayRenderCount.get(key))
+          .sort((a,b)=> asDate(a.scheduledAt) - asDate(b.scheduledAt))
+          .map((d, di) => renderCard(d, di)).join('');
         return `
           <section class="space-y-3">
-            <h2 class="text-xl font-semibold text-gray-800">${formatDateLongBR(dateObj)}</h2>
-            ${list.map(renderDonationCard).join('')}
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-gray-800">${formatDateLongBR(dateObj)}</h2>
+              <span class="text-xs text-gray-500">${arr.length} registro(s)</span>
+            </div>
+            ${rendered}
           </section>
         `;
       }).join('');
 
-      schedulesView.innerHTML = html;
+      listView.innerHTML = html;
       loadingView.classList.add('hidden');
-      noSchedulesPlaceholder.classList.add('hidden');
-      schedulesView.classList.remove('hidden');
+      noView.classList.add('hidden');
+      listView.classList.remove('hidden');
+
+      const needsMore = grouped.some(([key, arr]) => dayRenderCount.get(key) < arr.length);
+      loadMoreBtn.classList.toggle('hidden', !needsMore);
     }
 
-    function subscribeDonations(entityIds) {
-      if (typeof unsubDonations === 'function') { try { unsubDonations(); } catch {} unsubDonations = null; }
+    function loadMore(){
+      const baseAll = currentTab==='all' ? rawDonations : (computeBuckets(rawDonations)[currentTab] || []);
+      const list = applyFilters(baseAll);
+      const grouped = groupByDate(list, currentTab);
+      let updated = false;
+
+      for (const [key, arr] of grouped){
+        const cur = dayRenderCount.get(key) || 0;
+        if (cur < arr.length){
+          dayRenderCount.set(key, Math.min(cur + renderLimitPerDay, arr.length));
+          updated = true;
+        }
+      }
+      if (updated){
+        const html = grouped.map(([key, arr]) => {
+          const dateObj = new Date(key+'T00:00:00');
+          const rendered = arr.slice(0, dayRenderCount.get(key))
+            .sort((a,b)=> asDate(a.scheduledAt) - asDate(b.scheduledAt))
+            .map((d, di) => renderCard(d, di)).join('');
+          return `
+            <section class="space-y-3">
+              <div class="flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-gray-800">${formatDateLongBR(dateObj)}</h2>
+                <span class="text-xs text-gray-500">${arr.length} registro(s)</span>
+              </div>
+              ${rendered}
+            </section>
+          `;
+        }).join('');
+        listView.innerHTML = html;
+        const needsMore = grouped.some(([key, arr]) => (dayRenderCount.get(key)||0) < arr.length);
+        loadMoreBtn.classList.toggle('hidden', !needsMore);
+      }
+    }
+
+    // Subscrição
+    function subscribeDonations(entityIds){
+      if (typeof unsub === 'function'){ try{unsub();}catch{} unsub=null; }
       const donationsCol = collection(db, paths.donations);
       let qRef;
-      if (Array.isArray(entityIds) && entityIds.length > 0) {
-        qRef = entityIds.length === 1
-          ? query(donationsCol, where('entityId', '==', entityIds[0]))
-          : query(donationsCol, where('entityId', 'in', entityIds.slice(0, 10)));
-      } else {
-        qRef = query(donationsCol);
-      }
-      unsubDonations = onSnapshot(qRef, (snapshot) => {
-        const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        renderDonations(docs);
+      if (entityIds.length === 1) qRef = query(donationsCol, where('entityId','==', entityIds[0]));
+      else if (entityIds.length > 1) qRef = query(donationsCol, where('entityId','in', entityIds.slice(0,10)));
+      else qRef = query(donationsCol);
+
+      unsub = onSnapshot(qRef, (snap) => {
+        rawDonations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderList();
       }, (err) => {
-        console.error('Erro ao ler agendamentos:', err);
+        console.error('Erro ao ler entregas:', err);
         loadingView.classList.add('hidden');
-        noSchedulesPlaceholder.classList.remove('hidden');
+        noView.classList.remove('hidden');
       });
     }
 
-    // Eventos do modal de imagem
-    schedulesView.addEventListener('click', (ev) => {
+    // Eventos
+    let searchTimer=null;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(renderList, 250);
+    });
+    applyFiltersBtn.addEventListener('click', renderList);
+    tabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('.tab-btn'); if (!btn) return;
+      currentTab = btn.getAttribute('data-tab');
+      [...tabs.querySelectorAll('.tab-btn')].forEach(el => el.classList.remove('border-green-600','text-green-700'));
+      btn.classList.add('border-green-600','text-green-700');
+      renderList();
+    });
+    document.getElementById('load-more').addEventListener('click', loadMore);
+
+    // Modal: abrir ao clicar na miniatura/placeholder do item
+    listView.addEventListener('click', (ev) => {
       const btn = ev.target.closest('.item-photo-btn');
-      if (!btn) return;
-      const full = btn.getAttribute('data-full');
-      if (!full) return;
-      imageModalImg.src = full;
-      imageModal.classList.add('active');
-      imageModal.setAttribute('aria-hidden', 'false');
+      if (!btn) {
+        const actionBtn = ev.target.closest('[data-action]');
+        if (actionBtn) {
+          const id = actionBtn.getAttribute('data-id');
+          const action = actionBtn.getAttribute('data-action');
+          console.log('Ação', action, 'para doação', id); // TODO: integrar
+        }
+        return;
+      }
+      const dIdx = Number(btn.getAttribute('data-d-idx'));
+      const iIdx = Number(btn.getAttribute('data-i-idx'));
+      const d = applyFilters(currentTab==='all' ? rawDonations : (computeBuckets(rawDonations)[currentTab] || []))
+                .flatMap(x => [x]) // mantém referência simples após filtros
+                .find(x => true); // placeholder lógico: a renderização não preserva índice global, então usaremos dataset no futuro
+      // Como a lista é rerenderizada por seção, em vez de buscar por índice global,
+      // usamos target traversal: encontra o card mais próximo e extrai títulos/dados.
+      // Para manter simples e robusto, reconstroi dados pelo texto exibido.
+      // Alternativa: no futuro, anexar data-id aos cards e buscar raw por id.
+
+      // Busca pelo id mais próximo no DOM
+      const card = btn.closest('.bg-white.rounded-lg.shadow-sm.border');
+      const donorEl = card?.querySelector('.font-semibold.text-gray-900');
+      const donorName = donorEl ? donorEl.textContent.trim() : '';
+      const titleEl = btn.parentElement?.querySelector('.font-medium.text-gray-900');
+      const itemTitle = titleEl ? titleEl.textContent.trim() : 'Item';
+      // Como o dataset simplificado não contém o objeto diretamente, mostramos os detalhes já renderizados.
+      const detailsHtml = btn.parentElement?.querySelector('.text-sm.text-gray-700')?.innerHTML || '';
+      const campaignHeader = card?.querySelector('.text-gray-800')?.textContent || '';
+
+      const img = btn.querySelector('img');
+      modalImg.src = img ? img.src : '';
+      modalTitle.textContent = itemTitle;
+      modalMeta.innerHTML = `<div class="text-gray-600">${escapeHtml(campaignHeader)}</div><div class="text-gray-600">Doador(a): ${escapeHtml(donorName)}</div>`;
+      modalDetailsContainer.innerHTML = detailsHtml;
+
+      // Recebimento (se houver no card)
+      const rx = card?.querySelector('.text-xs.text-gray-500');
+      modalReception.innerHTML = rx ? `<div class="chip chip-green">Recebimento</div> <span class="ml-2">${escapeHtml(rx.textContent.trim())}</span>` : '';
+
+      itemModal.classList.add('active');
+      itemModal.setAttribute('aria-hidden','false');
     });
-    imageModal.addEventListener('click', () => {
-      imageModalImg.src = '';
-      imageModal.classList.remove('active');
-      imageModal.setAttribute('aria-hidden', 'true');
+    itemModal.addEventListener('click', (e) => {
+      if (e.target === itemModal || e.target === modalClose) {
+        modalImg.src = '';
+        itemModal.classList.remove('active');
+        itemModal.setAttribute('aria-hidden','true');
+      }
     });
 
-    // --- Boot ---
-    (async function initializeApp() {
-      const canProceed = await injectHeader();
-      if (!canProceed) return;
+    // Boot
+    (async function init(){
+      const ok = await injectHeader();
+      if (!ok) return;
 
-      const userSession = await getCurrentUser();
-      const role = userSession?.profile?.role;
-      if (!userSession?.auth || !['entidade','superadmin'].includes(role)) {
+      const session = await getCurrentUser();
+      const role = session?.profile?.role;
+      if (!session?.auth || !['entidade','superadmin'].includes(role)) {
         window.location.href = 'index.html';
         return;
       }
-
       backLink.href = role === 'superadmin' ? 'superadmin.html' : 'admin.html';
 
       try {
-        const cfgSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
-        campaignTypeSettings = cfgSnap.exists() ? cfgSnap.data() : {};
+        const cfg = await getDoc(doc(db, paths.configDoc('campaignTypes')));
+        campaignTypeSettings = cfg.exists() ? cfg.data() : {};
       } catch (e) {
         console.error('Erro ao carregar campaignTypes:', e);
-        campaignTypeSettings = {};
       }
 
-      const entityIds = getEffectiveEntityIds(userSession);
-      const forcedEntity = qs().get('entityId') || qs().get('entidadeId');
-      if (forcedEntity) {
+      const ids = getEffectiveEntityIds(session);
+      const forced = qs().get('entityId') || qs().get('entidadeId');
+      if (forced) {
         activeEntityFilterEl.classList.remove('hidden');
-        activeEntityFilterEl.textContent = `Filtro ativo — entityId: ${forcedEntity}`;
-      } else {
-        activeEntityFilterEl.classList.add('hidden');
-        activeEntityFilterEl.textContent = '';
+        activeEntityFilterEl.textContent = `Filtro ativo — entityId: ${forced}`;
       }
-
-      subscribeDonations(entityIds);
+      subscribeDonations(ids);
     })();
   </script>
 </body>
