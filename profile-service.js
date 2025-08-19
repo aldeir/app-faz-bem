@@ -21,7 +21,7 @@ export async function getProfileById(userId) {
     
     // [NOVO] Verificação especial para campanhas gerais do App Faz Bem.
     if (userId === 'app_faz_bem') {
-        return { publicName: 'App Faz Bem', displayName: 'App Faz Bem', photoURL: './images/icons/icon-192x192.png' };
+        return { publicName: 'App Faz Bem', displayName: 'App Faz Bem', photoURL: './logo.png' };
     }
 
     // 1. Verifica se já temos o perfil em cache para máxima performance.
