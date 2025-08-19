@@ -119,6 +119,22 @@
         const myCampaignsPlaceholder = document.getElementById('my-campaigns-placeholder');
         const scheduledDonationsCount = document.getElementById('scheduled-donations-count');
 
+        // Utility functions for entity resolution
+        function getEffectiveEntityIds(userSession) {
+            const qs = new URLSearchParams(location.search);
+            const forced = qs.get('entityId') || qs.get('entidadeId');
+            const ids = [];
+            if (forced) ids.push(forced);
+            if (userSession?.profile?.entityId) ids.push(userSession.profile.entityId);
+            if (userSession?.profile?.id) ids.push(userSession.profile.id);
+            if (userSession?.auth?.uid && userSession?.profile?.role === 'entidade') ids.push(userSession.auth.uid);
+            return [...new Set(ids)].filter(Boolean);
+        }
+
+        function asDate(v) {
+            try { return v?.toDate ? v.toDate() : v ? new Date(v) : null; } catch { return null; }
+        }
+
         async function initializeApp() {
             const canProceed = await injectHeader();
             if (!canProceed) {
@@ -143,8 +159,13 @@
             loadingView.classList.add('hidden');
             pendingApprovalView.classList.add('hidden');
             dashboardView.classList.remove('hidden');
-            loadMyCampaigns(auth.uid);
-            loadScheduledDonations(auth.uid);
+            
+            // Use new entity resolution for donations (since donations are linked to entityId)
+            const entityIds = getEffectiveEntityIds(userSession);
+            const primaryEntityId = entityIds.length > 0 ? entityIds[0] : auth.uid;
+            
+            loadMyCampaigns(auth.uid); // Keep using auth.uid for campaigns since they're linked to creatorId
+            loadScheduledDonations(primaryEntityId);
         }
 
         logoutBtnPending.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));
@@ -178,9 +199,9 @@
                 campaigns.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
 
                 campaigns.forEach(campaign => {
-                    const isCompleted = campaign.expiresAt?.toDate() < now;
+                    const isCompleted = asDate(campaign.expiresAt) < now;
                     
-                    if (campaign.status === 'upcoming' && campaign.startsAt?.toDate() > now) {
+                    if (campaign.status === 'upcoming' && asDate(campaign.startsAt) > now) {
                         upcomingCount++;
                     } else if (isCompleted) {
                         completedCount++;

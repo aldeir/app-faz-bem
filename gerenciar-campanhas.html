@@ -125,6 +125,11 @@
         let currentPage = 1;
         const ITEMS_PER_PAGE = 10;
 
+        // Utility function for date handling
+        function asDate(v) {
+            try { return v?.toDate ? v.toDate() : v ? new Date(v) : null; } catch { return null; }
+        }
+
         async function initializeApp() {
             const canProceed = await injectHeader();
             if (!canProceed) {
@@ -178,8 +183,8 @@
 
                 if (!matchesSearch) return false;
 
-                const startDate = campaign.startsAt?.toDate();
-                const endDate = campaign.expiresAt?.toDate();
+                const startDate = asDate(campaign.startsAt);
+                const endDate = asDate(campaign.expiresAt);
                 const isCompleted = endDate ? endDate < now : false;
                 const isUpcoming = campaign.status === 'upcoming' && startDate && startDate > now;
                 const isActive = !isCompleted && !isUpcoming;
@@ -192,7 +197,11 @@
                 return false;
             });
 
-            filtered.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+            filtered.sort((a, b) => {
+                const aTime = asDate(a.createdAt)?.getTime() || 0;
+                const bTime = asDate(b.createdAt)?.getTime() || 0;
+                return bTime - aTime;
+            });
             renderPaginatedList(filtered);
         }
 
@@ -234,8 +243,8 @@
             card.className = 'p-4 border-b last:border-b-0 hover:bg-gray-50';
 
             const now = new Date();
-            const startDate = campaign.startsAt?.toDate();
-            const endDate = campaign.expiresAt?.toDate();
+            const startDate = asDate(campaign.startsAt);
+            const endDate = asDate(campaign.expiresAt);
 
             const isCompleted = endDate ? endDate < now : false;
             let status;

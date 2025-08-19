@@ -152,6 +152,64 @@
         const ITEMS_PER_PAGE = 5;
         let donorsPublicInfoCache = new Map();
 
+        // Utility functions for entity resolution and date handling
+        function getEffectiveEntityIds(userSession) {
+            const qs = new URLSearchParams(location.search);
+            const forced = qs.get('entityId') || qs.get('entidadeId');
+            const ids = [];
+            if (forced) ids.push(forced);
+            if (userSession?.profile?.entityId) ids.push(userSession.profile.entityId);
+            if (userSession?.profile?.id) ids.push(userSession.profile.id);
+            if (userSession?.auth?.uid && userSession?.profile?.role === 'entidade') ids.push(userSession.auth.uid);
+            return [...new Set(ids)].filter(Boolean);
+        }
+
+        function asDate(v) {
+            try { return v?.toDate ? v.toDate() : v ? new Date(v) : null; } catch { return null; }
+        }
+
+        // Dynamic fields normalization and rendering
+        function normalizeFieldsConfig(campaignType, campaignTypeSettings) {
+            const cfg = campaignTypeSettings?.[campaignType];
+            const fieldsRaw = Array.isArray(cfg?.fields) ? cfg.fields : Object.values(cfg?.fields || {});
+            return fieldsRaw.map(f => ({
+                id: f.id || f.key || f.name,
+                label: f.label || f.title || f.name || f.id || f.key,
+                type: f.type || 'text',
+                options: f.options || f.choices || f.values || []
+            })).filter(f => f.id && !['type','photoURL'].includes(f.id));
+        }
+
+        function resolveFieldValue(field, raw) {
+            if (raw === null || raw === undefined || raw === '') return null;
+            if (Array.isArray(raw)) return raw.map(v => resolveFieldValue(field, v)).filter(Boolean).join(', ');
+            if (typeof raw === 'boolean') return raw ? 'Sim' : 'Não';
+            if (['select','radio','dropdown'].includes(field.type)) {
+                const opts = field.options || [];
+                const m = opts.find(o => String(o.value ?? o.id ?? o.key ?? o.code ?? o.label) === String(raw));
+                return m ? (m.label ?? m.name ?? String(raw)) : String(raw);
+            }
+            if (field.type === 'date' || field.type === 'datetime') {
+                const d = asDate(raw);
+                return d && !isNaN(d) ? d.toLocaleString('pt-BR') : String(raw);
+            }
+            return String(raw);
+        }
+
+        function generateItemDetailsHtml(item, campaignType, campaignTypeSettings) {
+            const fields = normalizeFieldsConfig(campaignType, campaignTypeSettings)
+                .filter(f => !['image','camera','video'].includes(f.type));
+            let hasVisible = false;
+            const lines = fields.map(f => {
+                const v = resolveFieldValue(f, item?.[f.id]);
+                if (v === null || v === '') return '';
+                hasVisible = true;
+                return `<p><strong class="font-semibold">${f.label}:</strong> ${v}</p>`;
+            }).filter(Boolean);
+            if (!hasVisible) lines.push('<p>Nenhum detalhe adicional.</p>');
+            return `<div class="space-y-1">${lines.join('')}</div>`;
+        }
+
         async function initializeApp() {
             await injectHeader();
             currentUserSession = await getCurrentUser();
@@ -159,7 +217,11 @@
                 const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
                 campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
                 
-                await loadInitialData(currentUserSession.auth.uid);
+                // Use new entity resolution
+                const entityIds = getEffectiveEntityIds(currentUserSession);
+                const primaryEntityId = entityIds.length > 0 ? entityIds[0] : currentUserSession.auth.uid;
+                
+                await loadInitialData(primaryEntityId);
             } else {
                 window.location.href = 'index.html';
             }
@@ -208,14 +270,14 @@
             let donationsToRender = [];
 
             if (activeTab === 'scheduled') {
-                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() >= now && (d.items || []).some(i => i.status !== 'completed'));
+                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && asDate(d.scheduledAt) >= now && (d.items || []).some(i => i.status !== 'completed'));
             } else if (activeTab === 'overdue') {
-                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() < now && (d.items || []).some(i => i.status !== 'completed'));
+                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && asDate(d.scheduledAt) < now && (d.items || []).some(i => i.status !== 'completed'));
             } else if (activeTab === 'history') {
                 donationsToRender = allDonationsData.filter(d => d.status !== 'scheduled' || (d.items || []).every(i => i.status === 'completed'));
             }
             
-            donationsToRender.sort((a, b) => a.scheduledAt.toMillis() - b.scheduledAt.toMillis());
+            donationsToRender.sort((a, b) => asDate(a.scheduledAt).getTime() - asDate(b.scheduledAt).getTime());
             renderHierarchicalList(donationsToRender);
         }
         
@@ -263,24 +325,13 @@
                         const itemsHtmlPromises = campaignDonations.flatMap(d => d.items || []).map(async (item) => {
                             if (item.status === 'completed') return ''; // Não renderiza itens já recebidos
                             
-                            let itemDetailsHtml = '<div class="space-y-1 mt-1">';
-                            const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
-                            const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
-                            
-                            fieldsConfig.forEach(field => {
-                                const key = field.id;
-                                const value = item[key];
-                                if (value && !mediaFieldIds.has(key) && key !== 'type' && key !== 'photoURL') {
-                                    itemDetailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
-                                }
-                            });
-                            itemDetailsHtml += '</div>';
+                            const itemDetailsHtml = generateItemDetailsHtml(item, campaignType, campaignTypeSettings);
 
                             return `<li class="flex items-start space-x-3">
                                         <img src="${item.photoURL || 'https://placehold.co/40x40/e2e8f0/e2e8f0?text=Item'}" class="w-10 h-10 rounded-md object-cover bg-gray-200">
                                         <div class="flex-grow">
                                             <p class="font-medium text-gray-800">${item.type}</p>
-                                            ${itemDetailsHtml}
+                                            <div class="text-xs text-gray-500 mt-1">${itemDetailsHtml}</div>
                                         </div>
                                     </li>`;
                         });
