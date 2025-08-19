@@ -1,114 +1,132 @@
-// /service-worker.js
+/* Service Worker – App Faz Bem
+   Estratégias:
+   - HTML (navegação): network-first -> cache -> offline.html
+   - CSS/JS: stale-while-revalidate
+   - Imagens: cache-first com limite (LRU simples)
+*/
 
-const CACHE_NAME = 'app-faz-bem-v1.6'; // Versão incrementada para forçar a atualização
-const urlsToCache = [
-    // As páginas principais do seu app
-    './',
-    './index.html',
-    './login.html',
-    './cadastro-doador.html',
-    './cadastro-entidade.html',
-    './minhas-entregas.html',
-    './registrar-doacao.html',
-    './receber-doacao.html',
-    './admin.html',
-    './superadmin.html',
-    './configuracoes.html',
-    './politica-de-privacidade.html',
-    './termos-de-servico.html',
-    './detalhes.html',
-    './notificacoes.html',
-    './perfil-entidade.html',
-    './perfil-doador.html',
-    './gerenciar-entidades.html',
-    './aguardando-aprovacao.html',
-    './verificar-email.html',
+const VERSION = 'v0.2.0';
+const CACHE_PAGES = `app-pages-${VERSION}`;
+const CACHE_ASSETS = `app-assets-${VERSION}`;
+const CACHE_IMAGES = `app-images-${VERSION}`;
+const OFFLINE_URL = 'offline.html';
 
-    // Arquivos de estilo e script essenciais
-    './style.css',
-    './app-header.js',
-    './auth-service.js',
-    './app-config.js',
-    './firebase-services.js',
-    './firestore-paths.js',
-    './modal-handler.js',
-    './notification-service.js',
-    './perfil-entidade.js',
-    './cadastro-entidade.js',
-
-    // Imagens e Ícones principais
-    './logo.png',
-    './images/icons/icon-72x72.png',
-    './images/icons/icon-96x96.png',
-    './images/icons/icon-128x128.png',
-    './images/icons/icon-144x144.png',
-    './images/icons/icon-152x152.png',
-    './images/icons/icon-192x192.png',
-    './images/icons/icon-384x384.png',
-    './images/icons/icon-512x512.png',
-];
+// Ajuste esses padrões conforme seus caminhos
+const ASSET_EXTENSIONS = ['.css', '.js'];
+const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico'];
+const MAX_IMAGE_ENTRIES = 60;
 
 self.addEventListener('install', event => {
-    console.log('Service Worker: Instalando...');
-    event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then(cache => {
-                console.log('Service Worker: Cache aberto, adicionando URLs essenciais.');
-                return cache.addAll(urlsToCache);
-            })
-            .catch(error => {
-                console.error('Service Worker: Falha ao fazer cache dos arquivos na instalação.', error);
-            })
-            .then(() => self.skipWaiting())
-    );
+  event.waitUntil((async () => {
+    self.skipWaiting();
+    const cache = await caches.open(CACHE_PAGES);
+    await cache.addAll([
+      new Request(OFFLINE_URL, { cache: 'reload' })
+    ]);
+  })());
 });
 
 self.addEventListener('activate', event => {
-    console.log('Service Worker: Ativando...');
-    event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames.map(cache => {
-                    if (cache !== CACHE_NAME) {
-                        console.log('Service Worker: Limpando cache antigo:', cache);
-                        return caches.delete(cache);
-                    }
-                })
-            );
-        }).then(() => self.clients.claim())
+  event.waitUntil((async () => {
+    // Remove caches antigos
+    const keys = await caches.keys();
+    await Promise.all(
+      keys
+        .filter(k => ![CACHE_PAGES, CACHE_ASSETS, CACHE_IMAGES].includes(k))
+        .map(k => caches.delete(k))
     );
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('fetch', event => {
-    if (event.request.method !== 'GET' || event.request.url.startsWith('chrome-extension://')) {
-        return;
-    }
-    
-    // Para recursos do mesmo domínio, use a estratégia Cache First
-    if (new URL(event.request.url).origin === self.location.origin) {
-        event.respondWith(
-            caches.match(event.request).then(cachedResponse => {
-                if (cachedResponse) {
-                    return cachedResponse;
-                }
-                return fetch(event.request).then(networkResponse => {
-                    if (networkResponse && networkResponse.status === 200) {
-                        const responseToCache = networkResponse.clone();
-                        caches.open(CACHE_NAME).then(cache => {
-                            cache.put(event.request, responseToCache);
-                        });
-                    }
-                    return networkResponse;
-                });
-            })
-        );
-    }
-    // Para recursos externos (como fontes), usa Network First
-    else {
-        event.respondWith(
-            fetch(event.request).catch(() => {
-                return caches.match(event.request);
-            })
-        );
-    }
+  const { request } = event;
+
+  if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+  const dest = request.destination;
+
+  // HTML (navegação)
+  const isNavigation = request.mode === 'navigate' ||
+                       (request.headers.get('accept') || '').includes('text/html');
+
+  if (isNavigation) {
+    event.respondWith(networkFirstForHTML(request));
+    return;
+  }
+
+  // CSS/JS (stale-while-revalidate)
+  if (dest === 'style' || dest === 'script' || hasAnyExtension(url.pathname, ASSET_EXTENSIONS)) {
+    event.respondWith(staleWhileRevalidate(request, CACHE_ASSETS));
+    return;
+  }
+
+  // Imagens (cache-first + limite)
+  if (dest === 'image' || hasAnyExtension(url.pathname, IMAGE_EXTENSIONS)) {
+    event.respondWith(cacheFirstWithLimit(request, CACHE_IMAGES, MAX_IMAGE_ENTRIES));
+    return;
+  }
+
+  // Demais: tenta rede, sem cache especial
+  event.respondWith(fetch(request).catch(() => caches.match(request)));
 });
+
+function hasAnyExtension(pathname, exts) {
+  const lower = pathname.toLowerCase();
+  return exts.some(ext => lower.endsWith(ext));
+}
+
+async function networkFirstForHTML(request) {
+  try {
+    const networkResponse = await fetch(request, { cache: 'no-store' });
+    const cache = await caches.open(CACHE_PAGES);
+    cache.put(request, networkResponse.clone());
+    return networkResponse;
+  } catch {
+    const cacheMatch = await caches.match(request);
+    if (cacheMatch) return cacheMatch;
+    const offline = await caches.match(OFFLINE_URL);
+    return offline || new Response('Você está offline.', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+    });
+  }
+}
+
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  const networkFetch = fetch(request).then(response => {
+    cache.put(request, response.clone()).catch(() => {});
+    return response;
+  }).catch(() => undefined);
+
+  return cached || networkFetch || fetch(request);
+}
+
+async function cacheFirstWithLimit(request, cacheName, maxEntries) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      await cache.put(request, response.clone());
+      await limitCacheEntries(cache, maxEntries);
+    }
+    return response;
+  } catch {
+    return caches.match(request);
+  }
+}
+
+async function limitCacheEntries(cache, maxEntries) {
+  const keys = await cache.keys();
+  if (keys.length <= maxEntries) return;
+  const toDelete = keys.length - maxEntries;
+  for (let i = 0; i < toDelete; i++) {
+    await cache.delete(keys[i]);
+  }
+}
