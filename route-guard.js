@@ -3,6 +3,16 @@
 
 import { getCurrentUser } from './auth-service.js';
 
+// Base path: supports GitHub Pages (/app-faz-bem) and local dev ("")
+const REPO_BASE = "/app-faz-bem";
+const BASE_PATH = location.pathname.startsWith(REPO_BASE) ? REPO_BASE : "";
+
+function redirectTo403() {
+  const from = encodeURIComponent(location.pathname + location.search + location.hash);
+  console.warn("Route Guard: Acesso negado — redirecionando para 403");
+  window.location.replace(`${BASE_PATH}/403.html?from=${from}`);
+}
+
 /**
  * Sistema unificado de proteção de rotas com verificação de autenticação, roles e email
  * 
@@ -80,7 +90,7 @@ export async function guard(options = {}) {
 
             if (!userRole) {
                 console.log('Route Guard: Usuário sem role definido');
-                window.location.href = redirectTo;
+                redirectTo403();
                 return null;
             }
 
@@ -93,7 +103,7 @@ export async function guard(options = {}) {
             // Verificação normal de roles
             if (!requiredRoles.includes(userRole) && !isSuperAdmin) {
                 console.log(`Route Guard: Role '${userRole}' não autorizado. Roles permitidos:`, requiredRoles);
-                window.location.href = redirectTo;
+                redirectTo403();
                 return null;
             }
 
@@ -109,7 +119,7 @@ export async function guard(options = {}) {
 
                 if (entityStatus !== 'ativo') {
                     console.log(`Route Guard: Status da entidade '${entityStatus}' não permite acesso`);
-                    window.location.href = redirectTo;
+                    redirectTo403();
                     return null;
                 }
             }
@@ -185,7 +195,8 @@ export function getPublicPages() {
         '/cadastro-entidade.html',
         '/termos-de-servico.html',
         '/politica-de-privacidade.html',
-        '/recuperar-senha.html'
+        '/recuperar-senha.html',
+        '/403.html'
     ];
 }
 
