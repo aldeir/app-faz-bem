@@ -31,86 +31,26 @@
     .modal-backdrop.active { display: flex; }
     .modal-content { max-width: 90vw; max-height: 90vh; }
     .modal-content img { max-width: 100%; max-height: 90vh; border-radius: 8px; }
-    .tab-active { background-color: #3b82f6; color: white; }
-    .tab-inactive { background-color: #f3f4f6; color: #6b7280; }
-    .tab-inactive:hover { background-color: #e5e7eb; }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
   <header id="app-header"></header>
 
-  <main class="max-w-7xl mx-auto p-4">
+  <main class="max-w-5xl mx-auto p-4">
     <div class="mb-6">
       <a id="backLink" href="admin.html" class="text-sm text-blue-600 hover:underline">&larr; Voltar</a>
     </div>
 
-    <h1 class="text-2xl font-bold mb-6">Gerenciar Agendamentos</h1>
+    <h1 class="text-2xl font-bold mb-4">Gerenciar Agendamentos</h1>
 
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white p-4 rounded-lg shadow-sm border">
-        <div class="text-sm text-gray-600">Hoje</div>
-        <div class="text-2xl font-bold text-blue-600" id="metric-hoje">-</div>
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+      <div>
+        <label class="text-sm text-gray-600">Filtrar por entidade (URL):</label>
+        <code class="text-xs bg-gray-200 px-2 py-1 rounded">?entityId=SEU_ID</code>
       </div>
-      <div class="bg-white p-4 rounded-lg shadow-sm border">
-        <div class="text-sm text-gray-600">Próximos 7 dias</div>
-        <div class="text-2xl font-bold text-green-600" id="metric-proximos">-</div>
-      </div>
-      <div class="bg-white p-4 rounded-lg shadow-sm border">
-        <div class="text-sm text-gray-600">Atrasadas</div>
-        <div class="text-2xl font-bold text-red-600" id="metric-atrasadas">-</div>
-      </div>
-      <div class="bg-white p-4 rounded-lg shadow-sm border">
-        <div class="text-sm text-gray-600">Concluídas (30d)</div>
-        <div class="text-2xl font-bold text-emerald-600" id="metric-concluidas">-</div>
-      </div>
+      <div class="text-sm text-gray-600 hidden" id="active-entity-filter"></div>
     </div>
 
-    <!-- Filters -->
-    <div class="bg-white p-4 rounded-lg shadow-sm border mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
-          <input type="text" id="search-filter" placeholder="Doação, campanha, entidade, doador..." 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-          <select id="status-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <option value="all">Todos</option>
-            <option value="hoje">Hoje</option>
-            <option value="proximas">Próximas</option>
-            <option value="atrasadas">Atrasadas</option>
-            <option value="concluidas">Concluídas</option>
-            <option value="canceladas">Canceladas</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
-          <input type="date" id="date-start-filter" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Data Fim</label>
-          <input type="date" id="date-end-filter" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-        </div>
-      </div>
-      <div class="mt-3 text-sm text-gray-600" id="active-entity-filter"></div>
-    </div>
-
-    <!-- Tabs -->
-    <div class="mb-6">
-      <div class="flex flex-wrap gap-2">
-        <button class="tab-btn px-4 py-2 rounded-md text-sm font-medium tab-active" data-tab="hoje">Hoje</button>
-        <button class="tab-btn px-4 py-2 rounded-md text-sm font-medium tab-inactive" data-tab="proximas">Próximas</button>
-        <button class="tab-btn px-4 py-2 rounded-md text-sm font-medium tab-inactive" data-tab="atrasadas">Atrasadas</button>
-        <button class="tab-btn px-4 py-2 rounded-md text-sm font-medium tab-inactive" data-tab="concluidas">Concluídas</button>
-        <button class="tab-btn px-4 py-2 rounded-md text-sm font-medium tab-inactive" data-tab="todas">Todas</button>
-      </div>
-    </div>
-
-    <!-- Loading and content areas -->
     <div id="loading-view" class="bg-white rounded-md p-6 shadow-sm">Carregando agendamentos...</div>
     <div id="schedules-view" class="hidden space-y-6"></div>
     <div id="no-schedules-placeholder" class="hidden bg-white rounded-md p-6 shadow-sm text-gray-600">
@@ -141,23 +81,8 @@
     const imageModal = document.getElementById('image-preview-modal');
     const imageModalImg = document.getElementById('image-preview-el');
 
-    // Filters
-    const searchFilter = document.getElementById('search-filter');
-    const statusFilter = document.getElementById('status-filter');
-    const dateStartFilter = document.getElementById('date-start-filter');
-    const dateEndFilter = document.getElementById('date-end-filter');
-
-    // Metrics
-    const metricHoje = document.getElementById('metric-hoje');
-    const metricProximos = document.getElementById('metric-proximos');
-    const metricAtrasadas = document.getElementById('metric-atrasadas');
-    const metricConcluidas = document.getElementById('metric-concluidas');
-
     let campaignTypeSettings = {};
     let unsubDonations = null;
-    let allDonations = [];
-    let activeTab = 'hoje';
-    let dayRenderCounts = new Map(); // Track how many items rendered per day
 
     // --- Helpers gerais ---
     function qs() { return new URLSearchParams(location.search); }
@@ -217,7 +142,6 @@
         options: f.options || f.choices || f.values || []
       })).filter(f => f.id && !['type', 'photoURL'].includes(f.id));
     }
-
     function isLikelyMediaUrl(v) {
       if (typeof v !== 'string') return false;
       const s = v.trim().toLowerCase();
@@ -225,7 +149,6 @@
       if (s.includes('firebasestorage')) return true;
       return /\.(jpg|jpeg|png|gif|webp|heic|heif|bmp|svg)(\?|$)/i.test(s);
     }
-
     function isMediaField(field, rawValue) {
       const id = (field?.id || '').toLowerCase();
       const label = (field?.label || '').toLowerCase();
@@ -237,7 +160,6 @@
       if (isLikelyMediaUrl(rawValue)) return true;
       return false;
     }
-
     function resolveFieldValue(field, raw) {
       if (raw === null || raw === undefined || raw === '') return null;
       if (Array.isArray(raw)) return raw.map(v => resolveFieldValue(field, v)).filter(Boolean).join(', ');
@@ -254,7 +176,6 @@
       if (typeof raw === 'string' && isLikelyMediaUrl(raw)) return null;
       return String(raw);
     }
-
     function extractItemPhotoUrl(item, campaignType) {
       if (item?.photoURL && isLikelyMediaUrl(item.photoURL)) return item.photoURL;
       const fields = normalizeFieldsConfig(campaignType);
@@ -270,69 +191,22 @@
       }
       return null;
     }
-
     function generateItemDetailsHtml(item, campaignType) {
-      // First try with schema from campaignType
       const fields = normalizeFieldsConfig(campaignType).filter(f => !isMediaField(f, item?.[f.id]));
       const lines = fields.map(f => {
         const v = resolveFieldValue(f, item?.[f.id]);
         if (v === null || v === '') return '';
         return `<p><strong class="font-semibold">${f.label}:</strong> ${v}</p>`;
       }).filter(Boolean);
-
-      // If no fields from schema, show fallback from item keys
-      if (lines.length === 0 && item) {
-        const reservedKeys = ['type', 'photoURL', 'status', 'campaignType', 'createdAt', 'updatedAt', 'id'];
-        const fallbackLines = Object.entries(item)
-          .filter(([key, value]) => {
-            if (reservedKeys.includes(key)) return false;
-            if (value === null || value === undefined || value === '') return false;
-            if (typeof value === 'string' && isLikelyMediaUrl(value)) return false;
-            return true;
-          })
-          .map(([key, value]) => {
-            // Create friendly labels
-            const friendlyKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-            let displayValue = value;
-            if (typeof value === 'boolean') displayValue = value ? 'Sim' : 'Não';
-            else if (Array.isArray(value)) displayValue = value.join(', ');
-            else displayValue = String(value);
-            return `<p><strong class="font-semibold">${friendlyKey}:</strong> ${escapeHtml(displayValue)}</p>`;
-          });
-        return `<div class="space-y-1">${fallbackLines.length ? fallbackLines.join('') : '<p class="text-gray-500">Nenhum detalhe adicional.</p>'}</div>`;
-      }
-
       return `<div class="space-y-1">${lines.length ? lines.join('') : '<p class="text-gray-500">Nenhum detalhe adicional.</p>'}</div>`;
     }
 
-    function getCampaignTypeConfig(donation) {
-      const key = donation?.campaignType;
+    function getCampaignTypeConfig(item) {
+      const key = item?.campaignType || item?.type || item?.category;
       return key ? campaignTypeSettings[key] || {} : {};
     }
-
     function getItemTitle(item, typeConfig) {
       return item?.title || item?.name || item?.type || typeConfig?.title || 'Item';
-    }
-
-    // --- Status Classification ---
-    function classifyDonationStatus(donation) {
-      const now = new Date();
-      const scheduledAt = asDate(donation.scheduledAt);
-      const status = (donation.status || '').toLowerCase();
-
-      if (status === 'completed' || status === 'received') return 'concluidas';
-      if (status === 'cancelled' || status === 'canceled') return 'canceladas';
-      
-      if (!scheduledAt || isNaN(scheduledAt)) return 'outras';
-
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const scheduleDate = new Date(scheduledAt.getFullYear(), scheduledAt.getMonth(), scheduledAt.getDate());
-      const diffDays = Math.floor((scheduleDate - today) / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 0) return 'hoje';
-      if (diffDays < 0) return 'atrasadas';
-      if (diffDays <= 7) return 'proximas';
-      return 'futuras';
     }
 
     // --- Render ---
@@ -341,23 +215,21 @@
       const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
       return `<div class="avatar-fallback">${escapeHtml(initial)}</div>`;
     }
-
     function renderDonationHeader(donation) {
       const campaignTitle = donation.campaignTitle || donation.campaign?.title || '';
       const entityTitle = donation.entityName || donation.entityTitle || '';
       const extra = donation.campaignType ? ` (${escapeHtml(donation.campaignType)})` : '';
       const subtitle = entityTitle ? ` para ${escapeHtml(entityTitle)}` : '';
       if (!campaignTitle && !entityTitle) return '';
-      return `<div class="text-gray-800"><span class="font-semibold">${escapeHtml(campaignTitle)}</span>${subtitle}<span class="text-gray-500">${extra}</span></div>`;
+      return `<div class="text-gray-800"><span class="font-semibold">${escapeHtml(campaignTitle)}</span>${subtitle}.<span class="text-gray-500">${escapeHtml(extra)}</span></div>`;
     }
-
-    function renderDonationItem(item, donation) {
-      const typeCfg = getCampaignTypeConfig(donation);
+    function renderDonationItem(item) {
+      const campaignTypeKey = item.campaignType || item.type || item.category;
+      const typeCfg = getCampaignTypeConfig(item);
       const borderClass = getBorderClass(typeCfg);
       const title = getItemTitle(item, typeCfg);
-      // FIXED: Use donation.campaignType instead of item.campaignType
-      const details = generateItemDetailsHtml(item, donation.campaignType);
-      const photoUrl = extractItemPhotoUrl(item, donation.campaignType);
+      const details = generateItemDetailsHtml(item, campaignTypeKey);
+      const photoUrl = extractItemPhotoUrl(item, campaignTypeKey);
 
       const thumb = photoUrl
         ? `<button type="button" class="item-photo-btn" data-full="${escapeAttr(photoUrl)}" title="Ampliar imagem">
@@ -377,33 +249,12 @@
         </div>
       `;
     }
-
-    function renderActionButtons(donation) {
-      return `
-        <div class="flex gap-2 mt-3">
-          <button class="action-btn bg-green-100 text-green-800 px-2 py-1 rounded text-xs hover:bg-green-200" 
-                  data-action="received" data-id="${donation.id}">
-            Marcar recebida
-          </button>
-          <button class="action-btn bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs hover:bg-blue-200" 
-                  data-action="reschedule" data-id="${donation.id}">
-            Reagendar
-          </button>
-          <button class="action-btn bg-red-100 text-red-800 px-2 py-1 rounded text-xs hover:bg-red-200" 
-                  data-action="cancel" data-id="${donation.id}">
-            Cancelar
-          </button>
-        </div>
-      `;
-    }
-
     function renderDonationCard(donation) {
       const donorName = donation.donorName || donation.donor?.name || 'Doador Anônimo';
       const donorPhoto = donation.donor?.photoURL || donation.donorPhoto || '';
       const timeStr = formatTimeBR(donation.scheduledAt) || '--:--';
       const items = Array.isArray(donation.items) ? donation.items : [];
-      const itemsHtml = items.map(item => renderDonationItem(item, donation)).join('');
-      const actionsHtml = renderActionButtons(donation);
+      const itemsHtml = items.map(renderDonationItem).join('');
 
       return `
         <div class="bg-white rounded-lg shadow-sm border border-blue-200">
@@ -424,101 +275,24 @@
             <div class="mt-3 space-y-3">
               ${itemsHtml || '<p class="text-gray-500">Nenhum item cadastrado.</p>'}
             </div>
-            ${actionsHtml}
           </div>
         </div>
       `;
     }
+    function renderDonations(donations) {
+      const scheduled = donations
+        .filter(d => (d.status || '').toLowerCase() === 'scheduled' && asDate(d.scheduledAt))
+        .sort((a, b) => asDate(a.scheduledAt) - asDate(b.scheduledAt));
 
-    function getFilteredDonations() {
-      const search = searchFilter.value.toLowerCase().trim();
-      const status = statusFilter.value;
-      const dateStart = dateStartFilter.value ? new Date(dateStartFilter.value) : null;
-      const dateEnd = dateEndFilter.value ? new Date(dateEndFilter.value + 'T23:59:59') : null;
-
-      return allDonations.filter(donation => {
-        // Search filter
-        if (search) {
-          const searchableText = [
-            donation.donorName,
-            donation.campaignTitle,
-            donation.entityName,
-            donation.entityTitle,
-            ...(donation.items || []).map(item => 
-              Object.values(item).filter(v => typeof v === 'string').join(' ')
-            )
-          ].join(' ').toLowerCase();
-          
-          if (!searchableText.includes(search)) return false;
-        }
-
-        // Status filter
-        if (status !== 'all') {
-          const donationStatus = classifyDonationStatus(donation);
-          if (status !== donationStatus) return false;
-        }
-
-        // Date range filter
-        const scheduledAt = asDate(donation.scheduledAt);
-        if (scheduledAt) {
-          if (dateStart && scheduledAt < dateStart) return false;
-          if (dateEnd && scheduledAt > dateEnd) return false;
-        }
-
-        return true;
-      });
-    }
-
-    function getTabFilteredDonations(donations) {
-      if (activeTab === 'todas') return donations;
-      return donations.filter(donation => classifyDonationStatus(donation) === activeTab);
-    }
-
-    function calculateMetrics() {
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const next7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const last30Days = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-      const counts = {
-        hoje: 0,
-        proximos: 0,
-        atrasadas: 0,
-        concluidas: 0
-      };
-
-      allDonations.forEach(donation => {
-        const status = classifyDonationStatus(donation);
-        const scheduledAt = asDate(donation.scheduledAt);
-
-        if (status === 'hoje') counts.hoje++;
-        else if (status === 'proximas') counts.proximos++;
-        else if (status === 'atrasadas') counts.atrasadas++;
-        else if (status === 'concluidas' && scheduledAt && scheduledAt >= last30Days) {
-          counts.concluidas++;
-        }
-      });
-
-      metricHoje.textContent = counts.hoje;
-      metricProximos.textContent = counts.proximos;
-      metricAtrasadas.textContent = counts.atrasadas;
-      metricConcluidas.textContent = counts.concluidas;
-    }
-
-    function renderDonations() {
-      const filtered = getFilteredDonations();
-      const tabFiltered = getTabFilteredDonations(filtered);
-
-      if (!tabFiltered.length) {
+      if (!scheduled.length) {
         loadingView.classList.add('hidden');
         schedulesView.classList.add('hidden');
         noSchedulesPlaceholder.classList.remove('hidden');
         return;
       }
 
-      // Group by date
       const groupMap = new Map();
-      for (const d of tabFiltered) {
+      for (const d of scheduled) {
         const date = asDate(d.scheduledAt);
         if (!date || isNaN(date)) continue;
         const key = date.toISOString().slice(0,10);
@@ -528,32 +302,13 @@
       }
 
       const groupKeys = [...groupMap.keys()].sort();
-      dayRenderCounts.clear();
-
       const html = groupKeys.map(key => {
         const list = groupMap.get(key) || [];
         const dateObj = new Date(key + 'T00:00:00');
-        const renderCount = 50; // Initial render count
-        const visibleItems = list.slice(0, renderCount);
-        dayRenderCounts.set(key, renderCount);
-
-        const showMoreBtn = list.length > renderCount 
-          ? `<button class="show-more-btn w-full mt-4 px-4 py-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100" 
-                     data-date="${key}">
-               Mostrar mais (${list.length - renderCount} restantes)
-             </button>`
-          : '';
-
         return `
-          <section class="space-y-3" data-date-group="${key}">
-            <h2 class="text-xl font-semibold text-gray-800">
-              ${formatDateLongBR(dateObj)}
-              <span class="text-sm font-normal text-gray-600 ml-2">(${list.length})</span>
-            </h2>
-            <div class="space-y-3" data-items-container="${key}">
-              ${visibleItems.map(renderDonationCard).join('')}
-            </div>
-            ${showMoreBtn}
+          <section class="space-y-3">
+            <h2 class="text-xl font-semibold text-gray-800">${formatDateLongBR(dateObj)}</h2>
+            ${list.map(renderDonationCard).join('')}
           </section>
         `;
       }).join('');
@@ -576,9 +331,8 @@
         qRef = query(donationsCol);
       }
       unsubDonations = onSnapshot(qRef, (snapshot) => {
-        allDonations = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        calculateMetrics();
-        renderDonations();
+        const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderDonations(docs);
       }, (err) => {
         console.error('Erro ao ler agendamentos:', err);
         loadingView.classList.add('hidden');
@@ -586,52 +340,7 @@
       });
     }
 
-    // Event handlers
-    searchFilter.addEventListener('input', renderDonations);
-    statusFilter.addEventListener('change', renderDonations);
-    dateStartFilter.addEventListener('change', renderDonations);
-    dateEndFilter.addEventListener('change', renderDonations);
-
-    // Tab switching
-    document.addEventListener('click', (ev) => {
-      const tab = ev.target.closest('.tab-btn');
-      if (tab) {
-        const newTab = tab.dataset.tab;
-        if (newTab !== activeTab) {
-          // Update tab styles
-          document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('tab-active');
-            btn.classList.add('tab-inactive');
-          });
-          tab.classList.remove('tab-inactive');
-          tab.classList.add('tab-active');
-          
-          activeTab = newTab;
-          renderDonations();
-        }
-      }
-
-      // Show more button
-      const showMoreBtn = ev.target.closest('.show-more-btn');
-      if (showMoreBtn) {
-        const dateKey = showMoreBtn.dataset.date;
-        const currentCount = dayRenderCounts.get(dateKey) || 50;
-        const newCount = currentCount + 50;
-        dayRenderCounts.set(dateKey, newCount);
-        renderDonations();
-      }
-
-      // Action buttons (placeholders)
-      const actionBtn = ev.target.closest('.action-btn');
-      if (actionBtn) {
-        const action = actionBtn.dataset.action;
-        const donationId = actionBtn.dataset.id;
-        console.log(`TODO: Implement ${action} for donation ${donationId}`);
-        // TODO: Wire up actual functionality
-      }
-    });
-
-    // Image modal events
+    // Eventos do modal de imagem
     schedulesView.addEventListener('click', (ev) => {
       const btn = ev.target.closest('.item-photo-btn');
       if (!btn) return;
@@ -672,7 +381,11 @@
       const entityIds = getEffectiveEntityIds(userSession);
       const forcedEntity = qs().get('entityId') || qs().get('entidadeId');
       if (forcedEntity) {
+        activeEntityFilterEl.classList.remove('hidden');
         activeEntityFilterEl.textContent = `Filtro ativo — entityId: ${forcedEntity}`;
+      } else {
+        activeEntityFilterEl.classList.add('hidden');
+        activeEntityFilterEl.textContent = '';
       }
 
       subscribeDonations(entityIds);
