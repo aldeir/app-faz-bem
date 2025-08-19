@@ -192,6 +192,20 @@
             }
         };
 
+        // Tailwind-safe border mapping
+        const BORDER_COLOR_MAP = {
+            green: 'border-green-500',
+            blue: 'border-blue-500', 
+            yellow: 'border-yellow-500',
+            red: 'border-red-500',
+            purple: 'border-purple-500',
+            gray: 'border-gray-500',
+            default: 'border-gray-500'
+        };
+        function getBorderClass(color) {
+            return BORDER_COLOR_MAP[color] || BORDER_COLOR_MAP.default;
+        }
+
         const campaignLists = {
             ativas: document.getElementById('active-campaigns-list'),
             proximas: document.getElementById('upcoming-campaigns-list'),
@@ -320,7 +334,8 @@
             const settings = state.settings[campaign.type] || state.settings['default'] || { label: 'Campanha', color: 'gray' };
             const isCampaignActive = listKey === 'active';
             const isEncerrada = listKey === 'recent' || (campaign.expiresAt?.toDate() && campaign.expiresAt.toDate() <= new Date());
-            const cardClasses = `campaign-card flex flex-col bg-white rounded-lg shadow-lg overflow-hidden border-2 border-${settings.color}-500 ${isEncerrada ? 'campaign-encerrada' : 'hover:shadow-xl hover:-translate-y-1'}`;
+            const borderClass = getBorderClass(settings.color);
+            const cardClasses = `campaign-card flex flex-col bg-white rounded-lg shadow-lg overflow-hidden border-2 ${borderClass} ${isEncerrada ? 'campaign-encerrada' : 'hover:shadow-xl hover:-translate-y-1'}`;
 
             let mediaHtml = '';
             if (!isEncerrada) {
