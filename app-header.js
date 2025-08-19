@@ -12,7 +12,7 @@ function addFavicon() {
     const faviconLink = document.createElement('link');
     faviconLink.rel = 'icon';
     faviconLink.type = 'image/png';
-    faviconLink.href = 'images/icons/icon-72x72.png'; 
+    faviconLink.href = 'logo.png'; 
     document.head.appendChild(faviconLink);
 }
 
@@ -93,10 +93,21 @@ async function createUserMenuHTML(userSession) {
     let menuItems = `<a href="notificacoes.html" class="menu-item">Notificações</a>`;
     switch (userRole) {
         case 'superadmin':
-            menuItems += `<a href="superadmin.html" class="menu-item">Painel Superadmin</a><a href="configuracoes.html" class="menu-item">Configurações</a>`;
+            menuItems += `
+                <a href="superadmin.html" class="menu-item">Painel Superadmin</a>
+                <a href="gerenciar-entidades.html" class="menu-item">Gerenciar Entidades</a>
+                <a href="gerenciar-campanhas.html" class="menu-item">Gerenciar Campanhas</a>
+                <a href="gerenciar-doadores.html" class="menu-item">Gerenciar Doadores</a>
+                <a href="gerenciar-agendamentos.html" class="menu-item">Agendamentos</a>
+                <a href="configuracoes.html" class="menu-item">Configurações</a>`;
             break;
         case 'entidade':
-            menuItems += `<a href="admin.html" class="menu-item">Painel da Entidade</a><a href="${profileLink}" class="menu-item">Perfil da Entidade</a>`;
+            menuItems += `
+                <a href="admin.html" class="menu-item">Painel da Entidade</a>
+                <a href="gerenciar-agendamentos.html" class="menu-item">Agendamentos</a>
+                <a href="receber-doacao.html" class="menu-item">Receber Doação</a>
+                <a href="criar-campanha.html" class="menu-item">Criar Campanha</a>
+                <a href="${profileLink}" class="menu-item">Perfil da Entidade</a>`;
             break;
         default: // Doador
             menuItems += `<a href="${profileLink}" class="menu-item">Meu Perfil</a>`;
@@ -104,6 +115,7 @@ async function createUserMenuHTML(userSession) {
             if (hasDonations) {
                 menuItems += `<a href="minhas-entregas.html" class="menu-item">Minhas Entregas</a>`;
             }
+            menuItems += `<a href="index.html" class="menu-item">Procurar Campanhas</a>`;
             break;
     }
 
