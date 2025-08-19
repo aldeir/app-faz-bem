@@ -10,6 +10,7 @@ import { getCurrentUser } from './auth-service.js';
  * @param {boolean} options.requireAuth - Se true, exige usuário autenticado
  * @param {string[]} options.requiredRoles - Array de roles permitidos (ex: ['entidade', 'doador', 'superadmin'])
  * @param {boolean} options.requireVerified - Se true, exige email verificado
+ * @param {boolean} options.requireApprovedEntity - Se true, exige que entidades tenham status 'ativo'
  * @param {string} options.redirectTo - URL para redirecionamento personalizado (padrão: 'login.html')
  * @param {string} options.pendingRedirectTo - URL para entidades pendentes (padrão: 'aguardando-aprovacao.html')
  * 
@@ -24,7 +25,8 @@ import { getCurrentUser } from './auth-service.js';
  * const userSession = await guard({ 
  *   requireAuth: true, 
  *   requiredRoles: ['entidade'], 
- *   requireVerified: true 
+ *   requireVerified: true,
+ *   requireApprovedEntity: true
  * });
  * 
  * @example
@@ -39,6 +41,7 @@ export async function guard(options = {}) {
         requireAuth = false,
         requiredRoles = [],
         requireVerified = false,
+        requireApprovedEntity = false,
         redirectTo = 'login.html',
         pendingRedirectTo = 'aguardando-aprovacao.html'
     } = options;
@@ -50,7 +53,8 @@ export async function guard(options = {}) {
         // Verificação 1: Autenticação obrigatória
         if (requireAuth && !userSession) {
             console.log('Route Guard: Usuário não autenticado, redirecionando para login');
-            window.location.href = redirectTo;
+            const currentPage = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.href = `${redirectTo}?next=${currentPage}`;
             return null;
         }
 
@@ -93,11 +97,11 @@ export async function guard(options = {}) {
                 return null;
             }
 
-            // Verificação 4: Status da entidade (se for entidade)
-            if (userRole === 'entidade' && userSession.profile) {
+            // Verificação 4: Status da entidade (se for entidade e requerido)
+            if (userRole === 'entidade' && userSession.profile && requireApprovedEntity) {
                 const entityStatus = userSession.profile.status;
                 
-                if (entityStatus === 'pendente_aprovacao') {
+                if (entityStatus === 'pendente') {
                     console.log('Route Guard: Entidade pendente de aprovação, redirecionando');
                     window.location.href = pendingRedirectTo;
                     return null;

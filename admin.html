@@ -109,7 +109,7 @@
         import { showConfirmationModal, showAlertModal } from './modal-handler.js';
         import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
-        import { getCurrentUser } from './auth-service.js';
+        import { guard } from './route-guard.js';
 
         const loadingView = document.getElementById('loading-view');
         const dashboardView = document.getElementById('dashboard-view');
@@ -126,25 +126,25 @@
                 return;
             }
 
-            const userSession = await getCurrentUser();
+            // Use route guard for authentication and authorization
+            const userSession = await guard({
+                requireAuth: true,
+                requiredRoles: ['entidade'],
+                requireApprovedEntity: true
+            });
 
-            if (userSession && userSession.profile?.role === 'entidade') {
-                const { auth, profile } = userSession;
-                
-                if (profile.status === 'ativo') {
-                    loadingView.classList.add('hidden');
-                    pendingApprovalView.classList.add('hidden');
-                    dashboardView.classList.remove('hidden');
-                    loadMyCampaigns(auth.uid);
-                    loadScheduledDonations(auth.uid);
-                } else {
-                    loadingView.classList.add('hidden');
-                    dashboardView.classList.add('hidden');
-                    pendingApprovalView.classList.remove('hidden');
-                }
-            } else {
-                window.location.href = 'login.html';
+            // If guard returns null, user was redirected
+            if (!userSession) {
+                return;
             }
+
+            // If we reach here, user is authenticated and authorized
+            const { auth, profile } = userSession;
+            loadingView.classList.add('hidden');
+            pendingApprovalView.classList.add('hidden');
+            dashboardView.classList.remove('hidden');
+            loadMyCampaigns(auth.uid);
+            loadScheduledDonations(auth.uid);
         }
 
         logoutBtnPending.addEventListener('click', () => logout().then(() => window.location.href = 'index.html'));

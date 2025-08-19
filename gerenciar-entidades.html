@@ -106,7 +106,7 @@
         import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, getDocs, where, limit } from './firebase-services.js';
         import { paths } from './firestore-paths.js';
         import { injectHeader } from './app-header.js';
-        import { getCurrentUser } from './auth-service.js';
+        import { guard } from './route-guard.js';
         import { showConfirmationModal, showAlertModal, showDetailsModal } from './modal-handler.js';
 
         // --- Variáveis Globais e Seletores de DOM ---
@@ -133,11 +133,18 @@
                 return;
             }
 
-            const userSession = await getCurrentUser();
-            if (!userSession || userSession.profile?.role !== 'superadmin') {
-                window.location.href = 'index.html';
+            // Use route guard for authentication and authorization
+            const userSession = await guard({
+                requireAuth: true,
+                requiredRoles: ['superadmin']
+            });
+
+            // If guard returns null, user was redirected
+            if (!userSession) {
                 return;
             }
+
+            // If we reach here, user is authenticated and authorized as superadmin
             loadAllEntities();
         }
 

@@ -1,7 +1,7 @@
 import { db, storage, paths } from './app-config.js';
 import { doc, getDoc, writeBatch, storageRef, uploadBytes, getDownloadURL } from './firebase-services.js';
 import { injectHeader } from './app-header.js';
-import { getCurrentUser } from './auth-service.js';
+import { guard } from './route-guard.js';
 
 // --- ELEMENTOS DO DOM ---
 const loadingView = document.getElementById('loading-view');
@@ -30,13 +30,21 @@ let originalProfileData = {}; // Guarda os dados originais para o cancelamento
 // --- INICIALIZAÇÃO ---
 async function initializeApp() {
     await injectHeader();
-    currentUserSession = await getCurrentUser();
+    
+    // Use route guard for authentication and authorization
+    currentUserSession = await guard({
+        requireAuth: true,
+        requiredRoles: ['entidade'],
+        requireApprovedEntity: true
+    });
 
-    if (currentUserSession && currentUserSession.profile?.role === 'entidade') {
-        loadProfileData(currentUserSession.auth.uid);
-    } else {
-        window.location.href = 'login.html';
+    // If guard returns null, user was redirected
+    if (!currentUserSession) {
+        return;
     }
+
+    // Load profile data for authorized entity
+    loadProfileData(currentUserSession.auth.uid);
 }
 
 // --- CONTROLO DO MODO DE EDIÇÃO ---
