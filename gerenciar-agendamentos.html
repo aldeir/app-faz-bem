@@ -1,425 +1,383 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciar Agendamentos - Faz Bem</title>
-    
-    <meta name="theme-color" content="#22c55e">
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="/app-faz-bem/images/icons/icon-192x192.png">
-<link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
-    <link rel="icon" href="/app-faz-bem/images/icons/icon-72x72.png" type="image/png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gerenciar Agendamentos</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="logo.png" type="image/png">
+  <style>
+    .avatar-fallback {
+      background: #e2e8f0; color: #1f2937;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 600; text-transform: uppercase; border-radius: 9999px;
+      width: 40px; height: 40px;
+    }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 50; }
+    .modal-backdrop.active { display: flex; }
+    .modal-content { max-width: 90vw; max-height: 90vh; }
+    .modal-content img { max-width: 100%; max-height: 90vh; border-radius: 8px; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <header id="app-header"></header>
 
-    <link href="/app-faz-bem/style.css" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #16a34a; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .tab-button.active {
-            border-color: #16a34a;
-            color: #16a34a;
-            background-color: #f0fdf4;
-        }
-        .options-menu {
-            position: absolute;
-            right: 0;
-            top: calc(100% + 0.5rem);
-            z-index: 20;
-            transition: opacity 0.2s, transform 0.2s;
-        }
-        .tooltip {
-            position: relative;
-            display: inline-block;
-        }
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            width: 160px;
-            background-color: #555;
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -80px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
-            opacity: 1;
-        }
-    </style>
-	</head>
-<body class="bg-gray-100">
-    <div id="app-header"></div>
-	
-	    <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
-        <div class="text-center">
-            <div class="loader mx-auto"></div>
-            <p class="mt-4 text-gray-600">A carregar agendamentos...</p>
-        </div>
-		
-		   </div>
+  <main class="max-w-5xl mx-auto p-4">
+    <div class="mb-6">
+      <a id="backLink" href="admin.html" class="text-sm text-blue-600 hover:underline">&larr; Voltar</a>
+    </div>
 
-    <main id="schedules-view" class="hidden container mx-auto max-w-5xl p-4 sm:p-6 my-8">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">Gerenciar Agendamentos</h1>
-                <p class="text-sm text-gray-500 mt-1">Acompanhe as doações agendadas para sua entidade.</p>
-            </div>
-            <div class="flex items-center space-x-4">
-                 <a href="receber-doacao.html" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 flex items-center gap-2 shadow-sm">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4m12 0h-4v4m0 12v-4h4m-12 0H4v-4"></path></svg>
-                    Receber via QR Code
-                </a>
-                <a href="admin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
-            </div>
-        </div>
-		
-		
-        <div class="border-b border-gray-200 mb-6">
-            <nav id="tabs-container" class="-mb-px flex space-x-8" aria-label="Tabs">
-                <button data-tab="scheduled" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Próximos</button>
-                <button data-tab="overdue" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Vencidos</button>
-                <button data-tab="history" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Histórico</button>
-            </nav>
-        </div>
-        
-        <div id="schedules-list" class="space-y-8"></div>
-        
-        <div id="no-schedules-placeholder" class="hidden text-center text-gray-500 py-10 bg-white rounded-lg shadow">
-            <p>Nenhuma doação encontrada para esta categoria.</p>
-        </div>
-        
-        <div id="load-more-container" class="text-center mt-8 hidden">
-            <button id="load-more-btn" class="bg-gray-200 text-gray-800 font-semibold py-2 px-6 rounded-lg hover:bg-gray-300 transition-colors">Carregar Mais</button>
-        </div>
-    </main>
+    <h1 class="text-2xl font-bold mb-4">Gerenciar Agendamentos</h1>
 
-    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">​</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
-                            <div class="mt-2">
-                                <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
-                            </div>
-                        </div>
-                    </div>
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+      <div>
+        <label class="text-sm text-gray-600">Filtrar por entidade (URL):</label>
+        <code class="text-xs bg-gray-200 px-2 py-1 rounded">?entityId=SEU_ID</code>
+      </div>
+      <div class="text-sm text-gray-600 hidden" id="active-entity-filter"></div>
+    </div>
+
+    <div id="loading-view" class="bg-white rounded-md p-6 shadow-sm">Carregando agendamentos...</div>
+    <div id="schedules-view" class="hidden space-y-6"></div>
+    <div id="no-schedules-placeholder" class="hidden bg-white rounded-md p-6 shadow-sm text-gray-600">
+      Nenhum agendamento encontrado para este filtro.
+    </div>
+  </main>
+
+  <!-- Modal de visualização de imagem -->
+  <div id="image-preview-modal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-content">
+      <img id="image-preview-el" src="" alt="Visualização do item">
+    </div>
+  </div>
+
+  <script type="module">
+    import { db } from './app-config.js';
+    import { collection, query, where, onSnapshot, doc, getDoc } from './firebase-services.js';
+    import { paths } from './firestore-paths.js';
+    import { injectHeader } from './app-header.js';
+    import { getCurrentUser } from './auth-service.js';
+
+    const loadingView = document.getElementById('loading-view');
+    const schedulesView = document.getElementById('schedules-view');
+    const noSchedulesPlaceholder = document.getElementById('no-schedules-placeholder');
+    const activeEntityFilterEl = document.getElementById('active-entity-filter');
+    const backLink = document.getElementById('backLink');
+
+    const imageModal = document.getElementById('image-preview-modal');
+    const imageModalImg = document.getElementById('image-preview-el');
+
+    let campaignTypeSettings = {};
+    let unsubDonations = null;
+
+    // --- Helpers gerais ---
+    function qs() { return new URLSearchParams(location.search); }
+    function asDate(v) { try { return v?.toDate ? v.toDate() : (v ? new Date(v) : null); } catch { return null; } }
+    function escapeHtml(s) {
+      return String(s ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;')
+        .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
+    }
+    function escapeAttr(s) { return escapeHtml(s).replaceAll('`','&#096;'); }
+
+    function getEffectiveEntityIds(userSession) {
+      const query = qs();
+      const forced = query.get('entityId') || query.get('entidadeId');
+      const ids = [];
+      if (forced) ids.push(forced);
+      if (userSession?.profile?.entityId) ids.push(userSession.profile.entityId);
+      if (userSession?.profile?.id) ids.push(userSession.profile.id);
+      if (userSession?.auth?.uid && userSession?.profile?.role === 'entidade') ids.push(userSession.auth.uid);
+      return [...new Set(ids)].filter(Boolean);
+    }
+
+    const BORDER_COLOR_MAP = {
+      green: 'border-green-500',
+      blue: 'border-blue-500',
+      yellow: 'border-yellow-500',
+      red: 'border-red-500',
+      purple: 'border-purple-500',
+      gray: 'border-gray-500',
+      default: 'border-blue-500'
+    };
+    function getBorderClass(typeConfig) {
+      return BORDER_COLOR_MAP[typeConfig?.color] || BORDER_COLOR_MAP.default;
+    }
+
+    function formatDateLongBR(date) {
+      const d = asDate(date); if (!d || isNaN(d)) return '';
+      const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+      const weekday = cap(new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(d));
+      const day = new Intl.DateTimeFormat('pt-BR', { day: '2-digit' }).format(d);
+      const month = cap(new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(d));
+      const year = new Intl.DateTimeFormat('pt-BR', { year: 'numeric' }).format(d);
+      return `${weekday}, ${day} de ${month} de ${year}`;
+    }
+    function formatTimeBR(date) {
+      const d = asDate(date); if (!d || isNaN(d)) return '';
+      return new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(d);
+    }
+
+    // --- Campos dinâmicos (robustos) ---
+    function normalizeFieldsConfig(campaignType) {
+      const cfg = campaignTypeSettings?.[campaignType];
+      const fieldsRaw = Array.isArray(cfg?.fields) ? cfg.fields : Object.values(cfg?.fields || {});
+      return fieldsRaw.map(f => ({
+        id: f.id || f.key || f.name,
+        label: f.label || f.title || f.name || f.id || f.key,
+        type: (f.type || '').toLowerCase(),
+        options: f.options || f.choices || f.values || []
+      })).filter(f => f.id && !['type', 'photoURL'].includes(f.id));
+    }
+    function isLikelyMediaUrl(v) {
+      if (typeof v !== 'string') return false;
+      const s = v.trim().toLowerCase();
+      if (!s.startsWith('http')) return false;
+      // cobre googleapis + domínios app do Firebase e extensões comuns
+      if (s.includes('firebasestorage')) return true;
+      return /\.(jpg|jpeg|png|gif|webp|heic|heif|bmp|svg)(\?|$)/i.test(s);
+    }
+    function isMediaField(field, rawValue) {
+      const id = (field?.id || '').toLowerCase();
+      const label = (field?.label || '').toLowerCase();
+      const type = (field?.type || '').toLowerCase();
+      const mediaTypes = ['image','camera','video','file','upload','photo','media','picture'];
+      const mediaKeywords = ['foto','photo','imagem','image','picture','camera'];
+      if (mediaTypes.includes(type)) return true;
+      if (mediaKeywords.some(k => id.includes(k) || label.includes(k))) return true;
+      if (isLikelyMediaUrl(rawValue)) return true; // valor é uma URL de mídia
+      return false;
+    }
+    function resolveFieldValue(field, raw) {
+      if (raw === null || raw === undefined || raw === '') return null;
+      if (Array.isArray(raw)) return raw.map(v => resolveFieldValue(field, v)).filter(Boolean).join(', ');
+      if (typeof raw === 'boolean') return raw ? 'Sim' : 'Não';
+      if (['select','radio','dropdown'].includes(field.type)) {
+        const opts = field.options || [];
+        const m = opts.find(o => String(o.value ?? o.id ?? o.key ?? o.code ?? o.label) === String(raw));
+        return m ? (m.label ?? m.name ?? String(raw)) : String(raw);
+      }
+      if (['date','datetime'].includes(field.type)) {
+        const d = asDate(raw);
+        return d && !isNaN(d) ? d.toLocaleString('pt-BR') : String(raw);
+      }
+      // Se for um valor textual começando com http, não mostrar como detalhe
+      if (typeof raw === 'string' && isLikelyMediaUrl(raw)) return null;
+      return String(raw);
+    }
+    function extractItemPhotoUrl(item, campaignType) {
+      if (item?.photoURL && isLikelyMediaUrl(item.photoURL)) return item.photoURL;
+      const fields = normalizeFieldsConfig(campaignType);
+      for (const f of fields) {
+        const v = item?.[f.id];
+        if (!v) continue;
+        if (Array.isArray(v)) {
+          const found = v.find(isLikelyMediaUrl);
+          if (found) return found;
+        } else if (isMediaField(f, v) && isLikelyMediaUrl(v)) {
+          return v;
+        }
+      }
+      return null;
+    }
+    function generateItemDetailsHtml(item, campaignType) {
+      const fields = normalizeFieldsConfig(campaignType).filter(f => !isMediaField(f, item?.[f.id]));
+      const lines = fields.map(f => {
+        const v = resolveFieldValue(f, item?.[f.id]);
+        if (v === null || v === '') return '';
+        return `<p><strong class="font-semibold">${f.label}:</strong> ${v}</p>`;
+      }).filter(Boolean);
+      return `<div class="space-y-1">${lines.length ? lines.join('') : '<p class="text-gray-500">Nenhum detalhe adicional.</p>'}</div>`;
+    }
+
+    function getCampaignTypeConfig(item) {
+      const key = item?.campaignType || item?.type || item?.category;
+      return key ? campaignTypeSettings[key] || {} : {};
+    }
+    function getItemTitle(item, typeConfig) {
+      return item?.title || item?.name || item?.type || typeConfig?.title || 'Item';
+    }
+
+    // --- Render ---
+    function renderAvatar(name, photoURL) {
+      if (photoURL) return `<img src="${escapeAttr(photoURL)}" alt="${escapeAttr(name)}" class="w-10 h-10 rounded-full object-cover border" loading="lazy">`;
+      const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
+      return `<div class="avatar-fallback">${escapeHtml(initial)}</div>`;
+    }
+    function renderDonationHeader(donation) {
+      const campaignTitle = donation.campaignTitle || donation.campaign?.title || '';
+      const entityTitle = donation.entityName || donation.entityTitle || '';
+      const extra = donation.campaignType ? ` (${escapeHtml(donation.campaignType)})` : '';
+      const subtitle = entityTitle ? ` para ${escapeHtml(entityTitle)}` : '';
+      if (!campaignTitle && !entityTitle) return '';
+      return `<div class="text-gray-800"><span class="font-semibold">${escapeHtml(campaignTitle)}</span>${subtitle}.<span class="text-gray-500">${escapeHtml(extra)}</span></div>`;
+    }
+    function renderDonationItem(item) {
+      const campaignTypeKey = item.campaignType || item.type || item.category;
+      const typeCfg = getCampaignTypeConfig(item);
+      const borderClass = getBorderClass(typeCfg);
+      const title = getItemTitle(item, typeCfg);
+      const details = generateItemDetailsHtml(item, campaignTypeKey);
+      const photoUrl = extractItemPhotoUrl(item, campaignTypeKey);
+
+      const thumb = photoUrl
+        ? `<button type="button" class="item-photo-btn" data-full="${escapeAttr(photoUrl)}" title="Ampliar imagem">
+             <img src="${escapeAttr(photoUrl)}" alt="Foto do item" class="w-10 h-10 rounded object-cover border" loading="lazy">
+           </button>`
+        : `<div class="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-gray-400" title="Sem foto">
+             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h4l2-3h6l2 3h4v13H3V7z"/></svg>
+           </div>`;
+
+      return `
+        <div class="bg-white p-3 rounded-lg shadow-sm flex items-start gap-3 border-l-4 ${borderClass}">
+          ${thumb}
+          <div class="flex-1">
+            <div class="font-medium text-gray-900">${escapeHtml(title)}</div>
+            <div class="mt-1 text-sm text-gray-700">${details}</div>
+          </div>
+        </div>
+      `;
+    }
+    function renderDonationCard(donation) {
+      const donorName = donation.donorName || donation.donor?.name || 'Doador Anônimo';
+      const donorPhoto = donation.donor?.photoURL || donation.donorPhoto || '';
+      const timeStr = formatTimeBR(donation.scheduledAt) || '--:--';
+      const items = Array.isArray(donation.items) ? donation.items : [];
+      const itemsHtml = items.map(renderDonationItem).join('');
+
+      return `
+        <div class="bg-white rounded-lg shadow-sm border border-blue-200">
+          <div class="px-4 py-3 border-b">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                ${renderAvatar(donorName, donorPhoto)}
+                <div>
+                  <div class="font-semibold text-gray-900">${escapeHtml(donorName)}</div>
+                  <div class="text-sm text-emerald-600">Horário: ${escapeHtml(timeStr)}</div>
                 </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
+              </div>
+              <div class="text-gray-400">...</div>
             </div>
+          </div>
+          <div class="p-4">
+            ${renderDonationHeader(donation)}
+            <div class="mt-3 space-y-3">
+              ${itemsHtml || '<p class="text-gray-500">Nenhum item cadastrado.</p>'}
+            </div>
+          </div>
         </div>
-		
-		   </div>
-    <script type="module">
-        import { db } from './app-config.js';
-        import { collection, query, where, onSnapshot, doc, getDoc, getDocs, updateDoc } from './firebase-services.js';
-        import { paths } from './firestore-paths.js';
-        import { injectHeader } from './app-header.js';
-        import { getCurrentUser } from './auth-service.js';
-        import { showAlertModal, showConfirmationModal, showDetailsModal } from './modal-handler.js';
-        import { createNotification } from './notification-service.js';
-        
-        const loadingView = document.getElementById('loading-view');
-        const schedulesView = document.getElementById('schedules-view');
-        const noSchedulesPlaceholder = document.getElementById('no-schedules-placeholder');
-        const tabsContainer = document.getElementById('tabs-container');
-        const schedulesList = document.getElementById('schedules-list');
-        const loadMoreContainer = document.getElementById('load-more-container');
-        const loadMoreBtn = document.getElementById('load-more-btn');
+      `;
+    }
+    function renderDonations(donations) {
+      const scheduled = donations
+        .filter(d => (d.status || '').toLowerCase() === 'scheduled' && asDate(d.scheduledAt))
+        .sort((a, b) => asDate(a.scheduledAt) - asDate(b.scheduledAt));
 
-        let allDonationsData = [];
-        let campaignsMap = new Map();
-        let campaignTypeSettings = {};
-        let currentUserSession = null;
-        let currentPage = 1;
-        const ITEMS_PER_PAGE = 5;
-        let donorsPublicInfoCache = new Map();
+      if (!scheduled.length) {
+        loadingView.classList.add('hidden');
+        schedulesView.classList.add('hidden');
+        noSchedulesPlaceholder.classList.remove('hidden');
+        return;
+      }
 
-        async function initializeApp() {
-            await injectHeader();
-            currentUserSession = await getCurrentUser();
-            if (currentUserSession && currentUserSession.profile?.role === 'entidade') {
-                const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
-                campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
-                
-                await loadInitialData(currentUserSession.auth.uid);
-            } else {
-                window.location.href = 'index.html';
-            }
-        }
-		
-		
-        async function buildDonorsPublicInfoCache(donations) {
-            const donorIds = [...new Set(donations.map(d => d.donorId).filter(Boolean))];
-            for (const id of donorIds) {
-                if (!donorsPublicInfoCache.has(id)) {
-                    // Busca apenas na coleção de doações para obter dados públicos
-                    const relevantDonation = donations.find(d => d.donorId === id);
-                    if (relevantDonation) {
-                        donorsPublicInfoCache.set(id, {
-                            displayName: relevantDonation.donorName,
-                            photoURL: relevantDonation.donorPhoto
-                        });
-                    }
-                }
-            }
-        }
-        
-        async function loadInitialData(entityId) {
-            try {
-                const campaignsQuery = query(collection(db, paths.campaigns), where("entityId", "==", entityId));
-                const campaignsSnapshot = await getDocs(campaignsQuery);
-                campaignsSnapshot.forEach(doc => campaignsMap.set(doc.id, { id: doc.id, ...doc.data() }));
+      const groupMap = new Map();
+      for (const d of scheduled) {
+        const date = asDate(d.scheduledAt);
+        if (!date || isNaN(date)) continue;
+        const key = date.toISOString().slice(0,10);
+        const list = groupMap.get(key) || [];
+        list.push(d);
+        groupMap.set(key, list);
+      }
 
-                const donationsQuery = query(collection(db, paths.donations), where("entityId", "==", entityId));
-                onSnapshot(donationsQuery, async (snapshot) => {
-                    allDonationsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    await buildDonorsPublicInfoCache(allDonationsData);
-                    currentPage = 1;
-                    renderActiveTabData();
-                    loadingView.classList.add('hidden');
-                    schedulesView.classList.remove('hidden');
-                });
-            } catch (error) {
-                console.error("Erro ao carregar dados iniciais:", error);
-                loadingView.innerHTML = `<p class="text-red-500">Erro ao carregar dados. Tente novamente.</p>`;
-            }
-        }
-		
-		       function renderActiveTabData() {
-            const activeTab = tabsContainer.querySelector('.tab-button.active').dataset.tab;
-            const now = new Date();
-            let donationsToRender = [];
+      const groupKeys = [...groupMap.keys()].sort();
+      const html = groupKeys.map(key => {
+        const list = groupMap.get(key) || [];
+        const dateObj = new Date(key + 'T00:00:00');
+        return `
+          <section class="space-y-3">
+            <h2 class="text-xl font-semibold text-gray-800">${formatDateLongBR(dateObj)}</h2>
+            ${list.map(renderDonationCard).join('')}
+          </section>
+        `;
+      }).join('');
 
-            if (activeTab === 'scheduled') {
-                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() >= now && (d.items || []).some(i => i.status !== 'completed'));
-            } else if (activeTab === 'overdue') {
-                donationsToRender = allDonationsData.filter(d => d.status === 'scheduled' && d.scheduledAt.toDate() < now && (d.items || []).some(i => i.status !== 'completed'));
-            } else if (activeTab === 'history') {
-                donationsToRender = allDonationsData.filter(d => d.status !== 'scheduled' || (d.items || []).every(i => i.status === 'completed'));
-            }
-            
-            donationsToRender.sort((a, b) => a.scheduledAt.toMillis() - b.scheduledAt.toMillis());
-            renderHierarchicalList(donationsToRender);
-        }
-        
-        async function renderHierarchicalList(donations, append = false) {
-            if (!append) schedulesList.innerHTML = '';
-            
-            if (donations.length === 0 && !append) {
-                noSchedulesPlaceholder.classList.remove('hidden');
-                loadMoreContainer.classList.add('hidden');
-                return;
-            }
-            noSchedulesPlaceholder.classList.add('hidden');
+      schedulesView.innerHTML = html;
+      loadingView.classList.add('hidden');
+      noSchedulesPlaceholder.classList.add('hidden');
+      schedulesView.classList.remove('hidden');
+    }
 
-            const groupedByDay = groupBy(donations, d => d.scheduledAt.toDate().toLocaleDateString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit' }));
-            const sortedDates = Object.keys(groupedByDay).sort((a, b) => new Date(a.split('/').reverse().join('-')) - new Date(b.split('/').reverse().join('-')));
-            const datesToShow = sortedDates.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+    function subscribeDonations(entityIds) {
+      if (typeof unsubDonations === 'function') { try { unsubDonations(); } catch {} unsubDonations = null; }
+      const donationsCol = collection(db, paths.donations);
+      let qRef;
+      if (Array.isArray(entityIds) && entityIds.length > 0) {
+        qRef = entityIds.length === 1
+          ? query(donationsCol, where('entityId', '==', entityIds[0]))
+          : query(donationsCol, where('entityId', 'in', entityIds.slice(0, 10)));
+      } else {
+        qRef = query(donationsCol);
+      }
+      unsubDonations = onSnapshot(qRef, (snapshot) => {
+        const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderDonations(docs);
+      }, (err) => {
+        console.error('Erro ao ler agendamentos:', err);
+        loadingView.classList.add('hidden');
+        noSchedulesPlaceholder.classList.remove('hidden');
+      });
+    }
 
-            for (const dateKey of datesToShow) {
-                const daySection = document.createElement('div');
-                const dateObj = groupedByDay[dateKey][0].scheduledAt.toDate();
-                const formattedDate = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
-                
-                let donorsHtml = '';
-                const groupedByDonor = groupBy(groupedByDay[dateKey], d => d.donorId);
-                
-                for (const donorId in groupedByDonor) {
-                    const donorDonations = groupedByDonor[donorId];
-                    const { donorName, donorPhoto, scheduledAt, status } = donorDonations[0];
-                    const scheduledTime = scheduledAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    // Eventos do modal de imagem
+    schedulesView.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('.item-photo-btn');
+      if (!btn) return;
+      const full = btn.getAttribute('data-full');
+      if (!full) return;
+      imageModalImg.src = full;
+      imageModal.classList.add('active');
+      imageModal.setAttribute('aria-hidden', 'false');
+    });
+    imageModal.addEventListener('click', () => {
+      imageModalImg.src = '';
+      imageModal.classList.remove('active');
+      imageModal.setAttribute('aria-hidden', 'true');
+    });
 
-                    const donorProfile = donorsPublicInfoCache.get(donorId) || {};
-                    let verificationBadge = '';
-                    if (donorProfile.emailVerified === false) {
-                        verificationBadge = `<div class="tooltip ml-2">...</div>`; // Simplificado para manter o foco
-                    }
+    // --- Boot ---
+    (async function initializeApp() {
+      const canProceed = await injectHeader();
+      if (!canProceed) return;
 
-                    let campaignsHtml = '';
-                    const groupedByCampaign = groupBy(donorDonations, d => d.campaignId);
+      const userSession = await getCurrentUser();
+      const role = userSession?.profile?.role;
+      if (!userSession?.auth || !['entidade','superadmin'].includes(role)) {
+        window.location.href = 'index.html';
+        return;
+      }
 
-                    for (const campaignId in groupedByCampaign) {
-                        const campaignDonations = groupedByCampaign[campaignId];
-                        const { campaignTitle } = campaignDonations[0];
-                        const campaignType = campaignsMap.get(campaignId)?.type || 'default';
-                        
-                        const itemsHtmlPromises = campaignDonations.flatMap(d => d.items || []).map(async (item) => {
-                            if (item.status === 'completed') return ''; // Não renderiza itens já recebidos
-                            
-                            let itemDetailsHtml = '<div class="space-y-1 mt-1">';
-                            const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
-                            const mediaFieldIds = new Set(fieldsConfig.filter(f => ['image', 'video'].includes(f.type)).map(f => f.id));
-                            
-                            fieldsConfig.forEach(field => {
-                                const key = field.id;
-                                const value = item[key];
-                                if (value && !mediaFieldIds.has(key) && key !== 'type' && key !== 'photoURL') {
-                                    itemDetailsHtml += `<div class="text-xs text-gray-500"><span class="font-medium">${field.label}:</span> ${value}</div>`;
-                                }
-                            });
-                            itemDetailsHtml += '</div>';
+      backLink.href = role === 'superadmin' ? 'superadmin.html' : 'admin.html';
 
-                            return `<li class="flex items-start space-x-3">
-                                        <img src="${item.photoURL || 'https://placehold.co/40x40/e2e8f0/e2e8f0?text=Item'}" class="w-10 h-10 rounded-md object-cover bg-gray-200">
-                                        <div class="flex-grow">
-                                            <p class="font-medium text-gray-800">${item.type}</p>
-                                            ${itemDetailsHtml}
-                                        </div>
-                                    </li>`;
-                        });
-                        const itemsHtml = (await Promise.all(itemsHtmlPromises)).join('');
+      try {
+        const cfgSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
+        campaignTypeSettings = cfgSnap.exists() ? cfgSnap.data() : {};
+      } catch (e) {
+        console.error('Erro ao carregar campaignTypes:', e);
+        campaignTypeSettings = {};
+      }
 
-                        if (itemsHtml.trim()) {
-                            campaignsHtml += `<div class="pl-4 mt-3">
-                                                <h4 class="font-semibold text-gray-700 hover:underline cursor-pointer" data-action="view-campaign" data-campaign-id="${campaignId}">
-                                                    ${campaignTitle} <span class="text-xs font-normal text-gray-500">(${campaignType})</span>
-                                                </h4>
-                                                <ul class="mt-2 space-y-2">${itemsHtml}</ul>
-                                             </div>`;
-                        }
-                    }
-                    
-                    const donationId = donorDonations[0].id;
-                    let actionsHtml = '';
-                    if (status === 'scheduled' && scheduledAt.toDate() > new Date()) {
-                        actionsHtml = `<div class="relative"> ... </div>`; // Seu código do menu de opções
-                    }
+      const entityIds = getEffectiveEntityIds(userSession);
+      const forcedEntity = qs().get('entityId') || qs().get('entidadeId');
+      if (forcedEntity) {
+        activeEntityFilterEl.classList.remove('hidden');
+        activeEntityFilterEl.textContent = `Filtro ativo — entityId: ${forcedEntity}`;
+      } else {
+        activeEntityFilterEl.classList.add('hidden');
+        activeEntityFilterEl.textContent = '';
+      }
 
-                    if (campaignsHtml.trim()) {
-                        donorsHtml += `
-                            <div class="bg-white rounded-lg shadow-sm border p-4 pl-6 ml-4 border-l-4 border-blue-500">
-                                <div class="flex justify-between items-start">
-                                    <div class="flex items-center space-x-4">
-                                        <img src="${donorPhoto || 'https://placehold.co/48x48/e2e8f0/cbd5e0?text=?'}" class="w-12 h-12 rounded-full object-cover">
-                                        <div>
-                                            <div class="flex items-center">
-                                                <p class="font-bold text-lg text-gray-900">${donorName}</p>
-                                                ${verificationBadge}
-                                            </div>
-                                            <p class="text-sm font-semibold text-green-600">Horário: ${scheduledTime}</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex-shrink-0">${actionsHtml}</div>
-                                </div>
-                                <div class="mt-4 pt-4 border-t space-y-3">${campaignsHtml}</div>
-                            </div>`;
-                    }
-                }
-                
-                if (donorsHtml.trim()) {
-                    daySection.innerHTML = `
-                        <h2 class="text-xl font-bold text-gray-800 mb-3 capitalize">${formattedDate}</h2>
-                        <div class="space-y-4">${donorsHtml}</div>
-                    `;
-                    schedulesList.appendChild(daySection);
-                }
-            }
-
-            loadMoreContainer.classList.toggle('hidden', datesToShow.length === 0 || sortedDates.length <= currentPage * ITEMS_PER_PAGE);
-			
-			        }
-				
-        function groupBy(array, keyGetter) {
-            const map = new Map();
-            array.forEach((item) => {
-                const key = keyGetter(item);
-                const collection = map.get(key);
-                if (!collection) { map.set(key, [item]); } 
-                else { collection.push(item); }
-            });
-            return Object.fromEntries(map);	
-			
-			     }
-				 
-				 
-        tabsContainer.addEventListener('click', (e) => {
-            const button = e.target.closest('button.tab-button');
-            if (button) {
-                tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-                currentPage = 1;
-                renderActiveTabData();
-            }
-        });
-
-        loadMoreBtn.addEventListener('click', () => {
-            currentPage++;
-            renderHierarchicalList(allDonationsData, true);
-        });
-
-        schedulesList.addEventListener('click', async (e) => {
-            const button = e.target.closest('[data-action]');
-            if (!button) return;
-            e.preventDefault();
-
-            const action = button.dataset.action;
-            if (action === 'toggle-options') {
-                const menu = button.nextElementSibling;
-                document.querySelectorAll('.options-menu').forEach(m => {
-                    if (m !== menu) m.classList.add('hidden');
-                });
-                menu.classList.toggle('hidden');
-            } else if (action === 'cancel-schedule') {
-                const donationId = button.dataset.donationId;
-                const donorId = button.dataset.donorId;
-                const donation = allDonationsData.find(d => d.id === donationId);
-                
-                if (!donation) { showAlertModal('Erro', 'Não foi possível encontrar os dados.'); return; }
-                
-                const confirmed = await showConfirmationModal('Cancelar Agendamento', `Tem certeza que deseja cancelar o agendamento de ${donation.donorName}? O doador será notificado.`);
-                if (confirmed) {
-                    try {
-                        const donationRef = doc(db, paths.donationDoc(donationId));
-                        await updateDoc(donationRef, { status: 'cancelled_by_entity' });
-                        const message = `Seu agendamento para a campanha "${donation.campaignTitle}" foi cancelado pela entidade.`;
-                        await createNotification(donorId, message, 'minhas-entregas.html');
-                        showAlertModal('Sucesso!', 'O agendamento foi cancelado.');
-                    } catch (error) {
-                        showAlertModal('Erro', 'Não foi possível cancelar o agendamento.');
-                    }
-                }
-            } else if (action === 'view-campaign') {
-                const campaignId = button.dataset.campaignId;
-                const campaign = campaignsMap.get(campaignId);
-                if (campaign) {
-                    const detailsHtml = `<p class="whitespace-pre-wrap">${campaign.description || 'Nenhuma descrição disponível.'}</p>`;
-                    showDetailsModal(`Detalhes: ${campaign.title}`, detailsHtml);
-                }
-            }
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('[data-action="toggle-options"]')) {
-                document.querySelectorAll('.options-menu').forEach(m => m.classList.add('hidden'));
-            }
-        });
-
-        initializeApp();
-    </script>
-	
-	</body>
+      subscribeDonations(entityIds);
+    })();
+  </script>
+</body>
 </html>
-					
-	
-	
-	
