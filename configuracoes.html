@@ -54,7 +54,7 @@
                     <!-- Prefixos dos Tipos de Campanha -->
                     <div class="pt-4 border-t">
                         <h3 class="text-lg font-medium text-gray-700 mb-4">Prefixos para Códigos de Itens</h3>
-                        <p class="text-sm text-gray-600 mb-4">Configure prefixos de 3 letras (A-Z) para gerar códigos únicos dos itens de cada tipo de campanha.</p>
+                        <p class="text-sm text-gray-600 mb-4">Configure prefixos de 3 letras (A-Z) para gerar códigos únicos dos itens de cada tipo de campanha. Os códigos seguirão o formato: <code class="bg-gray-100 px-1 py-0.5 rounded">PREFIXO-000001</code></p>
                         <div id="campaign-prefixes-list" class="space-y-3 mb-4"></div>
                         <button type="button" id="save-prefixes-btn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Salvar Prefixos</button>
                     </div>
@@ -147,7 +147,7 @@
 
     <script type="module">
         import { db, paths } from './app-config.js';
-        import { doc, getDoc, updateDoc } from './firebase-services.js';
+        import { doc, getDoc, updateDoc, deleteField } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal, showConfirmationModal } from './modal-handler.js';
