@@ -151,7 +151,7 @@
   <!-- Modal: Reagendar / Cancelar disponibilidade -->
   <div id="reschedule-modal" class="modal-backdrop" aria-hidden="true" role="dialog">
     <div class="modal-content">
-      <div class="modal-header">Reagendar / Disponibilidade</div>
+      <div class="modal-header">Cancelar disponibilidade</div>
       <div class="modal-body grid-two">
         <div>
           <div class="grid md:grid-cols-2 gap-3">
@@ -195,7 +195,6 @@
       <div class="modal-footer">
         <button id="rs-cancel" class="btn btn-gray">Fechar</button>
         <button id="rs-confirm-block" class="btn btn-red hidden">Cancelar disponibilidade</button>
-        <button id="rs-confirm" class="btn btn-blue">Reagendar</button>
       </div>
     </div>
   </div>
@@ -260,7 +259,6 @@
     const rsCollisionWrap = document.getElementById('rs-collision-wrap');
     const rsCollisionList = document.getElementById('rs-collision-list');
     const rsBtnClose = document.getElementById('rs-cancel');
-    const rsBtnConfirm = document.getElementById('rs-confirm');
     const rsBtnConfirmBlock = document.getElementById('rs-confirm-block');
 
     // Cancel modal
@@ -513,7 +511,7 @@
       const actions = `
         <div class="flex gap-2">
           <button class="chip chip-green" data-action="mark-received" data-id="${escapeAttr(donation.id||'')}">Marcar recebida</button>
-          <button class="chip chip-gray" data-action="reschedule" data-id="${escapeAttr(donation.id||'')}">Reagendar</button>
+          <button class="chip chip-gray" data-action="cancel-slot" data-id="${escapeAttr(donation.id||'')}">Cancelar disponibilidade</button>
           <button class="chip chip-red" data-action="cancel" data-id="${escapeAttr(donation.id||'')}">Cancelar</button>
         </div>
       `;
@@ -825,13 +823,13 @@
       }).join('');
     }
 
-    function openRescheduleModal(donationId){
+    function openCancelSlotModal(donationId){
       actionDonationId = donationId;
       rsDate.value = '';
       rsTime.value = '';
-      rsBlockSlot.checked = false;
+      rsBlockSlot.checked = true; // Always checked for cancel slot
       rsJust.value = '';
-      rsJustWrap.classList.add('hidden');
+      rsJustWrap.classList.remove('hidden'); // Always show justification for cancel slot
       rsCollisionWrap.classList.add('hidden');
       rsCollisionList.innerHTML = '';
       rsBtnConfirmBlock.classList.add('hidden');
@@ -840,7 +838,7 @@
       rsDate.focus();
     }
 
-    function closeRescheduleModal(){
+    function closeCancelSlotModal(){
       rsModal.classList.remove('active');
       rsModal.setAttribute('aria-hidden','true');
       actionDonationId = null;
@@ -849,10 +847,12 @@
     rsDate.addEventListener('change', () => {
       const v = rsDate.value;
       if (v) renderOccupancyPanel(v);
-      // reset colisões ao mudar a data
+      // Reset collisions when changing date
       rsCollisionWrap.classList.add('hidden');
       rsCollisionList.innerHTML = '';
-      rsBtnConfirmBlock.classList.add('hidden');
+      // For cancel slot modal, always show the cancel button if time is selected
+      const hasTime = !!rsTime.value;
+      rsBtnConfirmBlock.classList.toggle('hidden', !(rsBlockSlot.checked && hasTime));
     });
 
     rsBlockSlot.addEventListener('change', () => {
@@ -863,7 +863,7 @@
       if (!(checked && hasTime)){
         rsCollisionWrap.classList.add('hidden');
       } else {
-        // Mostrar colisões se houver
+        // Show collisions if any
         showCollisionsFor(rsDate.value, rsTime.value);
       }
     });
@@ -895,40 +895,7 @@
       }).join('');
     }
 
-    rsBtnClose.addEventListener('click', closeRescheduleModal);
-
-    rsBtnConfirm.addEventListener('click', async () => {
-      if (!actionDonationId) return;
-      const dateStr = rsDate.value;
-      const timeStr = rsTime.value;
-      if (!dateStr || !timeStr){ await showAlertModal('Atenção', 'Informe data e hora.'); return; }
-      try {
-        const newDate = new Date(`${dateStr}T${timeStr}:00`);
-        const donationRef = doc(db, paths.donationDoc(actionDonationId));
-        const snap = await getDoc(donationRef);
-        if (!snap.exists()){ await showAlertModal('Erro', 'Doação não encontrada.'); return; }
-        const donation = snap.data();
-
-        await updateDoc(donationRef, {
-          scheduledAt: newDate,
-          status: 'scheduled',
-          rescheduledAt: serverTimestamp(),
-          rescheduledBy: session?.auth?.uid || null,
-          rescheduledByName: session?.profile?.name || session?.profile?.displayName || 'Equipe'
-        });
-
-        if (donation.donorId){
-          const msg = `Seu agendamento para "${donation.campaignTitle || 'campanha'}" foi reagendado para ${newDate.toLocaleDateString('pt-BR')} às ${newDate.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}.`;
-          await createNotification(donation.donorId, msg, 'minhas-entregas.html');
-        }
-
-        await showAlertModal('Sucesso', 'Agendamento atualizado.');
-        closeRescheduleModal();
-      } catch (e){
-        console.error(e);
-        await showAlertModal('Erro', 'Falha ao reagendar.');
-      }
-    });
+    rsBtnClose.addEventListener('click', closeCancelSlotModal);
 
     rsBtnConfirmBlock.addEventListener('click', async () => {
       if (!actionDonationId) return;
@@ -942,13 +909,13 @@
         const { map } = computeDayOccupancyFor(dateStr);
         const affected = map.get(timeStr) || [];
 
-        // Cancela todos os agendamentos neste slot (se houver)
+        // Cancel all appointments in this slot (if any) and set to needs_reschedule
         if (affected.length){
           const batch = writeBatch(db);
           for (const d of affected){
             const ref = doc(db, paths.donationDoc(d.id));
             batch.update(ref, {
-              status: 'cancelled',
+              status: 'needs_reschedule',
               cancelledAt: serverTimestamp(),
               cancelledBy: session?.auth?.uid || null,
               cancelledByName: session?.profile?.name || session?.profile?.displayName || 'Equipe',
@@ -957,10 +924,11 @@
           }
           await batch.commit();
 
-          // Notifica todos
+          // Notify all affected donors with custom copy and deep link
           for (const d of affected){
             if (d.donorId){
-              const msg = `Indisponibilidade no horário ${timeStr} do dia ${new Date(`${dateStr}T00:00`).toLocaleDateString('pt-BR')}. Motivo: ${reason}. Reagende sua entrega, por favor.`;
+              const dateFormatted = new Date(`${dateStr}T00:00`).toLocaleDateString('pt-BR');
+              const msg = `O horário ${timeStr} do dia ${dateFormatted} ficou indisponível. Motivo: ${reason}. Para reagendar ou cancelar sua entrega, acesse seus agendamentos.`;
               await createNotification(d.donorId, msg, 'minhas-entregas.html');
             }
           }
@@ -981,8 +949,8 @@
           await updateDoc(blockedRef, { createdAt: serverTimestamp() }).catch(()=>{});
         });
 
-        await showAlertModal('Sucesso', `Disponibilidade do horário ${timeStr} bloqueada.${affected.length ? ' Agendamentos impactados foram cancelados e notificados.' : ''}`);
-        closeRescheduleModal();
+        await showAlertModal('Sucesso', `Disponibilidade do horário ${timeStr} bloqueada.${affected.length ? ' Agendamentos impactados foram marcados para reagendamento e os doadores foram notificados.' : ''}`);
+        closeCancelSlotModal();
       } catch (e){
         console.error(e);
         await showAlertModal('Erro', 'Falha ao bloquear disponibilidade.');
@@ -1060,7 +1028,7 @@
         console.log('Ação rápida:', action, 'para doação', id);
 
         if (action === 'mark-received') handleMarkReceived(id);
-        if (action === 'reschedule') openRescheduleModal(id);
+        if (action === 'cancel-slot') openCancelSlotModal(id);
         if (action === 'cancel') openCancelModal(id);
         return;
       }
