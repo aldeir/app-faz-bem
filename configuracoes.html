@@ -78,6 +78,23 @@
                                 <option value="red">Vermelho</option><option value="purple">Roxo</option><option value="gray">Cinza</option>
                             </select>
                         </div>
+                        <div>
+                            <label for="campaign-type-prefix" class="block text-sm font-medium text-gray-600">Prefixo (3 letras A-Z)*</label>
+                            <input type="text" id="campaign-type-prefix" required maxlength="3" pattern="[A-Z]{3}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm uppercase" placeholder="ABC">
+                            <p class="text-xs text-gray-500 mt-1">Usado para gerar códigos únicos dos itens (ex: ABC-000001)</p>
+                        </div>
+                        <div class="flex items-center space-x-6">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="campaign-type-active" class="h-4 w-4 text-green-600 border-gray-300 rounded">
+                                <label for="campaign-type-active" class="ml-2 block text-sm text-gray-900">Ativo</label>
+                                <p class="text-xs text-gray-500 ml-2">Controla se o tipo aparece nas telas</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="campaign-type-order" class="block text-sm font-medium text-gray-600">Ordem de Exibição</label>
+                            <input type="number" id="campaign-type-order" min="1" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" placeholder="1">
+                            <p class="text-xs text-gray-500 mt-1">Determina a ordem de exibição (menor número aparece primeiro)</p>
+                        </div>
                         <div class="flex justify-end space-x-3">
                             <button type="button" id="cancel-edit-btn" class="hidden px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button>
                             <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Salvar Tipo</button>
@@ -154,7 +171,7 @@
 
         // DOM elements - will be initialized after DOMContentLoaded
         let loadingView, configView, campaignTypesList, campaignTypeForm, campaignFormTitle;
-        let campaignTypeIdInput, campaignTypeLabelInput, campaignTypeColorSelect, cancelEditBtn;
+        let campaignTypeIdInput, campaignTypeLabelInput, campaignTypeColorSelect, campaignTypePrefixInput, campaignTypeActiveCheckbox, campaignTypeOrderInput, cancelEditBtn;
         let fieldCampaignTypeSelect, customFieldsEditor, customFieldsList, customFieldForm;
         let fieldLabelInput, fieldIdInput, fieldIdWarning, fieldTypeSelect;
         let fieldOptionsContainer, fieldOptionsInput, fieldRequiredCheckbox;
@@ -180,6 +197,9 @@
             campaignTypeIdInput = document.getElementById('campaign-type-id');
             campaignTypeLabelInput = document.getElementById('campaign-type-label');
             campaignTypeColorSelect = document.getElementById('campaign-type-color');
+            campaignTypePrefixInput = document.getElementById('campaign-type-prefix');
+            campaignTypeActiveCheckbox = document.getElementById('campaign-type-active');
+            campaignTypeOrderInput = document.getElementById('campaign-type-order');
             cancelEditBtn = document.getElementById('cancel-edit-btn');
             fieldCampaignTypeSelect = document.getElementById('field-campaign-type-select');
             customFieldsEditor = document.getElementById('custom-fields-editor');
@@ -230,15 +250,32 @@
 
         function renderCampaignTypes() {
             campaignTypesList.innerHTML = '';
-            Object.entries(campaignTypesData).forEach(([id, data]) => {
+            
+            // Sort by order field
+            const sortedTypes = Object.entries(campaignTypesData).sort(([, a], [, b]) => (a.order || 999) - (b.order || 999));
+            
+            sortedTypes.forEach(([id, data]) => {
                 const colorClass = `bg-${data.color}-500`;
+                const activeStatus = data.active !== false ? 'Ativo' : 'Inativo';
+                const activeClass = data.active !== false ? 'text-green-600' : 'text-gray-400';
+                const prefixDisplay = data.prefix ? `[${data.prefix}]` : '[SEM PREFIXO]';
+                
                 const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-2 rounded-md hover:bg-gray-50';
+                item.className = 'flex items-center justify-between p-3 rounded-md hover:bg-gray-50 border';
                 item.innerHTML = `
                     <div class="flex items-center gap-3">
                         <span class="w-4 h-4 rounded-full ${colorClass}"></span>
-                        <span class="font-medium">${data.label}</span>
-                        <span class="text-xs text-gray-500">(${id})</span>
+                        <div>
+                            <span class="font-medium">${data.label}</span>
+                            <span class="text-xs text-gray-500 ml-2">(${id})</span>
+                            <div class="text-xs text-gray-600 mt-1">
+                                <span class="font-mono ${data.prefix ? 'text-blue-600' : 'text-red-500'}">${prefixDisplay}</span>
+                                <span class="mx-2">•</span>
+                                <span class="${activeClass}">${activeStatus}</span>
+                                <span class="mx-2">•</span>
+                                <span>Ordem: ${data.order || 1}</span>
+                            </div>
+                        </div>
                     </div>
                     <div class="space-x-3">
                         <button data-action="edit-type" data-id="${id}" class="text-sm text-blue-600 hover:underline">Editar</button>
@@ -356,6 +393,13 @@
                 }
                 if (campaignTypeLabelInput) campaignTypeLabelInput.value = data.label;
                 if (campaignTypeColorSelect) campaignTypeColorSelect.value = data.color;
+                if (campaignTypePrefixInput) campaignTypePrefixInput.value = data.prefix || '';
+                if (campaignTypeActiveCheckbox) campaignTypeActiveCheckbox.checked = data.active !== false; // default to true
+                if (campaignTypeOrderInput) campaignTypeOrderInput.value = data.order || 1;
+                
+                // Set hidden field for edit mode
+                document.getElementById('campaign-type-id-hidden').value = id;
+                
                 if (cancelEditBtn) cancelEditBtn.classList.remove('hidden');
             });
 
@@ -364,6 +408,7 @@
                 if (campaignFormTitle) campaignFormTitle.textContent = 'Adicionar Novo Tipo';
                 if (campaignTypeIdInput) campaignTypeIdInput.disabled = false;
                 if (cancelEditBtn) cancelEditBtn.classList.add('hidden');
+                document.getElementById('campaign-type-id-hidden').value = '';
             });
 
             safeAddListener(campaignTypeForm, 'submit', async (e) => {
@@ -371,7 +416,27 @@
                 const id = campaignTypeIdInput.value.trim().toLowerCase();
                 const label = campaignTypeLabelInput.value.trim();
                 const color = campaignTypeColorSelect.value;
+                const prefix = campaignTypePrefixInput.value.trim().toUpperCase();
+                const active = campaignTypeActiveCheckbox.checked;
+                const order = parseInt(campaignTypeOrderInput.value) || 1;
+                
                 if (!id || !label) { showAlertModal('Erro', 'ID e Rótulo são obrigatórios.'); return; }
+                if (!prefix || !/^[A-Z]{3}$/.test(prefix)) { 
+                    showAlertModal('Erro', 'Prefixo deve ter exatamente 3 letras maiúsculas (A-Z).'); 
+                    return; 
+                }
+                
+                // Check for duplicate prefix (except for current item being edited)
+                const hiddenId = document.getElementById('campaign-type-id-hidden').value;
+                const isEdit = hiddenId && hiddenId === id;
+                for (const [typeId, typeData] of Object.entries(campaignTypesData)) {
+                    if (!isEdit || typeId !== id) {
+                        if (typeData.prefix === prefix) {
+                            showAlertModal('Erro', `O prefixo "${prefix}" já está em uso por outro tipo de campanha.`);
+                            return;
+                        }
+                    }
+                }
                 
                 const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
                 if (!campaignTypesData[id]) {
@@ -379,7 +444,18 @@
                 }
                 campaignTypesData[id].label = label;
                 campaignTypesData[id].color = color;
-                const updateData = { [`${id}.label`]: label, [`${id}.color`]: color };
+                campaignTypesData[id].prefix = prefix;
+                campaignTypesData[id].active = active;
+                campaignTypesData[id].order = order;
+                
+                const updateData = { 
+                    [`${id}.label`]: label, 
+                    [`${id}.color`]: color,
+                    [`${id}.prefix`]: prefix,
+                    [`${id}.active`]: active,
+                    [`${id}.order`]: order
+                };
+                
                 try {
                     await updateDoc(campaignTypesRef, updateData, { merge: true });
                     showAlertModal('Sucesso!', 'Tipo de campanha salvo com sucesso.');

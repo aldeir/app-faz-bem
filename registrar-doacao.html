@@ -128,7 +128,7 @@
 
     <script type="module">
         import { db, storage, paths } from './app-config.js';
-        import { doc, getDoc, collection, addDoc, Timestamp, query, where, getDocs, storageRef, uploadBytes, getDownloadURL, writeBatch } from './firebase-services.js';
+        import { doc, getDoc, collection, addDoc, Timestamp, query, where, getDocs, storageRef, uploadBytes, getDownloadURL, writeBatch, runTransaction, serverTimestamp } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal } from './modal-handler.js';
@@ -159,6 +159,18 @@
         let rescheduleData = null;
         let existingAppointments = {};
         let campaignTypeSettings = {};
+
+        // Function to get next sequence number for item codes
+        async function getNextSequence(prefix) {
+            const ref = doc(db, 'counters', `items_${prefix}`);
+            return await runTransaction(db, async (transaction) => {
+                const snap = await transaction.get(ref);
+                const currentValue = snap.exists() ? (snap.data().value || 0) : 0;
+                const nextValue = currentValue + 1;
+                transaction.set(ref, { value: nextValue, updatedAt: serverTimestamp() }, { merge: true });
+                return nextValue;
+            });
+        }
 
         async function initializeApp() {
             const canProceed = await injectHeader();
@@ -526,7 +538,35 @@
                             }
                         }
 
-                        return { ...customFieldsWithUrls, type: itemType, photoURL: photoURL, status: 'pending' };
+                        // Generate uniqueCode (PREFIX-######)
+                        let uniqueCode = null;
+                        try {
+                            const campaignType = campaignData.type || 'default';
+                            const typeSettings = campaignTypeSettings[campaignType] || {};
+                            let prefix = typeSettings.prefix;
+                            
+                            if (!prefix) {
+                                // Fallback: generate prefix from campaign type
+                                prefix = (campaignType || 'GEN')
+                                    .toUpperCase()
+                                    .replace(/[^A-Z]/g, '')
+                                    .slice(0, 3)
+                                    .padEnd(3, 'G');
+                            }
+                            
+                            const sequence = await getNextSequence(prefix);
+                            uniqueCode = `${prefix}-${String(sequence).padStart(6, '0')}`;
+                        } catch (error) {
+                            console.warn('Failed to generate uniqueCode:', error);
+                        }
+
+                        return { 
+                            ...customFieldsWithUrls, 
+                            type: itemType, 
+                            photoURL: photoURL, 
+                            status: 'pending',
+                            uniqueCode: uniqueCode
+                        };
                     }));
 
                 const newDonationData = {
