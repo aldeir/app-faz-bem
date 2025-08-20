@@ -269,7 +269,7 @@
   <script type="module">
     import { db } from './app-config.js';
     import {
-      collection, query, where, onSnapshot, doc, getDoc, updateDoc,
+      collection, query, where, onSnapshot, doc, getDoc, updateDoc, setDoc,
       writeBatch, serverTimestamp, runTransaction
     } from './firebase-services.js';
     import { paths } from './firestore-paths.js';
@@ -1208,6 +1208,165 @@
     if (unavailabilityModal) {
       unavailabilityModal.addEventListener('click', (e) => {
         if (e.target === unavailabilityModal) closeUnavailabilityModal();
+      });
+    }
+
+    // Handle date selection for unavailability
+    if (unavailabilityDate) {
+      unavailabilityDate.addEventListener('change', (e) => {
+        const selectedDate = e.target.value;
+        if (selectedDate) {
+          loadTimeSlotsForDate(selectedDate);
+        } else {
+          if (timeSlotsContainer) timeSlotsContainer.classList.add('hidden');
+          if (unavailabilityReasonContainer) unavailabilityReasonContainer.classList.add('hidden');
+          if (unavailabilityConfirm) unavailabilityConfirm.classList.add('hidden');
+        }
+      });
+    }
+
+    // Handle time slot selection
+    let selectedTimeSlots = [];
+    
+    function loadTimeSlotsForDate(dateStr) {
+      if (!timeSlotsContainer || !timeSlotsList) return;
+      
+      // Generate time slots from 8:00 to 18:00 in 15-minute intervals
+      const slots = [];
+      for (let hour = 8; hour <= 17; hour++) {
+        for (let minute = 0; minute < 60; minute += 15) {
+          // Don't include 18:00 start times
+          if (hour === 17 && minute > 45) break;
+          
+          const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+          slots.push(timeStr);
+        }
+      }
+      
+      // Get occupancy data for the selected date
+      const { map } = computeDayOccupancyFor(dateStr);
+      
+      // Render time slots with occupancy info
+      const slotsHtml = slots.map(timeStr => {
+        const occupancy = map.get(timeStr) || [];
+        const count = occupancy.length;
+        const isBlocked = false; // TODO: Check if slot is already blocked
+        
+        return `
+          <label class="flex items-center justify-between p-2 border rounded hover:bg-gray-50 cursor-pointer">
+            <div class="flex items-center">
+              <input type="checkbox" value="${timeStr}" class="time-slot-checkbox mr-2" ${isBlocked ? 'disabled' : ''}>
+              <span class="text-sm">${timeStr}</span>
+            </div>
+            <div class="text-xs text-gray-500">
+              ${count > 0 ? `${count} agendamento${count > 1 ? 's' : ''}` : 'Livre'}
+              ${isBlocked ? ' (Bloqueado)' : ''}
+            </div>
+          </label>
+        `;
+      }).join('');
+      
+      timeSlotsList.innerHTML = slotsHtml;
+      timeSlotsContainer.classList.remove('hidden');
+      
+      // Add event listeners to checkboxes
+      const checkboxes = timeSlotsList.querySelectorAll('.time-slot-checkbox');
+      checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedSlots);
+      });
+    }
+    
+    function updateSelectedSlots() {
+      const checkboxes = timeSlotsList.querySelectorAll('.time-slot-checkbox:checked');
+      selectedTimeSlots = Array.from(checkboxes).map(cb => cb.value);
+      
+      if (selectedTimeSlots.length > 0) {
+        if (unavailabilityReasonContainer) unavailabilityReasonContainer.classList.remove('hidden');
+        if (unavailabilityConfirm) unavailabilityConfirm.classList.remove('hidden');
+      } else {
+        if (unavailabilityReasonContainer) unavailabilityReasonContainer.classList.add('hidden');
+        if (unavailabilityConfirm) unavailabilityConfirm.classList.add('hidden');
+      }
+    }
+
+    // Handle unavailability confirmation
+    if (unavailabilityConfirm) {
+      unavailabilityConfirm.addEventListener('click', async () => {
+        const dateStr = unavailabilityDate ? unavailabilityDate.value : '';
+        const reason = unavailabilityReason ? unavailabilityReason.value.trim() : '';
+        
+        if (!dateStr || selectedTimeSlots.length === 0) {
+          await showAlertModal('Erro', 'Selecione uma data e pelo menos um horário.');
+          return;
+        }
+        
+        if (!reason) {
+          await showAlertModal('Erro', 'Informe a justificativa para a indisponibilidade.');
+          return;
+        }
+        
+        try {
+          // Block selected time slots
+          for (const timeStr of selectedTimeSlots) {
+            const { map } = computeDayOccupancyFor(dateStr);
+            const affected = map.get(timeStr) || [];
+            
+            // Cancel existing donations in these slots
+            if (affected.length > 0) {
+              const batch = writeBatch(db);
+              for (const d of affected) {
+                const ref = doc(db, paths.donationDoc(d.id));
+                batch.update(ref, {
+                  status: 'cancelled',
+                  cancelledAt: serverTimestamp(),
+                  cancelledBy: session?.auth?.uid || null,
+                  cancelledByName: session?.profile?.name || session?.profile?.displayName || 'Equipe',
+                  cancelledReason: reason
+                });
+              }
+              await batch.commit();
+              
+              // Notify affected donors
+              for (const d of affected) {
+                if (d.donorId) {
+                  const msg = `Indisponibilidade no horário ${timeStr} do dia ${new Date(`${dateStr}T00:00`).toLocaleDateString('pt-BR')}. Motivo: ${reason}. Reagende sua entrega, por favor.`;
+                  await createNotification(d.donorId, msg, 'minhas-entregas.html');
+                }
+              }
+            }
+            
+            // Register slot as blocked
+            const blockedRef = doc(db, 'blocked_slots', `${currentEntityId}_${dateStr}_${timeStr}`);
+            await updateDoc(blockedRef, {
+              entityId: currentEntityId,
+              date: dateStr,
+              time: timeStr,
+              reason,
+              blockedBy: session?.auth?.uid || null,
+              blockedByName: session?.profile?.name || session?.profile?.displayName || 'Equipe',
+              updatedAt: serverTimestamp()
+            }).catch(async () => {
+              // If document doesn't exist, create it
+              await setDoc(blockedRef, {
+                entityId: currentEntityId,
+                date: dateStr,
+                time: timeStr,
+                reason,
+                blockedBy: session?.auth?.uid || null,
+                blockedByName: session?.profile?.name || session?.profile?.displayName || 'Equipe',
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+              });
+            });
+          }
+          
+          await showAlertModal('Sucesso', `${selectedTimeSlots.length} horário${selectedTimeSlots.length > 1 ? 's' : ''} bloqueado${selectedTimeSlots.length > 1 ? 's' : ''} com sucesso.`);
+          closeUnavailabilityModal();
+          
+        } catch (error) {
+          console.error('Error blocking time slots:', error);
+          await showAlertModal('Erro', 'Falha ao bloquear horários de indisponibilidade.');
+        }
       });
     }
 
