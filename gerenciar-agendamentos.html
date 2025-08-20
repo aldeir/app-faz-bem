@@ -730,17 +730,57 @@
     }
 
     async function ensureItemCodes(donationRef, donation){
-      const campaignKey = (donation.campaignType || 'GEN').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8) || 'GEN';
+      // Get campaign type prefix from configuration
+      let prefix = 'GEN'; // default fallback
+      
+      try {
+        if (donation.campaignType) {
+          const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
+          const campaignTypesSnap = await getDoc(campaignTypesRef);
+          
+          if (campaignTypesSnap.exists()) {
+            const campaignTypesData = campaignTypesSnap.data();
+            const typeData = campaignTypesData[donation.campaignType];
+            
+            if (typeData?.prefix) {
+              prefix = typeData.prefix;
+            } else {
+              // Fallback: first 3 letters of campaign type, uppercased, A-Z only
+              prefix = (donation.campaignType || 'GEN')
+                .toUpperCase()
+                .replace(/[^A-Z]/g, '')
+                .slice(0, 3)
+                .padEnd(3, 'G'); // pad with 'G' if less than 3 chars
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to get campaign type prefix, using fallback:', error);
+        prefix = (donation.campaignType || 'GEN')
+          .toUpperCase()
+          .replace(/[^A-Z]/g, '')
+          .slice(0, 3)
+          .padEnd(3, 'G');
+      }
+
       let changed = false;
-      const items = (donation.items || []).map(it => {
-        if (!it || it.uniqueCode) return it;
+      const items = [];
+      
+      for (const it of (donation.items || [])) {
+        if (!it || it.uniqueCode) {
+          items.push(it);
+          continue;
+        }
+        
+        // Generate new unique code with proper sequence
+        const seq = await getNextSequence(prefix);
+        const uniqueCode = `${prefix}-${String(seq).padStart(6, '0')}`;
+        
+        items.push({ ...it, uniqueCode });
         changed = true;
-        return { ...it, uniqueCode: `${campaignKey}-${String(Math.random()).slice(2,6)}${String(Math.random()).slice(2,4)}` };
-      });
-      // Se quiser sequência real por campanha, substitua a linha acima por:
-      // const seq = await getNextSequence(campaignKey);
-      // return { ...it, uniqueCode: `${campaignKey}-${String(seq).padStart(6,'0')}` };
-      if (changed){
+      }
+      
+      if (changed) {
         await updateDoc(donationRef, { items });
       }
     }

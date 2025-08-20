@@ -49,6 +49,17 @@
                 <div class="bg-white p-6 rounded-lg shadow">
                     <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Tipos de Campanha</h2>
                     <div id="campaign-types-list" class="space-y-2 mb-6"></div>
+                    
+                    <!-- Prefixos dos Tipos de Campanha -->
+                    <!-- Prefixos dos Tipos de Campanha -->
+                    <div class="pt-4 border-t">
+                        <h3 class="text-lg font-medium text-gray-700 mb-4">Prefixos para Códigos de Itens</h3>
+                        <p class="text-sm text-gray-600 mb-4">Configure prefixos de 3 letras (A-Z) para gerar códigos únicos dos itens de cada tipo de campanha.</p>
+                        <div id="campaign-prefixes-list" class="space-y-3 mb-4"></div>
+                        <button type="button" id="save-prefixes-btn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Salvar Prefixos</button>
+                    </div>
+                    
+                    <!-- Form para Adicionar/Editar Tipos -->
                     <form id="campaign-type-form" class="space-y-4 pt-4 border-t">
                         <h3 id="campaign-form-title" class="font-medium text-gray-700">Adicionar/Editar Tipo</h3>
                         <input type="hidden" id="campaign-type-id-hidden">
@@ -71,7 +82,6 @@
                             <button type="button" id="cancel-edit-btn" class="hidden px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button>
                             <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Salvar Tipo</button>
                         </div>
-                    </form>
                 </div>
 
                 <div class="bg-white p-6 rounded-lg shadow">
@@ -215,6 +225,39 @@
                         <button data-action="edit-type" data-id="${id}" class="text-sm text-blue-600 hover:underline">Editar</button>
                     </div>`;
                 campaignTypesList.appendChild(item);
+            });
+            renderCampaignPrefixes();
+        }
+
+        function renderCampaignPrefixes() {
+            const prefixesList = document.getElementById('campaign-prefixes-list');
+            prefixesList.innerHTML = '';
+            
+            Object.entries(campaignTypesData).forEach(([id, data]) => {
+                const currentPrefix = data.prefix || '';
+                const colorClass = `bg-${data.color}-500`;
+                
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between p-3 border rounded-md';
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="w-3 h-3 rounded-full ${colorClass}"></span>
+                        <span class="font-medium">${data.label}</span>
+                        <span class="text-xs text-gray-500">(${id})</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm text-gray-600">Prefixo:</label>
+                        <input 
+                            type="text" 
+                            data-campaign-type="${id}"
+                            value="${currentPrefix}"
+                            placeholder="ABC"
+                            maxlength="3"
+                            class="prefix-input w-16 px-2 py-1 text-sm border-gray-300 rounded border text-center uppercase"
+                            style="font-family: monospace;"
+                        >
+                    </div>`;
+                prefixesList.appendChild(item);
             });
         }
 
@@ -473,6 +516,107 @@
                     await loadConfigs();
                 }
             });
+
+            // Event listeners para prefixos
+            document.addEventListener('input', (e) => {
+                if (!e.target.classList.contains('prefix-input')) return;
+                
+                // Validação: apenas letras A-Z, maiúsculas, máximo 3 caracteres
+                let value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
+                e.target.value = value;
+                
+                // Verificar duplicação
+                validatePrefixUniqueness();
+            });
+
+            // Botão para salvar prefixos
+            document.getElementById('save-prefixes-btn').addEventListener('click', async () => {
+                await savePrefixes();
+            });
+        }
+
+        function validatePrefixUniqueness() {
+            const prefixInputs = document.querySelectorAll('.prefix-input');
+            const prefixes = new Set();
+            let hasError = false;
+
+            prefixInputs.forEach(input => {
+                const value = input.value.trim();
+                input.classList.remove('border-red-500', 'border-green-500');
+                
+                if (value.length === 3) {
+                    if (prefixes.has(value)) {
+                        input.classList.add('border-red-500');
+                        hasError = true;
+                    } else {
+                        input.classList.add('border-green-500');
+                        prefixes.add(value);
+                    }
+                }
+            });
+
+            // Habilitar/desabilitar botão de salvar
+            const saveBtn = document.getElementById('save-prefixes-btn');
+            saveBtn.disabled = hasError;
+            saveBtn.classList.toggle('opacity-50', hasError);
+            saveBtn.classList.toggle('cursor-not-allowed', hasError);
+        }
+
+        async function savePrefixes() {
+            const prefixInputs = document.querySelectorAll('.prefix-input');
+            const updates = {};
+            let isValid = true;
+
+            // Validar todos os prefixos
+            prefixInputs.forEach(input => {
+                const campaignType = input.dataset.campaignType;
+                const prefix = input.value.trim();
+                
+                if (prefix && !/^[A-Z]{3}$/.test(prefix)) {
+                    showAlertModal('Erro', `Prefixo "${prefix}" inválido. Use exatamente 3 letras maiúsculas (A-Z).`);
+                    isValid = false;
+                    return;
+                }
+                
+                if (prefix) {
+                    updates[`${campaignType}.prefix`] = prefix;
+                } else {
+                    updates[`${campaignType}.prefix`] = deleteField();
+                }
+            });
+
+            if (!isValid) return;
+
+            // Verificar duplicação
+            const prefixes = Object.values(updates).filter(p => typeof p === 'string');
+            const uniquePrefixes = new Set(prefixes);
+            if (prefixes.length !== uniquePrefixes.size) {
+                showAlertModal('Erro', 'Cada prefixo deve ser único. Por favor, corrija as duplicações.');
+                return;
+            }
+
+            try {
+                const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
+                await updateDoc(campaignTypesRef, updates);
+                
+                // Atualizar dados locais
+                prefixInputs.forEach(input => {
+                    const campaignType = input.dataset.campaignType;
+                    const prefix = input.value.trim();
+                    if (prefix) {
+                        campaignTypesData[campaignType].prefix = prefix;
+                    } else {
+                        delete campaignTypesData[campaignType].prefix;
+                    }
+                });
+
+                showAlertModal('Sucesso!', 'Prefixos salvos com sucesso.');
+                validatePrefixUniqueness();
+                
+            } catch (error) {
+                showAlertModal('Erro', `Não foi possível salvar os prefixos: ${error.message}`);
+                await loadConfigs();
+            }
         }
         
         initializeApp();
