@@ -156,33 +156,41 @@
         import { doc, getDoc, updateDoc, collection, query, where, getDocs, storageRef, uploadBytes, getDownloadURL, updateProfile, onSnapshot } from "./firebase-services.js";
         import { showDetailsModal } from './modal-handler.js';
         
-        const phoneInput = document.getElementById('phone');
-        const cepInput = document.getElementById('addressCep');
-        const phoneMask = IMask(phoneInput, { mask: [{ mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' }] });
-        const cepMask = IMask(cepInput, { mask: '00000-000' });
-
-        const loadingView = document.getElementById('loading-view');
-        const profileView = document.getElementById('profile-view');
-        const profileForm = document.getElementById('profile-form');
-        const saveProfileBtn = document.getElementById('save-profile-btn');
-        const saveBtnText = document.getElementById('save-btn-text');
-        const saveBtnSpinner = document.getElementById('save-btn-spinner');
-        const saveFeedback = document.getElementById('save-feedback');
-        const photoPreview = document.getElementById('profile-photo-preview');
-        const photoUploadInput = document.getElementById('photo-upload-input');
-        const cropperModal = document.getElementById('cropper-modal');
-        const imageToCrop = document.getElementById('image-to-crop');
-        const cancelCropBtn = document.getElementById('cancel-crop-btn');
-        const confirmCropBtn = document.getElementById('confirm-crop-btn');
-        const historyTitle = document.getElementById('history-title');
-        const historyList = document.getElementById('donation-history-list');
-        const noHistoryPlaceholder = document.getElementById('no-history-placeholder');
-        const rankingContent = document.getElementById('ranking-content');
+        // DOM elements - will be initialized after DOMContentLoaded
+        let phoneInput, cepInput, phoneMask, cepMask;
+        let loadingView, profileView, profileForm, saveProfileBtn, saveBtnText, saveBtnSpinner, saveFeedback;
+        let photoPreview, photoUploadInput, cropperModal, imageToCrop, cancelCropBtn, confirmCropBtn;
+        let historyTitle, historyList, noHistoryPlaceholder, rankingContent;
 
         let currentUserSession = null;
         let cropper;
         let campaignTypeSettings = {};
         let donorsPublicInfoCache = new Map();
+
+        function initializeDOMElements() {
+            phoneInput = document.getElementById('phone');
+            cepInput = document.getElementById('addressCep');
+            if (phoneInput) phoneMask = IMask(phoneInput, { mask: [{ mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' }] });
+            if (cepInput) cepMask = IMask(cepInput, { mask: '00000-000' });
+
+            loadingView = document.getElementById('loading-view');
+            profileView = document.getElementById('profile-view');
+            profileForm = document.getElementById('profile-form');
+            saveProfileBtn = document.getElementById('save-profile-btn');
+            saveBtnText = document.getElementById('save-btn-text');
+            saveBtnSpinner = document.getElementById('save-btn-spinner');
+            saveFeedback = document.getElementById('save-feedback');
+            photoPreview = document.getElementById('profile-photo-preview');
+            photoUploadInput = document.getElementById('photo-upload-input');
+            cropperModal = document.getElementById('cropper-modal');
+            imageToCrop = document.getElementById('image-to-crop');
+            cancelCropBtn = document.getElementById('cancel-crop-btn');
+            confirmCropBtn = document.getElementById('confirm-crop-btn');
+            historyTitle = document.getElementById('history-title');
+            historyList = document.getElementById('donation-history-list');
+            noHistoryPlaceholder = document.getElementById('no-history-placeholder');
+            rankingContent = document.getElementById('ranking-content');
+        }
 
         async function initializeApp() {
             await injectHeader();
@@ -196,8 +204,8 @@
                 await buildDonorsPublicInfoCache();
                 loadProfileData(currentUserSession);
                 setupRealtimeListeners(userId);
-                loadingView.classList.add('hidden');
-                profileView.classList.remove('hidden');
+                if (loadingView) loadingView.classList.add('hidden');
+                if (profileView) profileView.classList.remove('hidden');
             } else {
                 window.location.href = 'login.html';
             }
@@ -304,17 +312,17 @@
             }, {});
 
             if (Object.keys(completedItemsByCampaign).length === 0) {
-                historyList.innerHTML = '';
-                historyList.appendChild(noHistoryPlaceholder);
-                noHistoryPlaceholder.classList.remove('hidden');
-                historyTitle.textContent = `Histórico de Doações Concluídas`;
+                if (historyList) historyList.innerHTML = '';
+                if (historyList && noHistoryPlaceholder) historyList.appendChild(noHistoryPlaceholder);
+                if (noHistoryPlaceholder) noHistoryPlaceholder.classList.remove('hidden');
+                if (historyTitle) historyTitle.textContent = `Histórico de Doações Concluídas`;
                 return;
             }
 
-            historyList.innerHTML = '';
-            noHistoryPlaceholder.classList.add('hidden');
+            if (historyList) historyList.innerHTML = '';
+            if (noHistoryPlaceholder) noHistoryPlaceholder.classList.add('hidden');
             const totalCampaigns = Object.keys(completedItemsByCampaign).length;
-            historyTitle.textContent = `Você já contribuiu em ${totalCampaigns} campanha(s)!`;
+            if (historyTitle) historyTitle.textContent = `Você já contribuiu em ${totalCampaigns} campanha(s)!`;
 
             const sortedCampaigns = Object.entries(completedItemsByCampaign).sort(([, a], [, b]) => b.latestDate - a.latestDate);
 
@@ -386,11 +394,21 @@
                         ${likesHtml}
                     </div>
                 `;
-                historyList.appendChild(card);
+                if (historyList) historyList.appendChild(card);
+            }
+        }
+
+        // Safe event listener helper to prevent null addEventListener errors
+        function safeAddListener(element, event, handler) {
+            if (element) {
+                element.addEventListener(event, handler);
+            } else {
+                console.warn(`Element not found for event listener: ${event}`);
             }
         }
         
-        historyList.addEventListener('click', (e) => {
+        if (historyList) {
+            historyList.addEventListener('click', (e) => {
             const itemElement = e.target.closest('.item-card[data-item-details]');
             if (!itemElement) return;
 
@@ -415,8 +433,9 @@
             `;
             showDetailsModal(item.type, modalContentHtml);
         });
+        }
 
-        profileForm.addEventListener('submit', async (e) => {
+        safeAddListener(profileForm, 'submit', async (e) => {
             e.preventDefault();
             showLoadingButton(true, 'Salvando...');
             saveFeedback.textContent = '';
@@ -457,7 +476,7 @@
             }
         });
 
-        photoUploadInput.addEventListener('change', (e) => {
+        safeAddListener(photoUploadInput, 'change', (e) => {
             const file = e.target.files[0];
             if (!file || !file.type.startsWith('image/')) return;
             const reader = new FileReader();
@@ -471,9 +490,11 @@
             photoUploadInput.value = '';
         });
 
-        cancelCropBtn.addEventListener('click', () => cropperModal.classList.add('hidden'));
+        safeAddListener(cancelCropBtn, 'click', () => {
+            if (cropperModal) cropperModal.classList.add('hidden');
+        });
 
-        confirmCropBtn.addEventListener('click', () => {
+        safeAddListener(confirmCropBtn, 'click', () => {
             if (!cropper) return;
             confirmCropBtn.disabled = true;
             confirmCropBtn.textContent = 'A processar...';
@@ -502,19 +523,25 @@
         });
 
         function showLoadingButton(isLoading, text = 'Salvar Alterações') {
-            saveBtnText.textContent = text;
-            saveBtnText.classList.toggle('hidden', isLoading);
-            saveBtnSpinner.classList.toggle('hidden', !isLoading);
-            saveProfileBtn.disabled = isLoading;
+            if (saveBtnText) saveBtnText.textContent = text;
+            if (saveBtnText) saveBtnText.classList.toggle('hidden', isLoading);
+            if (saveBtnSpinner) saveBtnSpinner.classList.toggle('hidden', !isLoading);
+            if (saveProfileBtn) saveProfileBtn.disabled = isLoading;
         }
 
         function showSaveFeedback(message, type = 'success') {
-            saveFeedback.textContent = message;
-            saveFeedback.className = `text-sm mr-4 ${type === 'success' ? 'text-green-600' : 'text-red-600'}`;
-            setTimeout(() => { saveFeedback.textContent = ''; }, 4000);
+            if (saveFeedback) {
+                saveFeedback.textContent = message;
+                saveFeedback.className = `text-sm mr-4 ${type === 'success' ? 'text-green-600' : 'text-red-600'}`;
+                setTimeout(() => { saveFeedback.textContent = ''; }, 4000);
+            }
         }
 
-        initializeApp();
+        // Initialize app when DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', async () => {
+            initializeDOMElements();
+            await initializeApp();
+        });
     </script>
 
 </body>

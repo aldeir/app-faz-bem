@@ -85,19 +85,34 @@
         import { getCurrentUser } from './auth-service.js';
         import { showDetailsModal } from './modal-handler.js';
 
-        const loadingView = document.getElementById('loading-view');
-        const deliveriesView = document.getElementById('deliveries-view');
-        const deliveriesList = document.getElementById('deliveries-list');
-        const noDeliveriesPlaceholder = document.getElementById('no-deliveries-placeholder');
-        const tabsContainer = document.getElementById('tabs-container');
-        const loadMoreContainer = document.getElementById('load-more-container');
-        const loadMoreBtn = document.getElementById('load-more-btn');
+        // DOM elements - will be initialized after DOMContentLoaded
+        let loadingView, deliveriesView, deliveriesList, noDeliveriesPlaceholder;
+        let tabsContainer, loadMoreContainer, loadMoreBtn;
 
         let allUserDonations = [];
         let campaignsCache = new Map();
         let campaignTypeSettings = {};
         let currentPage = 1;
         const DONATIONS_PER_PAGE = 5;
+
+        // Safe event listener helper to prevent null addEventListener errors
+        function safeAddListener(element, event, handler) {
+            if (element) {
+                element.addEventListener(event, handler);
+            } else {
+                console.warn(`Element not found for event listener: ${event}`);
+            }
+        }
+
+        function initializeDOMElements() {
+            loadingView = document.getElementById('loading-view');
+            deliveriesView = document.getElementById('deliveries-view');
+            deliveriesList = document.getElementById('deliveries-list');
+            noDeliveriesPlaceholder = document.getElementById('no-deliveries-placeholder');
+            tabsContainer = document.getElementById('tabs-container');
+            loadMoreContainer = document.getElementById('load-more-container');
+            loadMoreBtn = document.getElementById('load-more-btn');
+        }
 
         async function initializeApp() {
             const canProceed = await injectHeader();
@@ -131,8 +146,8 @@
                 
                 currentPage = 1;
                 renderActiveTabData();
-                loadingView.classList.add('hidden');
-                deliveriesView.classList.remove('hidden');
+                if (loadingView) loadingView.classList.add('hidden');
+                if (deliveriesView) deliveriesView.classList.remove('hidden');
             });
         }
 
@@ -169,22 +184,22 @@
                 }
             } catch (error) {
                 console.error("Erro ao filtrar doações:", error);
-                loadingView.classList.add('hidden');
-                deliveriesView.classList.remove('hidden');
-                deliveriesList.innerHTML = `<p class="text-red-500 text-center p-4">Ocorreu um erro ao processar os dados das doações.</p>`;
+                if (loadingView) loadingView.classList.add('hidden');
+                if (deliveriesView) deliveriesView.classList.remove('hidden');
+                if (deliveriesList) deliveriesList.innerHTML = `<p class="text-red-500 text-center p-4">Ocorreu um erro ao processar os dados das doações.</p>`;
                 return;
             }
 
             filteredDonations.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
             
             if (filteredDonations.length === 0 && !append) {
-                noDeliveriesPlaceholder.classList.remove('hidden');
-                loadMoreContainer.classList.add('hidden');
-                deliveriesList.innerHTML = '';
+                if (noDeliveriesPlaceholder) noDeliveriesPlaceholder.classList.remove('hidden');
+                if (loadMoreContainer) loadMoreContainer.classList.add('hidden');
+                if (deliveriesList) deliveriesList.innerHTML = '';
                 return;
             }
 
-            noDeliveriesPlaceholder.classList.add('hidden');
+            if (noDeliveriesPlaceholder) noDeliveriesPlaceholder.classList.add('hidden');
 
             const startIndex = (currentPage - 1) * DONATIONS_PER_PAGE;
             const endIndex = startIndex + DONATIONS_PER_PAGE;
@@ -194,14 +209,14 @@
                 const campaign = campaignsCache.get(donation.campaignId);
                 const card = createDeliveryCard(donation, campaign, activeTab);
                 if (card) {
-                    deliveriesList.appendChild(card);
+                    if (deliveriesList) deliveriesList.appendChild(card);
                 }
             });
 
             if (filteredDonations.length > endIndex) {
-                loadMoreContainer.classList.remove('hidden');
+                if (loadMoreContainer) loadMoreContainer.classList.remove('hidden');
             } else {
-                loadMoreContainer.classList.add('hidden');
+                if (loadMoreContainer) loadMoreContainer.classList.add('hidden');
             }
         }
         
@@ -385,23 +400,23 @@
             }
         }
 
-        tabsContainer.addEventListener('click', (e) => {
+        safeAddListener(tabsContainer, 'click', (e) => {
             const button = e.target.closest('button.tab-button');
             if (button) {
-                tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                if (tabsContainer) tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
                 currentPage = 1;
                 renderActiveTabData();
             }
         });
 
-        loadMoreBtn.addEventListener('click', () => {
+        safeAddListener(loadMoreBtn, 'click', () => {
             currentPage++;
             renderActiveTabData(true);
         });
         
         // --- INÍCIO DA ALTERAÇÃO ---
-        deliveriesList.addEventListener('click', async (e) => {
+        safeAddListener(deliveriesList, 'click', async (e) => {
             const itemCard = e.target.closest('.item-card[data-donation-id]');
             const rescheduleBtn = e.target.closest('[data-action="reschedule"]');
 
@@ -454,7 +469,11 @@
         });
         // --- FIM DA ALTERAÇÃO ---
         
-        initializeApp();
+        // Initialize app when DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', async () => {
+            initializeDOMElements();
+            await initializeApp();
+        });
     </script>
 </body>
 </html>
