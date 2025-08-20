@@ -106,6 +106,9 @@
         <div>
           <button id="apply-filters" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">Aplicar</button>
         </div>
+        <div>
+          <button id="indisponibilidade-btn" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md">Indisponibilidade</button>
+        </div>
       </div>
     </section>
 
@@ -147,6 +150,19 @@
       <button id="load-more" class="hidden bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md">Mostrar mais</button>
     </div>
   </main>
+
+  <!-- Modal: Item Details -->
+  <div id="item-details-modal" class="modal-backdrop" aria-hidden="true" role="dialog">
+    <div class="modal-content">
+      <div class="modal-header">Detalhes do Item</div>
+      <div class="modal-body" id="item-details-content">
+        <!-- Content will be populated dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button id="item-details-close" class="btn btn-gray">Fechar</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal: Reagendar / Cancelar disponibilidade -->
   <div id="reschedule-modal" class="modal-backdrop" aria-hidden="true" role="dialog">
@@ -218,6 +234,35 @@
     </div>
   </div>
 
+  <!-- Modal: Indisponibilidade -->
+  <div id="indisponibilidade-modal" class="modal-backdrop" aria-hidden="true" role="dialog">
+    <div class="modal-content">
+      <div class="modal-header">Configurar Indisponibilidade</div>
+      <div class="modal-body">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Data</label>
+            <input id="unavailable-date" type="date" class="w-full border border-gray-300 rounded-md px-3 py-2">
+          </div>
+          <div id="time-slots-container" class="hidden">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Horários Disponíveis</label>
+            <div id="time-slots-grid" class="grid grid-cols-4 gap-2">
+              <!-- Time slots will be populated here -->
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Motivo da Indisponibilidade</label>
+            <textarea id="unavailable-reason" rows="3" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Explique o motivo da indisponibilidade..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="unavailable-close" class="btn btn-gray">Cancelar</button>
+        <button id="unavailable-confirm" class="btn btn-red">Bloquear Horários</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { db } from './app-config.js';
     import {
@@ -262,6 +307,21 @@
     const rsBtnClose = document.getElementById('rs-cancel');
     const rsBtnConfirm = document.getElementById('rs-confirm');
     const rsBtnConfirmBlock = document.getElementById('rs-confirm-block');
+
+    // Item details modal
+    const itemDetailsModal = document.getElementById('item-details-modal');
+    const itemDetailsContent = document.getElementById('item-details-content');
+    const itemDetailsClose = document.getElementById('item-details-close');
+
+    // Indisponibilidade modal
+    const indisponibilidadeModal = document.getElementById('indisponibilidade-modal');
+    const indisponibilidadeBtn = document.getElementById('indisponibilidade-btn');
+    const unavailableDate = document.getElementById('unavailable-date');
+    const timeSlotsContainer = document.getElementById('time-slots-container');
+    const timeSlotsGrid = document.getElementById('time-slots-grid');
+    const unavailableReason = document.getElementById('unavailable-reason');
+    const unavailableClose = document.getElementById('unavailable-close');
+    const unavailableConfirm = document.getElementById('unavailable-confirm');
 
     // Cancel modal
     const cnModal = document.getElementById('cancel-modal');
@@ -491,7 +551,7 @@
         <div class="bg-white p-3 rounded-lg shadow-sm flex items-start gap-3 border-l-4 ${borderClass}">
           ${thumb}
           <div class="flex-1">
-            <div class="font-medium text-gray-900">${escapeHtml(title)}</div>
+            <button type="button" class="item-title-btn text-left font-medium text-gray-900 hover:text-blue-600 underline" data-d-idx="${donationIndex}" data-i-idx="${itemIndex}" title="Ver detalhes">${escapeHtml(title)}</button>
             <div class="mt-1 text-sm text-gray-700">${detailsHtml}</div>
           </div>
           <div class="text-xs text-gray-500 self-center">
@@ -512,8 +572,6 @@
 
       const actions = `
         <div class="flex gap-2">
-          <button class="chip chip-green" data-action="mark-received" data-id="${escapeAttr(donation.id||'')}">Marcar recebida</button>
-          <button class="chip chip-gray" data-action="reschedule" data-id="${escapeAttr(donation.id||'')}">Reagendar</button>
           <button class="chip chip-red" data-action="cancel" data-id="${escapeAttr(donation.id||'')}">Cancelar</button>
         </div>
       `;
@@ -1099,12 +1157,230 @@
         // Log (como no seu console)
         console.log('Ação rápida:', action, 'para doação', id);
 
-        if (action === 'mark-received') handleMarkReceived(id);
-        if (action === 'reschedule') openRescheduleModal(id);
         if (action === 'cancel') openCancelModal(id);
         return;
       }
+
+      // Handle item photo/details clicks
+      const itemPhotoBtn = ev.target.closest('.item-photo-btn');
+      const itemTitleBtn = ev.target.closest('.item-title-btn');
+      if (itemPhotoBtn || itemTitleBtn) {
+        const btn = itemPhotoBtn || itemTitleBtn;
+        const donationIndex = parseInt(btn.getAttribute('data-d-idx'), 10);
+        const itemIndex = parseInt(btn.getAttribute('data-i-idx'), 10);
+        showItemDetails(donationIndex, itemIndex);
+        return;
+      }
     });
+
+    // Item details modal event listeners
+    itemDetailsClose.addEventListener('click', () => {
+      itemDetailsModal.classList.remove('active');
+      itemDetailsModal.setAttribute('aria-hidden', 'true');
+    });
+
+    // Indisponibilidade modal event listeners
+    indisponibilidadeBtn.addEventListener('click', () => {
+      indisponibilidadeModal.classList.add('active');
+      indisponibilidadeModal.setAttribute('aria-hidden', 'false');
+    });
+
+    unavailableClose.addEventListener('click', () => {
+      indisponibilidadeModal.classList.remove('active');
+      indisponibilidadeModal.setAttribute('aria-hidden', 'true');
+      resetIndisponibilidadeForm();
+    });
+
+    unavailableDate.addEventListener('change', loadAvailableTimeSlots);
+    
+    unavailableConfirm.addEventListener('click', confirmUnavailability);
+
+    // Item details modal functions
+    function getFilteredDonations() {
+      const bucketsAll = computeBuckets(rawDonations);
+      const base = currentTab === 'all' ? rawDonations : (bucketsAll[currentTab] || []);
+      return applyFilters(base);
+    }
+
+    function showItemDetails(donationIndex, itemIndex) {
+      const donations = getFilteredDonations(); // Use the existing filtered donations
+      if (donationIndex >= donations.length) return;
+      
+      const donation = donations[donationIndex];
+      const item = donation.items?.[itemIndex];
+      if (!item) return;
+
+      const campaignTypeKey = donation.campaignType || 'default';
+      const typeCfg = campaignTypeSettings?.[campaignTypeKey] || {};
+      const title = itemDisplayTitle(item, typeCfg);
+      const detailsHtml = generateItemDetailsHtml(item, campaignTypeKey);
+      const photoUrl = extractItemPhotoUrl(item, campaignTypeKey);
+
+      let modalContent = `<div class="space-y-4">`;
+      
+      if (photoUrl) {
+        modalContent += `<div class="text-center">
+          <img src="${escapeAttr(photoUrl)}" alt="Foto do item" class="max-w-full h-auto max-h-96 mx-auto rounded-lg shadow-md">
+        </div>`;
+      }
+
+      modalContent += `<div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">${escapeHtml(title)}</h3>
+        <div class="text-sm text-gray-600 space-y-2">
+          <p><strong>Doador:</strong> ${escapeHtml(donation.donorName || 'N/A')}</p>
+          <p><strong>Campanha:</strong> ${escapeHtml(donation.campaignTitle || 'N/A')}</p>
+          <p><strong>Data/Hora:</strong> ${escapeHtml(formatDateTimeFromDonation(donation))}</p>
+        </div>
+      </div>`;
+
+      if (detailsHtml) {
+        modalContent += `<div class="border-t pt-4">
+          <h4 class="font-medium text-gray-900 mb-2">Detalhes do Item</h4>
+          ${detailsHtml}
+        </div>`;
+      }
+
+      modalContent += `</div>`;
+
+      itemDetailsContent.innerHTML = modalContent;
+      itemDetailsModal.classList.add('active');
+      itemDetailsModal.setAttribute('aria-hidden', 'false');
+    }
+
+    // Indisponibilidade modal functions
+    function resetIndisponibilidadeForm() {
+      unavailableDate.value = '';
+      unavailableReason.value = '';
+      timeSlotsContainer.classList.add('hidden');
+      timeSlotsGrid.innerHTML = '';
+    }
+
+    function loadAvailableTimeSlots() {
+      const dateStr = unavailableDate.value;
+      if (!dateStr) {
+        timeSlotsContainer.classList.add('hidden');
+        return;
+      }
+
+      // Generate time slots for the day (every 15 minutes from 08:00 to 18:00)
+      const slots = [];
+      for (let hour = 8; hour < 18; hour++) {
+        for (let minute = 0; minute < 60; minute += 15) {
+          const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+          slots.push(timeStr);
+        }
+      }
+
+      // Check for existing donations on this date to show occupancy
+      const dayDonations = rawDonations.filter(d => {
+        if (!d.scheduledPickupAt) return false;
+        const donationDate = new Date(d.scheduledPickupAt.seconds * 1000);
+        const donationDateStr = donationDate.toISOString().split('T')[0];
+        return donationDateStr === dateStr && d.status === 'pending';
+      });
+
+      timeSlotsGrid.innerHTML = slots.map(timeStr => {
+        const occupancy = dayDonations.filter(d => {
+          const donationTime = new Date(d.scheduledPickupAt.seconds * 1000);
+          const donationTimeStr = `${donationTime.getHours().toString().padStart(2, '0')}:${donationTime.getMinutes().toString().padStart(2, '0')}`;
+          return donationTimeStr === timeStr;
+        }).length;
+
+        return `
+          <label class="flex items-center space-x-2 p-2 border rounded cursor-pointer hover:bg-gray-50">
+            <input type="checkbox" class="time-slot-checkbox" value="${timeStr}">
+            <span class="text-sm">${timeStr}</span>
+            ${occupancy > 0 ? `<span class="text-xs text-orange-600">(${occupancy})</span>` : ''}
+          </label>
+        `;
+      }).join('');
+
+      timeSlotsContainer.classList.remove('hidden');
+    }
+
+    async function confirmUnavailability() {
+      const dateStr = unavailableDate.value;
+      const reason = unavailableReason.value?.trim();
+      const selectedSlots = Array.from(document.querySelectorAll('.time-slot-checkbox:checked'))
+        .map(cb => cb.value);
+
+      if (!dateStr || !reason || selectedSlots.length === 0) {
+        await showAlertModal('Atenção', 'Preencha todos os campos e selecione pelo menos um horário.');
+        return;
+      }
+
+      try {
+        const batch = writeBatch(db);
+        let affectedDonations = [];
+
+        // Block the selected time slots
+        for (const timeStr of selectedSlots) {
+          const blockedRef = doc(db, 'blocked_slots', `${currentEntityId}_${dateStr}_${timeStr}`);
+          batch.set(blockedRef, {
+            entityId: currentEntityId,
+            date: dateStr,
+            time: timeStr,
+            reason: reason,
+            blockedAt: serverTimestamp(),
+            blockedBy: session?.auth?.uid || null,
+            blockedByName: session?.profile?.name || session?.profile?.displayName || 'Equipe'
+          });
+
+          // Find affected donations
+          const affected = rawDonations.filter(d => {
+            if (!d.scheduledPickupAt || d.status !== 'pending') return false;
+            const donationTime = new Date(d.scheduledPickupAt.seconds * 1000);
+            const donationDateStr = donationTime.toISOString().split('T')[0];
+            const donationTimeStr = `${donationTime.getHours().toString().padStart(2, '0')}:${donationTime.getMinutes().toString().padStart(2, '0')}`;
+            return donationDateStr === dateStr && donationTimeStr === timeStr;
+          });
+
+          affectedDonations.push(...affected);
+        }
+
+        // Cancel affected donations
+        for (const donation of affectedDonations) {
+          const donationRef = doc(db, paths.donationDoc(donation.id));
+          batch.update(donationRef, {
+            status: 'cancelled',
+            cancelledAt: serverTimestamp(),
+            cancelledBy: session?.auth?.uid || null,
+            cancelledByName: session?.profile?.name || session?.profile?.displayName || 'Equipe',
+            cancelledReason: `Indisponibilidade no horário. Motivo: ${reason}`
+          });
+        }
+
+        await batch.commit();
+
+        // Send notifications to affected donors
+        for (const donation of affectedDonations) {
+          if (donation.donorId) {
+            const donationTime = new Date(donation.scheduledPickupAt.seconds * 1000);
+            const timeStr = `${donationTime.getHours().toString().padStart(2, '0')}:${donationTime.getMinutes().toString().padStart(2, '0')}`;
+            const msg = `Indisponibilidade no horário ${timeStr} do dia ${new Date(`${dateStr}T00:00`).toLocaleDateString('pt-BR')}. Motivo: ${reason}. Reagende sua entrega, por favor.`;
+            await createNotification(donation.donorId, msg, 'minhas-entregas.html');
+          }
+        }
+
+        await showAlertModal('Sucesso', `Horários bloqueados com sucesso.${affectedDonations.length ? ` ${affectedDonations.length} agendamento(s) foram cancelados e os doadores notificados.` : ''}`);
+        
+        // Close modal and reset form
+        indisponibilidadeModal.classList.remove('active');
+        indisponibilidadeModal.setAttribute('aria-hidden', 'true');
+        resetIndisponibilidadeForm();
+
+      } catch (error) {
+        console.error('Erro ao bloquear horários:', error);
+        await showAlertModal('Erro', 'Falha ao bloquear horários.');
+      }
+    }
+
+    // Helper function to format date/time from donation
+    function formatDateTimeFromDonation(donation) {
+      if (!donation.scheduledPickupAt) return 'N/A';
+      const date = new Date(donation.scheduledPickupAt.seconds * 1000);
+      return `${date.toLocaleDateString('pt-BR')} às ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    }
 
     // Boot
     (async function init(){
