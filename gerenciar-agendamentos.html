@@ -5,13 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gerenciar Agendamentos</title>
 
-  <!-- PWA + ícones -->
   <meta name="theme-color" content="#22c55e">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="logo.png">
   <link rel="icon" href="logo.png" type="image/png">
 
-  <!-- Tailwind compilado do projeto (GitHub Pages) -->
+  <!-- CSS do projeto (GitHub Pages) -->
   <link href="/app-faz-bem/style.css" rel="stylesheet">
 
   <!-- Fonts -->
@@ -27,18 +26,42 @@
       font-weight: 600; text-transform: uppercase; border-radius: 9999px;
       width: 40px; height: 40px;
     }
-    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 50; }
-    .modal-backdrop.active { display: flex; }
-    .modal-content { width: min(900px, 96vw); max-height: 92vh; background: #fff; border-radius: 12px; overflow: hidden; }
-    .modal-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
-    .modal-media { background: #0f172a; display: flex; align-items: center; justify-content: center; }
-    .modal-media img { width: 100%; height: 100%; object-fit: contain; background: #0f172a; }
-    .modal-details { padding: 16px; overflow: auto; }
     .chip { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
     .chip-gray { background:#f3f4f6; color:#374151; }
     .chip-green { background:#ecfdf5; color:#065f46; }
     .chip-yellow { background:#fffbeb; color:#92400e; }
     .chip-red { background:#fef2f2; color:#991b1b; }
+
+    /* Modal base */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 50; }
+    .modal-backdrop.active { display: flex; }
+    .modal-content { width: min(960px, 96vw); max-height: 92vh; background: #fff; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+    .modal-header { padding: 14px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600; }
+    .modal-body { padding: 16px; overflow: auto; }
+    .modal-footer { padding: 12px 16px; border-top: 1px solid #e5e7eb; display: flex; gap: 8px; justify-content: flex-end; }
+    .btn { border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+    .btn-gray { background: #f3f4f6; color:#374151; }
+    .btn-red { background: #ef4444; color: #fff; }
+    .btn-green { background: #10b981; color: #fff; }
+    .btn-blue { background: #2563eb; color: #fff; }
+    .btn:hover { filter: brightness(0.96); }
+
+    .keyval { display:flex; gap:8px; align-items:center; font-size:12px; color:#4b5563; }
+    .keyval .k { font-weight:600; color:#111827; }
+
+    .code-badge { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background:#111827; color:#c7d2fe; padding:2px 6px; border-radius:6px; font-size:11px; }
+
+    /* Painel lateral de ocupação */
+    .grid-two { display:grid; grid-template-columns: 2fr 1fr; gap:16px; }
+    @media (max-width: 900px) { .grid-two { grid-template-columns: 1fr; } }
+    .slot { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; }
+    .slot.busy { background:#fff7ed; }
+    .slot.free { background:#ecfeff; }
+    .slot .count { font-weight:700; }
+
+    .list-mini { border:1px solid #e5e7eb; border-radius:8px; padding:8px; background:#fafafa; max-height:240px; overflow:auto; }
+    .list-mini li { padding:6px 4px; border-bottom:1px dashed #e5e7eb; }
+    .list-mini li:last-child { border-bottom:none; }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -125,33 +148,87 @@
     </div>
   </main>
 
-  <!-- Modal de detalhes do item (imagem + dados) -->
-  <div id="item-modal" class="modal-backdrop" aria-hidden="true">
+  <!-- Modal: Reagendar / Cancelar disponibilidade -->
+  <div id="reschedule-modal" class="modal-backdrop" aria-hidden="true" role="dialog">
     <div class="modal-content">
-      <div class="modal-body">
-        <div class="modal-media">
-          <img id="modal-img" src="" alt="Item">
-        </div>
-        <div class="modal-details">
-          <h3 id="modal-title" class="text-lg font-semibold text-gray-900"></h3>
-          <div id="modal-meta" class="text-sm text-gray-600 mt-1"></div>
-          <div id="modal-details-container" class="mt-3 text-sm text-gray-800 space-y-1"></div>
-          <div id="modal-reception" class="mt-4 text-sm text-gray-700"></div>
+      <div class="modal-header">Reagendar / Disponibilidade</div>
+      <div class="modal-body grid-two">
+        <div>
+          <div class="grid md:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs text-gray-600 mb-1">Data</label>
+              <input id="rs-date" type="date" class="w-full border border-gray-300 rounded-md px-3 py-2">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-600 mb-1">Hora</label>
+              <input id="rs-time" type="time" class="w-full border border-gray-300 rounded-md px-3 py-2" step="900">
+            </div>
+          </div>
+
           <div class="mt-4">
-            <button id="modal-close" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md">Fechar</button>
+            <label class="inline-flex items-center gap-2 text-sm">
+              <input id="rs-block-slot" type="checkbox" class="rounded border-gray-300">
+              Cancelar disponibilidade deste horário
+            </label>
+            <p class="text-xs text-gray-500 mt-1">Se marcado, o horário ficará indisponível para novos agendamentos.</p>
+          </div>
+
+          <div id="rs-just-wrap" class="hidden mt-3">
+            <label class="block text-xs text-gray-600 mb-1">Justificativa</label>
+            <textarea id="rs-just" rows="3" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Explique o motivo da indisponibilidade..."></textarea>
+          </div>
+
+          <div id="rs-collision-wrap" class="hidden mt-4">
+            <div class="font-semibold text-gray-800 mb-1">Agendamentos neste horário</div>
+            <ul id="rs-collision-list" class="list-mini"></ul>
+            <p class="text-xs text-gray-500 mt-1">Ao confirmar “Cancelar disponibilidade”, todos os agendamentos acima serão cancelados e os doadores notificados.</p>
           </div>
         </div>
+
+        <div>
+          <div class="font-semibold text-gray-800 mb-2">Ocupação do dia</div>
+          <div id="rs-occupancy" class="space-y-2">
+            <!-- slots renderizados aqui -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="rs-cancel" class="btn btn-gray">Fechar</button>
+        <button id="rs-confirm-block" class="btn btn-red hidden">Cancelar disponibilidade</button>
+        <button id="rs-confirm" class="btn btn-blue">Reagendar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Cancelar doação -->
+  <div id="cancel-modal" class="modal-backdrop" aria-hidden="true" role="dialog">
+    <div class="modal-content">
+      <div class="modal-header">Cancelar doação</div>
+      <div class="modal-body">
+        <p class="text-sm text-gray-700">Informe a justificativa para cancelar esta doação. O doador será notificado.</p>
+        <div class="mt-3">
+          <label class="block text-xs text-gray-600 mb-1">Justificativa</label>
+          <textarea id="cn-just" rows="4" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Ex.: Dados inconsistentes, tentativa de fraude, etc."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cn-cancel" class="btn btn-gray">Fechar</button>
+        <button id="cn-confirm" class="btn btn-red">Cancelar doação</button>
       </div>
     </div>
   </div>
 
   <script type="module">
-    // Imports: todos estão na raiz do projeto no GitHub Pages
     import { db } from './app-config.js';
-    import { collection, query, where, onSnapshot, doc, getDoc } from './firebase-services.js';
+    import {
+      collection, query, where, onSnapshot, doc, getDoc, updateDoc,
+      writeBatch, serverTimestamp, runTransaction
+    } from './firebase-services.js';
     import { paths } from './firestore-paths.js';
     import { injectHeader } from './app-header.js';
     import { getCurrentUser } from './auth-service.js';
+    import { createNotification } from './notification-service.js';
+    import { showAlertModal } from './modal-handler.js';
 
     const backLink = document.getElementById('backLink');
     const loadingView = document.getElementById('loading-view');
@@ -172,13 +249,25 @@
     const applyFiltersBtn = document.getElementById('apply-filters');
     const loadMoreBtn = document.getElementById('load-more');
 
-    const itemModal = document.getElementById('item-modal');
-    const modalImg = document.getElementById('modal-img');
-    const modalTitle = document.getElementById('modal-title');
-    const modalMeta = document.getElementById('modal-meta');
-    const modalDetailsContainer = document.getElementById('modal-details-container');
-    const modalReception = document.getElementById('modal-reception');
-    const modalClose = document.getElementById('modal-close');
+    // Reschedule elements
+    const rsModal = document.getElementById('reschedule-modal');
+    const rsDate = document.getElementById('rs-date');
+    const rsTime = document.getElementById('rs-time');
+    const rsBlockSlot = document.getElementById('rs-block-slot');
+    const rsJustWrap = document.getElementById('rs-just-wrap');
+    const rsJust = document.getElementById('rs-just');
+    const rsOccupancy = document.getElementById('rs-occupancy');
+    const rsCollisionWrap = document.getElementById('rs-collision-wrap');
+    const rsCollisionList = document.getElementById('rs-collision-list');
+    const rsBtnClose = document.getElementById('rs-cancel');
+    const rsBtnConfirm = document.getElementById('rs-confirm');
+    const rsBtnConfirmBlock = document.getElementById('rs-confirm-block');
+
+    // Cancel modal
+    const cnModal = document.getElementById('cancel-modal');
+    const cnJust = document.getElementById('cn-just');
+    const cnBtnClose = document.getElementById('cn-cancel');
+    const cnBtnConfirm = document.getElementById('cn-confirm');
 
     let campaignTypeSettings = {};
     let unsub = null;
@@ -187,11 +276,22 @@
     let renderLimitPerDay = 50;
     const dayRenderCount = new Map();
 
+    let session = null;
+    let currentEntityId = null;
+
+    // Contexto da ação
+    let actionDonationId = null;
+
     // Helpers base
     function qs(){ return new URLSearchParams(location.search); }
     function asDate(v){ try { return v?.toDate ? v.toDate() : (v ? new Date(v) : null); } catch { return null; } }
     function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
     function cap(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
+    function two(n){ return String(n).padStart(2,'0'); }
+    function fmtDateKey(d){ return `${d.getFullYear()}-${two(d.getMonth()+1)}-${two(d.getDate())}`; }
+    function sameDay(a,b){ const A=asDate(a), B=asDate(b); return A && B && fmtDateKey(A)===fmtDateKey(B); }
+    function hhmm(d){ const x=asDate(d); return `${two(x.getHours())}:${two(x.getMinutes())}`; }
+
     function formatDateLongBR(date){
       const d = asDate(date); if (!d || isNaN(d)) return '';
       const weekday = cap(new Intl.DateTimeFormat('pt-BR', { weekday:'long' }).format(d));
@@ -227,7 +327,7 @@
     };
     function getBorderClass(cfg){ return BORDER_COLOR_MAP[cfg?.color] || BORDER_COLOR_MAP.default; }
 
-    // Campos dinâmicos
+    // Campos dinâmicos (detalhes de item)
     function normalizeFieldsConfig(campaignType){
       const cfg = campaignTypeSettings?.[campaignType];
       const fieldsRaw = Array.isArray(cfg?.fields) ? cfg.fields : Object.values(cfg?.fields || {});
@@ -280,7 +380,7 @@
       return s.charAt(0).toUpperCase()+s.slice(1);
     }
     function fallbackDetailsFromItem(item){
-      const ignore = new Set(['type','photoURL','status','id','campaignType']);
+      const ignore = new Set(['type','photoURL','status','id','campaignType','uniqueCode']);
       const lines = [];
       for (const [k,v] of Object.entries(item||{})){
         if (ignore.has(k)) continue;
@@ -309,14 +409,16 @@
     }
     function generateItemDetailsHtml(item, donationCampaignType){
       const fields = normalizeFieldsConfig(donationCampaignType);
-      if (!fields.length) return fallbackDetailsFromItem(item);
+      const codeFrag = item?.uniqueCode ? `<span class="code-badge" title="Código do item">${escapeHtml(item.uniqueCode)}</span>` : '';
+      if (!fields.length) return `${codeFrag ? `<div class="mb-1">${codeFrag}</div>` : ''}${fallbackDetailsFromItem(item)}`;
       const filtered = fields.filter(f => !isMediaField(f, item?.[f.id]));
       const lines = filtered.map(f => {
         const v = resolveFieldValue(f, item?.[f.id]);
         if (v === null || v === '') return '';
         return `<p><strong class="font-semibold">${escapeHtml(f.label)}:</strong> ${escapeHtml(v)}</p>`;
       }).filter(Boolean);
-      return `<div class="space-y-1">${lines.length ? lines.join('') : fallbackDetailsFromItem(item)}</div>`;
+      const inner = lines.length ? lines.join('') : fallbackDetailsFromItem(item);
+      return `${codeFrag ? `<div class="mb-1">${codeFrag}</div>` : ''}<div class="space-y-1">${inner}</div>`;
     }
 
     // Status/recebimento
@@ -366,7 +468,7 @@
       return item?.title || item?.name || item?.type || typeCfg?.title || 'Item';
     }
 
-    // Armazena referência para abrir modal por data-attrs
+    // Card / Item
     function renderItem(donation, item, donationIndex, itemIndex){
       const campaignTypeKey = donation.campaignType || 'default';
       const typeCfg = campaignTypeSettings?.[campaignTypeKey] || {};
@@ -613,7 +715,326 @@
       });
     }
 
-    // Eventos
+    // ====== AÇÕES RÁPIDAS ======
+
+    // Geração de sequencial por tipo de campanha (para códigos de item)
+    async function getNextSequence(prefix){
+      const ref = doc(db, 'counters', `items_${prefix}`);
+      const out = await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        const cur = snap.exists() ? (snap.data().value || 0) : 0;
+        tx.set(ref, { value: cur + 1, updatedAt: serverTimestamp() }, { merge: true });
+        return cur + 1;
+      });
+      return out;
+    }
+
+    async function ensureItemCodes(donationRef, donation){
+      const campaignKey = (donation.campaignType || 'GEN').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8) || 'GEN';
+      let changed = false;
+      const items = (donation.items || []).map(it => {
+        if (!it || it.uniqueCode) return it;
+        changed = true;
+        return { ...it, uniqueCode: `${campaignKey}-${String(Math.random()).slice(2,6)}${String(Math.random()).slice(2,4)}` };
+      });
+      // Se quiser sequência real por campanha, substitua a linha acima por:
+      // const seq = await getNextSequence(campaignKey);
+      // return { ...it, uniqueCode: `${campaignKey}-${String(seq).padStart(6,'0')}` };
+      if (changed){
+        await updateDoc(donationRef, { items });
+      }
+    }
+
+    async function handleMarkReceived(donationId){
+      const ok = confirm('Confirmar marcação de recebida?');
+      if (!ok) return;
+
+      try {
+        const donationRef = doc(db, paths.donationDoc(donationId));
+        const snap = await getDoc(donationRef);
+        if (!snap.exists()){ await showAlertModal('Erro', 'Doação não encontrada.'); return; }
+        const data = snap.data();
+
+        // Garante códigos únicos nos itens (se faltarem)
+        await ensureItemCodes(donationRef, data);
+
+        const receiverName = session?.profile?.name || session?.profile?.displayName || 'Equipe';
+        const updatedItems = (data.items || []).map(it => ({
+          ...it,
+          status: 'completed',
+          receivedAt: serverTimestamp(),
+          receivedBy: session?.auth?.uid || null,
+          receivedByName: receiverName
+        }));
+
+        await updateDoc(donationRef, {
+          status: 'completed',
+          receivedAt: serverTimestamp(),
+          receivedBy: session?.auth?.uid || null,
+          receivedByName: receiverName,
+          items: updatedItems
+        });
+
+        if (data.donorId){
+          const msg = `Sua doação para "${data.campaignTitle || 'campanha'}" foi recebida. Obrigado!`;
+          await createNotification(data.donorId, msg, 'minhas-entregas.html');
+        }
+
+        await showAlertModal('Sucesso', 'Doação marcada como recebida.');
+      } catch (e){
+        console.error(e);
+        await showAlertModal('Erro', 'Falha ao marcar recebida.');
+      }
+    }
+
+    // Ocupação de um dia para a entidade corrente
+    function computeDayOccupancyFor(dateStr){
+      if (!currentEntityId) return { map: new Map(), total: 0 };
+      const day = new Date(`${dateStr}T00:00:00`);
+      const m = new Map();
+      let total = 0;
+      for (const d of rawDonations){
+        if (d.entityId !== currentEntityId) continue;
+        const when = asDate(d.scheduledAt);
+        if (!when) continue;
+        if (fmtDateKey(when) !== dateStr) continue;
+        const key = hhmm(when);
+        const arr = m.get(key) || [];
+        arr.push(d);
+        m.set(key, arr);
+        total++;
+      }
+      return { map: m, total };
+    }
+
+    function renderOccupancyPanel(dateStr){
+      const { map } = computeDayOccupancyFor(dateStr);
+      const times = [...map.keys()].sort();
+      if (!times.length){
+        rsOccupancy.innerHTML = `<div class="text-sm text-gray-600">Sem agendamentos neste dia.</div>`;
+        return;
+      }
+      rsOccupancy.innerHTML = times.map(t => {
+        const arr = map.get(t) || [];
+        const cls = arr.length ? 'busy' : 'free';
+        const list = arr.slice(0,3).map(x => escapeHtml(x.donorName || 'Doador')).join(', ');
+        return `<div class="slot ${cls}">
+          <div><span class="font-mono text-gray-900">${t}</span> <span class="text-xs text-gray-500">${list ? ' • ' + list : ''}</span></div>
+          <div class="count">${arr.length}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function openRescheduleModal(donationId){
+      actionDonationId = donationId;
+      rsDate.value = '';
+      rsTime.value = '';
+      rsBlockSlot.checked = false;
+      rsJust.value = '';
+      rsJustWrap.classList.add('hidden');
+      rsCollisionWrap.classList.add('hidden');
+      rsCollisionList.innerHTML = '';
+      rsBtnConfirmBlock.classList.add('hidden');
+      rsModal.classList.add('active');
+      rsModal.setAttribute('aria-hidden','false');
+      rsDate.focus();
+    }
+
+    function closeRescheduleModal(){
+      rsModal.classList.remove('active');
+      rsModal.setAttribute('aria-hidden','true');
+      actionDonationId = null;
+    }
+
+    rsDate.addEventListener('change', () => {
+      const v = rsDate.value;
+      if (v) renderOccupancyPanel(v);
+      // reset colisões ao mudar a data
+      rsCollisionWrap.classList.add('hidden');
+      rsCollisionList.innerHTML = '';
+      rsBtnConfirmBlock.classList.add('hidden');
+    });
+
+    rsBlockSlot.addEventListener('change', () => {
+      const checked = rsBlockSlot.checked;
+      rsJustWrap.classList.toggle('hidden', !checked);
+      const hasTime = !!rsTime.value;
+      rsBtnConfirmBlock.classList.toggle('hidden', !(checked && hasTime));
+      if (!(checked && hasTime)){
+        rsCollisionWrap.classList.add('hidden');
+      } else {
+        // Mostrar colisões se houver
+        showCollisionsFor(rsDate.value, rsTime.value);
+      }
+    });
+
+    rsTime.addEventListener('change', () => {
+      const checked = rsBlockSlot.checked;
+      rsBtnConfirmBlock.classList.toggle('hidden', !(checked && rsTime.value));
+      if (checked && rsTime.value){
+        showCollisionsFor(rsDate.value, rsTime.value);
+      } else {
+        rsCollisionWrap.classList.add('hidden');
+        rsCollisionList.innerHTML = '';
+      }
+    });
+
+    function showCollisionsFor(dateStr, timeStr){
+      if (!dateStr || !timeStr){ rsCollisionWrap.classList.add('hidden'); return; }
+      const { map } = computeDayOccupancyFor(dateStr);
+      const list = map.get(timeStr) || [];
+      if (!list.length){
+        rsCollisionWrap.classList.add('hidden');
+        rsCollisionList.innerHTML = '';
+        return;
+      }
+      rsCollisionWrap.classList.remove('hidden');
+      rsCollisionList.innerHTML = list.map(d => {
+        const items = (d.items || []).map(it => escapeHtml(it.title || it.name || it.type || 'Item')).join(', ');
+        return `<li><span class="font-semibold">${escapeHtml(d.donorName || 'Doador')}</span> — <span class="text-gray-600">${items || 'Sem itens'}</span> <span class="text-xs text-gray-500">(${escapeHtml(d.id)})</span></li>`;
+      }).join('');
+    }
+
+    rsBtnClose.addEventListener('click', closeRescheduleModal);
+
+    rsBtnConfirm.addEventListener('click', async () => {
+      if (!actionDonationId) return;
+      const dateStr = rsDate.value;
+      const timeStr = rsTime.value;
+      if (!dateStr || !timeStr){ await showAlertModal('Atenção', 'Informe data e hora.'); return; }
+      try {
+        const newDate = new Date(`${dateStr}T${timeStr}:00`);
+        const donationRef = doc(db, paths.donationDoc(actionDonationId));
+        const snap = await getDoc(donationRef);
+        if (!snap.exists()){ await showAlertModal('Erro', 'Doação não encontrada.'); return; }
+        const donation = snap.data();
+
+        await updateDoc(donationRef, {
+          scheduledAt: newDate,
+          status: 'scheduled',
+          rescheduledAt: serverTimestamp(),
+          rescheduledBy: session?.auth?.uid || null,
+          rescheduledByName: session?.profile?.name || session?.profile?.displayName || 'Equipe'
+        });
+
+        if (donation.donorId){
+          const msg = `Seu agendamento para "${donation.campaignTitle || 'campanha'}" foi reagendado para ${newDate.toLocaleDateString('pt-BR')} às ${newDate.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}.`;
+          await createNotification(donation.donorId, msg, 'minhas-entregas.html');
+        }
+
+        await showAlertModal('Sucesso', 'Agendamento atualizado.');
+        closeRescheduleModal();
+      } catch (e){
+        console.error(e);
+        await showAlertModal('Erro', 'Falha ao reagendar.');
+      }
+    });
+
+    rsBtnConfirmBlock.addEventListener('click', async () => {
+      if (!actionDonationId) return;
+      const dateStr = rsDate.value;
+      const timeStr = rsTime.value;
+      const reason = rsJust.value?.trim();
+      if (!dateStr || !timeStr){ await showAlertModal('Atenção', 'Informe data e hora.'); return; }
+      if (!reason){ await showAlertModal('Atenção', 'Informe uma justificativa para a indisponibilidade.'); return; }
+
+      try {
+        const { map } = computeDayOccupancyFor(dateStr);
+        const affected = map.get(timeStr) || [];
+
+        // Cancela todos os agendamentos neste slot (se houver)
+        if (affected.length){
+          const batch = writeBatch(db);
+          for (const d of affected){
+            const ref = doc(db, paths.donationDoc(d.id));
+            batch.update(ref, {
+              status: 'cancelled',
+              cancelledAt: serverTimestamp(),
+              cancelledBy: session?.auth?.uid || null,
+              cancelledByName: session?.profile?.name || session?.profile?.displayName || 'Equipe',
+              cancelledReason: reason
+            });
+          }
+          await batch.commit();
+
+          // Notifica todos
+          for (const d of affected){
+            if (d.donorId){
+              const msg = `Indisponibilidade no horário ${timeStr} do dia ${new Date(`${dateStr}T00:00`).toLocaleDateString('pt-BR')}. Motivo: ${reason}. Reagende sua entrega, por favor.`;
+              await createNotification(d.donorId, msg, 'minhas-entregas.html');
+            }
+          }
+        }
+
+        // Registra bloqueio do slot (para consultas futuras)
+        const blockedRef = doc(db, 'blocked_slots', `${currentEntityId}_${dateStr}_${timeStr}`);
+        await updateDoc(blockedRef, {
+          entityId: currentEntityId,
+          date: dateStr,
+          time: timeStr,
+          reason,
+          blockedBy: session?.auth?.uid || null,
+          blockedByName: session?.profile?.name || session?.profile?.displayName || 'Equipe',
+          updatedAt: serverTimestamp()
+        }).catch(async () => {
+          // se não existe, cria
+          await updateDoc(blockedRef, { createdAt: serverTimestamp() }).catch(()=>{});
+        });
+
+        await showAlertModal('Sucesso', `Disponibilidade do horário ${timeStr} bloqueada.${affected.length ? ' Agendamentos impactados foram cancelados e notificados.' : ''}`);
+        closeRescheduleModal();
+      } catch (e){
+        console.error(e);
+        await showAlertModal('Erro', 'Falha ao bloquear disponibilidade.');
+      }
+    });
+
+    // Cancel donation
+    function openCancelModal(donationId){
+      actionDonationId = donationId;
+      cnJust.value = '';
+      cnModal.classList.add('active');
+      cnModal.setAttribute('aria-hidden','false');
+      cnJust.focus();
+    }
+    function closeCancelModal(){
+      cnModal.classList.remove('active');
+      cnModal.setAttribute('aria-hidden','true');
+      actionDonationId = null;
+    }
+    cnBtnClose.addEventListener('click', closeCancelModal);
+    cnBtnConfirm.addEventListener('click', async () => {
+      if (!actionDonationId) return;
+      const reason = cnJust.value?.trim();
+      if (!reason){ await showAlertModal('Atenção', 'Informe uma justificativa.'); return; }
+      try {
+        const donationRef = doc(db, paths.donationDoc(actionDonationId));
+        const snap = await getDoc(donationRef);
+        if (!snap.exists()){ await showAlertModal('Erro', 'Doação não encontrada.'); return; }
+        const donation = snap.data();
+
+        await updateDoc(donationRef, {
+          status: 'cancelled',
+          cancelledAt: serverTimestamp(),
+          cancelledBy: session?.auth?.uid || null,
+          cancelledByName: session?.profile?.name || session?.profile?.displayName || 'Equipe',
+          cancelledReason: reason
+        });
+
+        if (donation.donorId){
+          const msg = `Sua doação para "${donation.campaignTitle || 'campanha'}" foi cancelada pela entidade. Motivo: ${reason}`;
+          await createNotification(donation.donorId, msg, 'minhas-entregas.html');
+        }
+
+        await showAlertModal('Informação', 'Doação cancelada.');
+        closeCancelModal();
+      } catch (e){
+        console.error(e);
+        await showAlertModal('Erro', 'Falha ao cancelar a doação.');
+      }
+    });
+
+    // Eventos UI
     let searchTimer=null;
     searchInput.addEventListener('input', () => {
       clearTimeout(searchTimer);
@@ -629,54 +1050,28 @@
     });
     document.getElementById('load-more').addEventListener('click', loadMore);
 
-    // Modal e Ações rápidas (apenas log por enquanto)
+    // Detalhes do item (modal simples usando o próprio card)
     listView.addEventListener('click', (ev) => {
-      const btn = ev.target.closest('.item-photo-btn');
-      if (!btn) {
-        const actionBtn = ev.target.closest('[data-action]');
-        if (actionBtn) {
-          const id = actionBtn.getAttribute('data-id');
-          const action = actionBtn.getAttribute('data-action');
-          console.log('Ação rápida:', action, 'para doação', id); // Integração posterior
-        }
+      const actionBtn = ev.target.closest('[data-action]');
+      if (actionBtn){
+        const id = actionBtn.getAttribute('data-id');
+        const action = actionBtn.getAttribute('data-action');
+        // Log (como no seu console)
+        console.log('Ação rápida:', action, 'para doação', id);
+
+        if (action === 'mark-received') handleMarkReceived(id);
+        if (action === 'reschedule') openRescheduleModal(id);
+        if (action === 'cancel') openCancelModal(id);
         return;
       }
-      // Localiza elementos do card para montar o modal
-      const card = btn.closest('.bg-white.rounded-lg.shadow-sm.border');
-      const donorEl = card?.querySelector('.font-semibold.text-gray-900');
-      const donorName = donorEl ? donorEl.textContent.trim() : '';
-      const titleEl = btn.parentElement?.querySelector('.font-medium.text-gray-900');
-      const itemTitle = titleEl ? titleEl.textContent.trim() : 'Item';
-      const detailsHtml = btn.parentElement?.querySelector('.text-sm.text-gray-700')?.innerHTML || '';
-      const campaignHeader = card?.querySelector('.text-gray-800')?.textContent || '';
-
-      const img = btn.querySelector('img');
-      modalImg.src = img ? img.src : '';
-      modalTitle.textContent = itemTitle;
-      modalMeta.innerHTML = `<div class="text-gray-600">${escapeHtml(campaignHeader)}</div><div class="text-gray-600">Doador(a): ${escapeHtml(donorName)}</div>`;
-      modalDetailsContainer.innerHTML = detailsHtml;
-
-      const rx = card?.querySelector('.text-xs.text-gray-500');
-      modalReception.innerHTML = rx ? `<div class="chip chip-green">Recebimento</div> <span class="ml-2">${escapeHtml(rx.textContent.trim())}</span>` : '';
-
-      itemModal.classList.add('active');
-      itemModal.setAttribute('aria-hidden','false');
     });
 
-    itemModal.addEventListener('click', (e) => {
-      if (e.target === itemModal || e.target === modalClose) {
-        modalImg.src = '';
-        itemModal.classList.remove('active');
-        itemModal.setAttribute('aria-hidden','true');
-      }
-    });
-
-    // Boot (controle de acesso + config)
+    // Boot
     (async function init(){
       const ok = await injectHeader();
       if (!ok) return;
 
-      const session = await getCurrentUser();
+      session = await getCurrentUser();
       const role = session?.profile?.role;
       if (!session?.auth || !['entidade','superadmin'].includes(role)) {
         window.location.href = '403.html';
@@ -692,6 +1087,8 @@
       }
 
       const ids = getEffectiveEntityIds(session);
+      currentEntityId = ids[0] || null;
+
       const forced = qs().get('entityId') || qs().get('entidadeId');
       if (forced) {
         activeEntityFilterEl.classList.remove('hidden');
