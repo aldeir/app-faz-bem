@@ -106,6 +106,9 @@
         <div>
           <button id="apply-filters" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">Aplicar</button>
         </div>
+        <div>
+          <button id="unavailability-btn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md">Indisponibilidade</button>
+        </div>
       </div>
     </section>
 
@@ -218,6 +221,51 @@
     </div>
   </div>
 
+  <!-- Modal: Item Details -->
+  <div id="item-details-modal" class="modal-backdrop" aria-hidden="true" role="dialog">
+    <div class="modal-content">
+      <div class="modal-header">Detalhes do Item</div>
+      <div class="modal-body">
+        <div class="flex items-center justify-center mb-4">
+          <img id="item-modal-photo" src="" alt="Foto do item" class="max-w-full max-h-64 object-contain rounded-md bg-gray-100">
+        </div>
+        <div id="item-modal-details" class="space-y-2">
+          <!-- Item details will be populated here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="item-modal-close" class="btn btn-gray">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Unavailability Management -->
+  <div id="unavailability-modal" class="modal-backdrop" aria-hidden="true" role="dialog">
+    <div class="modal-content">
+      <div class="modal-header">Gerenciar Indisponibilidade</div>
+      <div class="modal-body">
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-600 mb-2">Selecione a data:</label>
+          <input id="unavailability-date" type="date" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500">
+        </div>
+        <div id="time-slots-container" class="hidden">
+          <label class="block text-sm font-medium text-gray-600 mb-2">Horários disponíveis:</label>
+          <div id="time-slots-list" class="space-y-2 max-h-64 overflow-y-auto">
+            <!-- Time slots will be populated here -->
+          </div>
+        </div>
+        <div id="unavailability-reason-container" class="hidden mt-4">
+          <label class="block text-sm font-medium text-gray-600 mb-2">Justificativa:</label>
+          <textarea id="unavailability-reason" class="w-full border border-gray-300 rounded-md px-3 py-2" rows="3" placeholder="Digite o motivo da indisponibilidade..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="unavailability-modal-close" class="btn btn-gray">Cancelar</button>
+        <button id="unavailability-confirm" class="btn btn-red hidden">Confirmar Indisponibilidade</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { db } from './app-config.js';
     import {
@@ -268,6 +316,23 @@
     const cnJust = document.getElementById('cn-just');
     const cnBtnClose = document.getElementById('cn-cancel');
     const cnBtnConfirm = document.getElementById('cn-confirm');
+
+    // Item details modal
+    const itemDetailsModal = document.getElementById('item-details-modal');
+    const itemModalPhoto = document.getElementById('item-modal-photo');
+    const itemModalDetails = document.getElementById('item-modal-details');
+    const itemModalClose = document.getElementById('item-modal-close');
+
+    // Unavailability modal
+    const unavailabilityModal = document.getElementById('unavailability-modal');
+    const unavailabilityDate = document.getElementById('unavailability-date');
+    const timeSlotsContainer = document.getElementById('time-slots-container');
+    const timeSlotsList = document.getElementById('time-slots-list');
+    const unavailabilityReasonContainer = document.getElementById('unavailability-reason-container');
+    const unavailabilityReason = document.getElementById('unavailability-reason');
+    const unavailabilityModalClose = document.getElementById('unavailability-modal-close');
+    const unavailabilityConfirm = document.getElementById('unavailability-confirm');
+    const unavailabilityBtn = document.getElementById('unavailability-btn');
 
     let campaignTypeSettings = {};
     let unsub = null;
@@ -512,8 +577,6 @@
 
       const actions = `
         <div class="flex gap-2">
-          <button class="chip chip-green" data-action="mark-received" data-id="${escapeAttr(donation.id||'')}">Marcar recebida</button>
-          <button class="chip chip-gray" data-action="reschedule" data-id="${escapeAttr(donation.id||'')}">Reagendar</button>
           <button class="chip chip-red" data-action="cancel" data-id="${escapeAttr(donation.id||'')}">Cancelar</button>
         </div>
       `;
@@ -1074,6 +1137,80 @@
       }
     });
 
+    // Item Details Modal Functions
+    function showItemDetailsModal(item, donation) {
+      if (!item || !itemDetailsModal) return;
+      
+      // Get the first available photo or use a placeholder
+      const photoUrl = item.photo1 || item.photo2 || item.photo3 || item.thumbnail || '/app-faz-bem/logo.png';
+      if (itemModalPhoto) {
+        itemModalPhoto.src = photoUrl;
+        itemModalPhoto.style.display = photoUrl ? 'block' : 'none';
+      }
+      
+      // Generate item details HTML
+      if (itemModalDetails) {
+        const campaignType = donation.campaignType || '';
+        const detailsHtml = generateItemDetailsHtml(item, campaignType);
+        itemModalDetails.innerHTML = detailsHtml || '<p class="text-gray-500">Nenhum detalhe disponível.</p>';
+      }
+      
+      // Show modal
+      itemDetailsModal.classList.add('active');
+      itemDetailsModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeItemDetailsModal() {
+      if (itemDetailsModal) {
+        itemDetailsModal.classList.remove('active');
+        itemDetailsModal.setAttribute('aria-hidden', 'true');
+      }
+    }
+
+    // Unavailability Modal Functions
+    function showUnavailabilityModal() {
+      if (unavailabilityModal) {
+        unavailabilityModal.classList.add('active');
+        unavailabilityModal.setAttribute('aria-hidden', 'false');
+        if (unavailabilityDate) unavailabilityDate.focus();
+      }
+    }
+
+    function closeUnavailabilityModal() {
+      if (unavailabilityModal) {
+        unavailabilityModal.classList.remove('active');
+        unavailabilityModal.setAttribute('aria-hidden', 'true');
+        if (timeSlotsContainer) timeSlotsContainer.classList.add('hidden');
+        if (unavailabilityReasonContainer) unavailabilityReasonContainer.classList.add('hidden');
+        if (unavailabilityConfirm) unavailabilityConfirm.classList.add('hidden');
+      }
+    }
+
+    // Modal Event Listeners
+    if (itemModalClose) {
+      itemModalClose.addEventListener('click', closeItemDetailsModal);
+    }
+
+    if (itemDetailsModal) {
+      itemDetailsModal.addEventListener('click', (e) => {
+        if (e.target === itemDetailsModal) closeItemDetailsModal();
+      });
+    }
+
+    if (unavailabilityBtn) {
+      unavailabilityBtn.addEventListener('click', showUnavailabilityModal);
+    }
+
+    if (unavailabilityModalClose) {
+      unavailabilityModalClose.addEventListener('click', closeUnavailabilityModal);
+    }
+
+    if (unavailabilityModal) {
+      unavailabilityModal.addEventListener('click', (e) => {
+        if (e.target === unavailabilityModal) closeUnavailabilityModal();
+      });
+    }
+
     // Eventos UI
     let searchTimer=null;
     searchInput.addEventListener('input', () => {
@@ -1099,9 +1236,40 @@
         // Log (como no seu console)
         console.log('Ação rápida:', action, 'para doação', id);
 
-        if (action === 'mark-received') handleMarkReceived(id);
-        if (action === 'reschedule') openRescheduleModal(id);
         if (action === 'cancel') openCancelModal(id);
+        return;
+      }
+
+      // Handle item photo button clicks
+      const photoBtn = ev.target.closest('.item-photo-btn');
+      if (photoBtn) {
+        const donationIndex = parseInt(photoBtn.dataset.dIdx);
+        const itemIndex = parseInt(photoBtn.dataset.iIdx);
+        
+        if (!isNaN(donationIndex) && !isNaN(itemIndex) && rawDonations[donationIndex]) {
+          const donation = rawDonations[donationIndex];
+          const item = donation.items && donation.items[itemIndex];
+          if (item) {
+            showItemDetailsModal(item, donation);
+          }
+        }
+        return;
+      }
+
+      // Handle item card clicks to show item details modal (fallback for any part of item card)
+      const itemCard = ev.target.closest('.bg-white.p-3.rounded-lg');
+      if (itemCard && itemCard.closest('[data-donation-index]')) {
+        const donationCard = itemCard.closest('[data-donation-index]');
+        const donationIndex = parseInt(donationCard.dataset.donationIndex);
+        const itemIndex = 0; // Default to first item if no specific item index
+        
+        if (!isNaN(donationIndex) && rawDonations[donationIndex]) {
+          const donation = rawDonations[donationIndex];
+          const item = donation.items && donation.items[itemIndex];
+          if (item) {
+            showItemDetailsModal(item, donation);
+          }
+        }
         return;
       }
     });
