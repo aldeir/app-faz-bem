@@ -188,7 +188,14 @@
                 return;
             }
             await loadConfigs();
-            setupEventListeners();
+            
+            // Ensure DOM is ready before setting up event listeners
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setupEventListeners);
+            } else {
+                setupEventListeners();
+            }
+            
             loadingView.classList.add('hidden');
             configView.classList.remove('hidden');
         }
@@ -325,72 +332,85 @@
         }
         
         function setupEventListeners() {
-            campaignTypesList.addEventListener('click', (e) => {
-                const button = e.target.closest('button[data-action="edit-type"]');
-                if (!button) return;
-                const id = button.dataset.id;
-                const data = campaignTypesData[id];
-                campaignFormTitle.textContent = 'Editar Tipo de Campanha';
-                campaignTypeIdInput.value = id;
-                campaignTypeIdInput.disabled = true;
-                campaignTypeLabelInput.value = data.label;
-                campaignTypeColorSelect.value = data.color;
-                cancelEditBtn.classList.remove('hidden');
-            });
+            if (campaignTypesList) {
+                campaignTypesList.addEventListener('click', (e) => {
+                    const button = e.target.closest('button[data-action="edit-type"]');
+                    if (!button) return;
+                    const id = button.dataset.id;
+                    const data = campaignTypesData[id];
+                    campaignFormTitle.textContent = 'Editar Tipo de Campanha';
+                    campaignTypeIdInput.value = id;
+                    campaignTypeIdInput.disabled = true;
+                    campaignTypeLabelInput.value = data.label;
+                    campaignTypeColorSelect.value = data.color;
+                    cancelEditBtn.classList.remove('hidden');
+                });
+            }
 
-            cancelEditBtn.addEventListener('click', () => {
-                campaignTypeForm.reset();
-                campaignFormTitle.textContent = 'Adicionar Novo Tipo';
-                campaignTypeIdInput.disabled = false;
-                cancelEditBtn.classList.add('hidden');
-            });
+            if (cancelEditBtn) {
+                cancelEditBtn.addEventListener('click', () => {
+                    campaignTypeForm.reset();
+                    campaignFormTitle.textContent = 'Adicionar Novo Tipo';
+                    campaignTypeIdInput.disabled = false;
+                    cancelEditBtn.classList.add('hidden');
+                });
+            }
 
-            campaignTypeForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const id = campaignTypeIdInput.value.trim().toLowerCase();
-                const label = campaignTypeLabelInput.value.trim();
-                const color = campaignTypeColorSelect.value;
-                if (!id || !label) { showAlertModal('Erro', 'ID e Rótulo são obrigatórios.'); return; }
-                
-                const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-                if (!campaignTypesData[id]) {
-                    campaignTypesData[id] = { fields: [] };
-                }
-                campaignTypesData[id].label = label;
-                campaignTypesData[id].color = color;
-                const updateData = { [`${id}.label`]: label, [`${id}.color`]: color };
-                try {
-                    await updateDoc(campaignTypesRef, updateData, { merge: true });
-                    showAlertModal('Sucesso!', 'Tipo de campanha salvo com sucesso.');
-                    renderCampaignTypes();
-                    populateFieldCampaignTypeSelect();
-                    cancelEditBtn.click();
-                } catch (error) {
+            if (campaignTypeForm) {
+                campaignTypeForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const id = campaignTypeIdInput.value.trim().toLowerCase();
+                    const label = campaignTypeLabelInput.value.trim();
+                    const color = campaignTypeColorSelect.value;
+                    if (!id || !label) { showAlertModal('Erro', 'ID e Rótulo são obrigatórios.'); return; }
+                    
+                    const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
+                    if (!campaignTypesData[id]) {
+                        campaignTypesData[id] = { fields: [] };
+                    }
+                    campaignTypesData[id].label = label;
+                    campaignTypesData[id].color = color;
+                    const updateData = { [`${id}.label`]: label, [`${id}.color`]: color };
+                    try {
+                        await updateDoc(campaignTypesRef, updateData, { merge: true });
+                        showAlertModal('Sucesso!', 'Tipo de campanha salvo com sucesso.');
+                        renderCampaignTypes();
+                        populateFieldCampaignTypeSelect();
+                        cancelEditBtn.click();
+                    } catch (error) {
                     showAlertModal('Erro', `Não foi possível salvar: ${error.message}`);
                     await loadConfigs();
                 }
             });
+            }
             
-            fieldCampaignTypeSelect.addEventListener('change', (e) => {
-                const selectedType = e.target.value;
-                customFieldsEditor.classList.toggle('hidden', !selectedType);
-                if (selectedType) {
-                    renderCustomFields(selectedType);
-                }
-                resetCustomFieldForm();
-            });
+            if (fieldCampaignTypeSelect) {
+                fieldCampaignTypeSelect.addEventListener('change', (e) => {
+                    const selectedType = e.target.value;
+                    customFieldsEditor.classList.toggle('hidden', !selectedType);
+                    if (selectedType) {
+                        renderCustomFields(selectedType);
+                    }
+                    resetCustomFieldForm();
+                });
+            }
 
-            fieldTypeSelect.addEventListener('change', (e) => {
-                fieldOptionsContainer.classList.toggle('hidden', e.target.value !== 'select');
-            });
+            if (fieldTypeSelect) {
+                fieldTypeSelect.addEventListener('change', (e) => {
+                    fieldOptionsContainer.classList.toggle('hidden', e.target.value !== 'select');
+                });
+            }
             
-            fieldLabelInput.addEventListener('input', () => {
-                if (!originalFieldIdInput.value) {
-                    fieldIdInput.value = generateSlug(fieldLabelInput.value);
-                }
-            });
+            if (fieldLabelInput) {
+                fieldLabelInput.addEventListener('input', () => {
+                    if (!originalFieldIdInput.value) {
+                        fieldIdInput.value = generateSlug(fieldLabelInput.value);
+                            }
+                });
+            }
 
-            customFieldsList.addEventListener('click', async (e) => {
+            if (customFieldsList) {
+                customFieldsList.addEventListener('click', async (e) => {
                 const button = e.target.closest('button, input[type="checkbox"]');
                 if (!button) return;
 
@@ -449,10 +469,14 @@
                     }
                 }
             });
+            }
 
-            cancelFieldEditBtn.addEventListener('click', resetCustomFieldForm);
+            if (cancelFieldEditBtn) {
+                cancelFieldEditBtn.addEventListener('click', resetCustomFieldForm);
+            }
 
-            customFieldForm.addEventListener('submit', async (e) => {
+            if (customFieldForm) {
+                customFieldForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const campaignTypeId = fieldCampaignTypeSelect.value;
                 let fieldId = fieldIdInput.value.trim();
@@ -516,6 +540,7 @@
                     await loadConfigs();
                 }
             });
+            }
 
             // Event listeners para prefixos
             document.addEventListener('input', (e) => {
@@ -530,9 +555,12 @@
             });
 
             // Botão para salvar prefixos
-            document.getElementById('save-prefixes-btn').addEventListener('click', async () => {
-                await savePrefixes();
-            });
+            const savePrefixesBtn = document.getElementById('save-prefixes-btn');
+            if (savePrefixesBtn) {
+                savePrefixesBtn.addEventListener('click', async () => {
+                    await savePrefixes();
+                });
+            }
         }
 
         function validatePrefixUniqueness() {
