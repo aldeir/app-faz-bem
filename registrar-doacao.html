@@ -128,7 +128,7 @@
 
     <script type="module">
         import { db, storage, paths } from './app-config.js';
-        import { doc, getDoc, collection, addDoc, Timestamp, query, where, getDocs, storageRef, uploadBytes, getDownloadURL, writeBatch } from './firebase-services.js';
+        import { doc, getDoc, collection, addDoc, Timestamp, query, where, getDocs, storageRef, uploadBytes, getDownloadURL, writeBatch, runTransaction, serverTimestamp } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         import { showAlertModal } from './modal-handler.js';
@@ -484,6 +484,47 @@
             }
         });
 
+        // Function to get next sequence number for item uniqueCode generation
+        async function getNextSequence(prefix) {
+            const ref = doc(db, 'counters', `items_${prefix}`);
+            const result = await runTransaction(db, async (transaction) => {
+                const snap = await transaction.get(ref);
+                const currentValue = snap.exists() ? (snap.data().value || 0) : 0;
+                transaction.set(ref, { value: currentValue + 1, updatedAt: serverTimestamp() }, { merge: true });
+                return currentValue + 1;
+            });
+            return result;
+        }
+
+        // Function to get campaign type prefix
+        async function getCampaignTypePrefix(campaignType) {
+            try {
+                if (!campaignType) return 'GEN';
+                
+                const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
+                const campaignTypesSnap = await getDoc(campaignTypesRef);
+                
+                if (campaignTypesSnap.exists()) {
+                    const campaignTypesData = campaignTypesSnap.data();
+                    const typeData = campaignTypesData[campaignType];
+                    
+                    if (typeData?.prefix) {
+                        return typeData.prefix;
+                    }
+                }
+                
+                // Fallback: generate prefix from campaign type name
+                return (campaignType || 'GEN')
+                    .toUpperCase()
+                    .replace(/[^A-Z]/g, '')
+                    .slice(0, 3)
+                    .padEnd(3, 'G');
+            } catch (error) {
+                console.warn('Failed to get campaign type prefix, using fallback:', error);
+                return 'GEN';
+            }
+        }
+
         submitDonationBtn.addEventListener('click', async () => {
             formError.textContent = '';
             if (donatedItems.length === 0) { formError.textContent = 'Adicione pelo menos um item.'; return; }
@@ -526,7 +567,18 @@
                             }
                         }
 
-                        return { ...customFieldsWithUrls, type: itemType, photoURL: photoURL, status: 'pending' };
+                        // Generate uniqueCode for the item
+                        const prefix = await getCampaignTypePrefix(campaignData.type);
+                        const sequence = await getNextSequence(prefix);
+                        const uniqueCode = `${prefix}-${String(sequence).padStart(6, '0')}`;
+
+                        return { 
+                            ...customFieldsWithUrls, 
+                            type: itemType, 
+                            photoURL: photoURL, 
+                            status: 'pending',
+                            uniqueCode: uniqueCode
+                        };
                     }));
 
                 const newDonationData = {

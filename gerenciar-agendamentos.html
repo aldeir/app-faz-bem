@@ -280,6 +280,26 @@
     import { createNotification } from './notification-service.js';
     import { showAlertModal } from './modal-handler.js';
 
+    // Safe fallback functions for modal operations
+    function safeShowAlert(title, message) {
+        if (typeof showAlertModal === 'function') {
+            return showAlertModal(title, message);
+        } else {
+            // Fallback to native alert
+            alert(`${title}: ${message}`);
+            return Promise.resolve(true);
+        }
+    }
+
+    function safeConfirm(title, message) {
+        if (typeof showConfirmationModal === 'function') {
+            return showConfirmationModal(title, message);
+        } else {
+            // Fallback to native confirm
+            return Promise.resolve(confirm(`${title}: ${message}`));
+        }
+    }
+
     const backLink = document.getElementById('backLink');
     const loadingView = document.getElementById('loading-view');
     const listView = document.getElementById('list-view');
@@ -1310,7 +1330,7 @@
         .map(cb => cb.value);
 
       if (!dateStr || !reason || selectedSlots.length === 0) {
-        await showAlertModal('Atenção', 'Preencha todos os campos e selecione pelo menos um horário.');
+        await safeShowAlert('Atenção', 'Preencha todos os campos e selecione pelo menos um horário.');
         return;
       }
 
@@ -1376,7 +1396,7 @@
 
       } catch (error) {
         console.error('Erro ao bloquear horários:', error);
-        await showAlertModal('Erro', 'Falha ao bloquear horários.');
+        await safeShowAlert('Erro', 'Falha ao bloquear horários.');
       }
     }
 

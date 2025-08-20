@@ -251,15 +251,30 @@
 
         function renderCampaignTypes() {
             campaignTypesList.innerHTML = '';
-            Object.entries(campaignTypesData).forEach(([id, data]) => {
-                const colorClass = `bg-${data.color}-500`;
+            
+            // Sort by order field
+            const sortedEntries = Object.entries(campaignTypesData)
+                .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
+            
+            sortedEntries.forEach(([id, data]) => {
+                const colorClass = `bg-${data.color || 'green'}-500`;
+                const activeStatus = data.active !== false ? 'Ativo' : 'Inativo';
+                const activeClass = data.active !== false ? 'text-green-600' : 'text-gray-400';
                 const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-2 rounded-md hover:bg-gray-50';
+                item.className = 'flex items-center justify-between p-3 rounded-md hover:bg-gray-50 border border-gray-200';
                 item.innerHTML = `
                     <div class="flex items-center gap-3">
                         <span class="w-4 h-4 rounded-full ${colorClass}"></span>
-                        <span class="font-medium">${data.label}</span>
-                        <span class="text-xs text-gray-500">(${id})</span>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium">${data.label}</span>
+                                <span class="text-xs text-gray-500">(${id})</span>
+                                ${data.prefix ? `<span class="text-xs bg-gray-800 text-white px-2 py-0.5 rounded font-mono">${data.prefix}</span>` : ''}
+                            </div>
+                            <div class="text-xs ${activeClass}">
+                                ${activeStatus} • Ordem: ${data.order || 0}
+                            </div>
+                        </div>
                     </div>
                     <div class="space-x-3">
                         <button data-action="edit-type" data-id="${id}" class="text-sm text-blue-600 hover:underline">Editar</button>
@@ -375,8 +390,11 @@
                     campaignTypeIdInput.value = id;
                     campaignTypeIdInput.disabled = true;
                 }
-                if (campaignTypeLabelInput) campaignTypeLabelInput.value = data.label;
-                if (campaignTypeColorSelect) campaignTypeColorSelect.value = data.color;
+                if (campaignTypeLabelInput) campaignTypeLabelInput.value = data.label || '';
+                if (campaignTypePrefixInput) campaignTypePrefixInput.value = data.prefix || '';
+                if (campaignTypeColorSelect) campaignTypeColorSelect.value = data.color || 'green';
+                if (campaignTypeActiveInput) campaignTypeActiveInput.checked = data.active !== false; // default to true
+                if (campaignTypeOrderInput) campaignTypeOrderInput.value = data.order || 0;
                 if (cancelEditBtn) cancelEditBtn.classList.remove('hidden');
             });
 
@@ -391,16 +409,49 @@
                 e.preventDefault();
                 const id = campaignTypeIdInput.value.trim().toLowerCase();
                 const label = campaignTypeLabelInput.value.trim();
+                const prefix = campaignTypePrefixInput.value.trim().toUpperCase();
                 const color = campaignTypeColorSelect.value;
-                if (!id || !label) { showAlertModal('Erro', 'ID e Rótulo são obrigatórios.'); return; }
+                const active = campaignTypeActiveInput.checked;
+                const order = parseInt(campaignTypeOrderInput.value) || 0;
+                
+                if (!id || !label || !prefix) { 
+                    showAlertModal('Erro', 'ID, Rótulo e Prefixo são obrigatórios.'); 
+                    return; 
+                }
+                
+                // Validate prefix format
+                if (!/^[A-Z]{3}$/.test(prefix)) {
+                    showAlertModal('Erro', 'Prefixo deve conter exatamente 3 letras maiúsculas (A-Z).');
+                    return;
+                }
+                
+                // Check if prefix is unique (except for current item being edited)
+                const currentEditingId = campaignFormTitle.textContent.includes('Editar') ? campaignTypeIdInput.value.trim().toLowerCase() : null;
+                const duplicatePrefix = Object.entries(campaignTypesData).find(([existingId, data]) => 
+                    existingId !== currentEditingId && data.prefix === prefix
+                );
+                if (duplicatePrefix) {
+                    showAlertModal('Erro', `Prefixo "${prefix}" já está sendo usado no tipo "${duplicatePrefix[1].label}".`);
+                    return;
+                }
                 
                 const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
                 if (!campaignTypesData[id]) {
                     campaignTypesData[id] = { fields: [] };
                 }
                 campaignTypesData[id].label = label;
+                campaignTypesData[id].prefix = prefix;
                 campaignTypesData[id].color = color;
-                const updateData = { [`${id}.label`]: label, [`${id}.color`]: color };
+                campaignTypesData[id].active = active;
+                campaignTypesData[id].order = order;
+                
+                const updateData = { 
+                    [`${id}.label`]: label, 
+                    [`${id}.prefix`]: prefix,
+                    [`${id}.color`]: color,
+                    [`${id}.active`]: active,
+                    [`${id}.order`]: order
+                };
                 try {
                     await updateDoc(campaignTypesRef, updateData, { merge: true });
                     showAlertModal('Sucesso!', 'Tipo de campanha salvo com sucesso.');
