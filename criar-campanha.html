@@ -11,7 +11,8 @@
     <link rel="icon" href="logo.png" type="image/png">
 
     <link href="style.css" rel="stylesheet">
-    <script src="https://unpkg.com/imask"></script> <link rel="preconnect" href="https://fonts.googleapis.com">
+    <script src="https://unpkg.com/imask"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
@@ -36,6 +37,39 @@
             background-color: #f3f4f6;
             cursor: wait;
         }
+        .info-banner {
+            background: #ecfdf5;
+            border-left: 4px solid #10b981;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+        .warning-banner {
+            background: #fff7ed;
+            border-left: 4px solid #f97316;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+        .error-banner {
+            background: #fef2f2;
+            border-left: 4px solid #dc2626;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -59,13 +93,26 @@
                     </div>
                     
                     <div id="entity-info-container" class="mb-6"></div>
+                    <div id="campaign-type-status-banner"></div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                         <div class="space-y-4">
-                            <div><label for="campaign-title" class="block text-sm font-medium text-gray-700">Título da Campanha*</label><input type="text" id="campaign-title" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div>
-                            <div><label for="campaign-description" class="block text-sm font-medium text-gray-700">Descrição*</label><textarea id="campaign-description" rows="4" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></textarea></div>
-                            <div><label for="campaign-type" class="block text-sm font-medium text-gray-700">Tipo*</label><select id="campaign-type" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></select></div>
-                            <div><label for="campaign-goal" class="block text-sm font-medium text-gray-700">Meta (Unidades)</label><input type="number" id="campaign-goal" placeholder="Ex: 100" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></div>
+                            <div>
+                                <label for="campaign-title" class="block text-sm font-medium text-gray-700">Título da Campanha*</label>
+                                <input type="text" id="campaign-title" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+                            </div>
+                            <div>
+                                <label for="campaign-description" class="block text-sm font-medium text-gray-700">Descrição*</label>
+                                <textarea id="campaign-description" rows="4" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></textarea>
+                            </div>
+                            <div>
+                                <label for="campaign-type" class="block text-sm font-medium text-gray-700">Tipo*</label>
+                                <select id="campaign-type" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"></select>
+                            </div>
+                            <div>
+                                <label for="campaign-goal" class="block text-sm font-medium text-gray-700">Meta (Unidades)</label>
+                                <input type="number" id="campaign-goal" placeholder="Ex: 100" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+                            </div>
                             <div>
                                 <label for="campaign-priority" class="block text-sm font-medium text-gray-700">Urgência</label>
                                 <select id="campaign-priority" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
@@ -141,7 +188,13 @@
                             </div>
                             <div>
                                 <label for="campaign-duration" class="block text-sm font-medium text-gray-700">Duração (dias)*</label>
-                                <select id="campaign-duration" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="1">1 dia</option><option value="3">3 dias</option><option value="7">7 dias</option><option value="15">15 dias</option><option value="30">30 dias</option></select>
+                                <select id="campaign-duration" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3">
+                                    <option value="1">1 dia</option>
+                                    <option value="3">3 dias</option>
+                                    <option value="7">7 dias</option>
+                                    <option value="15">15 dias</option>
+                                    <option value="30">30 dias</option>
+                                </select>
                             </div>
                             <div class="md:col-span-2">
                                 <label for="campaign-slots" class="block text-sm font-medium text-gray-700">Doadores por Horário</label>
@@ -178,7 +231,21 @@
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4"><div class="sm:flex sm:items-start"><div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10"><svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full"><h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3><div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div></div></div></div>
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
+                            <div class="mt-2">
+                                <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
             </div>
         </div>
@@ -189,12 +256,17 @@
         import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, Timestamp, storageRef, uploadBytes, getDownloadURL } from "./firebase-services.js";
         import { injectHeader } from './app-header.js';
         import { guard } from './route-guard.js';
+
+        // --- ESTADO GLOBAL ADICIONADO ---
+        let currentUserSession = null; // (Correção) Será preenchido em initializeApp
+        let campaignTypesCache = [];   // Guarda array de tipos (id, label, active, order...)
         
         // --- SELEÇÃO DE ELEMENTOS DO DOM ---
         const pageTitle = document.getElementById('page-title');
         const loadingView = document.getElementById('loading-view');
         const formView = document.getElementById('form-view');
         const entityInfoContainer = document.getElementById('entity-info-container');
+        const campaignTypeStatusBanner = document.getElementById('campaign-type-status-banner');
         const createCampaignForm = document.getElementById('create-campaign-form');
         const formError = document.getElementById('form-error');
         const submitCampaignBtn = document.getElementById('submit-campaign-btn');
@@ -224,21 +296,50 @@
         let campaignVideoFile = null;
         let allEntities = [];
 
-        // --- FUNÇÕES AUXILIARES ---
-        function generateTimeSlots() { let s = []; for (let h = 7; h < 20; h++) { s.push(`${String(h).padStart(2, '0')}:00`); s.push(`${String(h).padStart(2, '0')}:30`); } return s; }
-        
-        // --- INÍCIO DA ALTERAÇÃO: Atualiza renderEntityHeader para a nova estrutura ---
+        function generateTimeSlots() {
+            const s = [];
+            for (let h = 7; h < 20; h++) {
+                s.push(`${String(h).padStart(2, '0')}:00`);
+                s.push(`${String(h).padStart(2, '0')}:30`);
+            }
+            return s;
+        }
+
         const renderEntityHeader = (profile) => {
             const entityName = profile.dadosEntidade?.nomeFantasia || profile.publicName || 'Nome da Entidade';
             const logoUrl = profile.logoUrl || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Logo';
-            entityInfoContainer.innerHTML = `<div class="p-4 bg-green-50 rounded-lg border-l-4 border-green-400 flex items-center space-x-4"><img src="${logoUrl}" class="w-16 h-16 rounded-full object-cover border-2 border-green-200 shrink-0"><div><p class="font-bold text-lg text-green-800">${entityName}</p><p class="text-sm text-green-700">A publicar/editar como Entidade Verificada.</p></div></div>`;
+            entityInfoContainer.innerHTML = `
+                <div class="p-4 bg-green-50 rounded-lg border-l-4 border-green-400 flex items-center space-x-4">
+                    <img src="${logoUrl}" class="w-16 h-16 rounded-full object-cover border-2 border-green-200 shrink-0">
+                    <div>
+                        <p class="font-bold text-lg text-green-800">${entityName}</p>
+                        <p class="text-sm text-green-700">A publicar/editar como Entidade Verificada.</p>
+                    </div>
+                </div>`;
         };
-        // --- FIM DA ALTERAÇÃO ---
 
-        const setupEditModeUI = () => { pageTitle.textContent = "Editar Campanha - Faz Bem"; document.getElementById('form-title').textContent = "Editar Detalhes da Campanha"; document.getElementById('submit-btn-text').textContent = "Salvar Alterações"; };
-        const showLoadingButton = (l) => { document.getElementById('submit-btn-text').classList.toggle('hidden', l); document.getElementById('submit-btn-spinner').classList.toggle('hidden', !l); submitCampaignBtn.disabled = l; };
-        const renderMediaPreview = (urls) => { mediaPreviewContainer.innerHTML = ''; urls.forEach(url => { const img = document.createElement('img'); img.src = url; img.className = 'w-full h-24 object-cover rounded-md border'; mediaPreviewContainer.appendChild(img); }); };
-        
+        const setupEditModeUI = () => {
+            pageTitle.textContent = "Editar Campanha - Faz Bem";
+            document.getElementById('form-title').textContent = "Editar Detalhes da Campanha";
+            document.getElementById('submit-btn-text').textContent = "Salvar Alterações";
+        };
+
+        const showLoadingButton = (l) => {
+            document.getElementById('submit-btn-text').classList.toggle('hidden', l);
+            document.getElementById('submit-btn-spinner').classList.toggle('hidden', !l);
+            submitCampaignBtn.disabled = l;
+        };
+
+        const renderMediaPreview = (urls) => {
+            mediaPreviewContainer.innerHTML = '';
+            urls.forEach(url => {
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = 'w-full h-24 object-cover rounded-md border';
+                mediaPreviewContainer.appendChild(img);
+            });
+        };
+
         function renderAvailabilityGrid(existingAvailability = {}) {
             const duration = parseInt(durationSelect.value, 10);
             availabilityContainer.innerHTML = '';
@@ -257,31 +358,117 @@
                 const existingSlotsForDay = new Set(existingAvailability[dateString] || []);
                 const timeSlotsHtml = timeSlots.map(time => {
                     const isChecked = existingSlotsForDay.has(time) ? 'checked' : '';
-                    return `<div><input type="checkbox" id="time-${dateString}-${time}" value="${time}" class="time-slot-checkbox" data-day-index="${i}" data-date-string="${dateString}" ${isChecked}><label for="time-${dateString}-${time}" class="time-slot-label block text-center py-2 px-1 rounded-md text-sm">${time}</label></div>`;
+                    return `
+                        <div>
+                            <input type="checkbox" id="time-${dateString}-${time}" value="${time}" class="time-slot-checkbox" data-day-index="${i}" data-date-string="${dateString}" ${isChecked}>
+                            <label for="time-${dateString}-${time}" class="time-slot-label block text-center py-2 px-1 rounded-md text-sm">${time}</label>
+                        </div>`;
                 }).join('');
 
-                const dayHtml = `<div class="bg-gray-50 p-4 rounded-lg border"><p class="font-semibold text-gray-800 mb-3">${formattedDate}</p><div class="grid grid-cols-5 sm:grid-cols-8 gap-2">${timeSlotsHtml}</div></div>`;
+                const dayHtml = `
+                    <div class="bg-gray-50 p-4 rounded-lg border">
+                        <p class="font-semibold text-gray-800 mb-3">${formattedDate}</p>
+                        <div class="grid grid-cols-5 sm:grid-cols-8 gap-2">${timeSlotsHtml}</div>
+                    </div>`;
                 availabilityContainer.innerHTML += dayHtml;
             }
             replicateBtn.classList.toggle('hidden', duration <= 1);
         }
 
-        const loadCampaignTypes = async () => {
+        // --- INÍCIO ALTERAÇÃO: Carregar tipos filtrando ativos e respeitando ordem ---
+        async function loadCampaignTypes(selectedTypeId = null) {
             const typesDocRef = doc(db, paths.configDoc('campaignTypes'));
             const docSnap = await getDoc(typesDocRef);
-            if (docSnap.exists()) {
-                const types = docSnap.data();
-                campaignTypeSelect.innerHTML = '';
-                for (const id in types) {
-                    campaignTypeSelect.innerHTML += `<option value="${id}">${types[id].label}</option>`;
+            campaignTypesCache = [];
+            campaignTypeSelect.innerHTML = '';
+
+            if (!docSnap.exists()) {
+                campaignTypeSelect.innerHTML = '<option value="">(Nenhum tipo configurado)</option>';
+                return;
+            }
+
+            const typesObj = docSnap.data() || {};
+            // Normaliza
+            Object.keys(typesObj).forEach(id => {
+                const t = typesObj[id] || {};
+                campaignTypesCache.push({
+                    id,
+                    label: t.label || id,
+                    active: t.active !== false,
+                    order: t.order || 0,
+                    color: t.color || 'green'
+                });
+            });
+
+            campaignTypesCache.sort((a,b) => (a.order - b.order) || a.label.localeCompare(b.label,'pt-BR'));
+
+            // Se edição e tipo atual está inativo, precisamos incluí-lo
+            let currentTypeData = null;
+            if (selectedTypeId) {
+                currentTypeData = campaignTypesCache.find(t => t.id === selectedTypeId);
+                // Se não achou (ou foi filtrado), tenta reconstruir a partir do objeto original
+                if (!currentTypeData && typesObj[selectedTypeId]) {
+                    const t = typesObj[selectedTypeId];
+                    currentTypeData = {
+                        id: selectedTypeId,
+                        label: t.label || selectedTypeId,
+                        active: t.active !== false,
+                        order: t.order || 0,
+                        color: t.color || 'green'
+                    };
+                    campaignTypesCache.push(currentTypeData);
                 }
             }
-        };
+
+            // Filtra só ativos (para criação normal)
+            const activeTypes = campaignTypesCache.filter(t => t.active);
+            const hasActive = activeTypes.length > 0;
+
+            if (!hasActive && !isEditMode) {
+                campaignTypeStatusBanner.innerHTML = `
+                    <div class="error-banner">
+                        <strong class="text-red-700">Não há tipos de campanha ativos.</strong>
+                        <span class="text-red-600 ml-2">Ative pelo menos um em configurações para criar novas campanhas.</span>
+                    </div>`;
+                campaignTypeSelect.innerHTML = '<option value="">— nenhum tipo ativo —</option>';
+                campaignTypeSelect.disabled = true;
+                submitCampaignBtn.disabled = true;
+                return;
+            } else {
+                campaignTypeSelect.disabled = false;
+                submitCampaignBtn.disabled = false;
+            }
+
+            // Monta opções
+            let optionsHtml = '<option value="">Selecione...</option>';
+            activeTypes.forEach(t => {
+                optionsHtml += `<option value="${t.id}">${t.label}</option>`;
+            });
+
+            // Se edição e tipo atual está inativo, adiciona opção extra marcada
+            if (isEditMode && currentTypeData && !currentTypeData.active) {
+                optionsHtml += `<option value="${currentTypeData.id}" selected>${currentTypeData.label} (inativo)</option>`;
+                campaignTypeStatusBanner.innerHTML = `
+                    <div class="warning-banner">
+                        <strong class="text-orange-700">Tipo desativado:</strong>
+                        <span class="text-orange-600 ml-2">O tipo desta campanha (${currentTypeData.label}) está inativo. Considere trocar para um tipo ativo antes de salvar.</span>
+                    </div>`;
+            } else {
+                campaignTypeStatusBanner.innerHTML = '';
+            }
+
+            campaignTypeSelect.innerHTML = optionsHtml;
+
+            if (selectedTypeId && campaignTypeSelect.querySelector(`option[value="${selectedTypeId}"]`)) {
+                campaignTypeSelect.value = selectedTypeId;
+            }
+        }
+        // --- FIM ALTERAÇÃO ---
 
         function populateForm(data) {
             document.getElementById('campaign-title').value = data.title || '';
             document.getElementById('campaign-description').value = data.description || '';
-            campaignTypeSelect.value = data.type || 'default';
+            campaignTypeSelect.value = data.type || '';
             document.getElementById('campaign-goal').value = data.goal || '';
             document.getElementById('campaign-priority').value = data.priority || 'normal';
             document.getElementById('campaign-slots').value = data.slots || '1';
@@ -297,11 +484,19 @@
                 telefoneInput.value = data.deliveryAddress.telefone || '';
             }
             
-            if (data.startsAt) { startsAtInput.value = data.startsAt.toDate().toISOString().split('T')[0]; }
+            if (data.startsAt) { 
+                try {
+                    startsAtInput.value = data.startsAt.toDate().toISOString().split('T')[0]; 
+                } catch(_) {}
+            }
             if (data.durationInDays) { durationSelect.value = data.durationInDays; }
             if (data.images && data.images.length > 0) { renderMediaPreview(data.images); }
-            if (data.videoUrl) { videoPreviewContainer.classList.remove('hidden'); videoPreview.src = data.videoUrl; videoFileName.textContent = "Vídeo atual. Envie um novo para substituir."; }
-        };
+            if (data.videoUrl) { 
+                videoPreviewContainer.classList.remove('hidden'); 
+                videoPreview.src = data.videoUrl; 
+                videoFileName.textContent = "Vídeo atual. Envie um novo para substituir."; 
+            }
+        }
         
         async function fetchAddressFromCEP(cep) {
             const cleanCep = cep.replace(/\D/g, '');
@@ -363,6 +558,14 @@
         createCampaignForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             formError.classList.add('hidden');
+
+            // Validação adicional para garantir tipo selecionado e ativo
+            if (!campaignTypeSelect.value) {
+                formError.textContent = 'Selecione um tipo de campanha.';
+                formError.classList.remove('hidden');
+                return;
+            }
+
             showLoadingButton(true);
             const user = auth.currentUser;
 
@@ -436,12 +639,10 @@
                         entityInfo = (selectedId === 'app_faz_bem') ? 
                             { name: "App Faz Bem", uid: "app_faz_bem" } :
                             { name: selectedEntity.dadosEntidade?.nomeFantasia || selectedEntity.publicName, uid: selectedId };
-                    } else { // Modo Entidade
-                        // Use the userSession from the guard instead of calling getCurrentUser again
-                        // --- INÍCIO DA ALTERAÇÃO: Obter nome da nova estrutura ---
-                        const entityName = userSession.profile.dadosEntidade?.nomeFantasia || userSession.profile.publicName;
-                        entityInfo = { name: entityName, uid: userSession.auth.uid };
-                        // --- FIM DA ALTERAÇÃO ---
+                    } else {
+                        // Usa currentUserSession (correção do escopo)
+                        const entityName = currentUserSession.profile.dadosEntidade?.nomeFantasia || currentUserSession.profile.publicName;
+                        entityInfo = { name: entityName, uid: currentUserSession.auth.uid };
                     }
                     
                     const finalData = {
@@ -449,7 +650,7 @@
                         entityName: entityInfo.name, 
                         creatorId: user.uid, 
                         entityId: entityInfo.uid,
-                        entityVerified: true, // Assumindo que a entidade que cria está ativa
+                        entityVerified: true,
                         currentAmount: 0, 
                         createdAt: Timestamp.now(),
                     };
@@ -457,7 +658,9 @@
                     document.getElementById('submit-feedback').textContent = 'Campanha publicada!';
                 }
                 
-                setTimeout(() => { window.location.href = user.email === ADMIN_EMAIL ? 'superadmin.html' : 'admin.html'; }, 2000);
+                setTimeout(() => { 
+                    window.location.href = user.email === ADMIN_EMAIL ? 'superadmin.html' : 'admin.html'; 
+                }, 2000);
 
             } catch (error) {
                 console.error("Erro ao salvar campanha: ", error);
@@ -473,68 +676,74 @@
             const canProceed = await injectHeader();
             if (!canProceed) return;
 
-            // Use route guard for authentication and authorization
-            const userSession = await guard({
+            currentUserSession = await guard({
                 requireAuth: true,
                 requiredRoles: ['superadmin', 'entidade'],
                 requireApprovedEntity: true
             });
 
-            // If guard returns null, user was redirected
-            if (!userSession) {
-                return;
-            }
+            if (!currentUserSession) return;
 
-            // --- INÍCIO DA ALTERAÇÃO: Adicionada verificação de status para entidade ---
-            if (userSession.profile.role === 'entidade' && userSession.profile.status !== 'ativo') {
-                alert('A sua entidade precisa de estar aprovada para criar campanhas. Por favor, aguarde a aprovação do administrador.');
+            if (currentUserSession.profile.role === 'entidade' && currentUserSession.profile.status !== 'ativo') {
+                alert('A sua entidade precisa estar aprovada para criar campanhas.');
                 window.location.href = 'admin.html';
                 return;
             }
-            // --- FIM DA ALTERAÇÃO ---
 
-            const user = userSession.auth;
-            await loadCampaignTypes();
+            const user = currentUserSession.auth;
+
+            // Primeiro carregamos os tipos (passando o type da campanha se em edição)
             let campaignDataForEdit = null;
-            
             if (isEditMode) {
                 setupEditModeUI();
                 document.getElementById('loading-text').textContent = "A carregar dados da campanha...";
                 const campaignRef = doc(db, paths.campaignDoc(campaignIdToEdit));
                 const campaignSnap = await getDoc(campaignRef);
-                if (!campaignSnap.exists()) { alert("Erro: Campanha não encontrada."); window.location.href = 'index.html'; return; }
+                if (!campaignSnap.exists()) {
+                    alert("Erro: Campanha não encontrada.");
+                    window.location.href = 'index.html';
+                    return;
+                }
                 campaignDataForEdit = campaignSnap.data();
 
-                if (user.uid !== campaignDataForEdit.creatorId && user.email !== ADMIN_EMAIL) { alert("Erro: Você não tem permissão para editar esta campanha."); window.location.href = 'index.html'; return; }
-                
+                if (user.uid !== campaignDataForEdit.creatorId && user.email !== ADMIN_EMAIL) {
+                    alert("Erro: Você não tem permissão para editar esta campanha.");
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                await loadCampaignTypes(campaignDataForEdit.type);
                 populateForm(campaignDataForEdit);
                 renderAvailabilityGrid(campaignDataForEdit.disponibilidade || {});
             } else {
+                await loadCampaignTypes();
                 renderAvailabilityGrid();
             }
 
             if (user.email === ADMIN_EMAIL) {
                 const q = query(collection(db, paths.entidades), where("status", "==", "ativo"));
                 const querySnapshot = await getDocs(q);
-                allEntities = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allEntities = querySnapshot.docs.map(docu => ({ id: docu.id, ...docu.data() }));
                 
-                // --- INÍCIO DA ALTERAÇÃO: Obter nome da nova estrutura para o dropdown do superadmin ---
                 let optionsHtml = '<option value="app_faz_bem">App Faz Bem (Campanha Geral)</option>';
                 allEntities.forEach(entity => {
                     const displayName = entity.dadosEntidade?.nomeFantasia || entity.publicName;
                     optionsHtml += `<option value="${entity.id}">${displayName}</option>`;
                 });
-                // --- FIM DA ALTERAÇÃO ---
 
-                entityInfoContainer.innerHTML = `<label for="entity-selector" class="block text-sm font-medium text-gray-700 mb-2">Publicar em nome de:</label><select id="entity-selector" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 bg-yellow-50">${optionsHtml}</select>`;
+                entityInfoContainer.innerHTML = `
+                    <label for="entity-selector" class="block text-sm font-medium text-gray-700 mb-2">Publicar em nome de:</label>
+                    <select id="entity-selector" class="block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 bg-yellow-50">${optionsHtml}</select>`;
+
                 if (isEditMode) { 
                     const entitySelector = document.getElementById('entity-selector');
                     entitySelector.value = campaignDataForEdit.entityId;
                     entitySelector.disabled = true;
                 }
             } else {
-                renderEntityHeader(userSession.profile);
+                renderEntityHeader(currentUserSession.profile);
             }
+
             loadingView.classList.add('hidden');
             formView.classList.remove('hidden');
 
@@ -543,7 +752,6 @@
         }
 
         initializeApp();
-
     </script>
 </body>
 </html>
