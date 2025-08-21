@@ -119,7 +119,21 @@
                 <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
                 <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4"><div class="sm:flex sm:items-start"><div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10"><svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full"><h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3><div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div></div></div></div>
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
+                                <div class="mt-2">
+                                    <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
                 </div>
             </div>
@@ -159,32 +173,34 @@
         let rescheduleData = null;
         let existingAppointments = {};
         let campaignTypeSettings = {};
+        let campaignTypePrefix = 'GEN'; // armazenará prefixo carregado
 
         async function initializeApp() {
             const canProceed = await injectHeader();
             if (!canProceed) { return; }
             currentUserSession = await getCurrentUser();
-            if (currentUserSession) {
-                const params = new URLSearchParams(window.location.search);
-                campaignId = params.get('id');
-                isRescheduleMode = params.has('reschedule');
-                if (!campaignId) {
-                    loadingView.innerHTML = '<p class="text-red-500">Erro: ID da campanha não encontrado.</p>';
+            if (!currentUserSession) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            campaignId = params.get('id');
+            isRescheduleMode = params.has('reschedule');
+            if (!campaignId) {
+                loadingView.innerHTML = '<p class="text-red-500">Erro: ID da campanha não encontrado.</p>';
+                return;
+            }
+            if (isRescheduleMode) {
+                const data = localStorage.getItem('rescheduleData');
+                if (!data) {
+                    showAlertModal('Erro', 'Dados de reagendamento não encontrados.').then(() => window.location.href = 'minhas-entregas.html');
                     return;
                 }
-                if (isRescheduleMode) {
-                    const data = localStorage.getItem('rescheduleData');
-                    if (!data) {
-                        showAlertModal('Erro', 'Dados de reagendamento não encontrados.').then(() => window.location.href = 'minhas-entregas.html');
-                        return;
-                    }
-                    rescheduleData = JSON.parse(data);
-                    setupRescheduleMode();
-                }
-                await loadInitialData();
-            } else {
-                window.location.href = 'login.html';
+                rescheduleData = JSON.parse(data);
+                setupRescheduleMode();
             }
+            await loadInitialData();
         }
         
         function setupRescheduleMode() {
@@ -205,17 +221,25 @@
                 if (!campaignSnap.exists()) throw new Error("Campanha não encontrada.");
                 campaignData = campaignSnap.data();
 
-                const appointmentsQuery = query(collection(db, paths.donations), where("campaignId", "==", campaignId), where("status", "==", "scheduled"));
+                const appointmentsQuery = query(
+                    collection(db, paths.donations),
+                    where("campaignId", "==", campaignId),
+                    where("status", "==", "scheduled")
+                );
                 const appointmentsSnapshot = await getDocs(appointmentsQuery);
                 existingAppointments = {};
-                appointmentsSnapshot.forEach(doc => {
-                    const scheduledAt = doc.data().scheduledAt.toDate().getTime();
+                appointmentsSnapshot.forEach(d => {
+                    const scheduledAt = d.data().scheduledAt.toDate().getTime();
                     existingAppointments[scheduledAt] = (existingAppointments[scheduledAt] || 0) + 1;
                 });
 
+                // Carrega configurações de tipos
                 const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
                 campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
-                
+
+                // Determina prefixo do tipo (sem repetir leitura depois)
+                campaignTypePrefix = resolveCampaignTypePrefix(campaignData.type);
+
                 populateCampaignHeader();
                 
                 if (!isRescheduleMode) {
@@ -231,6 +255,18 @@
             }
         }
 
+        function resolveCampaignTypePrefix(campaignType) {
+            const typeData = campaignTypeSettings[campaignType];
+            if (typeData?.prefix && /^[A-Z]{3}$/.test(typeData.prefix)) {
+                return typeData.prefix;
+            }
+            return (campaignType || 'GEN')
+                .toUpperCase()
+                .replace(/[^A-Z]/g, '')
+                .slice(0, 3)
+                .padEnd(3, 'X');
+        }
+
         function renderDynamicFields(campaignType) {
             dynamicFieldsContainer.innerHTML = '';
             const typeConfig = campaignTypeSettings[campaignType];
@@ -240,10 +276,9 @@
                 ? typeConfig.fields 
                 : Object.values(typeConfig.fields);
             
-            // ### CORREÇÃO DA ORDEM ###
             const fields = fieldsArray
                 .filter(field => field.active !== false)
-                .sort((a, b) => (a.order || 0) - (b.order || 0)); // Garante a ordem definida em configuracoes.html
+                .sort((a, b) => (a.order || 0) - (b.order || 0));
 
             fields.forEach(field => {
                 if (!field.id || field.id.trim() === '') {
@@ -261,7 +296,7 @@
                         fieldHtml = `<div class="col-span-1 sm:col-span-2">${label}<input type="text" id="field-${field.id}" name="${field.id}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>`;
                         break;
                     case 'select':
-                        const optionsHtml = field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                        const optionsHtml = (field.options || []).map(opt => `<option value="${opt}">${opt}</option>`).join('');
                         fieldHtml = `<div class="col-span-1">${label}<select id="field-${field.id}" name="${field.id}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"><option value="">Selecione...</option>${optionsHtml}</select></div>`;
                         break;
                     case 'date':
@@ -273,14 +308,14 @@
                         const isCamera = field.type === 'camera';
                         const accept = isCamera ? 'image/*' : (field.type === 'image' ? 'image/*' : 'video/*');
                         const capture = isCamera ? 'capture="environment"' : '';
-
                         fieldHtml = `<div class="col-span-1 sm:col-span-2">${label}
-                                        <label class="mt-1 flex justify-center items-center w-full px-4 py-3 bg-white text-blue-500 rounded-lg shadow-sm tracking-wide uppercase border border-blue-500 cursor-pointer hover:bg-blue-500 hover:text-white">
-                                            <svg class="w-6 h-6 mr-2" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M16.88 9.1A4 4 0 0 1 16 17H5a5 5 0 0 1-1-9.9V7a3 3 0 0 1 4.52-2.59A4.98 4.98 0 0 1 17 8c0 .38-.04.74-.12 1.1zM11 11h3l-4 4-4-4h3V9h2v2z" /></svg>
-                                            <span id="file-label-${field.id}" class="text-sm leading-normal">Selecionar ficheiro</span>
-                                            <input type='file' id="field-${field.id}" name="${field.id}" ${required} accept="${accept}" ${capture} class="hidden" onchange="document.getElementById('file-label-${field.id}').textContent = this.files[0] ? this.files[0].name : 'Selecionar ficheiro';" />
-                                        </label>
-                                       </div>`;
+                            <label class="mt-1 flex justify-center items-center w-full px-4 py-3 bg-white text-blue-500 rounded-lg shadow-sm tracking-wide uppercase border border-blue-500 cursor-pointer hover:bg-blue-500 hover:text-white transition-colors">
+                                <svg class="w-6 h-6 mr-2" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M16.88 9.1A4 4 0 0 1 16 17H5a5 5 0 0 1-1-9.9V7a3 3 0 0 1 4.52-2.59A4.98 4.98 0 0 1 17 8c0 .38-.04.74-.12 1.1zM11 11h3l-4 4-4-4h3V9h2v2z" /></svg>
+                                <span id="file-label-${field.id}" class="text-sm leading-normal">Selecionar ficheiro</span>
+                                <input type="file" id="field-${field.id}" name="${field.id}" ${required} accept="${accept}" ${capture} class="hidden"
+                                    onchange="document.getElementById('file-label-${field.id}').textContent = this.files[0] ? this.files[0].name : 'Selecionar ficheiro';">
+                            </label>
+                        </div>`;
                         break;
                 }
                 dynamicFieldsContainer.innerHTML += fieldHtml;
@@ -353,7 +388,12 @@
                 const addr = campaignData.deliveryAddress;
                 deliveryAddressView.innerHTML = `
                     <div class="flex items-start space-x-3">
-                        <div class="flex-shrink-0"><svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></div>
+                        <div class="flex-shrink-0">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                        </div>
                         <div>
                             <h3 class="text-md font-bold text-gray-800">Local de Entrega</h3>
                             <p class="text-sm text-gray-600 mt-1">
@@ -437,7 +477,6 @@
                 : Object.values(campaignTypeSettings[campaignData.type]?.fields || {});
 
             const activeImageFields = fieldsConfig.filter(f => (f.type === 'image' || f.type === 'camera') && f.active !== false);
-            
             if (activeImageFields.length > 0) {
                 mainPhotoId = activeImageFields[0].id;
             }
@@ -450,7 +489,6 @@
                 if(input.name) {
                     customFieldsData[input.name] = file || input.value; 
                 }
-
                 if (file && mainPhotoId && input.name === mainPhotoId) {
                     mainPhotoFile = file;
                 }
@@ -484,50 +522,40 @@
             }
         });
 
-        // Function to get next sequence number for item uniqueCode generation
-        async function getNextSequence(prefix) {
+        // --------- NOVO: Reserva de sequência em lote (melhor desempenho) ----------
+        async function allocateSequences(prefix, count) {
             const ref = doc(db, 'counters', `items_${prefix}`);
-            const result = await runTransaction(db, async (transaction) => {
-                const snap = await transaction.get(ref);
-                const currentValue = snap.exists() ? (snap.data().value || 0) : 0;
-                transaction.set(ref, { value: currentValue + 1, updatedAt: serverTimestamp() }, { merge: true });
-                return currentValue + 1;
-            });
-            return result;
+            try {
+                const startValue = await runTransaction(db, async (transaction) => {
+                    const snap = await transaction.get(ref);
+                    const currentValue = snap.exists() ? (snap.data().value || 0) : 0;
+                    const newValue = currentValue + count;
+                    transaction.set(ref, { value: newValue, updatedAt: serverTimestamp() }, { merge: true });
+                    return currentValue; // valor anterior
+                });
+                // Retorna array de números sequenciais (1..count) somados ao startValue
+                return Array.from({ length: count }, (_, i) => startValue + i + 1);
+            } catch (err) {
+                if (err.code === 'permission-denied') {
+                    console.warn('[Doação] Sem permissão para atualizar contador. Usando fallback aleatório para códigos.', err);
+                    return null; // indica fallback
+                }
+                console.error('[Doação] Falha inesperada em allocateSequences:', err);
+                return null;
+            }
         }
 
-        // Function to get campaign type prefix
-        async function getCampaignTypePrefix(campaignType) {
-            try {
-                if (!campaignType) return 'GEN';
-                
-                const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-                const campaignTypesSnap = await getDoc(campaignTypesRef);
-                
-                if (campaignTypesSnap.exists()) {
-                    const campaignTypesData = campaignTypesSnap.data();
-                    const typeData = campaignTypesData[campaignType];
-                    
-                    if (typeData?.prefix) {
-                        return typeData.prefix;
-                    }
-                }
-                
-                // Fallback: generate prefix from campaign type name
-                return (campaignType || 'GEN')
-                    .toUpperCase()
-                    .replace(/[^A-Z]/g, '')
-                    .slice(0, 3)
-                    .padEnd(3, 'G');
-            } catch (error) {
-                console.warn('Failed to get campaign type prefix, using fallback:', error);
-                return 'GEN';
-            }
+        function generateFallbackCodes(prefix, count) {
+            // Gera códigos únicos pseudo-aleatórios: PREFIX-XYZ123
+            return Array.from({ length: count }, () => {
+                const rand = Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(-6);
+                return `${prefix}-${rand}`;
+            });
         }
 
         submitDonationBtn.addEventListener('click', async () => {
             formError.textContent = '';
-            if (donatedItems.length === 0) { formError.textContent = 'Adicione pelo menos um item.'; return; }
+            if (donatedItems.length === 0 && !isRescheduleMode) { formError.textContent = 'Adicione pelo menos um item.'; return; }
             if (!selectedScheduleSlot) { formError.textContent = 'Selecione um dia e horário.'; return; }
             const submitBtnText = document.getElementById('submit-btn-text');
             const submitBtnSpinner = document.getElementById('submit-btn-spinner');
@@ -537,49 +565,71 @@
 
             try {
                 const userId = currentUserSession.auth.uid;
-                
-                const itemsToSave = isRescheduleMode 
-                    ? donatedItems 
-                    : await Promise.all(donatedItems.map(async (item) => {
+
+                // Apenas criamos / recalculamos itens se NÃO for re-agendamento
+                let itemsToSave;
+                if (isRescheduleMode) {
+                    itemsToSave = donatedItems; // já contém dados completos
+                } else {
+                    // 1. Upload de arquivos + coleta de campos
+                    const processedItems = await Promise.all(donatedItems.map(async (item) => {
                         const customFieldsWithUrls = { ...item.customFields };
                         
                         for (const key in item.customFields) {
                             if (item.customFields[key] instanceof File) {
                                 const file = item.customFields[key];
                                 const customFilePath = `donated_items/${userId}/${Date.now()}_${file.name}`;
-                                const url = await uploadBytes(storageRef(storage, customFilePath), file).then(snap => getDownloadURL(snap.ref));
+                                const url = await uploadBytes(storageRef(storage, customFilePath), file)
+                                    .then(snap => getDownloadURL(snap.ref));
                                 customFieldsWithUrls[key] = url;
                             }
                         }
-
-                        const photoURL = item.mainPhotoId ? customFieldsWithUrls[item.mainPhotoId] : null;
 
                         const fieldsConfig = (Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
                             ? campaignTypeSettings[campaignData.type].fields
                             : Object.values(campaignTypeSettings[campaignData.type]?.fields || [])
                         ).sort((a, b) => (a.order || 0) - (b.order || 0));
 
-                        let itemType = campaignData.title; 
+                        let itemTitle = campaignData.title;
                         if (fieldsConfig.length > 0) {
                             const titleFieldKey = fieldsConfig[0].id;
-                            if(customFieldsWithUrls[titleFieldKey]) {
-                                itemType = customFieldsWithUrls[titleFieldKey];
+                            if (customFieldsWithUrls[titleFieldKey]) {
+                                itemTitle = customFieldsWithUrls[titleFieldKey];
                             }
                         }
 
-                        // Generate uniqueCode for the item
-                        const prefix = await getCampaignTypePrefix(campaignData.type);
-                        const sequence = await getNextSequence(prefix);
-                        const uniqueCode = `${prefix}-${String(sequence).padStart(6, '0')}`;
+                        const photoURL = item.mainPhotoId ? customFieldsWithUrls[item.mainPhotoId] : null;
 
-                        return { 
-                            ...customFieldsWithUrls, 
-                            type: itemType, 
-                            photoURL: photoURL, 
-                            status: 'pending',
-                            uniqueCode: uniqueCode
+                        return {
+                            pendingTitle: itemTitle,
+                            customFieldsWithUrls,
+                            photoURL
                         };
                     }));
+
+                    // 2. Sequências ou fallback
+                    let sequences = await allocateSequences(campaignTypePrefix, processedItems.length);
+                    let uniqueCodes;
+                    if (sequences === null) {
+                        // Fallback
+                        uniqueCodes = generateFallbackCodes(campaignTypePrefix, processedItems.length);
+                    } else {
+                        uniqueCodes = sequences.map(seq => `${campaignTypePrefix}-${String(seq).padStart(6, '0')}`);
+                    }
+
+                    // 3. Monta items finais
+                    itemsToSave = processedItems.map((proc, idx) => ({
+                        ...proc.customFieldsWithUrls,
+                        type: proc.pendingTitle,
+                        photoURL: proc.photoURL,
+                        status: 'pending',
+                        uniqueCode: uniqueCodes[idx]
+                    }));
+                }
+
+                const privacyValue = isRescheduleMode 
+                    ? (rescheduleData.privacy || 'public')
+                    : document.querySelector('input[name="privacy"]:checked').value;
 
                 const newDonationData = {
                     donorId: userId,
@@ -590,7 +640,7 @@
                     entityId: campaignData.entityId,
                     items: itemsToSave,
                     status: 'scheduled',
-                    privacy: isRescheduleMode ? (rescheduleData.privacy || 'public') : document.querySelector('input[name="privacy"]:checked').value,
+                    privacy: privacyValue,
                     createdAt: Timestamp.now(),
                     scheduledAt: Timestamp.fromDate(selectedScheduleSlot),
                     campaignType: campaignData.type || 'default'
