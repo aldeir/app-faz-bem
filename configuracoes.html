@@ -72,11 +72,29 @@
                             <input type="text" id="campaign-type-label" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                         </div>
                         <div>
+                            <label for="campaign-type-prefix" class="block text-sm font-medium text-gray-600">Prefixo (3 letras A-Z)*</label>
+                            <input type="text" id="campaign-type-prefix" required maxlength="3" pattern="[A-Z]{3}" placeholder="ABC" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm uppercase">
+                            <p class="text-xs text-gray-500 mt-1">3 letras maiúsculas para códigos únicos (ex: ABC-000001)</p>
+                        </div>
+                        <div>
                             <label for="campaign-type-color" class="block text-sm font-medium text-gray-600">Cor</label>
                             <select id="campaign-type-color" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="green">Verde</option><option value="blue">Azul</option><option value="yellow">Amarelo</option>
                                 <option value="red">Vermelho</option><option value="purple">Roxo</option><option value="gray">Cinza</option>
                             </select>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex items-center">
+                                <label class="switch">
+                                    <input type="checkbox" id="campaign-type-active" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <label for="campaign-type-active" class="ml-2 text-sm font-medium text-gray-600">Ativo</label>
+                            </div>
+                            <div class="flex-1">
+                                <label for="campaign-type-order" class="block text-sm font-medium text-gray-600">Ordem de Exibição</label>
+                                <input type="number" id="campaign-type-order" min="1" placeholder="1" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            </div>
                         </div>
                         <div class="flex justify-end space-x-3">
                             <button type="button" id="cancel-edit-btn" class="hidden px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button>
@@ -154,7 +172,7 @@
 
         // DOM elements - will be initialized after DOMContentLoaded
         let loadingView, configView, campaignTypesList, campaignTypeForm, campaignFormTitle;
-        let campaignTypeIdInput, campaignTypeLabelInput, campaignTypeColorSelect, cancelEditBtn;
+        let campaignTypeIdInput, campaignTypeLabelInput, campaignTypePrefixInput, campaignTypeColorSelect, campaignTypeActiveInput, campaignTypeOrderInput, cancelEditBtn;
         let fieldCampaignTypeSelect, customFieldsEditor, customFieldsList, customFieldForm;
         let fieldLabelInput, fieldIdInput, fieldIdWarning, fieldTypeSelect;
         let fieldOptionsContainer, fieldOptionsInput, fieldRequiredCheckbox;
@@ -179,7 +197,10 @@
             campaignFormTitle = document.getElementById('campaign-form-title');
             campaignTypeIdInput = document.getElementById('campaign-type-id');
             campaignTypeLabelInput = document.getElementById('campaign-type-label');
+            campaignTypePrefixInput = document.getElementById('campaign-type-prefix');
             campaignTypeColorSelect = document.getElementById('campaign-type-color');
+            campaignTypeActiveInput = document.getElementById('campaign-type-active');
+            campaignTypeOrderInput = document.getElementById('campaign-type-order');
             cancelEditBtn = document.getElementById('cancel-edit-btn');
             fieldCampaignTypeSelect = document.getElementById('field-campaign-type-select');
             customFieldsEditor = document.getElementById('custom-fields-editor');
@@ -230,15 +251,30 @@
 
         function renderCampaignTypes() {
             campaignTypesList.innerHTML = '';
-            Object.entries(campaignTypesData).forEach(([id, data]) => {
-                const colorClass = `bg-${data.color}-500`;
+            
+            // Sort by order field
+            const sortedEntries = Object.entries(campaignTypesData)
+                .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
+            
+            sortedEntries.forEach(([id, data]) => {
+                const colorClass = `bg-${data.color || 'green'}-500`;
+                const activeStatus = data.active !== false ? 'Ativo' : 'Inativo';
+                const activeClass = data.active !== false ? 'text-green-600' : 'text-gray-400';
                 const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-2 rounded-md hover:bg-gray-50';
+                item.className = 'flex items-center justify-between p-3 rounded-md hover:bg-gray-50 border border-gray-200';
                 item.innerHTML = `
                     <div class="flex items-center gap-3">
                         <span class="w-4 h-4 rounded-full ${colorClass}"></span>
-                        <span class="font-medium">${data.label}</span>
-                        <span class="text-xs text-gray-500">(${id})</span>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium">${data.label}</span>
+                                <span class="text-xs text-gray-500">(${id})</span>
+                                ${data.prefix ? `<span class="text-xs bg-gray-800 text-white px-2 py-0.5 rounded font-mono">${data.prefix}</span>` : ''}
+                            </div>
+                            <div class="text-xs ${activeClass}">
+                                ${activeStatus} • Ordem: ${data.order || 0}
+                            </div>
+                        </div>
                     </div>
                     <div class="space-x-3">
                         <button data-action="edit-type" data-id="${id}" class="text-sm text-blue-600 hover:underline">Editar</button>
@@ -354,8 +390,11 @@
                     campaignTypeIdInput.value = id;
                     campaignTypeIdInput.disabled = true;
                 }
-                if (campaignTypeLabelInput) campaignTypeLabelInput.value = data.label;
-                if (campaignTypeColorSelect) campaignTypeColorSelect.value = data.color;
+                if (campaignTypeLabelInput) campaignTypeLabelInput.value = data.label || '';
+                if (campaignTypePrefixInput) campaignTypePrefixInput.value = data.prefix || '';
+                if (campaignTypeColorSelect) campaignTypeColorSelect.value = data.color || 'green';
+                if (campaignTypeActiveInput) campaignTypeActiveInput.checked = data.active !== false; // default to true
+                if (campaignTypeOrderInput) campaignTypeOrderInput.value = data.order || 0;
                 if (cancelEditBtn) cancelEditBtn.classList.remove('hidden');
             });
 
@@ -370,16 +409,49 @@
                 e.preventDefault();
                 const id = campaignTypeIdInput.value.trim().toLowerCase();
                 const label = campaignTypeLabelInput.value.trim();
+                const prefix = campaignTypePrefixInput.value.trim().toUpperCase();
                 const color = campaignTypeColorSelect.value;
-                if (!id || !label) { showAlertModal('Erro', 'ID e Rótulo são obrigatórios.'); return; }
+                const active = campaignTypeActiveInput.checked;
+                const order = parseInt(campaignTypeOrderInput.value) || 0;
+                
+                if (!id || !label || !prefix) { 
+                    showAlertModal('Erro', 'ID, Rótulo e Prefixo são obrigatórios.'); 
+                    return; 
+                }
+                
+                // Validate prefix format
+                if (!/^[A-Z]{3}$/.test(prefix)) {
+                    showAlertModal('Erro', 'Prefixo deve conter exatamente 3 letras maiúsculas (A-Z).');
+                    return;
+                }
+                
+                // Check if prefix is unique (except for current item being edited)
+                const currentEditingId = campaignFormTitle.textContent.includes('Editar') ? campaignTypeIdInput.value.trim().toLowerCase() : null;
+                const duplicatePrefix = Object.entries(campaignTypesData).find(([existingId, data]) => 
+                    existingId !== currentEditingId && data.prefix === prefix
+                );
+                if (duplicatePrefix) {
+                    showAlertModal('Erro', `Prefixo "${prefix}" já está sendo usado no tipo "${duplicatePrefix[1].label}".`);
+                    return;
+                }
                 
                 const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
                 if (!campaignTypesData[id]) {
                     campaignTypesData[id] = { fields: [] };
                 }
                 campaignTypesData[id].label = label;
+                campaignTypesData[id].prefix = prefix;
                 campaignTypesData[id].color = color;
-                const updateData = { [`${id}.label`]: label, [`${id}.color`]: color };
+                campaignTypesData[id].active = active;
+                campaignTypesData[id].order = order;
+                
+                const updateData = { 
+                    [`${id}.label`]: label, 
+                    [`${id}.prefix`]: prefix,
+                    [`${id}.color`]: color,
+                    [`${id}.active`]: active,
+                    [`${id}.order`]: order
+                };
                 try {
                     await updateDoc(campaignTypesRef, updateData, { merge: true });
                     showAlertModal('Sucesso!', 'Tipo de campanha salvo com sucesso.');
