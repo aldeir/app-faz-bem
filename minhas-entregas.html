@@ -25,26 +25,37 @@ body { font-family:'Inter',sans-serif; }
 .tab-button.active { border-color:#16a34a; color:#16a34a; background:#f0fdf4; }
 .item-card { transition:.18s ease; }
 .item-card:hover { transform:translateY(-2px); box-shadow:0 4px 14px -4px rgba(0,0,0,.08); }
-.status-chip { font-size:.625rem; letter-spacing:.5px; text-transform:uppercase; font-weight:600; padding:2px 6px; border-radius:999px; }
-.status-chip.scheduled { background:#f0fdf4; color:#166534; }
-.status-chip.overdue { background:#fef2f2; color:#991b1b; }
-.status-chip.cancelled { background:#fffbeb; color:#92400e; }
-.status-chip.completed { background:#ecfdf5; color:#065f46; }
-.status-chip.reagendado { background:#e0f2fe; color:#075985; }
+.status-chip { font-size:.625rem; letter-spacing:.5px; text-transform:uppercase; font-weight:600; padding:3px 8px; border-radius:999px; display:inline-flex; align-items:center; gap:4px;}
+.code-chip { display:inline-flex; align-items:center; gap:.4rem; background:#1e293b; color:#f8fafc; padding:.4rem .65rem; border-radius:.65rem; font-family:ui-monospace,Consolas,"Liberation Mono",Menlo,monospace; font-weight:600; letter-spacing:.5px; font-size:.8rem; cursor:pointer; position:relative;}
+.code-chip.large { font-size:1.4rem; padding:.9rem 1.15rem; border-radius:1rem; }
+.code-chip:active { transform:scale(.97); }
+.code-chip .copy-hint { position:absolute; bottom:-1.15rem; left:50%; transform:translateX(-50%); background:#1e293b; color:#fff; padding:2px 6px; border-radius:6px; font-size:.55rem; opacity:0; pointer-events:none; transition:.2s;}
+.code-chip:hover .copy-hint { opacity:1; }
+.status-agendada { background:#dcfce7; color:#166534; }
+.status-vencida { background:#fee2e2; color:#991b1b; }
+.status-cancelada { background:#fef3c7; color:#92400e; }
+.status-concluida { background:#d1fae5; color:#065f46; }
+.status-reagendada { background:#e0f2fe; color:#075985; }
 .badge-small { font-size:.625rem; font-weight:600; padding:2px 6px; border-radius:6px; }
-.qr-container img { width:100%; height:100%; object-fit:contain; }
-.filter-pill { padding:.45rem .8rem; border-radius:999px; background:#f1f5f9; font-size:.75rem; font-weight:600; color:#475569; display:inline-flex; align-items:center; gap:.25rem; cursor:pointer; }
+.filter-pill { padding:.5rem .85rem; border-radius:999px; background:#f1f5f9; font-size:.7rem; font-weight:600; color:#475569; display:inline-flex; align-items:center; gap:.35rem; cursor:pointer; white-space:nowrap;}
 .filter-pill.active { background:#16a34a; color:#fff; }
 #quick-filters::-webkit-scrollbar { display:none; }
 #quick-filters { -ms-overflow-style:none; scrollbar-width:none; }
 .skeleton-block { height:110px; border-radius:1rem; background:#f1f5f9; position:relative; overflow:hidden; }
 .skeleton-block::after { content:""; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent); animation:skeleton 1.2s infinite; }
 @keyframes skeleton { 0% {transform:translateX(-100%);} 100% {transform:translateX(100%);} }
-.card-border-green { border-left:4px solid #16a34a; }
-.card-border-red { border-left:4px solid #dc2626; }
-.card-border-yellow { border-left:4px solid #d97706; }
-.card-border-gray { border-left:4px solid #64748b; }
-.card-border-blue { border-left:4px solid #2563eb; }
+.qr-container img { width:100%; height:100%; object-fit:contain; }
+.inline-btn { font-size:.65rem; font-weight:600; letter-spacing:.5px; text-transform:uppercase; padding:4px 8px; border-radius:6px; background:#e2e8f0; color:#334155; display:inline-flex; align-items:center; gap:4px;}
+.inline-btn:hover { background:#cbd5e1; }
+.modal-actions-grid { display:grid; gap:.75rem; margin-top:1.25rem; }
+@media (min-width:480px){ .modal-actions-grid { grid-template-columns:repeat(2,1fr);} }
+.print-note { font-size:.6rem; text-transform:uppercase; letter-spacing:.5px; font-weight:600; background:#f1f5f9; padding:3px 6px; border-radius:6px; display:inline-block; }
+.border-color-green { border-left:4px solid #16a34a; }
+.border-color-red { border-left:4px solid #dc2626; }
+.border-color-yellow { border-left:4px solid #d97706; }
+.border-color-blue { border-left:4px solid #2563eb; }
+.border-color-purple { border-left:4px solid #7e22ce; }
+.border-color-gray { border-left:4px solid #64748b; }
 </style>
 </head>
 <body class="bg-gray-50">
@@ -63,9 +74,13 @@ body { font-family:'Inter',sans-serif; }
     <div class="flex items-start justify-between flex-wrap gap-4 mb-6">
       <div>
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Minhas Doações</h1>
-        <p class="text-sm text-gray-500 mt-1" id="subtitle-helper">Gerencie seus agendamentos de entrega.</p>
+        <p class="text-sm text-gray-500 mt-1" id="subtitle-helper">Gerencie seus agendamentos e comprovantes de entrega.</p>
       </div>
       <div class="flex items-center gap-3">
+        <button id="open-code-search" class="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5v14"/></svg>
+          Digitar Código
+        </button>
         <button id="refresh-btn" class="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6"/><path stroke-linecap="round" stroke-linejoin="round" d="M20 4l-5.172 5.172a4 4 0 00-5.656 0L4 14"/></svg>
           Atualizar
@@ -83,7 +98,7 @@ body { font-family:'Inter',sans-serif; }
       </nav>
     </div>
 
-    <!-- Quick filters (ex: próximo 7 dias) -->
+    <!-- Quick filters -->
     <div id="quick-filters" class="flex gap-2 overflow-x-auto pb-2 mb-4">
       <div class="filter-pill" data-filter="next7">Próx. 7 dias</div>
       <div class="filter-pill" data-filter="morning">Manhã</div>
@@ -96,8 +111,7 @@ body { font-family:'Inter',sans-serif; }
     <!-- Search -->
     <div class="mb-6 flex items-center gap-3">
       <div class="flex-1 relative">
-        <input id="search-input" type="search" placeholder="Buscar por campanha ou código..."
-               class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+        <input id="search-input" type="search" placeholder="Buscar por campanha ou código..." class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
         <svg class="w-5 h-5 text-gray-400 absolute top-1/2 left-3 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
       </div>
       <button id="clear-filters" class="text-xs font-semibold text-gray-500 hover:text-gray-700">Limpar</button>
@@ -160,18 +174,16 @@ body { font-family:'Inter',sans-serif; }
 </div>
 
 <script type="module">
-/* Imports */
 import { db, paths } from './app-config.js';
 import { collection, query, where, onSnapshot, doc, getDoc } from './firebase-services.js';
 import { injectHeader } from './app-header.js';
 import { getCurrentUser } from './auth-service.js';
-import { showDetailsModal, showConfirmationModal } from './modal-handler.js';
-import { createNotification } from './notification-service.js';
+import { showDetailsModal } from './modal-handler.js';
 
-/* State */
 let loadingView, deliveriesView, deliveriesList, noDeliveriesPlaceholder;
 let tabsContainer, loadMoreContainer, loadMoreBtn, searchInput, quickFiltersContainer;
-let liveStatusEl, offlineBanner, refreshBtn;
+let liveStatusEl, offlineBanner, refreshBtn, openCodeSearchBtn;
+
 let allUserDonations = [];
 let filteredWorkingList = [];
 let campaignsCache = new Map();
@@ -183,9 +195,26 @@ let searchQuery = '';
 let currentUserId = null;
 let unsubscribeSnapshot = null;
 let intersectionObserver = null;
-const DEBUG = new URLSearchParams(location.search).has('debug');
 
-/* Utility / helpers */
+const codeColorMap = {
+  green: 'border-color-green',
+  red: 'border-color-red',
+  yellow: 'border-color-yellow',
+  blue: 'border-color-blue',
+  purple: 'border-color-purple',
+  gray: 'border-color-gray'
+};
+
+const STATUS_TRANSLATIONS = {
+  scheduled: 'Agendada',
+  overdue: 'Vencida',
+  cancelled: 'Cancelada',
+  cancelled_by_entity: 'Cancelada',
+  cancelled_by_user: 'Cancelada',
+  completed: 'Concluída',
+  reagendado: 'Reagendada'
+};
+
 function showToast(message, type='success', ttl=3500){
   const c=document.getElementById('toast-container');
   const el=document.createElement('div');
@@ -194,12 +223,16 @@ function showToast(message, type='success', ttl=3500){
   c.appendChild(el);
   setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>el.remove(),400); }, ttl);
 }
+
 window.addEventListener('message',(e)=>{
   if(e.data?.type==='toast'){ showToast(e.data.message, e.data.status==='success'?'success':'error'); }
 });
 
-function qs(sel){ return document.querySelector(sel); }
-function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
+function announce(msg){
+  const reg=document.getElementById('global-aria-live');
+  if(reg){ reg.textContent=''; setTimeout(()=>reg.textContent=msg,40); }
+}
+
 function formatDateTime(ts){
   if(!ts?.toDate) return { date:'--', time:'--' };
   const d=ts.toDate();
@@ -212,100 +245,257 @@ function isOverdue(donation){
   if(!donation.scheduledAt?.toDate) return false;
   return donation.status==='scheduled' && donation.scheduledAt.toDate() < new Date();
 }
-function computeItemGroupStatus(donation){
-  if(donation.status==='reagendado') return 'reagendado';
-  if(donation.status==='cancelled_by_entity') return 'cancelled';
-  if(donation.status==='cancelled_by_user') return 'cancelled';
-  if(donation.status==='scheduled'){
-    if(isOverdue(donation)) return 'overdue';
+function computeGroupStatus(d){
+  if(d.status==='reagendado') return 'reagendado';
+  if(d.status==='cancelled_by_entity' || d.status==='cancelled_by_user') return 'cancelled';
+  if(d.status==='scheduled'){
+    if(isOverdue(d)) return 'overdue';
     return 'scheduled';
   }
-  const allCompleted = Array.isArray(donation.items) && donation.items.length>0 && donation.items.every(i=>i.status==='completed');
-  if(donation.status==='completed' || allCompleted) return 'completed';
-  return donation.status || 'unknown';
+  const allDone = Array.isArray(d.items) && d.items.length>0 && d.items.every(i=>i.status==='completed');
+  if(d.status==='completed' || allDone) return 'completed';
+  return d.status || 'scheduled';
 }
-function statusChipClass(status){
-  switch(status){
-    case 'scheduled': return 'scheduled';
-    case 'overdue': return 'overdue';
-    case 'cancelled':
-    case 'cancelled_by_entity':
-    case 'cancelled_by_user': return 'cancelled';
-    case 'completed': return 'completed';
-    case 'reagendado': return 'reagendado';
-    default: return 'scheduled';
+
+function generateItemDetailsHtml(item, campaignType){
+  let detailsHtml='<div class="space-y-1">';
+  const cfgRaw = campaignTypeSettings[campaignType]?.fields;
+  const fields= Array.isArray(cfgRaw) ? cfgRaw : Object.values(cfgRaw||{});
+  let has=false;
+  fields.filter(f=>f && f.id && f.active!==false)
+    .sort((a,b)=>(a.order||0)-(b.order||0))
+    .forEach(field=>{
+      const key=field.id;
+      const value=item[key];
+      const isMedia=['image','camera','video'].includes(field.type);
+      if(value && key!=='type' && key!=='photoURL' && !isMedia){
+        has=true;
+        detailsHtml+=`<p class="text-[11px] leading-4"><span class="text-gray-500">${field.label}:</span> <span class="font-medium text-gray-800">${value}</span></p>`;
+      }
+    });
+  if(!has) detailsHtml+='<p class="text-[11px] text-gray-400">Sem detalhes adicionais.</p>';
+  detailsHtml+='</div>';
+  return detailsHtml;
+}
+
+function applyFilters(base){
+  let list=[...base];
+  if(searchQuery){
+    const q=searchQuery.toLowerCase();
+    list=list.filter(d=>{
+      const ct=(d.campaignTitle||'').toLowerCase();
+      const codeMatch=(d.items||[]).some(i=>(i.uniqueCode||'').toLowerCase().includes(q));
+      return ct.includes(q) || codeMatch;
+    });
   }
-}
-function cardBorderClass(status){
-  switch(status){
-    case 'overdue': return 'card-border-red';
-    case 'cancelled': return 'card-border-yellow';
-    case 'completed': return 'card-border-green';
-    case 'reagendado': return 'card-border-blue';
-    default: return 'card-border-green';
-  }
-}
-function openAppModal({title, bodyHtml, buttons=[], iconHtml=null}){
-  const modal=document.getElementById('app-modal');
-  document.getElementById('modal-title').textContent=title;
-  document.getElementById('modal-message-body').innerHTML=bodyHtml;
-  const btns=document.getElementById('modal-buttons');
-  btns.innerHTML='';
-  buttons.forEach(b=>{
-    const el=document.createElement('button');
-    el.type='button';
-    el.className=b.className || 'mt-3 w-full inline-flex justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:ml-3 sm:w-auto';
-    el.textContent=b.label;
-    el.addEventListener('click',()=>b.onClick?.(()=>closeAppModal()));
-    btns.appendChild(el);
+  activeExtraFilters.forEach(f=>{
+    switch(f){
+      case 'next7':
+        const limit=new Date(); limit.setDate(limit.getDate()+7);
+        list=list.filter(d=>d.scheduledAt?.toDate && d.scheduledAt.toDate()<=limit && d.scheduledAt.toDate()>new Date());
+        break;
+      case 'morning':
+        list=list.filter(d=> d.scheduledAt?.toDate && d.scheduledAt.toDate().getHours()<12);
+        break;
+      case 'afternoon':
+        list=list.filter(d=> d.scheduledAt?.toDate && d.scheduledAt.toDate().getHours()>=12);
+        break;
+      case 'withImages':
+        list=list.filter(d=> (d.items||[]).some(i=>i.photoURL));
+        break;
+      case 'withoutImages':
+        list=list.filter(d=> (d.items||[]).every(i=>!i.photoURL));
+        break;
+      case 'hasMultipleItems':
+        list=list.filter(d=> (d.items||[]).length>1);
+        break;
+    }
   });
-  if(iconHtml){
-    document.getElementById('modal-icon-wrapper').innerHTML=iconHtml;
-  }
-  modal.classList.remove('hidden');
-  document.body.classList.add('overflow-hidden');
-  setTimeout(()=>document.getElementById('modal-title').focus(),30);
-}
-function closeAppModal(){
-  const modal=document.getElementById('app-modal');
-  modal.classList.add('hidden');
-  document.body.classList.remove('overflow-hidden');
-}
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape') closeAppModal();
-});
-/* Accessibility live region */
-function announce(msg){
-  const reg=document.getElementById('global-aria-live');
-  if(reg){ reg.textContent=''; setTimeout(()=>reg.textContent=msg,50); }
+  return list;
 }
 
-/* Offline detection */
-function updateOnlineStatus(){
-  const offlineBanner=document.getElementById('offline-banner');
-  if(!navigator.onLine){
-    offlineBanner.classList.remove('hidden');
-    announce('Sem conexão. Alguns dados podem estar desatualizados.');
+function filterByTab(list, tab){
+  const now=new Date();
+  switch(tab){
+    case 'scheduled':
+      return list.filter(d=> d.status==='scheduled' && d.scheduledAt?.toDate && d.scheduledAt.toDate()>=now &&
+        (d.items||[]).some(i=>i.status!=='completed'));
+    case 'overdue':
+      return list.filter(d=> d.status==='scheduled' && d.scheduledAt?.toDate && d.scheduledAt.toDate()<now &&
+        (d.items||[]).some(i=>i.status!=='completed'));
+    case 'cancelled':
+      return list.filter(d=> d.status==='cancelled_by_entity' || d.status==='cancelled_by_user');
+    case 'history':
+      return list.filter(d=>{
+        const finals=['completed','reagendado','cancelled_by_user','cancelled_by_entity'];
+        const allDone=(d.items||[]).length>0 && (d.items||[]).every(i=>i.status==='completed');
+        return finals.includes(d.status) || allDone;
+      });
+    default:
+      return list;
+  }
+}
+
+function renderActiveTabData(append=false){
+  const activeTab = tabsContainer.querySelector('.tab-button.active')?.dataset.tab || 'scheduled';
+  if(!append){
+    deliveriesList.innerHTML='';
+    currentPage=1;
+  }
+
+  const base = allUserDonations.filter(d=>d.donorId===currentUserId);
+  const byTab = filterByTab(base, activeTab);
+  filteredWorkingList = applyFilters(byTab).sort((a,b)=>(b.createdAt?.toMillis()||0)-(a.createdAt?.toMillis()||0));
+
+  if(filteredWorkingList.length===0){
+    noDeliveriesPlaceholder.classList.remove('hidden');
+    loadMoreContainer.classList.add('hidden');
+    return;
   } else {
-    offlineBanner.classList.add('hidden');
+    noDeliveriesPlaceholder.classList.add('hidden');
   }
-}
-window.addEventListener('online',updateOnlineStatus);
-window.addEventListener('offline',updateOnlineStatus);
 
-/* FAB */
-function toggleFab(){
-  const fab=document.getElementById('fab-bar');
-  if(window.innerWidth<=640){
-    fab.style.display='flex';
-    document.body.classList.add('has-fab-bottom-padding');
+  const startIndex=(currentPage-1)*DONATIONS_PER_PAGE;
+  const endIndex=startIndex+DONATIONS_PER_PAGE;
+  const slice=filteredWorkingList.slice(startIndex,endIndex);
+
+  slice.forEach(donation=>{
+    const campaign=campaignsCache.get(donation.campaignId);
+    const card=createCard(donation, campaign, activeTab);
+    if(card) deliveriesList.appendChild(card);
+  });
+
+  if(filteredWorkingList.length> endIndex){
+    loadMoreContainer.classList.remove('hidden');
   } else {
-    fab.style.display='none';
-    document.body.classList.remove('has-fab-bottom-padding');
+    loadMoreContainer.classList.add('hidden');
   }
+  hydrateQRCodesDeferred();
+  announce(`${filteredWorkingList.length} doações encontradas`);
 }
 
-/* QR Code generation deferred */
+function alreadyRescheduled(d){ return d.status==='reagendado'; }
+
+function createCard(donation, campaign, tab){
+  const items=(donation.items||[]);
+  const visibleItems = (tab==='scheduled'||tab==='overdue')
+    ? items.filter(i=>i.status!=='completed')
+    : items;
+
+  if(visibleItems.length===0 && (tab==='scheduled'||tab==='overdue')) return null;
+
+  const groupStatus=computeGroupStatus(donation);
+  const translatedStatus = STATUS_TRANSLATIONS[groupStatus] || 'Agendada';
+  const borderClass = codeColorMap[campaignTypeSettings[campaign?.type]?.color] || 'border-color-green';
+  const {date,time}=formatDateTime(donation.scheduledAt);
+  const canReschedule = (groupStatus==='overdue' || groupStatus==='cancelled') &&
+                        campaign?.expiresAt?.toDate && campaign.expiresAt.toDate()>new Date() &&
+                        !alreadyRescheduled(donation);
+  const itemsCount=visibleItems.length;
+  const multipleBadge = itemsCount>1 ? `<span class="badge-small bg-gray-800 text-white">${itemsCount} itens</span>`:'';
+
+  const header = `
+    <div class="p-4 sm:p-5 flex flex-col gap-2 ${
+      groupStatus==='overdue' ? 'bg-red-50' :
+      groupStatus==='cancelled' ? 'bg-yellow-50' :
+      groupStatus==='completed' ? 'bg-green-50' :
+      groupStatus==='reagendado' ? 'bg-blue-50' :
+      'bg-green-50'
+    }">
+      <div class="flex flex-wrap items-center gap-3">
+        <h2 class="text-lg font-bold ${
+          groupStatus==='overdue' ? 'text-red-800' :
+          groupStatus==='cancelled' ? 'text-yellow-800' :
+          groupStatus==='completed' ? 'text-green-800' :
+          groupStatus==='reagendado' ? 'text-blue-800' :
+          'text-green-800'
+        }">${donation.campaignTitle}</h2>
+        <span class="status-chip ${
+          groupStatus==='overdue' ? 'status-vencida' :
+          groupStatus==='cancelled' ? 'status-cancelada' :
+          groupStatus==='completed' ? 'status-concluida' :
+          groupStatus==='reagendado' ? 'status-reagendada' :
+          'status-agendada'
+        }">${translatedStatus}</span>
+        ${multipleBadge}
+      </div>
+      ${groupStatus==='scheduled'? `<p class="text-sm text-green-700">Agendado para <strong>${date}</strong> às <strong>${time}</strong></p>`:''}
+      ${groupStatus==='overdue'? `<p class="text-sm text-red-700">Entrega marcada para ${date} às ${time} não foi realizada.</p>`:''}
+      ${groupStatus==='cancelled'? `<p class="text-sm text-yellow-700">Agendamento cancelado pela entidade.</p>`:''}
+      ${groupStatus==='completed'? `<p class="text-xs text-green-700">Doação concluída.</p>`:''}
+      ${groupStatus==='reagendado'? `<p class="text-xs text-blue-700">Entrega foi reagendada.</p>`:''}
+      ${(groupStatus==='overdue' || groupStatus==='cancelled') ?
+        (canReschedule
+          ? `<button class="inline-btn bg-blue-600 text-white hover:bg-blue-700" data-action="reschedule" data-id="${donation.id}">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6"/><path stroke-linecap="round" stroke-linejoin="round" d="M20 4l-5.172 5.172a4 4 0 00-5.656 0L4 14"/></svg>
+                Reagendar
+             </button>`
+          : `<span class="text-[10px] font-semibold text-gray-500 bg-gray-200 rounded px-2 py-1 inline-block">
+                ${alreadyRescheduled(donation)?'Reagendada':'Campanha encerrada'}
+             </span>`)
+        : ''
+      }
+    </div>`;
+
+  const campaignType = campaign?.type || 'default';
+  const itemsHTML = visibleItems.map(item=>{
+    const idx = donation.items.indexOf(item);
+    const details = generateItemDetailsHtml(item, campaignType);
+    const isCompleted = item.status==='completed';
+    const codeBlock = item.uniqueCode
+      ? `<span class="code-chip" data-action="copy-code" data-code="${item.uniqueCode}" title="Copiar código">
+            ${item.uniqueCode}
+            <span class="copy-hint">Copiar</span>
+         </span>`
+      : '';
+    const qr = isCompleted
+      ? `<div class="flex items-center justify-center w-20 h-20"><span class="text-[11px] font-semibold text-green-600">OK</span></div>`
+      : `<div id="qr-${donation.id}-${idx}" class="qr-container w-20 h-20" data-qr="${donation.id}|${idx}"></div>`;
+
+    return `<div class="item-card flex items-start gap-4 p-3 bg-gray-50 rounded-lg border group hover:bg-white cursor-pointer"
+                data-action="open-item" data-donation-id="${donation.id}" data-item-index="${idx}">
+              <img src="${item.photoURL || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Item'}"
+                   class="w-16 h-16 rounded-md object-cover flex-shrink-0 border">
+              <div class="flex-1 space-y-1">
+                <p class="font-bold text-sm text-gray-800 flex flex-wrap items-center gap-2">
+                  ${item.type || 'Item'} ${codeBlock}
+                </p>
+                <div>${details}</div>
+              </div>
+              ${qr}
+            </div>`;
+  }).join('');
+
+  const addressSection = campaign?.deliveryAddress ? `
+    <div class="p-4 border-t">
+      <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-gray-500 mt-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a 2 2 0 01-2.828 0L6.343 16.657a 8 8 0 1111.314 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a 3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        <div class="text-[11px] leading-5">
+          <p class="font-semibold text-gray-700">Local de Entrega</p>
+          <p class="text-gray-600">
+            ${campaign.deliveryAddress.logradouro||''}, ${campaign.deliveryAddress.numero||'S/N'} - ${campaign.deliveryAddress.bairro||''}<br>
+            ${campaign.deliveryAddress.cidade||''} - ${campaign.deliveryAddress.estado||''} CEP: ${campaign.deliveryAddress.cep||''}
+            ${campaign.deliveryAddress.complemento ? `<br>Compl.: ${campaign.deliveryAddress.complemento}`:''}
+            ${campaign.deliveryAddress.telefone ? `<br>Contato: ${campaign.deliveryAddress.telefone}`:''}
+          </p>
+        </div>
+      </div>
+    </div>` : '';
+
+  const wrapper=document.createElement('div');
+  wrapper.className=`bg-white rounded-xl shadow-lg overflow-hidden border ${borderClass}`;
+  wrapper.innerHTML = `${header}
+    <div class="p-4 sm:p-6">
+      <h3 class="font-semibold text-gray-800 mb-3 text-sm">Itens da Doação</h3>
+      <div class="space-y-3">${itemsHTML}</div>
+    </div>
+    ${addressSection}`;
+  return wrapper;
+}
+
 function generateQRCode(elementId, text){
   const el=document.getElementById(elementId);
   if(!el) return;
@@ -318,152 +508,6 @@ function generateQRCode(elementId, text){
     console.error('Erro QR', elementId, err);
     el.innerHTML='<p class="text-xs text-red-500">QR erro</p>';
   }
-}
-
-/* Details builder */
-function generateItemDetailsHtml(item, campaignType){
-  let detailsHtml='<div class="space-y-1">';
-  const cfgRaw = campaignTypeSettings[campaignType]?.fields;
-  const fields= Array.isArray(cfgRaw) ? cfgRaw : Object.values(cfgRaw||{});
-  let has=false;
-  fields
-    .filter(f=>f && f.id && f.active!==false)
-    .sort((a,b)=>(a.order||0)-(b.order||0))
-    .forEach(field=>{
-      const key=field.id;
-      if(!key) return;
-      const value=item[key];
-      const isMediaField = ['image','camera','video'].includes(field.type);
-      if(value && key!=='type' && key!=='photoURL' && !isMediaField){
-        has=true;
-        detailsHtml+=`<p><span class="text-gray-500">${field.label}:</span> <span class="font-medium text-gray-800">${value}</span></p>`;
-      }
-    });
-  if(!has) detailsHtml+='<p class="text-gray-400 text-xs">Sem detalhes adicionais.</p>';
-  detailsHtml+='</div>';
-  return detailsHtml;
-}
-
-/* Filter pipeline */
-function applyFilters(baseList){
-  let list=[...baseList];
-  // search
-  if(searchQuery){
-    const q=searchQuery.toLowerCase();
-    list=list.filter(d=>{
-      const ct = (d.campaignTitle||'').toLowerCase();
-      const codes = (d.items||[]).some(i=> (i.uniqueCode||'').toLowerCase().includes(q));
-      return ct.includes(q) || codes;
-    });
-  }
-  // quick filters
-  activeExtraFilters.forEach(f=>{
-    switch(f){
-      case 'next7':
-        const limit=new Date();
-        limit.setDate(limit.getDate()+7);
-        list=list.filter(d=>d.scheduledAt?.toDate && d.scheduledAt.toDate() <= limit && d.scheduledAt.toDate()> new Date());
-        break;
-      case 'morning':
-        list=list.filter(d=>{
-          if(!d.scheduledAt?.toDate) return false;
-            const h=d.scheduledAt.toDate().getHours();
-          return h>=6 && h<12;
-        });
-        break;
-      case 'afternoon':
-        list=list.filter(d=>{
-          if(!d.scheduledAt?.toDate) return false;
-          const h=d.scheduledAt.toDate().getHours();
-          return h>=12 && h<19;
-        });
-        break;
-      case 'withImages':
-        list=list.filter(d=> (d.items||[]).some(i=>i.photoURL));
-        break;
-      case 'withoutImages':
-        list=list.filter(d=> (d.items||[]).every(i=>!i.photoURL));
-        break;
-      case 'hasMultipleItems':
-        list=list.filter(d=>(d.items||[]).length>1);
-        break;
-    }
-  });
-  return list;
-}
-
-/* Tab filter */
-function filterByTab(list, tab){
-  const now=new Date();
-  switch(tab){
-    case 'scheduled':
-      return list.filter(d=>{
-        if(d.status!=='scheduled') return false;
-        if(!d.scheduledAt?.toDate) return false;
-        if(d.scheduledAt.toDate()<now) return false;
-        if(!Array.isArray(d.items) || !d.items.some(i=>i.status!=='completed')) return false;
-        return true;
-      });
-    case 'overdue':
-      return list.filter(d=>{
-        if(d.status!=='scheduled') return false;
-        if(!d.scheduledAt?.toDate) return false;
-        if(d.scheduledAt.toDate()>=now) return false;
-        if(!Array.isArray(d.items) || !d.items.some(i=>i.status!=='completed')) return false;
-        return true;
-      });
-    case 'cancelled':
-      return list.filter(d=> d.status==='cancelled_by_entity' || d.status==='cancelled_by_user');
-    case 'history':
-      return list.filter(d=>{
-        const finalStatuses=['completed','reagendado','cancelled_by_user','cancelled_by_entity'];
-        const allItemsDone=Array.isArray(d.items)&&d.items.length>0&&d.items.every(i=>i.status==='completed');
-        return finalStatuses.includes(d.status) || allItemsDone;
-      });
-    default:
-      return list;
-  }
-}
-
-/* Pagination & rendering */
-function renderActiveTabData(append=false){
-  const activeTab = tabsContainer.querySelector('.tab-button.active')?.dataset.tab || 'scheduled';
-  if(!append){
-    deliveriesList.innerHTML='';
-    currentPage=1;
-  }
-  // pipeline
-  const base = allUserDonations.filter(d=> d.donorId===currentUserId);
-  const withTab = filterByTab(base, activeTab);
-  filteredWorkingList = applyFilters(withTab).sort((a,b)=>(b.createdAt?.toMillis()||0)-(a.createdAt?.toMillis()||0));
-
-  if(filteredWorkingList.length===0){
-    noDeliveriesPlaceholder.classList.remove('hidden');
-    loadMoreContainer.classList.add('hidden');
-    if(!append) deliveriesList.innerHTML='';
-    return;
-  } else {
-    noDeliveriesPlaceholder.classList.add('hidden');
-  }
-
-  const startIndex = (currentPage-1)*DONATIONS_PER_PAGE;
-  const endIndex = startIndex + DONATIONS_PER_PAGE;
-  const slice = filteredWorkingList.slice(startIndex, endIndex);
-
-  slice.forEach(donation=>{
-    const campaign = campaignsCache.get(donation.campaignId);
-    const card = createDonationCard(donation, campaign, activeTab);
-    if(card) deliveriesList.appendChild(card);
-  });
-
-  if(filteredWorkingList.length > endIndex){
-    loadMoreContainer.classList.remove('hidden');
-  } else {
-    loadMoreContainer.classList.add('hidden');
-  }
-
-  hydrateQRCodesDeferred();
-  announce(`${filteredWorkingList.length} doações encontradas`);
 }
 
 function hydrateQRCodesDeferred(){
@@ -482,179 +526,195 @@ function hydrateQRCodesDeferred(){
     });
   },{
     root:null,
-    rootMargin:'50px',
+    rootMargin:'80px',
     threshold:0.1
   });
-  qsa('[data-qr]').forEach(el=>intersectionObserver.observe(el));
+  document.querySelectorAll('[data-qr]').forEach(el=>intersectionObserver.observe(el));
 }
 
-/* Card creation */
-function createDonationCard(donation, campaign, tab){
-  const items = (donation.items||[]);
-  // Filter items for scheduled/overdue (hide completed)
-  const itemsToDisplay = (tab==='scheduled'||tab==='overdue')
-    ? items.filter(i=>i.status!=='completed')
-    : items;
+function copyText(text){
+  navigator.clipboard?.writeText(text).then(()=>{
+    showToast('Código copiado','success',1800);
+  }).catch(()=>{
+    showToast('Não foi possível copiar','error');
+  });
+}
 
-  if(itemsToDisplay.length===0 && (tab==='scheduled'||tab==='overdue')) return null;
-
-  const groupStatus = computeItemGroupStatus(donation);
-  const borderClass = cardBorderClass(groupStatus);
-  const {date, time} = formatDateTime(donation.scheduledAt);
-  const campaignType = campaign?.type || 'default';
-  const typeSettings = campaignTypeSettings[campaignType] || {};
-  const typeColor = typeSettings.color || 'gray';
-  const chips = `<span class="status-chip ${statusChipClass(groupStatus)}">${groupStatus.replace('_',' ')}</span>`;
-  const itemsCount = itemsToDisplay.length;
-  const multipleBadge = itemsCount>1 ? `<span class="ml-2 badge-small bg-${typeColor}-100 text-${typeColor}-700">${itemsCount} itens</span>` : '';
-
-  const canReschedule = (groupStatus==='overdue' || groupStatus==='cancelled') &&
-                        campaign && campaign.expiresAt?.toDate && campaign.expiresAt.toDate()> new Date() &&
-                        !alreadyRescheduled(donation);
-
-  let headerHTML='';
-  if(tab==='scheduled'){
-    headerHTML=`<div class="p-4 sm:p-5 bg-green-50 flex flex-col gap-1">
-      <div class="flex flex-wrap items-center gap-3">
-        <h2 class="text-lg font-bold text-green-800">${donation.campaignTitle}</h2>
-        ${chips} ${multipleBadge}
+function openPrintLabel(uniqueCode, campaignTitle){
+  const win=window.open('', '_blank','noopener,width=480,height=640');
+  if(!win) return;
+  const html=`<!DOCTYPE html>
+  <html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <title>Etiqueta - ${uniqueCode}</title>
+    <style>
+      body { font-family: 'Inter', system-ui, sans-serif; margin:0; padding:16px; background:#fff; }
+      .wrap { max-width:360px; margin:0 auto; text-align:center; }
+      h1 { font-size:20px; margin:4px 0 12px; }
+      .code { font-size:32px; font-weight:800; font-family: ui-monospace,Consolas,monospace; letter-spacing:2px; background:#111827; color:#fff; padding:12px 16px; border-radius:14px; display:inline-block; margin:12px 0;}
+      .qr img { width:200px; height:200px; }
+      p { font-size:12px; line-height:1.4; margin:8px 0; }
+      .note { background:#f1f5f9; padding:8px 10px; border-radius:8px; font-size:11px; text-align:left; }
+      @media print {
+        body { padding:8px; }
+        button { display:none; }
+        .no-print { display:none; }
+      }
+      .actions { margin-top:12px; }
+      button { padding:8px 14px; border:none; border-radius:8px; background:#16a34a; color:#fff; font-weight:600; cursor:pointer; }
+      button:hover { background:#15803d; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>${campaignTitle || 'Doação'}</h1>
+      <div id="qr-label" class="qr" aria-label="QR Code"></div>
+      <div class="code">${uniqueCode}</div>
+      <div class="note">
+        <strong>Instruções:</strong><br>
+        1. Cole esta etiqueta no item.<br>
+        2. Caso não possa imprimir, escreva o código acima no item (legível).<br>
+        3. Leve o item no dia e horário agendados.<br>
+        4. A entidade fará a leitura do QR ou conferirá o código escrito.
       </div>
-      <p class="text-sm text-green-700">Agendado para <strong>${date}</strong> às <strong>${time}</strong></p>
-    </div>`;
-  } else if(tab==='overdue'){
-    headerHTML=`<div class="p-4 sm:p-5 bg-red-50 flex flex-col gap-2">
-      <div class="flex flex-wrap items-center gap-3">
-        <h2 class="text-lg font-bold text-red-800">${donation.campaignTitle}</h2>
-        ${chips} ${multipleBadge}
+      <div class="actions">
+        <button onclick="window.print()">Imprimir</button>
       </div>
-      <p class="text-sm text-red-700 font-medium">Entrega marcada para ${date} às ${time} não foi realizada.</p>
-      ${canReschedule ? `<button class="text-xs font-semibold inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition" data-action="reschedule" data-id="${donation.id}">
-          Reagendar
-        </button>` :
-        `<span class="text-[11px] font-semibold text-gray-500 bg-gray-200 rounded px-2 py-1 inline-block">
-          ${alreadyRescheduled(donation)?'Reagendada':'Campanha encerrada'}
-        </span>`}
-    </div>`;
-  } else if(tab==='cancelled'){
-    headerHTML=`<div class="p-4 sm:p-5 bg-yellow-50 flex flex-col gap-2">
-      <div class="flex flex-wrap items-center gap-3">
-        <h2 class="text-lg font-bold text-yellow-800">${donation.campaignTitle}</h2>
-        ${chips} ${multipleBadge}
-      </div>
-      <p class="text-sm text-yellow-700 font-medium">Agendamento cancelado pela entidade.</p>
-      ${canReschedule ? `<button class="text-xs font-semibold inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition" data-action="reschedule" data-id="${donation.id}">
-          Reagendar
-        </button>` :
-        `<span class="text-[11px] font-semibold text-gray-500 bg-gray-200 rounded px-2 py-1 inline-block">
-          ${alreadyRescheduled(donation)?'Reagendada':'Campanha encerrada'}
-        </span>`}
-    </div>`;
-  } else {
-    let histStatus='Não entregue';
-    if(groupStatus==='completed') histStatus='Entregue com sucesso';
-    else if(groupStatus==='reagendado') histStatus='Reagendada';
-    headerHTML=`<div class="p-4 sm:p-5 bg-gray-100 flex flex-col gap-1">
-      <div class="flex flex-wrap items-center gap-3">
-        <h2 class="text-lg font-bold text-gray-800">${donation.campaignTitle}</h2>
-        ${chips} ${multipleBadge}
-      </div>
-      <p class="text-xs text-gray-600">Status final: ${histStatus}</p>
-    </div>`;
-  }
-
-  const addressHTML = campaign?.deliveryAddress
-    ? `<div class="p-4 border-t">
-        <div class="flex items-start gap-3">
-          <svg class="w-5 h-5 text-gray-500 mt-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a 2 2 0 01-2.828 0L6.343 16.657a 8 8 0 1111.314 0z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a 3 3 0 11-6 0 3 3 0 016 0z"/>
-          </svg>
-          <div class="text-xs leading-5">
-            <p class="font-semibold text-gray-700">Local de Entrega</p>
-            <p class="text-gray-600">
-              ${campaign.deliveryAddress.logradouro||''}, ${campaign.deliveryAddress.numero||'S/N'} - ${campaign.deliveryAddress.bairro||''}<br>
-              ${campaign.deliveryAddress.cidade||''} - ${campaign.deliveryAddress.estado||''} CEP: ${campaign.deliveryAddress.cep||''}
-              ${campaign.deliveryAddress.complemento ? `<br>Compl.: ${campaign.deliveryAddress.complemento}`:''}
-              ${campaign.deliveryAddress.telefone ? `<br>Contato: ${campaign.deliveryAddress.telefone}`:''}
-            </p>
-          </div>
-        </div>
-      </div>` : '';
-
-  const itemsHTML = itemsToDisplay.map((item, idx)=>{
-    const itemIndex = donation.items.indexOf(item);
-    const details = generateItemDetailsHtml(item, campaignType);
-    const isCompleted = item.status==='completed';
-    const qrPlaceholder = isCompleted
-      ? `<div class="flex items-center justify-center w-20 h-20"><span class="text-xs font-semibold text-green-600">Entregue</span></div>`
-      : `<div id="qr-${donation.id}-${itemIndex}" class="qr-container w-20 h-20" data-qr="${donation.id}|${itemIndex}"></div>`;
-    return `<div class="item-card flex items-start gap-4 p-3 bg-gray-50 rounded-lg border group hover:bg-white cursor-pointer"
-                data-action="open-item" data-donation-id="${donation.id}" data-item-index="${itemIndex}">
-              <img src="${item.photoURL || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Item'}"
-                   class="w-16 h-16 rounded-md object-cover flex-shrink-0 border">
-              <div class="flex-1 space-y-1">
-                <p class="font-bold text-sm text-gray-800 flex items-center gap-2">
-                  ${item.type || 'Item'} 
-                  ${item.uniqueCode ? `<span class="badge-small bg-gray-800 text-white font-mono">${item.uniqueCode}</span>`:''}
-                </p>
-                <div class="text-xs">${details}</div>
-              </div>
-              ${qrPlaceholder}
-            </div>`;
-  }).join('');
-
-  const wrapper=document.createElement('div');
-  wrapper.className=`bg-white rounded-xl shadow-lg overflow-hidden border ${borderClass}`;
-  wrapper.innerHTML=`
-    ${headerHTML}
-    <div class="p-4 sm:p-6">
-      <h3 class="font-semibold text-gray-800 mb-3 text-sm">Itens da Doação</h3>
-      <div class="space-y-3">${itemsHTML}</div>
     </div>
-    ${addressHTML}
-  `;
-  return wrapper;
+    <script>
+      ${generateQRCode.toString()}
+      generateQRCode('qr-label', '${uniqueCode}');
+      window.onload = () => setTimeout(()=>window.print(), 400);
+    </script>
+  </body>
+  </html>`;
+  win.document.write(html);
+  win.document.close();
 }
 
-function alreadyRescheduled(donation){
-  // Heurística: status 'reagendado' marca o antigo
-  return donation.status==='reagendado';
+function openCodeSearchModal(){
+  const bodyHtml=`
+    <div class="space-y-4">
+      <p class="text-sm text-gray-600">Digite o código único (ex: ABC-000123) para localizar rapidamente o item.</p>
+      <input id="code-search-input" type="text" placeholder="PREFIXO-000001" class="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 font-mono uppercase tracking-wide">
+      <div id="code-search-result" class="text-xs text-gray-500"></div>
+    </div>`;
+  openAppModal({
+    title:'Localizar por Código',
+    bodyHtml,
+    buttons:[
+      {
+        label:'Fechar',
+        className:'mt-3 w-full sm:w-auto inline-flex justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50',
+        onClick: close => close()
+      }
+    ]
+  });
+  setTimeout(()=>{
+    const input=document.getElementById('code-search-input');
+    input.focus();
+    input.addEventListener('input', ()=>{
+      const val=input.value.trim().toUpperCase();
+      const resultEl=document.getElementById('code-search-result');
+      if(!val){
+        resultEl.textContent='';
+        return;
+      }
+      const donation = allUserDonations.find(d=> (d.items||[]).some(i=> (i.uniqueCode||'').toUpperCase()===val));
+      if(donation){
+        resultEl.innerHTML=`<span class="text-green-600 font-semibold">Encontrado:</span> ${donation.campaignTitle}`;
+        // Scroll highlight
+        const card = Array.from(deliveriesList.querySelectorAll('.code-chip'))
+          .find(el=>el.dataset.code===val)?.closest('.item-card');
+        if(card){
+          card.classList.add('ring','ring-2','ring-green-400');
+          card.scrollIntoView({behavior:'smooth', block:'center'});
+          setTimeout(()=>card.classList.remove('ring','ring-2','ring-green-400'), 2500);
+        }
+      } else {
+        resultEl.innerHTML=`<span class="text-red-600 font-semibold">Não encontrado.</span>`;
+      }
+    });
+  },80);
 }
 
-/* Delegated events */
+function openItemModal(donation, item, itemIndex){
+  const campaign=campaignsCache.get(donation.campaignId);
+  const details=generateItemDetailsHtml(item, campaign?.type || 'default');
+  const codeBlock = item.uniqueCode
+    ? `<div class="flex flex-col items-center gap-2">
+          <span class="code-chip large" data-action="copy-code" data-code="${item.uniqueCode}">
+            ${item.uniqueCode}
+            <span class="copy-hint">Copiar</span>
+          </span>
+          <div class="flex flex-wrap gap-2 justify-center">
+             <button class="inline-btn" data-action="print-label" data-code="${item.uniqueCode}" data-campaign="${donation.campaignTitle}">Imprimir Etiqueta</button>
+             <button class="inline-btn" data-action="copy-code" data-code="${item.uniqueCode}">Copiar</button>
+          </div>
+          <span class="print-note">Se não imprimir, escreva este código legível no item.</span>
+       </div>`
+    : '<p class="text-xs text-gray-400">Código ainda não disponível.</p>';
+
+  const modalHtml=`
+    <div class="space-y-5">
+      <div class="text-center">
+        <img src="${item.photoURL || 'https://placehold.co/400x240/e2e8f0/cbd5e0?text=Sem+Imagem'}" class="w-full max-h-60 object-contain rounded-md bg-gray-100">
+        <p class="mt-2 text-xs text-gray-500">Campanha: ${donation.campaignTitle}</p>
+      </div>
+      ${codeBlock}
+      <div class="bg-gray-50 p-4 rounded-lg border text-xs space-y-2">${details}</div>
+      <div class="text-center">
+        <div id="modal-item-qrcode" class="mx-auto w-44 h-44"></div>
+        <p class="text-[11px] text-gray-500 mt-2">QR Code para conferência no momento da entrega.</p>
+      </div>
+      <div class="modal-actions-grid">
+        <button class="w-full inline-flex justify-center rounded-md bg-white border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" data-close-modal>Fechar</button>
+      </div>
+    </div>`;
+  showDetailsModal(item.type || 'Detalhes do Item', modalHtml);
+  setTimeout(()=> generateQRCode('modal-item-qrcode', `${donation.id}|${itemIndex}`),60);
+
+  // Delegação dentro do modal
+  const modalBody=document.getElementById('modal-message-body');
+  modalBody.addEventListener('click',(e)=>{
+    const btn=e.target.closest('[data-action]');
+    if(!btn) return;
+    const action=btn.dataset.action;
+    if(action==='copy-code'){
+      const code=btn.dataset.code;
+      if(code) copyText(code);
+    } else if(action==='print-label'){
+      openPrintLabel(btn.dataset.code, btn.dataset.campaign);
+    }
+  });
+  modalBody.querySelectorAll('[data-close-modal]').forEach(b=> b.addEventListener('click', ()=> {
+    document.getElementById('app-modal').classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+  }));
+}
+
 function setupDelegation(){
-  deliveriesList.addEventListener('click', async (e)=>{
-    const el=e.target.closest('[data-action]');
-    if(!el) return;
-    const action=el.dataset.action;
+  deliveriesList.addEventListener('click',(e)=>{
+    const copyEl=e.target.closest('.code-chip[data-code]');
+    if(copyEl){
+      copyText(copyEl.dataset.code);
+      return;
+    }
+    const act=e.target.closest('[data-action]');
+    if(!act) return;
+    const action=act.dataset.action;
     if(action==='open-item'){
-      const donationId=el.dataset.donationId;
-      const itemIndex=parseInt(el.dataset.itemIndex,10);
+      const donationId=act.dataset.donationId;
+      const itemIndex=parseInt(act.dataset.itemIndex,10);
       const donation=allUserDonations.find(d=>d.id===donationId);
       if(!donation) return;
       const item=donation.items[itemIndex];
-      const campaign=campaignsCache.get(donation.campaignId);
-      const details=generateItemDetailsHtml(item, campaign?.type || 'default');
-      const modalHtml=`
-        <div class="space-y-4">
-          <div class="text-center">
-            <img src="${item.photoURL || 'https://placehold.co/400x240/e2e8f0/cbd5e0?text=Sem+Imagem'}" class="w-full max-h-60 object-contain rounded-md bg-gray-100">
-            <p class="mt-2 text-xs text-gray-500">Campanha: ${donation.campaignTitle}</p>
-          </div>
-          <div class="bg-gray-50 p-4 rounded-lg border text-xs space-y-2">${details}</div>
-          <div class="text-center">
-            <div id="modal-item-qrcode" class="mx-auto w-40 h-40"></div>
-            ${item.uniqueCode ? `<p class="mt-2 font-mono text-xs text-gray-600">${item.uniqueCode}</p>`:''}
-            <p class="text-[11px] text-gray-500 mt-1">Apresente este QR Code para confirmação.</p>
-          </div>
-        </div>`;
-      showDetailsModal(item.type || 'Detalhes do Item', modalHtml);
-      setTimeout(()=> generateQRCode('modal-item-qrcode', `${donationId}|${itemIndex}`),60);
+      openItemModal(donation,item,itemIndex);
     } else if(action==='reschedule'){
-      const donationId=el.dataset.id;
+      const donationId=act.dataset.id;
       const donation=allUserDonations.find(d=>d.id===donationId);
       if(!donation) return;
-      // guarda dados para reagendamento
       localStorage.setItem('rescheduleData', JSON.stringify({
         oldDonationId: donationId,
         campaignId: donation.campaignId,
@@ -664,16 +724,30 @@ function setupDelegation(){
       window.location.href=`registrar-doacao.html?id=${donation.campaignId}&reschedule=true`;
     }
   });
+}
 
-  tabsContainer.addEventListener('click', (e)=>{
-    const btn=e.target.closest('.tab-button');
-    if(!btn) return;
-    tabsContainer.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    currentPage=1;
+function setupUIEvents(){
+  searchInput.addEventListener('input', ()=>{
+    searchQuery=searchInput.value.trim();
     renderActiveTabData(false);
   });
-
+  document.getElementById('clear-filters').addEventListener('click', ()=>{
+    activeExtraFilters.clear();
+    document.querySelectorAll('.filter-pill.active').forEach(p=>p.classList.remove('active'));
+    searchQuery='';
+    searchInput.value='';
+    renderActiveTabData(false);
+  });
+  loadMoreBtn.addEventListener('click', ()=>{
+    currentPage++;
+    renderActiveTabData(true);
+  });
+  refreshBtn.addEventListener('click', ()=>{
+    showToast('Atualizando lista...','success',1200);
+    renderActiveTabData(false);
+  });
+  document.getElementById('fab-scroll-top').addEventListener('click', ()=> window.scrollTo({top:0,behavior:'smooth'}));
+  document.getElementById('fab-refresh').addEventListener('click', ()=> refreshBtn.click());
   quickFiltersContainer.addEventListener('click',(e)=>{
     const pill=e.target.closest('.filter-pill');
     if(!pill) return;
@@ -683,53 +757,54 @@ function setupDelegation(){
     pill.classList.toggle('active');
     renderActiveTabData(false);
   });
+  tabsContainer.addEventListener('click',(e)=>{
+    const btn=e.target.closest('.tab-button');
+    if(!btn) return;
+    tabsContainer.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPage=1;
+    renderActiveTabData(false);
+  });
+  openCodeSearchBtn.addEventListener('click', openCodeSearchModal);
 }
 
-/* Search & filter events */
-function setupUIEvents(){
-  searchInput.addEventListener('input',()=>{
-    searchQuery = searchInput.value.trim();
-    renderActiveTabData(false);
-  });
-  document.getElementById('clear-filters').addEventListener('click',()=>{
-    activeExtraFilters.clear();
-    qsa('.filter-pill.active').forEach(p=>p.classList.remove('active'));
-    searchQuery='';
-    searchInput.value='';
-    renderActiveTabData(false);
-  });
-  loadMoreBtn.addEventListener('click',()=>{
-    currentPage++;
-    renderActiveTabData(true);
-  });
-  refreshBtn.addEventListener('click',()=>{
-    showToast('Atualizando...', 'success', 1200);
-    // Snapshot já atualizado em tempo real, apenas re-render
-    renderActiveTabData(false);
-  });
-  document.getElementById('fab-scroll-top').addEventListener('click',()=> window.scrollTo({top:0,behavior:'smooth'}));
-  document.getElementById('fab-refresh').addEventListener('click',()=> refreshBtn.click());
+function updateOnlineStatus(){
+  if(!navigator.onLine){
+    offlineBanner.classList.remove('hidden');
+    announce('Offline. Exibindo dados recentes em cache.');
+  } else {
+    offlineBanner.classList.add('hidden');
+  }
+}
+window.addEventListener('online',updateOnlineStatus);
+window.addEventListener('offline',updateOnlineStatus);
+
+function toggleFab(){
+  const fab=document.getElementById('fab-bar');
+  if(window.innerWidth<=640){
+    fab.style.display='flex';
+    document.body.classList.add('has-fab-bottom-padding');
+  } else {
+    fab.style.display='none';
+    document.body.classList.remove('has-fab-bottom-padding');
+  }
 }
 
-/* Data loading */
+function initSkeleton(){
+  const skeletonWrap=document.createElement('div');
+  skeletonWrap.className='space-y-4';
+  for(let i=0;i<3;i++){
+    const sk=document.createElement('div');
+    sk.className='skeleton-block';
+    skeletonWrap.appendChild(sk);
+  }
+  loadingView.innerHTML='';
+  loadingView.appendChild(skeletonWrap);
+}
+
 async function loadCampaignTypes(){
-  const snap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
-  campaignTypeSettings = snap.exists()? snap.data(): {};
-}
-
-function listenUserDonations(){
-  if(unsubscribeSnapshot) unsubscribeSnapshot();
-  const qRef=query(collection(db, paths.donations), where("donorId","==",currentUserId));
-  unsubscribeSnapshot = onSnapshot(qRef, async (snapshot)=>{
-    allUserDonations = snapshot.docs.map(d=>({ id:d.id, ...d.data() }));
-    await cacheCampaigns(allUserDonations.map(d=>d.campaignId));
-    renderActiveTabData(false);
-    liveStatusEl.classList.remove('hidden');
-    setTimeout(()=>liveStatusEl.classList.add('hidden'), 3500);
-  }, err=>{
-    console.error('Erro snapshot', err);
-    showToast('Erro em tempo real','error');
-  });
+  const snap=await getDoc(doc(db, paths.configDoc('campaignTypes')));
+  campaignTypeSettings = snap.exists()? snap.data() : {};
 }
 
 async function cacheCampaigns(ids){
@@ -742,23 +817,25 @@ async function cacheCampaigns(ids){
           campaignsCache.set(id, { id:snap.id, ...snap.data() });
         }
       }catch(e){
-        console.warn('Falha ao obter campanha', id, e);
+        console.warn('Falha ao buscar campanha', id, e);
       }
     }
   }
 }
 
-/* Initialization */
-function initSkeleton(){
-  const skeletonWrap=document.createElement('div');
-  skeletonWrap.className='space-y-4';
-  for(let i=0;i<3;i++){
-    const sk=document.createElement('div');
-    sk.className='skeleton-block';
-    skeletonWrap.appendChild(sk);
-  }
-  loadingView.innerHTML='';
-  loadingView.appendChild(skeletonWrap);
+function listenUserDonations(){
+  if(unsubscribeSnapshot) unsubscribeSnapshot();
+  const ref = query(collection(db, paths.donations), where("donorId","==", currentUserId));
+  unsubscribeSnapshot = onSnapshot(ref, async snapshot=>{
+    allUserDonations = snapshot.docs.map(d=>({ id:d.id, ...d.data() }));
+    await cacheCampaigns(allUserDonations.map(d=>d.campaignId));
+    renderActiveTabData(false);
+    liveStatusEl.classList.remove('hidden');
+    setTimeout(()=> liveStatusEl.classList.add('hidden'), 3500);
+  }, err=>{
+    console.error('Snapshot error', err);
+    showToast('Erro ao atualizar','error');
+  });
 }
 
 async function initializeApp(){
@@ -779,21 +856,20 @@ async function initializeApp(){
   loadingView.classList.add('hidden');
 }
 
-/* DOM ready */
 document.addEventListener('DOMContentLoaded', async ()=>{
-  // Cache DOM
-  loadingView = qs('#loading-view');
-  deliveriesView = qs('#deliveries-view');
-  deliveriesList = qs('#deliveries-list');
-  noDeliveriesPlaceholder = qs('#no-deliveries-placeholder');
-  tabsContainer = qs('#tabs-container');
-  loadMoreContainer = qs('#load-more-container');
-  loadMoreBtn = qs('#load-more-btn');
-  searchInput = qs('#search-input');
-  quickFiltersContainer = qs('#quick-filters');
-  liveStatusEl = qs('#live-status');
-  offlineBanner = qs('#offline-banner');
-  refreshBtn = qs('#refresh-btn');
+  loadingView = document.getElementById('loading-view');
+  deliveriesView = document.getElementById('deliveries-view');
+  deliveriesList = document.getElementById('deliveries-list');
+  noDeliveriesPlaceholder = document.getElementById('no-deliveries-placeholder');
+  tabsContainer = document.getElementById('tabs-container');
+  loadMoreContainer = document.getElementById('load-more-container');
+  loadMoreBtn = document.getElementById('load-more-btn');
+  searchInput = document.getElementById('search-input');
+  quickFiltersContainer = document.getElementById('quick-filters');
+  liveStatusEl = document.getElementById('live-status');
+  offlineBanner = document.getElementById('offline-banner');
+  refreshBtn = document.getElementById('refresh-btn');
+  openCodeSearchBtn = document.getElementById('open-code-search');
 
   initSkeleton();
   setupDelegation();
@@ -801,8 +877,34 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   await initializeApp();
 });
 
-/* Public function showDetailsModal already used */
 if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(console.error);
+
+/* Modal utilities (reutiliza estrutura existente) */
+function openAppModal({title, bodyHtml, buttons=[], iconHtml=null}){
+  const modal=document.getElementById('app-modal');
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-message-body').innerHTML=bodyHtml;
+  const btns=document.getElementById('modal-buttons');
+  btns.innerHTML='';
+  buttons.forEach(b=>{
+    const el=document.createElement('button');
+    el.type='button';
+    el.className=b.className || 'mt-3 w-full inline-flex justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:ml-3 sm:w-auto';
+    el.textContent=b.label;
+    el.addEventListener('click',()=>b.onClick?.(()=>closeAppModal()));
+    btns.appendChild(el);
+  });
+  if(iconHtml){
+    document.getElementById('modal-icon-wrapper').innerHTML=iconHtml;
+  }
+  modal.classList.remove('hidden');
+  document.body.classList.add('overflow-hidden');
+}
+function closeAppModal(){
+  const modal=document.getElementById('app-modal');
+  modal.classList.add('hidden');
+  document.body.classList.remove('overflow-hidden');
+}
 </script>
 </body>
 </html>
