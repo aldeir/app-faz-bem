@@ -738,17 +738,112 @@ function buildCard(campaign,donations,likes,listKey){
     </article>`;
 }
 
-function startCountdown(id,expiresAt){
-  if(!expiresAt || countdownIntervals[id]) return;
-  const el=document.getElementById(`countdown-${id}`); if(!el) return;
-  function tick(){
-    const dist=expiresAt.getTime()-Date.now();
-    if(dist<=0){clearInterval(countdownIntervals[id]);el.textContent='Encerrada';el.classList.replace('bg-black/55','bg-red-600');return;}
-    const d=Math.floor(dist/86400000);
-    const h=Math.floor((dist%86400000)/3600000);
-    el.textContent = d>0?`Encerra em: ${d}d ${h}h`:`Encerra em: ${h}h`;
+/**
+ * startCountdown
+ * - Aplica cores diferentes conforme a urgência:
+ *    > 48h  : verde forte
+ *    24–48h : verde/amarelo
+ *    6–24h  : âmbar
+ *    1–6h   : laranja/vermelho claro
+ *    < 1h   : vermelho intenso + pulsar
+ * - Ao encerrar: texto "Encerrada" + fundo vermelho.
+ * - Atualiza a cada 60s (ou antes se você quiser).
+ *
+ * Requisitos:
+ *  - Um elemento com id="countdown-{id}" já no DOM
+ *  - Variável global countdownIntervals = {} (objeto) para controlar múltiplos timers
+ */
+function startCountdown(id, expiresAt) {
+  if (!expiresAt || countdownIntervals[id]) return;
+
+  const el = document.getElementById(`countdown-${id}`);
+  if (!el) return;
+
+  // Remova possíveis estilos anteriores
+  el.classList.remove(
+    'text-white','text-emerald-700','text-green-700','text-yellow-700',
+    'text-amber-600','text-orange-600','text-red-600','text-red-700',
+    'animate-pulse','bg-red-600'
+  );
+
+  // Padroniza base visual (ajuste conforme seu design)
+  el.classList.add(
+    'font-semibold',
+    'tracking-wide',
+    'rounded-full'
+  );
+
+  // Função que aplica classes conforme horas restantes
+  function applyColor(distMs) {
+    const hours = distMs / 3600000;
+
+    // Limpa classes de cor/efeito
+    el.classList.remove(
+      'text-emerald-700','text-green-700','text-yellow-700',
+      'text-amber-600','text-orange-600','text-red-600','text-red-700','animate-pulse'
+    );
+
+    // Lógica de faixas (ajuste se quiser outras cores/limiares):
+    if (hours > 48) {
+      // Muito tempo
+      el.classList.add('text-emerald-700');
+    } else if (hours > 24) {
+      // Confortável
+      el.classList.add('text-green-700');
+    } else if (hours > 12) {
+      // Entrando em atenção
+      el.classList.add('text-yellow-700');
+    } else if (hours > 6) {
+      // Mais perto
+      el.classList.add('text-amber-600');
+    } else if (hours > 1) {
+      // Quase chegando
+      el.classList.add('text-orange-600');
+    } else {
+      // Menos de 1h: crítico
+      el.classList.add('text-red-600','animate-pulse');
+    }
   }
-  tick(); countdownIntervals[id]=setInterval(tick,60000);
+
+  function formatCountdown(dist) {
+    const totalMinutes = Math.floor(dist / 60000);
+    if (totalMinutes <= 0) return 'Encerrada';
+
+    const days = Math.floor(totalMinutes / (60 * 24));
+    const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+    const mins = totalMinutes % 60;
+
+    if (days > 0) {
+      return `Encerra em: ${days}d ${hours}h`;
+    }
+    if (hours > 0) {
+      return `Encerra em: ${hours}h ${mins}m`;
+    }
+    return `Encerra em: ${mins}m`;
+  }
+
+  function tick() {
+    const now = Date.now();
+    const dist = expiresAt.getTime() - now;
+
+    if (dist <= 0) {
+      clearInterval(countdownIntervals[id]);
+      el.textContent = 'Encerrada';
+      el.classList.remove('animate-pulse');
+      el.classList.add('bg-red-600','text-white');
+      // Opcional: remover ou alterar fundo anterior
+      return;
+    }
+
+    applyColor(dist);
+    el.textContent = formatCountdown(dist);
+
+    // Acessibilidade (aria-label para leitores de tela)
+    el.setAttribute('aria-label', el.textContent.replace('Encerra em: ','Encerra em '));
+  }
+
+  tick(); // primeira atualização imediata
+  countdownIntervals[id] = setInterval(tick, 60000); // atualiza a cada 60s
 }
 
 function startSlideshow(id){
@@ -893,3 +988,4 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
+
