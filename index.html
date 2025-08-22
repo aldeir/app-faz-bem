@@ -16,117 +16,300 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="/app-faz-bem/style.css" rel="stylesheet">
 <link href="mobile-enhancements.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-/* ===== Base ===== */
-body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
-.loader{border:4px solid #f3f3f3;border-top:4px solid #22c55e;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;}
+/* ---------- GLOBAL / BASE ---------- */
+html,body{font-family:'Inter',sans-serif;}
+body{background:#f8fafc;color:#1e293b;min-height:100vh;position:relative;overflow-x:hidden;}
+.hero-bg-layer{
+  position:fixed;inset:0;z-index:-1;
+  background:
+    linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,.92)),
+    url('bg-faz-bem.png') center 40%/cover no-repeat;
+  opacity:.55;
+  mix-blend-mode:normal;
+  filter:brightness(1.05) saturate(1.05);
+  pointer-events:none;
+}
+@media (prefers-color-scheme: dark){
+  body{background:#0f172a;color:#e2e8f0;}
+  .hero-bg-layer{
+    background:
+      linear-gradient(rgba(15,23,42,.90),rgba(15,23,42,.92)),
+      url('bg-faz-bem.png') center 35%/cover no-repeat;
+    opacity:.65;
+    filter:brightness(1.25);
+  }
+}
+
+/* ---------- LOADER ---------- */
+.loader{border:4px solid #e2e8f0;border-top:4px solid #22c55e;border-radius:50%;width:42px;height:42px;animation:spin 1s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
-/* ===== Accordions ===== */
-.accordion-header{width:100%;background:transparent;border:none;border-bottom:1px solid #e5e7eb;
-padding:.75rem 1rem;display:flex;justify-content:space-between;align-items:center;cursor:pointer;
-transition:background-color .2s;font-size:1.05rem;font-weight:600;line-height:1.3;}
-.accordion-header:focus-visible{outline:2px solid #16a34a;outline-offset:2px;border-radius:.5rem;}
-.accordion-header:hover{background:#f3f4f6;}
-.accordion-arrow{width:1.4rem;height:1.4rem;transition:transform .3s ease;}
+/* ---------- ACCESSIBILITY ---------- */
+#global-aria-live[data-visually-hidden="true"]{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);border:0;}
+:focus-visible{outline:2px solid #2563eb;outline-offset:3px;border-radius:6px;}
+
+/* ---------- TITLE / BRAND ---------- */
+.brand-heading{
+  font-size:clamp(2.75rem,6vw,4.25rem);
+  font-weight:800;
+  line-height:1;
+  position:relative;
+  display:inline-block;
+  letter-spacing:-1px;
+  background:
+    linear-gradient(115deg,#16a34a 0%,#22c55e 18%,#34d399 32%,#16a34a 55%,#15803d 75%,#22c55e 100%);
+  background-size:180% 180%;
+  -webkit-background-clip:text;
+  color:transparent;
+  animation:brandShift 8s ease-in-out infinite;
+  text-shadow:0 2px 4px rgba(0,0,0,.08),0 6px 25px -8px rgba(16,185,129,.55);
+}
+.brand-heading::after{
+  content:"";
+  position:absolute;inset:-6px;
+  background:radial-gradient(circle at 35% 25%,rgba(34,197,94,.35),transparent 70%);
+  filter:blur(28px);
+  z-index:-1;
+  opacity:.6;
+}
+@keyframes brandShift{
+  0%{background-position:0% 50%;}
+  50%{background-position:100% 50%;}
+  100%{background-position:0% 50%;}
+}
+
+/* Subheading */
+.tagline{font-size:clamp(.95rem,1.9vw,1.22rem);font-weight:500;color:#475569;}
+@media (prefers-color-scheme: dark){
+  .tagline{color:#94a3b8;}
+}
+
+/* ---------- ACCORDION STRUCTURE ---------- */
+.accordion-item{
+  backdrop-filter:blur(6px);
+  background:rgba(255,255,255,.86);
+  border:1px solid #e2e8f0;
+  border-radius:1.15rem;
+  box-shadow:0 4px 18px -6px rgba(0,0,0,.08);
+  transition:box-shadow .3s,transform .3s;
+}
+.accordion-item:hover{box-shadow:0 8px 38px -10px rgba(0,0,0,.15);}
+@media (prefers-color-scheme: dark){
+  .accordion-item{background:rgba(30,41,59,.78);border-color:#334155;box-shadow:0 4px 22px -8px rgba(0,0,0,.6);}
+}
+.accordion-header{
+  width:100%;
+  background:linear-gradient(90deg,rgba(34,197,94,.07),transparent);
+  border:none;
+  padding:1rem 1.35rem;
+  border-radius:1.15rem;
+  display:flex;justify-content:space-between;align-items:center;
+  cursor:pointer;
+  font-size:1.05rem;
+  font-weight:600;
+  color:#134e33;
+  transition:background .25s;
+}
+.accordion-header.active{background:linear-gradient(90deg,rgba(34,197,94,.13),transparent);}
+.accordion-header:hover{background:linear-gradient(90deg,rgba(34,197,94,.18),transparent);}
+@media (prefers-color-scheme: dark){
+  .accordion-header{color:#bbf7d0;background:linear-gradient(90deg,rgba(34,197,94,.15),rgba(30,41,59,.1));}
+  .accordion-header.active{background:linear-gradient(90deg,rgba(34,197,94,.28),rgba(30,41,59,.15));}
+}
+.accordion-arrow{width:1.35rem;height:1.35rem;transition:transform .35s;}
 .accordion-header.active .accordion-arrow{transform:rotate(180deg);}
 .accordion-content{max-height:0;overflow:hidden;transition:max-height .5s ease;}
-.accordion-content-inner{padding:1.25rem .5rem .5rem;}
+.accordion-content-inner{
+  padding:1.35rem 1.35rem 1.25rem;
+  display:flex;flex-direction:column;gap:1.2rem;
+}
 
-/* ===== Campaign Card ===== */
-.campaign-card{cursor:pointer;transition:transform .28s ease, box-shadow .28s ease;}
-.campaign-card:focus-visible{outline:2px solid #2563eb;outline-offset:2px;border-radius:.9rem;}
-.campaign-card:hover{transform:translateY(-4px);}
-.campaign-encerrada{filter:grayscale(.85);background:#f9fafb;}
-.campaign-encerrada .like-button{pointer-events:none;filter:grayscale(1);}
-.media-wrapper{position:relative;height:12rem;width:100%;overflow:hidden;}
+/* ---------- CAMPAIGN GRID & CARDS ---------- */
+#active-campaigns-list,#upcoming-campaigns-list,#recent-campaigns-list{
+  display:grid;
+  gap:1.35rem;
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));
+}
+
+.campaign-card{
+  position:relative;
+  background:linear-gradient(145deg,#ffffff 0%,#f1f5f9 100%);
+  border:1px solid #e2e8f0;
+  border-radius:1rem;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  min-height:100%;
+  transition:transform .28s,box-shadow .28s,border-color .28s;
+  isolation:isolate;
+  padding:0; /* remove overlay padding; internal handled by .card-body */
+}
+.campaign-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px -8px rgba(16,185,129,.35);}
+.campaign-card:active{transform:translateY(-1px) scale(.985);}
+@media (prefers-color-scheme: dark){
+  .campaign-card{background:linear-gradient(140deg,#1e293b,#0f172a);border-color:#334155;}
+  .campaign-card:hover{box-shadow:0 10px 28px -8px rgba(16,185,129,.55);}
+}
+.campaign-encerrada{filter:grayscale(.88) brightness(.88);}
+.campaign-encerrada .card-body{opacity:.9;}
+
+.media-wrapper{position:relative;height:12rem;width:100%;overflow:hidden;background:#0f172a;}
 .media-container{position:absolute;inset:0;}
-.media-item{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 1s ease;opacity:0;filter:brightness(.95);}
+.media-item{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1s;filter:brightness(.94);}
 .media-item.active{opacity:1;z-index:1;}
 .media-skeleton{position:absolute;inset:0;background:#e2e8f0;}
 .media-skeleton::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:skeleton 1.2s infinite;}
 @keyframes skeleton{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
+@media (prefers-color-scheme: dark){.media-skeleton{background:#1e293b;}}
 
-/* ===== Badges ===== */
-.urgent-badge{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite;}
-@keyframes pulse{50%{opacity:.7;}}
-.status-chip{font-size:.55rem;letter-spacing:.5px;font-weight:700;padding:4px 8px;border-radius:999px;display:inline-block;text-transform:uppercase;}
-.progress-bar{height:8px;border-radius:4px;overflow:hidden;background:#e2e8f0;}
+.card-body{
+  padding:1.15rem 1.15rem 1.2rem;
+  display:flex;
+  flex-direction:column;
+  flex-grow:1;
+  gap:.75rem;
+}
+.card-body > .top-row{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;}
+.card-title{
+  font-weight:700;
+  font-size:1rem;
+  line-height:1.2;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.progress-group{margin-top:.15rem;}
+.progress-bar{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;}
 .progress-bar > span{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#059669);}
 
-/* ===== Donors / Likes ===== */
-.donor-avatar-container{position:relative;display:inline-block;}
-.donor-avatar{transition:transform .2s;}
-.donor-avatar:hover{transform:scale(1.08);z-index:10;}
-.star-badge{position:absolute;bottom:-2px;right:-4px;background:#f59e0b;color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;}
-.like-button{cursor:pointer;display:flex;align-items:center;gap:4px;font-size:12px;color:#64748b;transition:color .2s;}
-.like-button:hover,.like-button.liked{color:#ef4444;}
-.like-button:focus-visible{outline:2px solid #ef4444;outline-offset:2px;border-radius:6px;}
-
-/* ===== Filter Dropdown ===== */
-.filter-dropdown-container{position:relative;z-index:20;}
-.filter-dropdown-menu{position:absolute;top:100%;right:0;background:#fff;border-radius:.75rem;box-shadow:0 12px 32px -8px rgba(0,0,0,.15),0 0 0 1px rgba(0,0,0,.04);min-width:170px;display:none;padding:.4rem;}
-.filter-dropdown-item{display:block;width:100%;padding:.6rem .85rem;text-align:left;font-size:.8rem;font-weight:500;color:#374151;border-radius:.55rem;cursor:pointer;}
-.filter-dropdown-item:hover{background:#f1f5f9;}
-.filter-dropdown-item.active{background:#dcfce7;color:#166534;font-weight:600;}
-
-/* ===== Accessibility & Mobile Enhancements ===== */
-#global-aria-live[data-visually-hidden="true"]{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);}
-.offline-banner{display:none;}
-.offline-banner.active{display:flex;}
-/* FAB for quick scroll / refresh */
-@media (max-width:640px){
-  .fab-bar-home{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;gap:.75rem;padding:.75rem .9rem calc(.75rem + env(safe-area-inset-bottom));
-    backdrop-filter:blur(12px);background:rgba(255,255,255,.92);border-top:1px solid #e2e8f0;}
-  .dark .fab-bar-home{background:rgba(15,23,42,.85);border-color:#334155;}
-  .fab-bar-home button{flex:1;min-height:3.1rem;border-radius:.9rem;font-weight:600;}
-  body.has-fab-bottom{padding-bottom:4.75rem;}
+.status-chip{
+  font-size:.56rem;
+  letter-spacing:.5px;
+  padding:4px 8px;
+  font-weight:700;
+  border-radius:999px;
+  text-transform:uppercase;
+  background:#16a34a;
+  color:#fff;
+  box-shadow:0 2px 4px -1px rgba(0,0,0,.15);
 }
 
-/* Safe mapping classes for dynamic colors (prevent purge if using processor) */
-.safe-color-green{--tw-bg-opacity:1;}
-.safe-color-blue{}
-.safe-color-red{}
-.safe-color-yellow{}
-.safe-color-purple{}
-.safe-color-gray{}
+.donor-strip{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.7rem .55rem;}
+.donor-avatar-container{position:relative;display:inline-block;}
+.donor-avatar{transition:transform .24s;}
+.donor-avatar:hover{transform:scale(1.07);}
+.star-badge{position:absolute;bottom:-2px;right:-4px;background:#f59e0b;color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;}
+.like-button{cursor:pointer;display:flex;align-items:center;gap:4px;font-size:11px;color:#64748b;transition:color .25s;}
+.like-button:hover,.like-button.liked{color:#ef4444;}
 
-/* Focus ring util (in case tailwind purge removed) */
-:focus-visible{outline:2px solid #2563eb;outline-offset:2px;}
+@media (prefers-color-scheme: dark){
+  .accordion-content-inner{background:transparent;}
+  .campaign-card{background:linear-gradient(145deg,#1e293b,#0f172a);}
+  .card-title{color:#f1f5f9;}
+  .progress-bar{background:#334155;}
+}
+
+/* ---------- FILTER DROPDOWN ---------- */
+.filter-dropdown-container{position:relative;z-index:30;}
+.filter-dropdown-menu{
+  position:absolute;top:110%;right:0;
+  background:#fff;
+  border:1px solid #e2e8f0;
+  border-radius:.85rem;
+  box-shadow:0 14px 38px -10px rgba(0,0,0,.15),0 0 0 1px rgba(0,0,0,.03);
+  padding:.55rem;
+  width:190px;
+  display:none;
+}
+.filter-dropdown-item{
+  width:100%;text-align:left;
+  font-size:.75rem;font-weight:500;
+  padding:.55rem .7rem;
+  border-radius:.55rem;
+  color:#334155;
+  background:transparent;
+  cursor:pointer;
+  transition:background .2s,color .2s;
+}
+.filter-dropdown-item:hover{background:#f1f5f9;}
+.filter-dropdown-item.active{background:#dcfce7;color:#166534;font-weight:600;}
+@media (prefers-color-scheme: dark){
+  .filter-dropdown-menu{background:#1e293b;border-color:#334155;}
+  .filter-dropdown-item{color:#cbd5e1;}
+  .filter-dropdown-item:hover{background:#334155;}
+  .filter-dropdown-item.active{background:#065f46;color:#fff;}
+}
+
+/* ---------- OFFLINE BANNER ---------- */
+.offline-banner{display:none;}
+.offline-banner.active{display:flex;}
+.offline-banner svg{flex-shrink:0;}
+
+/* ---------- FAB MOBILE ---------- */
+@media (max-width:640px){
+  .fab-bar-home{
+    position:fixed;left:0;right:0;bottom:0;z-index:70;
+    display:flex;gap:.85rem;padding:.75rem .95rem calc(.8rem + env(safe-area-inset-bottom));
+    backdrop-filter:blur(12px);
+    background:rgba(255,255,255,.93);
+    border-top:1px solid #e2e8f0;
+  }
+  .fab-bar-home button{flex:1;min-height:3.05rem;border-radius:.95rem;font-weight:600;font-size:.85rem;}
+  body.has-fab-bottom{padding-bottom:4.85rem;}
+  @media (prefers-color-scheme: dark){
+    .fab-bar-home{background:rgba(15,23,42,.86);border-color:#334155;}
+  }
+}
+
+/* ---------- FOOTER ---------- */
+footer{font-size:.7rem;}
+footer p{opacity:.85;}
+@media (min-width:640px){footer{font-size:.75rem;}}
+
+/* ---------- TOAST (from mobile-enhancements.css rely) ---------- */
+.toast-container{position:fixed;bottom:calc(1rem + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:.6rem;width:min(92%,420px);}
+.toast{background:#1e293b;color:#f8fafc;padding:.75rem .95rem;border-radius:.85rem;font-size:.8rem;font-weight:500;box-shadow:0 8px 26px -8px rgba(0,0,0,.35);animation:toastIn .32s ease;display:flex;align-items:flex-start;gap:.6rem;}
+.toast.success{background:#065f46;}
+.toast.error{background:#991b1b;}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,8px);}to{opacity:1;transform:translate(-50%,0);}}
+
+/* ---------- UTILITIES ---------- */
+.no-scrollbar::-webkit-scrollbar{display:none;}
+.no-scrollbar{scrollbar-width:none;-ms-overflow-style:none;}
 </style>
 </head>
-<body class="bg-gray-50 text-gray-800 min-h-screen">
+<body>
+<div class="hero-bg-layer" aria-hidden="true"></div>
 <div id="global-aria-live" aria-live="polite" data-visually-hidden="true"></div>
 <div id="app-header"></div>
 
 <main id="page-content">
-  <div class="container mx-auto max-w-5xl p-4 sm:p-6">
+  <div class="container mx-auto max-w-6xl p-4 sm:p-6">
     <!-- Offline Banner -->
-    <div id="offline-banner" class="offline-banner items-center gap-2 mb-4 px-3 py-2 rounded-md bg-yellow-50 text-yellow-800 text-xs font-medium">
+    <div id="offline-banner" class="offline-banner items-center gap-2 mb-4 px-3 py-2 rounded-md bg-yellow-50 text-yellow-800 text-[11px] font-medium">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z"/>
       </svg>
-      Você está offline. Exibindo dados mais recentes em cache.
+      Você está offline. Exibindo dados em cache.
     </div>
 
-    <header class="text-center my-8">
-      <h1 class="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent tracking-tight">Faz Bem</h1>
-      <p class="text-base sm:text-lg text-gray-600 mt-2">Conectando corações e transformando vidas.</p>
+    <header class="text-center my-7 sm:my-10">
+      <h1 class="brand-heading">Faz&nbsp;Bem</h1>
+      <p class="tagline mt-3">Conectando corações e transformando vidas.</p>
     </header>
 
-    <!-- Quick Filters (mobile suggestion) -->
-    <div id="home-quick-filters" class="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar">
-      <!-- (Reservado para filtros futuros: prioridade, urgente, etc.) -->
-    </div>
+    <!-- Placeholder future quick filters -->
+    <div id="home-quick-filters" class="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar"></div>
 
-    <div class="space-y-5">
+    <div class="space-y-6">
       <!-- ATIVAS -->
-      <section class="accordion-item bg-white rounded-xl shadow-sm border border-gray-200" id="sec-ativas">
+      <section class="accordion-item" id="sec-ativas">
         <button class="accordion-header" data-accordion="ativas">
-          <span class="text-gray-800 flex items-center gap-2">
-            Campanhas Ativas
+          <span class="flex items-center gap-2">
+            <span>Campanhas Ativas</span>
             <span id="count-ativas" class="font-normal text-gray-500 text-sm"></span>
           </span>
           <div class="flex items-center gap-4">
@@ -138,18 +321,18 @@ transition:background-color .2s;font-size:1.05rem;font-weight:600;line-height:1.
         </button>
         <div class="accordion-content" id="accordion-ativas-content">
           <div class="accordion-content-inner">
-            <div id="active-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-            <p id="active-campaigns-empty" class="hidden text-center text-gray-500 py-6 text-sm">Nenhuma campanha encontrada.</p>
-            <div id="pagination-ativas" class="text-center mt-8"></div>
+            <div id="active-campaigns-list"></div>
+            <p id="active-campaigns-empty" class="hidden text-center text-gray-500 py-5 text-sm">Nenhuma campanha encontrada.</p>
+            <div id="pagination-ativas" class="text-center pt-2"></div>
           </div>
         </div>
       </section>
 
-      <!-- PRÓXIMAS -->
-      <section id="accordion-proximas" class="accordion-item bg-white rounded-xl shadow-sm border border-gray-200 hidden">
+      <!-- PROXIMAS -->
+      <section id="accordion-proximas" class="accordion-item hidden">
         <button class="accordion-header" data-accordion="proximas">
-          <span class="text-gray-800 flex items-center gap-2">
-            Próximas Campanhas
+          <span class="flex items-center gap-2">
+            <span>Próximas Campanhas</span>
             <span id="count-proximas" class="font-normal text-gray-500 text-sm"></span>
           </span>
           <div class="flex items-center gap-4">
@@ -161,18 +344,18 @@ transition:background-color .2s;font-size:1.05rem;font-weight:600;line-height:1.
         </button>
         <div class="accordion-content" id="accordion-proximas-content">
           <div class="accordion-content-inner">
-            <div id="upcoming-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-            <p id="upcoming-campaigns-empty" class="hidden text-center text-gray-500 py-6 text-sm">Nenhuma campanha encontrada.</p>
-            <div id="pagination-proximas" class="text-center mt-8"></div>
+            <div id="upcoming-campaigns-list"></div>
+            <p id="upcoming-campaigns-empty" class="hidden text-center text-gray-500 py-5 text-sm">Nenhuma campanha encontrada.</p>
+            <div id="pagination-proximas" class="text-center pt-2"></div>
           </div>
         </div>
       </section>
 
-      <!-- ENCERRADAS -->
-      <section id="accordion-recentes" class="accordion-item bg-white rounded-xl shadow-sm border border-gray-200 hidden">
+      <!-- RECENTES -->
+      <section id="accordion-recentes" class="accordion-item hidden">
         <button class="accordion-header" data-accordion="recentes">
-          <span class="text-gray-800 flex items-center gap-2">
-            Campanhas Encerradas
+          <span class="flex items-center gap-2">
+            <span>Campanhas Encerradas</span>
             <span id="count-recentes" class="font-normal text-gray-500 text-sm"></span>
           </span>
           <div class="flex items-center gap-4">
@@ -184,21 +367,21 @@ transition:background-color .2s;font-size:1.05rem;font-weight:600;line-height:1.
         </button>
         <div class="accordion-content" id="accordion-recentes-content">
           <div class="accordion-content-inner">
-            <div id="recent-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-            <p id="recent-campaigns-empty" class="hidden text-center text-gray-500 py-6 text-sm">Nenhuma campanha encontrada.</p>
-            <div id="pagination-recentes" class="text-center mt-8"></div>
+            <div id="recent-campaigns-list"></div>
+            <p id="recent-campaigns-empty" class="hidden text-center text-gray-500 py-5 text-sm">Nenhuma campanha encontrada.</p>
+            <div id="pagination-recentes" class="text-center pt-2"></div>
           </div>
         </div>
       </section>
     </div>
 
-    <div id="loading-container" class="text-center py-16">
+    <div id="loading-container" class="text-center py-20">
       <div class="loader mx-auto"></div>
       <p class="mt-4 text-gray-600 text-sm font-medium">Carregando campanhas...</p>
     </div>
 
     <footer class="text-center mt-20 py-6 border-t border-gray-200">
-      <p class="text-gray-500 text-xs sm:text-sm leading-relaxed">
+      <p class="text-gray-500 leading-relaxed">
         <span class="font-semibold text-gray-700">
           <span class="text-lg align-middle">&copy;</span>ássia & @lice Nery
         </span>
@@ -208,7 +391,7 @@ transition:background-color .2s;font-size:1.05rem;font-weight:600;line-height:1.
   </div>
 </main>
 
-<!-- Modal base (reutiliza modal-handler) -->
+<!-- Modal base -->
 <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
   <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
     <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
@@ -234,251 +417,196 @@ transition:background-color .2s;font-size:1.05rem;font-weight:600;line-height:1.
   </div>
 </div>
 
-<!-- Toasts -->
+<!-- Toast -->
 <div class="toast-container" id="toast-container"></div>
 
 <!-- FAB Mobile -->
 <div class="fab-bar-home" id="fab-bar-home" style="display:none;">
-  <button id="fab-scroll-top" class="bg-blue-600 text-white text-sm shadow-md hover:bg-blue-700 active:scale-95 transition">Topo</button>
-  <button id="fab-refresh" class="bg-green-600 text-white text-sm shadow-md hover:bg-green-700 active:scale-95 transition">Atualizar</button>
+  <button id="fab-scroll-top" class="bg-blue-600 text-white shadow hover:bg-blue-700 active:scale-95 transition">Topo</button>
+  <button id="fab-refresh" class="bg-green-600 text-white shadow hover:bg-green-700 active:scale-95 transition">Atualizar</button>
 </div>
 
 <script type="module">
-/* ========= Imports ========= */
 import { db, paths } from './app-config.js';
 import { collection, onSnapshot, query, orderBy, doc, setDoc, deleteDoc, serverTimestamp } from './firebase-services.js';
 import { injectHeader } from './app-header.js';
 import { getCurrentUser } from './auth-service.js';
 import { showAlertModal } from './modal-handler.js';
 
-/* ========= Config ========= */
-const ITEMS_PER_PAGE = 4;
-const COLOR_SAFE = ['green','blue','red','yellow','purple','gray'];
-
-/* ========= Global State ========= */
-const state = {
-  allCampaigns: [],
-  allDonations: [],
-  allLikes: [],
-  currentUser: null,
-  settings: {},
-  sections: {
-    ativas:   { filter: 'all', visibleCount: ITEMS_PER_PAGE, key: 'active' },
-    proximas: { filter: 'all', visibleCount: ITEMS_PER_PAGE, key: 'upcoming' },
-    recentes: { filter: 'all', visibleCount: ITEMS_PER_PAGE, key: 'recent' }
+const ITEMS_PER_PAGE=4;
+const COLOR_SAFE=['green','blue','red','yellow','purple','gray'];
+const state={
+  allCampaigns:[],allDonations:[],allLikes:[],currentUser:null,settings:{},
+  sections:{
+    ativas:{filter:'all',visibleCount:ITEMS_PER_PAGE,key:'active'},
+    proximas:{filter:'all',visibleCount:ITEMS_PER_PAGE,key:'upcoming'},
+    recentes:{filter:'all',visibleCount:ITEMS_PER_PAGE,key:'recent'}
   }
 };
-
-/* DOM refs */
-const campaignLists = {
-  ativas:   document.getElementById('active-campaigns-list'),
-  proximas: document.getElementById('upcoming-campaigns-list'),
-  recentes: document.getElementById('recent-campaigns-list')
+const lists={
+  ativas:document.getElementById('active-campaigns-list'),
+  proximas:document.getElementById('upcoming-campaigns-list'),
+  recentes:document.getElementById('recent-campaigns-list')
 };
-const emptyPlaceholders = {
-  ativas:   document.getElementById('active-campaigns-empty'),
-  proximas: document.getElementById('upcoming-campaigns-empty'),
-  recentes: document.getElementById('recent-campaigns-empty')
+const empties={
+  ativas:document.getElementById('active-campaigns-empty'),
+  proximas:document.getElementById('upcoming-campaigns-empty'),
+  recentes:document.getElementById('recent-campaigns-empty')
 };
-const paginationContainers = {
-  ativas:   document.getElementById('pagination-ativas'),
-  proximas: document.getElementById('pagination-proximas'),
-  recentes: document.getElementById('pagination-recentes')
+const pagers={
+  ativas:document.getElementById('pagination-ativas'),
+  proximas:document.getElementById('pagination-proximas'),
+  recentes:document.getElementById('pagination-recentes')
 };
-const loadingContainer = document.getElementById('loading-container');
-const offlineBanner = document.getElementById('offline-banner');
+const loadingContainer=document.getElementById('loading-container');
+const offlineBanner=document.getElementById('offline-banner');
 
-let countdownIntervals = {};
-let slideshowIntervals = {};
+let countdownIntervals={},slideshowIntervals={};
 
-/* ========= Utility / Helpers ========= */
-function showToast(message, type='success', ttl=3000){
-  const c=document.getElementById('toast-container');
-  const el=document.createElement('div');
-  el.className=`toast ${type}`;
-  el.innerHTML=`<span>${message}</span>`;
-  c.appendChild(el);
-  setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>el.remove(),400); }, ttl);
+function showToast(msg,type='success',ttl=3000){
+  const c=document.getElementById('toast-container');const el=document.createElement('div');
+  el.className=`toast ${type}`;el.innerHTML=`<span>${msg}</span>`;
+  c.appendChild(el);setTimeout(()=>{el.style.opacity='0';setTimeout(()=>el.remove(),400);},ttl);
 }
-
 function announce(msg){
-  const live=document.getElementById('global-aria-live');
-  if(!live) return;
-  live.textContent='';
-  setTimeout(()=> live.textContent = msg, 40);
+  const live=document.getElementById('global-aria-live'); if(!live) return;
+  live.textContent=''; setTimeout(()=>live.textContent=msg,40);
 }
-
-function ensureColor(color){
-  return COLOR_SAFE.includes(color)? color : 'gray';
-}
-
-function mapColorClasses(color){
-  // Return static class names to prevent purge issues
-  switch(color){
-    case 'green':  return { badgeBg:'bg-green-100', badgeText:'text-green-800', border:'border-green-500' };
-    case 'blue':   return { badgeBg:'bg-blue-100',  badgeText:'text-blue-800',  border:'border-blue-500' };
-    case 'red':    return { badgeBg:'bg-red-100',   badgeText:'text-red-800',   border:'border-red-500' };
-    case 'yellow': return { badgeBg:'bg-yellow-100',badgeText:'text-yellow-800',border:'border-yellow-500' };
-    case 'purple': return { badgeBg:'bg-purple-100',badgeText:'text-purple-800',border:'border-purple-500' };
-    default:       return { badgeBg:'bg-gray-100',  badgeText:'text-gray-800',  border:'border-gray-400' };
+function ensureColor(c){return COLOR_SAFE.includes(c)?c:'gray';}
+function colorMap(c){
+  switch(c){
+    case 'green':return{badgeBg:'bg-green-100',badgeText:'text-green-800',border:'border-green-500'};
+    case 'blue':return{badgeBg:'bg-blue-100',badgeText:'text-blue-800',border:'border-blue-500'};
+    case 'red':return{badgeBg:'bg-red-100',badgeText:'text-red-800',border:'border-red-500'};
+    case 'yellow':return{badgeBg:'bg-yellow-100',badgeText:'text-yellow-800',border:'border-yellow-500'};
+    case 'purple':return{badgeBg:'bg-purple-100',badgeText:'text-purple-800',border:'border-purple-500'};
+    default:return{badgeBg:'bg-gray-100',badgeText:'text-gray-800',border:'border-gray-400'};
   }
 }
-
 function updateOfflineStatus(){
-  if(!navigator.onLine){
-    offlineBanner.classList.add('active');
-    announce('Sem conexão. Alguns dados podem estar desatualizados.');
-  } else offlineBanner.classList.remove('active');
+  if(!navigator.onLine){offlineBanner.classList.add('active');announce('Sem conexão. Dados podem estar desatualizados.');}
+  else offlineBanner.classList.remove('active');
 }
-window.addEventListener('online', updateOfflineStatus);
-window.addEventListener('offline', updateOfflineStatus);
+window.addEventListener('online',updateOfflineStatus);
+window.addEventListener('offline',updateOfflineStatus);
 
-/* ========= Initialization ========= */
 async function initializeApp(){
   await injectHeader();
-  state.currentUser = await getCurrentUser();
+  state.currentUser=await getCurrentUser();
   setupDataListeners();
-  setupGlobalEvents();
+  setupEvents();
   enableFabIfMobile();
   updateOfflineStatus();
 }
 
 function setupDataListeners(){
-  onSnapshot(doc(db, paths.configDoc('campaignTypes')), (s) => {
-    state.settings = s.exists() ? s.data() : {};
-    renderAllSections();
+  onSnapshot(doc(db, paths.configDoc('campaignTypes')),(s)=>{
+    state.settings=s.exists()?s.data():{};
+    renderAll();
   });
-
-  onSnapshot(query(collection(db, paths.campaigns), orderBy("createdAt","desc")), (s) => {
-    state.allCampaigns = s.docs.map(d=>({ id:d.id, ...d.data() }));
-    renderAllSections();
+  onSnapshot(query(collection(db, paths.campaigns),orderBy('createdAt','desc')),(s)=>{
+    state.allCampaigns=s.docs.map(d=>({id:d.id,...d.data()}));
+    renderAll();
   });
-
-  onSnapshot(query(collection(db, paths.donations)), (s) => {
-    state.allDonations = s.docs.map(d=>d.data());
-    renderAllSections();
+  onSnapshot(query(collection(db, paths.donations)),(s)=>{
+    state.allDonations=s.docs.map(d=>d.data());
+    renderAll();
   });
-
-  onSnapshot(query(collection(db, paths.likes)), (s) => {
-    state.allLikes = s.docs.map(d=>({ id:d.id, ...d.data() }));
-    renderAllSections();
+  onSnapshot(query(collection(db, paths.likes)),(s)=>{
+    state.allLikes=s.docs.map(d=>({id:d.id,...d.data()}));
+    renderAll();
   });
 }
 
-/* ========= Rendering ========= */
-function renderAllSections(){
-  if(state.allCampaigns.length === 0 && Object.keys(state.settings).length === 0){
-    // Still loading configs
-  } else {
-    loadingContainer.style.display='none';
-  }
+function renderAll(){
+  if(state.allCampaigns.length || Object.keys(state.settings).length) loadingContainer.style.display='none';
 
-  // Clear intervals
   Object.values(countdownIntervals).forEach(clearInterval);
   Object.values(slideshowIntervals).forEach(clearInterval);
-  countdownIntervals = {};
-  slideshowIntervals = {};
+  countdownIntervals={};slideshowIntervals={};
 
-  const now = new Date();
+  const now=new Date();
+  const active=state.allCampaigns.filter(c=>c.status==='active' && c.startsAt?.toDate()<=now && c.expiresAt?.toDate()>now);
+  const upcoming=state.allCampaigns.filter(c=>c.status==='upcoming' && c.startsAt?.toDate()>now);
+  const recent=state.allCampaigns.filter(c=>c.expiresAt?.toDate() && c.expiresAt.toDate()<=now);
 
-  const active   = state.allCampaigns.filter(c => c.status === 'active'   && c.startsAt?.toDate() <= now && c.expiresAt?.toDate() >  now);
-  const upcoming = state.allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt?.toDate() >  now);
-  const recent   = state.allCampaigns.filter(c => c.expiresAt?.toDate() && c.expiresAt.toDate() <= now);
+  renderSection('ativas',active);
+  renderSection('proximas',upcoming);
+  renderSection('recentes',recent);
 
-  renderSection('ativas', active);
-  renderSection('proximas', upcoming);
-  renderSection('recentes', recent);
+  document.getElementById('accordion-proximas').classList.toggle('hidden',!upcoming.length);
+  document.getElementById('accordion-recentes').classList.toggle('hidden',!recent.length);
 
-  document.getElementById('accordion-proximas').classList.toggle('hidden', upcoming.length === 0);
-  document.getElementById('accordion-recentes').classList.toggle('hidden', recent.length === 0);
-
-  // Auto-open first accordion if none open
-  const firstHeader = document.querySelector('.accordion-header');
+  const firstHeader=document.querySelector('.accordion-header');
   if(firstHeader && !firstHeader.classList.contains('active')){
     firstHeader.classList.add('active');
   }
   document.querySelectorAll('.accordion-header.active').forEach(h=>{
-    const panel = h.nextElementSibling;
-    if(panel) panel.style.maxHeight = panel.scrollHeight+'px';
+    const panel=h.nextElementSibling;
+    if(panel) panel.style.maxHeight=panel.scrollHeight+'px';
   });
 }
 
-function renderSection(sectionKey, campaignsArray){
-  const sectionState = state.sections[sectionKey];
-  const filtered = campaignsArray.filter(c => sectionState.filter === 'all' || c.type === sectionState.filter);
-  document.getElementById(`count-${sectionKey}`).textContent = `(${filtered.length})`;
-  const visible = filtered.slice(0, sectionState.visibleCount);
-  renderCampaignsList(sectionKey, visible, filtered.length);
-  renderFilterDropdown(sectionKey, campaignsArray);
+function renderSection(key,arr){
+  const sectionState=state.sections[key];
+  const filtered=arr.filter(c=>sectionState.filter==='all' || c.type===sectionState.filter);
+  document.getElementById(`count-${key}`).textContent=`(${filtered.length})`;
+  const visible=filtered.slice(0,sectionState.visibleCount);
+  renderList(key,visible,filtered.length);
+  renderFilter(key,arr);
 }
 
-function renderCampaignsList(sectionKey, campaigns, totalFiltered){
-  const listEl = campaignLists[sectionKey];
-  const emptyEl = emptyPlaceholders[sectionKey];
-  const paginationEl = paginationContainers[sectionKey];
-  listEl.innerHTML='';
+function renderList(key,campaigns,totalFiltered){
+  const list=lists[key]; const empty=empties[key]; const pager=pagers[key];
+  list.innerHTML='';
+  if(!campaigns.length){empty.classList.remove('hidden');pager.innerHTML='';return;}
+  empty.classList.add('hidden');
 
-  if(campaigns.length === 0){
-    emptyEl.classList.remove('hidden');
-  } else {
-    emptyEl.classList.add('hidden');
+  const frag=document.createDocumentFragment();
+  campaigns.forEach(c=>{
+    const donations=state.allDonations.filter(d=>d.campaignId===c.id);
+    const likes=state.allLikes.filter(l=>l.campaignId===c.id);
+    const cardHTML=buildCard(c,donations,likes,state.sections[key].key);
+    const wrap=document.createElement('div');wrap.innerHTML=cardHTML;frag.appendChild(wrap.firstElementChild);
+  });
+  list.appendChild(frag);
 
-    const fragment = document.createDocumentFragment();
-    campaigns.forEach(c=>{
-      const donations = state.allDonations.filter(don => don.campaignId === c.id);
-      const likes     = state.allLikes.filter(lk => lk.campaignId === c.id);
-      const cardHTML  = createCampaignCard(c, donations, likes, state.sections[sectionKey].key);
-      const wrapper=document.createElement('div');
-      wrapper.innerHTML=cardHTML;
-      fragment.appendChild(wrapper.firstElementChild);
-    });
-    listEl.appendChild(fragment);
+  // after append start timers
+  campaigns.forEach(c=>{
+    const isEncerrada=c.expiresAt?.toDate() && c.expiresAt.toDate()<=new Date();
+    if(key==='ativas' && !isEncerrada){
+      startCountdown(c.id,c.expiresAt?.toDate());
+      startSlideshow(c.id);
+    }
+  });
+  lazyLoadImages(list.querySelectorAll('img.media-item'));
 
-    // Setup dynamic features per card
-    campaigns.forEach(c=>{
-      const isEncerrada = c.expiresAt?.toDate() && c.expiresAt.toDate() <= new Date();
-      if(sectionKey === 'ativas' && !isEncerrada){
-        startCountdown(c.id, c.expiresAt?.toDate());
-        startMediaSlideshow(c.id);
-      }
-    });
-
-    // Lazy load images
-    applyLazyLoading(listEl.querySelectorAll('img.media-item'));
-  }
-
-  paginationEl.innerHTML='';
-  if(totalFiltered > campaigns.length){
+  pager.innerHTML='';
+  if(totalFiltered>campaigns.length){
     const btn=document.createElement('button');
     btn.className='bg-green-600 text-white font-semibold py-2 px-6 rounded-full shadow hover:bg-green-700 transition text-sm';
     btn.textContent='Carregar Mais';
-    btn.addEventListener('click', ()=> window.loadMore(sectionKey));
-    paginationEl.appendChild(btn);
+    btn.addEventListener('click',()=>loadMore(key));
+    pager.appendChild(btn);
   }
 }
 
-function renderFilterDropdown(sectionKey, campaigns){
-  const container = document.getElementById(`filter-dropdown-${sectionKey}`);
-  const sectionState = state.sections[sectionKey];
-  const typesInUse = [...new Set(campaigns.map(c=>c.type))].filter(Boolean);
-
-  if(typesInUse.length <= 1){
-    container.innerHTML='';
-    return;
-  }
-
-  const currentLabel = sectionState.filter === 'all'
-    ? 'Filtrar'
-    : (state.settings[sectionState.filter]?.label || sectionState.filter);
-
-  let items = `<button class="filter-dropdown-item ${sectionState.filter==='all'?'active':''}" data-filter="all">Todos os Tipos</button>`;
-  typesInUse.forEach(type=>{
-    const label = state.settings[type]?.label || type;
-    items += `<button class="filter-dropdown-item ${sectionState.filter===type?'active':''}" data-filter="${type}">${label}</button>`;
+function renderFilter(sectionKey,campaigns){
+  const container=document.getElementById(`filter-dropdown-${sectionKey}`);
+  const sectionState=state.sections[sectionKey];
+  const types=[...new Set(campaigns.map(c=>c.type))].filter(Boolean);
+  if(types.length<=1){container.innerHTML='';return;}
+  const currentLabel= sectionState.filter==='all'
+    ?'Filtrar'
+    :(state.settings[sectionState.filter]?.label || sectionState.filter);
+  let items=`<button class="filter-dropdown-item ${sectionState.filter==='all'?'active':''}" data-filter="all">Todos os Tipos</button>`;
+  types.forEach(t=>{
+    const label=state.settings[t]?.label || t;
+    items+=`<button class="filter-dropdown-item ${sectionState.filter===t?'active':''}" data-filter="${t}">${label}</button>`;
   });
-
   container.innerHTML=`
-    <button class="text-xs font-semibold text-gray-600 hover:text-green-600 flex items-center gap-1 px-2 py-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500" data-filter-trigger="${sectionKey}">
+    <button class="text-[11px] font-semibold text-emerald-700 hover:text-emerald-600 flex items-center gap-1 px-2 py-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+      data-filter-trigger="${sectionKey}">
       ${currentLabel}
       <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
@@ -490,118 +618,93 @@ function renderFilterDropdown(sectionKey, campaigns){
   `;
 }
 
-/* ========= Card Builder ========= */
-function createCampaignCard(campaign, donations, likes, listKey){
-  const settings = state.settings[campaign.type] || state.settings['default'] || { label: 'Campanha', color: 'gray' };
-  const color = ensureColor(settings.color || 'gray');
-  const colorClasses = mapColorClasses(color);
+function buildCard(campaign,donations,likes,listKey){
+  const settings=state.settings[campaign.type] || state.settings['default'] || {label:'Campanha',color:'gray'};
+  const color=ensureColor(settings.color || 'gray');
+  const cm=colorMap(color);
+  const isActive=listKey==='active';
+  const isClosed=listKey==='recent' || (campaign.expiresAt?.toDate() && campaign.expiresAt.toDate()<=new Date());
+  const baseBorder=`border ${cm.border}`;
+  const cardClasses=`campaign-card ${isClosed?'campaign-encerrada':''} ${baseBorder}`;
 
-  const isCampaignActive = listKey === 'active';
-  const isEncerrada = listKey === 'recent' || (campaign.expiresAt?.toDate() && campaign.expiresAt.toDate() <= new Date());
-  const baseBorder = `border-2 ${colorClasses.border}`;
-  const cardClasses = `campaign-card flex flex-col bg-white rounded-xl shadow-sm overflow-hidden focus:outline-none transition
-    ${isEncerrada ? 'campaign-encerrada' : 'hover:shadow-xl'} ${baseBorder}`;
-
-  // Media
+  // media
   let mediaHtml='';
-  if(!isEncerrada){
-    const mediaItems=[];
-    if(campaign.videoUrl) mediaItems.push({type:'video',src:campaign.videoUrl});
-    (campaign.images||[]).forEach(src=>mediaItems.push({type:'image',src}));
-    if(mediaItems.length===0) mediaItems.push({type:'image',src:'https://placehold.co/600x400/e2e8f0/cbd5e0?text=Sem+Imagem'});
-    mediaItems.forEach((m,i)=>{
-      if(m.type==='video'){
-        mediaHtml += `<video class="media-item ${i===0?'active':''}" data-lazy="true" muted playsinline loop preload="none"></video>
-          <link rel="preload" as="video" href="${m.src}">`;
-      } else {
-        mediaHtml += `<img class="media-item ${i===0?'active':''}" data-src="${m.src}" alt="Imagem da campanha ${campaign.title}" loading="lazy">`;
-      }
+  if(!isClosed){
+    const items=[];
+    if(campaign.videoUrl) items.push({type:'video',src:campaign.videoUrl});
+    (campaign.images||[]).forEach(src=>items.push({type:'image',src}));
+    if(!items.length) items.push({type:'image',src:'https://placehold.co/600x400/e2e8f0/cbd5e0?text=Sem+Imagem'});
+    items.forEach((m,i)=>{
+      mediaHtml += `<img class="media-item ${i===0?'active':''}" data-src="${m.src}" alt="Imagem da campanha ${campaign.title}" loading="lazy">`;
     });
   } else {
-    const first = (campaign.images && campaign.images[0]) || 'https://placehold.co/600x400/e2e8f0/cbd5e0?text=Sem+Imagem';
+    const first=(campaign.images && campaign.images[0]) || 'https://placehold.co/600x400/e2e8f0/cbd5e0?text=Sem+Imagem';
     mediaHtml = `<img class="media-item active" data-src="${first}" alt="Imagem da campanha ${campaign.title}" loading="lazy">`;
   }
 
-  // Status tag
+  // status
   let statusTag='';
-  if(campaign.status==='upcoming') statusTag='<span class="status-chip bg-blue-500 text-white">PRÓXIMA</span>';
-  else if(isCampaignActive && campaign.priority==='high') statusTag='<span class="status-chip bg-red-500 text-white urgent-badge">URGENTE</span>';
+  if(campaign.status==='upcoming') statusTag='<span class="status-chip bg-blue-600 text-white">PRÓXIMA</span>';
+  else if(isActive && campaign.priority==='high') statusTag='<span class="status-chip bg-red-600 text-white urgent-badge">URGENTE</span>';
 
-  // Countdown
+  // countdown
   let countdownHtml='';
-  if(isCampaignActive) countdownHtml = `<span id="countdown-${campaign.id}" class="bg-black/60 text-white text-[10px] font-semibold px-2 py-1 rounded-full">...</span>`;
+  if(isActive) countdownHtml=`<span id="countdown-${campaign.id}" class="bg-black/55 text-white text-[10px] font-semibold px-2 py-1 rounded-full">...</span>`;
 
-  // Goal progress
+  // goal
   let goalHtml='';
   if(campaign.goal){
-    const completedItems = donations.reduce((total,d)=> total + (d.items||[]).filter(i=>i.status==='completed').length, 0);
-    const goal = parseInt(campaign.goal,10);
-    const progress = goal>0? Math.min(100,(completedItems/goal)*100) : 0;
-    goalHtml = `
-      <div class="space-y-1">
-        <div class="flex justify-between text-[11px] font-medium text-gray-500">
-          <span>Meta</span><span>${completedItems}/${goal}</span>
+    const completed=donations.reduce((acc,d)=> acc + (d.items||[]).filter(i=>i.status==='completed').length,0);
+    const goal=parseInt(campaign.goal,10);
+    const pct= goal>0 ? Math.min(100,(completed/goal)*100) : 0;
+    goalHtml=`
+      <div class="progress-group space-y-1">
+        <div class="flex justify-between text-[11px] text-gray-500 font-medium">
+          <span>Meta</span><span>${completed}/${goal}</span>
         </div>
-        <div class="progress-bar">
-          <span style="width:${progress}%"></span>
-        </div>
+        <div class="progress-bar"><span style="width:${pct}%"></span></div>
       </div>`;
   }
 
-  // Donors with completed
-  const donorsWithCompleted = Object.values(
-    donations.reduce((acc,d)=>{
-      if(d.campaignId===campaign.id && Array.isArray(d.items) && d.items.some(i=>i.status==='completed')){
-        acc[d.donorId]=d;
-      }
-      return acc;
-    },{})
-  );
+  // donors
+  const donorsWithCompleted=Object.values(donations.reduce((acc,d)=>{
+    if(d.campaignId===campaign.id && Array.isArray(d.items) && d.items.some(i=>i.status==='completed')) acc[d.donorId]=d;
+    return acc;
+  },{}));
 
   let donorsHtml='';
-  if(donorsWithCompleted.length>0){
-    donorsHtml = donorsWithCompleted.slice(0,5).map(don=>{
-      const donorLikes = likes.filter(l => l.donorId===don.donorId && l.campaignId===campaign.id);
-      const userHasLiked = state.currentUser?.auth && donorLikes.some(l => l.likerId===state.currentUser.auth.uid);
-      const isAnonymous = don.privacy==='anonymous';
-      const photoURL = isAnonymous
-        ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A'
-        : don.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
-      const displayName = isAnonymous ? 'Anônimo' : (don.donorName||'Doador');
+  if(donorsWithCompleted.length){
+    donorsHtml=donorsWithCompleted.slice(0,5).map(d=>{
+      const dLikes=likes.filter(l=>l.donorId===d.donorId && l.campaignId===campaign.id);
+      const liked=state.currentUser?.auth && dLikes.some(l=>l.likerId===state.currentUser.auth.uid);
+      const anonymous=d.privacy==='anonymous';
+      const photo= anonymous ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A'
+                             : d.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
+      const name = anonymous ? 'Anônimo' : (d.donorName||'Doador');
       return `
         <div class="text-center flex flex-col items-center">
           <div class="donor-avatar-container">
-            <img src="${photoURL}" alt="Foto de ${displayName}" title="${displayName}"
-              class="donor-avatar inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover">
+            <img src="${photo}" alt="Foto de ${name}" title="${name}" class="donor-avatar inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover">
             <div class="star-badge" title="Entrega concluída">
-              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-              </svg>
+              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             </div>
           </div>
-          <button class="like-button mt-1 ${userHasLiked?'liked':''}" data-campaign-id="${campaign.id}" data-donor-id="${don.donorId}" aria-label="Curtir doador">
-            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
-            </svg>
-            <span class="like-count">${donorLikes.length}</span>
+          <button class="like-button mt-1 ${liked?'liked':''}" data-campaign-id="${campaign.id}" data-donor-id="${d.donorId}" aria-label="Curtir doador">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/></svg>
+            <span class="like-count">${dLikes.length}</span>
           </button>
-        </div>
-      `;
+        </div>`;
     }).join('');
     if(donorsWithCompleted.length>5){
-      donorsHtml += `<div class="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 text-gray-600 text-xs font-bold ring-2 ring-white">+${donorsWithCompleted.length-5}</div>`;
+      donorsHtml+=`<div class="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 text-gray-600 text-[11px] font-bold ring-2 ring-white">+${donorsWithCompleted.length-5}</div>`;
     }
-  } else {
-    donorsHtml = isEncerrada
-      ? '<p class="text-xs text-gray-500">Nenhum apoiador com entrega concluída.</p>'
-      : '<p class="text-xs text-green-600 font-medium">Seja o primeiro a apoiar!</p>';
+  }else{
+    donorsHtml = isClosed
+      ? '<p class="text-[11px] text-gray-500">Nenhuma entrega concluída.</p>'
+      : '<p class="text-[11px] text-emerald-600 font-medium">Seja o primeiro a apoiar!</p>';
   }
 
-  const verifiedBadgeHtml = campaign.entityVerified
-    ? `<svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-       </svg>`
-    : '';
+  const verified=campaign.entityVerified?`<svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>`:'';
 
   return `
     <article tabindex="0" data-id="${campaign.id}" class="${cardClasses}" role="button" aria-label="Campanha ${campaign.title}">
@@ -610,255 +713,180 @@ function createCampaignCard(campaign, donations, likes, listKey){
           <div class="media-skeleton"></div>
           ${mediaHtml}
         </div>
-        ${isEncerrada
-          ? `<div class="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
-               <span class="text-white text-sm font-bold uppercase tracking-wider">Encerrada</span>
-             </div>`
-          : ''
-        }
+        ${isClosed?`<div class="absolute inset-0 bg-black/55 flex items-center justify-center z-10">
+            <span class="text-white text-[11px] font-bold tracking-widest uppercase">Encerrada</span>
+          </div>`:''}
       </div>
-      <div class="p-5 flex flex-col flex-grow">
-        <div class="flex justify-between items-start gap-2 mb-2">
+      <div class="card-body">
+        <div class="top-row">
           <p class="uppercase tracking-wide text-[10px] text-gray-600 font-semibold flex items-center gap-1">
-            <span class="truncate max-w-[10rem]" title="${campaign.entityName}">${campaign.entityName}</span>
-            ${verifiedBadgeHtml}
+            <span class="truncate max-w-[8.5rem]" title="${campaign.entityName}">${campaign.entityName}</span>${verified}
           </p>
-          <span class="text-[10px] font-semibold px-2 py-1 rounded-full ${colorClasses.badgeBg} ${colorClasses.badgeText}">
-            ${settings.label}
-          </span>
+          <span class="text-[10px] font-semibold px-2 py-1 rounded-full ${cm.badgeBg} ${cm.badgeText}">${settings.label}</span>
         </div>
-        <h3 class="text-base leading-snug font-bold text-gray-900 line-clamp-2" title="${campaign.title}">
-          ${campaign.title}
-        </h3>
-        <div class="flex justify-between items-center mt-2 min-h-[20px]">
+        <h3 class="card-title" title="${campaign.title}">${campaign.title}</h3>
+        <div class="flex justify-between items-center mt-1 min-h-[20px]">
           <div>${statusTag}</div>
           <div>${countdownHtml}</div>
         </div>
-        <div class="mt-3 space-y-3 flex-grow">
-          ${goalHtml}
-        </div>
-        <div class="pt-4 mt-4 border-t border-dashed border-gray-200">
-          <h4 class="text-xs font-semibold text-gray-700 mb-3 tracking-wide uppercase">Apoiadores</h4>
-          <div class="flex flex-wrap items-end gap-x-2 gap-y-3">${donorsHtml}</div>
+        ${goalHtml}
+        <div class="pt-3 mt-auto border-t border-dashed border-gray-200">
+          <h4 class="text-[10px] font-semibold text-gray-600 mb-2 tracking-wide uppercase">Apoiadores</h4>
+          <div class="donor-strip">${donorsHtml}</div>
         </div>
       </div>
-    </article>
-  `;
+    </article>`;
 }
 
-/* ========= Dynamic Features ========= */
-function startCountdown(id, expiresAt){
+function startCountdown(id,expiresAt){
   if(!expiresAt || countdownIntervals[id]) return;
-  const el = document.getElementById(`countdown-${id}`);
-  if(!el) return;
-  function update(){
-    const dist = expiresAt.getTime() - Date.now();
-    if(dist <= 0){
-      clearInterval(countdownIntervals[id]);
-      el.textContent='Encerrada';
-      el.classList.replace('bg-black/60','bg-red-600');
-      return;
-    }
-    const d = Math.floor(dist/86400000);
-    const h = Math.floor((dist%86400000)/3600000);
-    el.textContent = d>0 ? `Encerra em: ${d}d ${h}h` : `Encerra em: ${h}h`;
+  const el=document.getElementById(`countdown-${id}`); if(!el) return;
+  function tick(){
+    const dist=expiresAt.getTime()-Date.now();
+    if(dist<=0){clearInterval(countdownIntervals[id]);el.textContent='Encerrada';el.classList.replace('bg-black/55','bg-red-600');return;}
+    const d=Math.floor(dist/86400000);
+    const h=Math.floor((dist%86400000)/3600000);
+    el.textContent = d>0?`Encerra em: ${d}d ${h}h`:`Encerra em: ${h}h`;
   }
-  update();
-  countdownIntervals[id] = setInterval(update, 60000);
+  tick(); countdownIntervals[id]=setInterval(tick,60000);
 }
 
-function startMediaSlideshow(id){
+function startSlideshow(id){
   if(slideshowIntervals[id]) return;
-  const card = document.querySelector(`[data-id="${id}"]`);
-  if(!card) return;
-  const items = card.querySelectorAll('.media-item');
-  if(items.length <= 1) return;
-  let idx = 0;
-  slideshowIntervals[id] = setInterval(()=>{
+  const card=document.querySelector(`[data-id="${id}"]`); if(!card) return;
+  const items=card.querySelectorAll('.media-item');
+  if(items.length<=1) return;
+  let idx=0;
+  slideshowIntervals[id]=setInterval(()=>{
     if(document.hidden) return;
     items[idx].classList.remove('active');
-    idx = (idx+1)%items.length;
+    idx=(idx+1)%items.length;
     items[idx].classList.add('active');
-  }, 5000);
+  },5000);
 }
 
-/* Lazy image load */
-function applyLazyLoading(nodeList){
-  if(!('IntersectionObserver' in window)) return; // fallback browser loads by default
-  const io = new IntersectionObserver(entries=>{
+function lazyLoadImages(nodeList){
+  if(!('IntersectionObserver' in window)) return;
+  const io=new IntersectionObserver(entries=>{
     entries.forEach(ent=>{
       if(ent.isIntersecting){
-        const img = ent.target;
-        if(img.dataset.src){
-          img.src = img.dataset.src;
-          img.removeAttribute('data-src');
-        }
+        const img=ent.target;
+        if(img.dataset.src){img.src=img.dataset.src;img.removeAttribute('data-src');}
         io.unobserve(img);
       }
     });
-  }, { rootMargin:'150px' });
+  },{rootMargin:'150px'});
   nodeList.forEach(img=> io.observe(img));
 }
 
-/* ========= Events ========= */
-function setupGlobalEvents(){
-  // Card / like / accordion / filter interactions
-  document.addEventListener('click', (e)=>{
-    const likeBtn = e.target.closest('.like-button');
-    const card    = e.target.closest('.campaign-card');
-    const filterTrigger = e.target.closest('[data-filter-trigger]');
-    const filterItem    = e.target.closest('.filter-dropdown-item');
-    const accordionBtn  = e.target.closest('.accordion-header');
+/* ---------- Events ---------- */
+function setupEvents(){
+  document.addEventListener('click',e=>{
+    const like=e.target.closest('.like-button');
+    const card=e.target.closest('.campaign-card');
+    const filterTrigger=e.target.closest('[data-filter-trigger]');
+    const filterItem=e.target.closest('.filter-dropdown-item');
+    const accordionBtn=e.target.closest('.accordion-header');
 
-    if(filterTrigger){
-      const key = filterTrigger.dataset.filterTrigger;
-      toggleFilterMenu(key);
-      return;
-    }
+    if(filterTrigger){toggleFilterMenu(filterTrigger.dataset.filterTrigger);return;}
     if(filterItem){
-      const menu = filterItem.closest('.filter-dropdown-menu');
-      const sectionKey = menu.id.replace('filter-menu-','');
-      setFilter(sectionKey, filterItem.dataset.filter);
+      const menu=filterItem.closest('.filter-dropdown-menu');
+      const key=menu.id.replace('filter-menu-','');
+      setFilter(key,filterItem.dataset.filter);
       return;
     }
-    if(accordionBtn){
-      toggleAccordion(accordionBtn);
-      return;
-    }
-    if(likeBtn){
-      e.stopPropagation();
-      handleLikeClick(likeBtn);
-      return;
-    }
-    if(card){
-      handleCardClick(card);
-    }
-    // Click outside dropdowns closes
+    if(accordionBtn){toggleAccordion(accordionBtn);return;}
+    if(like){e.stopPropagation();handleLikeClick(like);return;}
+    if(card){handleCardClick(card);return;}
     if(!e.target.closest('.filter-dropdown-container')){
-      document.querySelectorAll('.filter-dropdown-menu').forEach(m=> m.style.display='none');
+      document.querySelectorAll('.filter-dropdown-menu').forEach(m=>m.style.display='none');
     }
   });
 
-  document.getElementById('fab-scroll-top')?.addEventListener('click', ()=>{
-    window.scrollTo({top:0,behavior:'smooth'});
-  });
-  document.getElementById('fab-refresh')?.addEventListener('click', ()=>{
-    showToast('Atualizando...', 'success', 1200);
-    renderAllSections();
-  });
-
-  window.addEventListener('resize', enableFabIfMobile);
+  document.getElementById('fab-scroll-top')?.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  document.getElementById('fab-refresh')?.addEventListener('click',()=>{showToast('Atualizando...','success',1200);renderAll();});
+  window.addEventListener('resize',enableFabIfMobile);
 }
 
 function enableFabIfMobile(){
   const fab=document.getElementById('fab-bar-home');
-  if(window.innerWidth<=640){
-    fab.style.display='flex';
-    document.body.classList.add('has-fab-bottom');
-  } else {
-    fab.style.display='none';
-    document.body.classList.remove('has-fab-bottom');
-  }
+  if(window.innerWidth<=640){fab.style.display='flex';document.body.classList.add('has-fab-bottom');}
+  else {fab.style.display='none';document.body.classList.remove('has-fab-bottom');}
 }
 
-/* ========= Actions ========= */
-async function handleLikeClick(likeButton){
-  if(!state.currentUser?.auth){
-    showAlertModal("Ação necessária","Você precisa estar logado para curtir.");
-    return;
-  }
-  if(!state.currentUser.isVerified){
-    showAlertModal("Verifique seu E-mail","Você precisa verificar seu e-mail para poder curtir.");
-    return;
-  }
-  const { campaignId, donorId } = likeButton.dataset;
-  const likerId = state.currentUser.auth.uid;
-  const likeDocRef = doc(db, paths.likeDoc(`${campaignId}_${donorId}_${likerId}`));
-
+/* ---------- Actions ---------- */
+async function handleLikeClick(btn){
+  if(!state.currentUser?.auth){showAlertModal('Ação necessária','Faça login para curtir.');return;}
+  if(!state.currentUser.isVerified){showAlertModal('Verifique seu e-mail','Verifique seu e-mail para curtir.');return;}
+  const {campaignId,donorId}=btn.dataset;
+  const likerId=state.currentUser.auth.uid;
+  const ref=doc(db, paths.likeDoc(`${campaignId}_${donorId}_${likerId}`));
   try{
-    if(likeButton.classList.contains('liked')){
-      await deleteDoc(likeDocRef);
-    } else {
-      await setDoc(likeDocRef,{
-        campaignId, donorId, likerId,
-        likerName: state.currentUser.profile.displayName || 'Usuário',
-        likerPhotoURL: state.currentUser.profile.photoURL || null,
-        createdAt: serverTimestamp()
-      });
-    }
+    if(btn.classList.contains('liked')) await deleteDoc(ref);
+    else await setDoc(ref,{
+      campaignId,donorId,likerId,
+      likerName:state.currentUser.profile.displayName || 'Usuário',
+      likerPhotoURL:state.currentUser.profile.photoURL || null,
+      createdAt:serverTimestamp()
+    });
   }catch(err){
-    console.error('Erro like:',err);
+    console.error(err);
     showAlertModal('Erro','Não foi possível registrar sua curtida.');
   }
 }
 
 function handleCardClick(card){
   if(!state.currentUser?.auth){
-    showAlertModal("Acesso Restrito","Você precisa estar logado para ver os detalhes da campanha.");
+    showAlertModal('Acesso Restrito','Faça login para ver os detalhes.');
     return;
   }
   const id=card.dataset.id;
   if(id) window.location.href=`detalhes.html?id=${id}`;
 }
 
-/* ========= Accordion ========= */
-function toggleAccordion(headerEl){
-  headerEl.classList.toggle('active');
-  const panel = headerEl.nextElementSibling;
+/* ---------- Accordion & Filter (exported) ---------- */
+function toggleAccordion(header){
+  header.classList.toggle('active');
+  const panel=header.nextElementSibling;
   if(!panel) return;
   if(panel.style.maxHeight){
     panel.style.maxHeight=null;
-  } else {
-    // close others (optional)
+  }else{
     document.querySelectorAll('.accordion-header').forEach(h=>{
-      if(h!==headerEl){
-        h.classList.remove('active');
-        const p = h.nextElementSibling;
-        if(p) p.style.maxHeight=null;
-      }
+      if(h!==header){h.classList.remove('active');const p=h.nextElementSibling;p&&(p.style.maxHeight=null);}
     });
-    requestAnimationFrame(()=> panel.style.maxHeight = panel.scrollHeight+'px');
+    requestAnimationFrame(()=>panel.style.maxHeight=panel.scrollHeight+'px');
   }
 }
-
-/* ========= Filter Menu ========= */
-function toggleFilterMenu(sectionKey){
-  const menu=document.getElementById(`filter-menu-${sectionKey}`);
-  if(!menu) return;
+function toggleFilterMenu(key){
+  const menu=document.getElementById(`filter-menu-${key}`); if(!menu) return;
   const visible=menu.style.display==='block';
-  document.querySelectorAll('.filter-dropdown-menu').forEach(m=> m.style.display='none');
-  menu.style.display = visible? 'none' : 'block';
-  if(!visible){
-    // Focus first item for accessibility
-    setTimeout(()=> menu.querySelector('.filter-dropdown-item')?.focus(),40);
-  }
+  document.querySelectorAll('.filter-dropdown-menu').forEach(m=>m.style.display='none');
+  menu.style.display=visible?'none':'block';
+  if(!visible) setTimeout(()=>menu.querySelector('.filter-dropdown-item')?.focus(),40);
+}
+function setFilter(key,val){
+  state.sections[key].filter=val;
+  state.sections[key].visibleCount=ITEMS_PER_PAGE;
+  renderAll();
+  const menu=document.getElementById(`filter-menu-${key}`); if(menu) menu.style.display='none';
+  showToast('Filtro aplicado','success',1400);
+}
+function loadMore(key){
+  state.sections[key].visibleCount+=ITEMS_PER_PAGE;
+  renderAll();
 }
 
-function setFilter(sectionKey, filterValue){
-  state.sections[sectionKey].filter = filterValue;
-  state.sections[sectionKey].visibleCount = ITEMS_PER_PAGE;
-  renderAllSections();
-  const menu = document.getElementById(`filter-menu-${sectionKey}`);
-  if(menu) menu.style.display='none';
-  showToast('Filtro aplicado','success',1500);
-}
+/* ---------- Export to window for legacy onclick (if any remains) ---------- */
+window.loadMore=loadMore;
+window.setFilter=setFilter;
+window.toggleAccordion=toggleAccordion;
+window.toggleFilterMenu=toggleFilterMenu;
 
-/* ========= Pagination ========= */
-function loadMore(sectionKey){
-  state.sections[sectionKey].visibleCount += ITEMS_PER_PAGE;
-  renderAllSections();
-}
-
-/* ========= Expose to window (legacy handlers) ========= */
-window.loadMore = loadMore;
-window.setFilter = setFilter;
-window.toggleAccordion = toggleAccordion;
-window.toggleFilterMenu = toggleFilterMenu;
-
-/* ========= Start ========= */
+/* ---------- Start ---------- */
 initializeApp();
 
-/* ========= Service Worker (PWA) ========= */
+/* ---------- Service Worker ---------- */
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('service-worker.js').catch(console.error);
 }
