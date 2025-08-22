@@ -29,6 +29,7 @@ body { font-family:'Inter',sans-serif; }
 .schedule-slot:disabled { background:#e5e7eb; color:#9ca3af; cursor:not-allowed; }
 .fade-in {animation:fadeIn .18s ease-out;}
 @keyframes fadeIn {from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+.code-chip { display:inline-flex; align-items:center; gap:.4rem; background:#1e293b; color:#f8fafc; padding:.35rem .6rem; border-radius:.6rem; font-family:ui-monospace,Consolas,"Liberation Mono",Menlo,monospace; font-weight:600; letter-spacing:.5px; font-size:.75rem; }
 </style>
 </head>
 <body class="bg-gray-50">
@@ -73,6 +74,9 @@ body { font-family:'Inter',sans-serif; }
                     <form id="add-item-form" class="space-y-4 mt-3" autocomplete="off">
                         <div id="dynamic-fields-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
                     </form>
+                    <div class="text-[11px] text-gray-500 mt-2">
+                        Dica: tire uma foto clara do item para facilitar a confirmação na entrega.
+                    </div>
                     <div id="add-item-error" class="text-red-600 text-sm font-semibold mt-3"></div>
                     <button id="add-item-btn" class="mt-4 w-full bg-blue-600 text-white font-semibold py-3 px-5 rounded-lg hover:bg-blue-700 transition-colors btn-touch">Adicionar Item à Lista</button>
                 </div>
@@ -113,7 +117,11 @@ body { font-family:'Inter',sans-serif; }
 
         <div id="offline-banner" class="hidden mt-6 p-3 rounded-md bg-yellow-50 text-yellow-700 text-sm font-medium flex items-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z"/></svg>
-            Você está offline. Os itens serão sincronizados quando voltar a conexão.
+            Você está offline. Seus itens serão sincronizados quando a conexão voltar.
+        </div>
+
+        <div class="mt-6 text-xs text-gray-500 leading-4 bg-gray-50 p-4 rounded-lg border">
+            Após confirmar, um código único numérico será gerado para cada item (ex: ABC-000123). Caso não consiga imprimir a etiqueta, escreva o código claramente no item.
         </div>
 
         <div id="form-error" class="text-red-600 text-center font-semibold mt-8" aria-live="assertive"></div>
@@ -134,11 +142,9 @@ body { font-family:'Inter',sans-serif; }
             <div id="app-modal-content" class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full fade-in">
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
-                        <div id="modal-icon-wrapper" class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
-                                 viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        <div id="modal-icon-wrapper" class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
                             </svg>
                         </div>
                         <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
@@ -149,7 +155,7 @@ body { font-family:'Inter',sans-serif; }
                         </div>
                     </div>
                 </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
+                <div id="modal-buttons" class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse"></div>
             </div>
         </div>
     </div>
@@ -157,8 +163,8 @@ body { font-family:'Inter',sans-serif; }
 
 <!-- FAB mobile -->
 <div class="fab-bar" id="fab-bar" style="display:none;">
-    <button id="fab-add-item" class="bg-blue-600 text-white">+ Item</button>
-    <button id="fab-go-schedule" class="bg-green-600 text-white">Agendar</button>
+  <button id="fab-add-item" class="bg-blue-600 text-white">+ Item</button>
+  <button id="fab-go-schedule" class="bg-green-600 text-white">Agendar</button>
 </div>
 
 <!-- Toasts -->
@@ -202,654 +208,650 @@ let existingAppointments = {};
 let campaignTypeSettings = {};
 let campaignTypePrefix = 'GEN';
 
-window.donatedItems = donatedItems; // usado para beforeunload
+window.donatedItems = donatedItems;
 
 function showToast(message, type='success', ttl=3500){
-    const c = document.getElementById('toast-container');
-    const el = document.createElement('div');
-    el.className = `toast ${type}`;
-    el.innerHTML = `<span>${message}</span>`;
-    c.appendChild(el);
-    setTimeout(()=> {
-        el.style.opacity='0';
-        setTimeout(()=> el.remove(), 400);
-    }, ttl);
+  const c=document.getElementById('toast-container');
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span>${message}</span>`;
+  c.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>el.remove(),400); }, ttl);
 }
 
-window.addEventListener('message', (e) => {
-    const data = e.data;
-    if (!data || !data.type) return;
-    if (data.type === 'toast') {
-        showToast(data.message, data.status === 'success' ? 'success' : 'error');
-    }
-});
-
-function updateOnlineStatus(){
-    if (!navigator.onLine) {
-        offlineBanner.classList.remove('hidden');
-    } else {
-        offlineBanner.classList.add('hidden');
-    }
+function announce(msg){
+  const reg=document.getElementById('global-aria-live');
+  if(!reg) return;
+  reg.textContent='';
+  setTimeout(()=>reg.textContent=msg,40);
 }
+
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
+function updateOnlineStatus(){
+  if(!navigator.onLine){
+    offlineBanner.classList.remove('hidden');
+  } else {
+    offlineBanner.classList.add('hidden');
+  }
+}
 updateOnlineStatus();
 
 function enableFab(){
-    const fab = document.getElementById('fab-bar');
-    if (window.innerWidth <= 640) {
-        fab.style.display='flex';
-        document.body.classList.add('has-fab-bottom-padding');
-    } else {
-        fab.style.display='none';
-        document.body.classList.remove('has-fab-bottom-padding');
-    }
+  const fab=document.getElementById('fab-bar');
+  if(window.innerWidth <= 640){
+    fab.style.display='flex';
+    document.body.classList.add('has-fab-bottom-padding');
+  } else {
+    fab.style.display='none';
+    document.body.classList.remove('has-fab-bottom-padding');
+  }
 }
 window.addEventListener('resize', enableFab);
-
 document.getElementById('fab-add-item').addEventListener('click', () => {
-    document.querySelector('#add-item-container')?.scrollIntoView({behavior:'smooth'});
+  document.querySelector('#add-item-container')?.scrollIntoView({behavior:'smooth'});
 });
-
 document.getElementById('fab-go-schedule').addEventListener('click', () => {
-    document.querySelector('#schedule-section-anchor')?.scrollIntoView({behavior:'smooth'});
+  document.querySelector('#schedule-section-anchor')?.scrollIntoView({behavior:'smooth'});
 });
-
 document.getElementById('scroll-to-add').addEventListener('click', () => {
-    document.querySelector('#add-item-container')?.scrollIntoView({behavior:'smooth'});
+  document.querySelector('#add-item-container')?.scrollIntoView({behavior:'smooth'});
 });
 
 function updateItemsCounter(){
-    if (donatedItems.length === 0) {
-        itemsCounterBadge.hidden = true;
-    } else {
-        itemsCounterBadge.hidden = false;
-        itemsCounterText.textContent = donatedItems.length === 1 ? '1 item' : `${donatedItems.length} itens`;
-    }
+  if(donatedItems.length===0){
+    itemsCounterBadge.hidden=true;
+  } else {
+    itemsCounterBadge.hidden=false;
+    itemsCounterText.textContent = donatedItems.length === 1 ? '1 item' : `${donatedItems.length} itens`;
+  }
 }
 
 async function initializeApp() {
-    const canProceed = await injectHeader();
-    if (!canProceed) { return; }
-    currentUserSession = await getCurrentUser();
-    if (!currentUserSession) {
-        window.location.href='login.html';
-        return;
+  const canProceed = await injectHeader();
+  if (!canProceed) { return; }
+  currentUserSession = await getCurrentUser();
+  if (!currentUserSession) {
+    window.location.href='login.html';
+    return;
+  }
+  const params = new URLSearchParams(window.location.search);
+  campaignId = params.get('id');
+  isRescheduleMode = params.has('reschedule');
+  if (!campaignId) {
+    loadingView.innerHTML = '<p class="text-red-500">Erro: ID da campanha não encontrado.</p>';
+    return;
+  }
+  if (isRescheduleMode) {
+    const data = localStorage.getItem('rescheduleData');
+    if (!data) {
+      showAlertModal('Erro','Dados de reagendamento não encontrados.').then(()=>window.location.href='minhas-entregas.html');
+      return;
     }
-    const params = new URLSearchParams(window.location.search);
-    campaignId = params.get('id');
-    isRescheduleMode = params.has('reschedule');
-    if (!campaignId) {
-        loadingView.innerHTML = '<p class="text-red-500">Erro: ID da campanha não encontrado.</p>';
-        return;
-    }
-    if (isRescheduleMode) {
-        const data = localStorage.getItem('rescheduleData');
-        if (!data) {
-            showAlertModal('Erro','Dados de reagendamento não encontrados.').then(()=>window.location.href='minhas-entregas.html');
-            return;
-        }
-        rescheduleData = JSON.parse(data);
-        setupRescheduleMode();
-    }
-    await loadInitialData();
-    enableFab();
+    rescheduleData = JSON.parse(data);
+    setupRescheduleMode();
+  }
+  await loadInitialData();
+  enableFab();
 }
 
 function setupRescheduleMode() {
-    document.title = "Reagendar Entrega - Faz Bem";
-    document.getElementById('items-section-title').textContent = "1. Itens para Reagendar";
-    document.getElementById('schedule-section-title').textContent = "2. Escolha a Nova Data de Entrega";
-    document.getElementById('submit-btn-text').textContent = "Confirmar Reagendamento";
-    document.getElementById('add-item-container').classList.add('hidden');
-    document.getElementById('privacy-section').classList.add('hidden');
-    donatedItems = rescheduleData.items;
-    window.donatedItems = donatedItems;
-    renderDonatedItems(true);
-    updateItemsCounter();
+  document.title = "Reagendar Entrega - Faz Bem";
+  document.getElementById('items-section-title').textContent = "1. Itens para Reagendar";
+  document.getElementById('schedule-section-title').textContent = "2. Escolha a Nova Data de Entrega";
+  document.getElementById('submit-btn-text').textContent = "Confirmar Reagendamento";
+  document.getElementById('add-item-container').classList.add('hidden');
+  document.getElementById('privacy-section').classList.add('hidden');
+  donatedItems = rescheduleData.items;
+  window.donatedItems = donatedItems;
+  renderDonatedItems(true);
+  updateItemsCounter();
 }
 
 async function loadInitialData() {
-    try {
-        const campaignRef = doc(db, paths.campaignDoc(campaignId));
-        const campaignSnap = await getDoc(campaignRef);
-        if (!campaignSnap.exists()) throw new Error("Campanha não encontrada.");
-        campaignData = campaignSnap.data();
+  try {
+    const campaignRef = doc(db, paths.campaignDoc(campaignId));
+    const campaignSnap = await getDoc(campaignRef);
+    if (!campaignSnap.exists()) throw new Error("Campanha não encontrada.");
+    campaignData = campaignSnap.data();
 
-        const appointmentsQuery = query(
-            collection(db, paths.donations),
-            where("campaignId","==",campaignId),
-            where("status","==","scheduled")
-        );
-        const appointmentsSnapshot = await getDocs(appointmentsQuery);
-        existingAppointments = {};
-        appointmentsSnapshot.forEach(d => {
-            const scheduledAt = d.data().scheduledAt.toDate().getTime();
-            existingAppointments[scheduledAt] = (existingAppointments[scheduledAt]||0)+1;
-        });
+    const appointmentsQuery = query(
+      collection(db, paths.donations),
+      where("campaignId","==",campaignId),
+      where("status","==","scheduled")
+    );
+    const appointmentsSnapshot = await getDocs(appointmentsQuery);
+    existingAppointments = {};
+    appointmentsSnapshot.forEach(d => {
+      const scheduledAt = d.data().scheduledAt.toDate().getTime();
+      existingAppointments[scheduledAt] = (existingAppointments[scheduledAt]||0)+1;
+    });
 
-        const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
-        campaignTypeSettings = typesSnap.exists()? typesSnap.data() : {};
-        campaignTypePrefix = resolveCampaignTypePrefix(campaignData.type);
+    const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
+    campaignTypeSettings = typesSnap.exists()? typesSnap.data() : {};
+    campaignTypePrefix = resolveCampaignTypePrefix(campaignData.type);
 
-        populateCampaignHeader();
-        if (!isRescheduleMode) {
-            renderDynamicFields(campaignData.type);
-        }
-        generateScheduleDays();
-        loadingView.classList.add('hidden');
-        donationView.classList.remove('hidden');
-    } catch (err) {
-        console.error("Erro fatal no carregamento inicial:", err);
-        loadingView.innerHTML = `<p class="text-red-500 text-center p-8">${err.message}.</p>`;
+    populateCampaignHeader();
+    if (!isRescheduleMode) {
+      renderDynamicFields(campaignData.type);
     }
+    generateScheduleDays();
+    loadingView.classList.add('hidden');
+    donationView.classList.remove('hidden');
+  } catch (err) {
+    console.error("Erro fatal no carregamento inicial:", err);
+    loadingView.innerHTML = `<p class="text-red-500 text-center p-8">${err.message}.</p>`;
+  }
 }
 
 function resolveCampaignTypePrefix(campaignType){
-    const typeData = campaignTypeSettings[campaignType];
-    if (typeData?.prefix && /^[A-Z]{3}$/.test(typeData.prefix)) return typeData.prefix;
-    return (campaignType || 'GEN').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3).padEnd(3,'X');
+  const typeData = campaignTypeSettings[campaignType];
+  if (typeData?.prefix && /^[A-Z]{3}$/.test(typeData.prefix)) return typeData.prefix;
+  return (campaignType || 'GEN').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3).padEnd(3,'X');
 }
 
 function renderDynamicFields(campaignType){
-    dynamicFieldsContainer.innerHTML='';
-    const typeConfig = campaignTypeSettings[campaignType];
-    if (!typeConfig || !typeConfig.fields) return;
-    const fieldsArray = Array.isArray(typeConfig.fields)? typeConfig.fields : Object.values(typeConfig.fields);
-    const fields = fieldsArray.filter(f=>f.active!==false).sort((a,b)=>(a.order||0)-(b.order||0));
-    fields.forEach(field=>{
-        if(!field.id?.trim()) return;
-        const requiredStar = field.required? '<span class="text-red-500">*</span>' : '';
-        const label = `<label for="field-${field.id}" class="block text-sm font-medium text-gray-700">${field.label} ${requiredStar}</label>`;
-        const required = field.required ? 'required' : '';
-        let html='';
-        switch(field.type){
-            case 'text':
-                html=`<div class="col-span-1 sm:col-span-2">${label}<input type="text" id="field-${field.id}" name="${field.id}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" autocomplete="off"></div>`;
-                break;
-            case 'select':
-                const opts=(field.options||[]).map(o=>`<option value="${o}">${o}</option>`).join('');
-                html=`<div class="col-span-1">${label}<select id="field-${field.id}" name="${field.id}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"><option value="">Selecione...</option>${opts}</select></div>`;
-                break;
-            case 'date':
-                html=`<div class="col-span-1">${label}<input type="date" id="field-${field.id}" name="${field.id}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>`;
-                break;
-            case 'image':
-            case 'camera':
-            case 'video':
-                const isCamera = field.type === 'camera';
-                const accept = isCamera ? 'image/*' : (field.type === 'image' ? 'image/*' : 'video/*');
-                const capture = isCamera ? 'capture="environment"' : '';
-                html=`<div class="col-span-1 sm:col-span-2">${label}
-                    <label class="mt-1 flex justify-center items-center w-full px-4 py-3 bg-white text-blue-500 rounded-lg shadow-sm tracking-wide uppercase border border-blue-500 cursor-pointer hover:bg-blue-500 hover:text-white transition-colors">
-                        <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M16.88 9.1A4 4 0 0 1 16 17H5a5 5 0 0 1-1-9.9V7a3 3 0 0 1 4.52-2.59A4.98 4.98 0 0 1 17 8c0 .38-.04.74-.12 1.1zM11 11h3l-4 4-4-4h3V9h2v2z"/></svg>
-                        <span id="file-label-${field.id}" class="text-sm leading-normal">Selecionar ficheiro</span>
-                        <input type="file" id="field-${field.id}" name="${field.id}" ${required} accept="${accept}" ${capture} class="hidden"
-                            onchange="document.getElementById('file-label-${field.id}').textContent = this.files[0] ? this.files[0].name : 'Selecionar ficheiro';">
-                    </label>
-                </div>`;
-                break;
-        }
-        dynamicFieldsContainer.innerHTML += html;
-    });
+  dynamicFieldsContainer.innerHTML='';
+  const typeConfig = campaignTypeSettings[campaignType];
+  if (!typeConfig || !typeConfig.fields) return;
+  const fieldsArray = Array.isArray(typeConfig.fields)? typeConfig.fields : Object.values(typeConfig.fields);
+  const fields = fieldsArray.filter(f=>f.active!==false).sort((a,b)=>(a.order||0)-(b.order||0));
+  fields.forEach(field=>{
+    if(!field.id?.trim()) return;
+    const requiredStar = field.required? '<span class="text-red-500">*</span>' : '';
+    const label = `<label for="field-${field.id}" class="block text-sm font-medium text-gray-700">${field.label} ${requiredStar}</label>`;
+    const required = field.required ? 'required' : '';
+    let html='';
+    switch(field.type){
+      case 'text':
+        html=`<div class="col-span-1 sm:col-span-2">${label}<input type="text" id="field-${field.id}" name="${field.id}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" autocomplete="off"></div>`;
+        break;
+      case 'select':
+        const opts=(field.options||[]).map(o=>`<option value="${o}">${o}</option>`).join('');
+        html=`<div class="col-span-1">${label}<select id="field-${field.id}" name="${field.id}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"><option value="">Selecione...</option>${opts}</select></div>`;
+        break;
+      case 'date':
+        html=`<div class="col-span-1">${label}<input type="date" id="field-${field.id}" name="${field.id}" ${required} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div>`;
+        break;
+      case 'image':
+      case 'camera':
+      case 'video':
+        const isCamera = field.type === 'camera';
+        const accept = isCamera ? 'image/*' : (field.type === 'image' ? 'image/*' : 'video/*');
+        const capture = isCamera ? 'capture="environment"' : '';
+        html=`<div class="col-span-1 sm:col-span-2">${label}
+          <label class="mt-1 flex justify-center items-center w-full px-4 py-3 bg-white text-blue-500 rounded-lg shadow-sm tracking-wide uppercase border border-blue-500 cursor-pointer hover:bg-blue-500 hover:text-white transition-colors">
+            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M16.88 9.1A4 4 0 0 1 16 17H5a5 5 0 0 1-1-9.9V7a3 3 0 0 1 4.52-2.59A4.98 4.98 0 0 1 17 8c0 .38-.04.74-.12 1.1zM11 11h3l-4 4-4-4h3V9h2v2z"/></svg>
+            <span id="file-label-${field.id}" class="text-sm leading-normal">Selecionar ficheiro</span>
+            <input type="file" id="field-${field.id}" name="${field.id}" ${required} accept="${accept}" ${capture} class="hidden"
+              onchange="document.getElementById('file-label-${field.id}').textContent = this.files[0] ? this.files[0].name : 'Selecionar ficheiro';">
+          </label>
+        </div>`;
+        break;
+    }
+    dynamicFieldsContainer.innerHTML += html;
+  });
 }
 
 function renderDonatedItems(isReschedule=false){
-    donatedItemsList.innerHTML='';
-    if(donatedItems.length===0){
-        donatedItemsList.appendChild(noItemsPlaceholder);
-        updateItemsCounter();
-        return;
-    }
-    donatedItems.forEach((item,index)=>{
-        const el=document.createElement('div');
-        el.className='flex items-start space-x-4 bg-gray-50 p-3 rounded-lg border';
-        let photoSrc='https://placehold.co/64x64/e2e8f0/cbd5e0?text=Item';
-        if(isReschedule){
-            if(item.photoURL) photoSrc=item.photoURL;
-        } else if(item.mainPhotoFile){
-            photoSrc=URL.createObjectURL(item.mainPhotoFile);
-        }
-        const fieldsConfig=(Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
-            ? campaignTypeSettings[campaignData.type].fields
-            : Object.values(campaignTypeSettings[campaignData.type]?.fields || []))
-            .filter(f=>f.active!==false)
-            .sort((a,b)=>(a.order||0)-(b.order||0));
-
-        let title='Item Adicionado';
-        let details='';
-        const dataRef=isReschedule? item : item.customFields;
-        if(fieldsConfig.length){
-            const firstKey=fieldsConfig[0].id;
-            if(dataRef[firstKey]) title=dataRef[firstKey];
-            fieldsConfig.forEach(fc=>{
-                if(!fc.id || fc.id===firstKey) return;
-                const val=dataRef[fc.id];
-                if(!val) return;
-                const display=(val instanceof File)? val.name : val;
-                details+=`<div class="text-xs text-gray-500"><span class="font-medium text-gray-700">${fc.label}:</span> ${display}</div>`;
-            });
-        }
-        el.innerHTML=`
-            <img src="${photoSrc}" class="w-16 h-16 rounded-md object-cover flex-shrink-0">
-            <div class="flex-grow space-y-1">
-                <p class="font-bold">${title}</p>
-                ${details}
-            </div>
-            ${!isReschedule? `<button data-index="${index}" class="remove-item-btn text-red-500 hover:text-red-700 font-semibold flex-shrink-0">Remover</button>`:''}
-        `;
-        donatedItemsList.appendChild(el);
-    });
+  donatedItemsList.innerHTML='';
+  if(donatedItems.length===0){
+    donatedItemsList.appendChild(noItemsPlaceholder);
     updateItemsCounter();
+    return;
+  }
+  donatedItems.forEach((item,index)=>{
+    const el=document.createElement('div');
+    el.className='flex items-start space-x-4 bg-gray-50 p-3 rounded-lg border';
+    let photoSrc='https://placehold.co/64x64/e2e8f0/cbd5e0?text=Item';
+    if(isReschedule){
+      if(item.photoURL) photoSrc=item.photoURL;
+    } else if(item.mainPhotoFile){
+      photoSrc=URL.createObjectURL(item.mainPhotoFile);
+    }
+    const fieldsConfig=(Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
+      ? campaignTypeSettings[campaignData.type].fields
+      : Object.values(campaignTypeSettings[campaignData.type]?.fields || []))
+      .filter(f=>f.active!==false)
+      .sort((a,b)=>(a.order||0)-(b.order||0));
+
+    let title='Item Adicionado';
+    let details='';
+    const dataRef=isReschedule? item : item.customFields;
+    if(fieldsConfig.length){
+      const firstKey=fieldsConfig[0].id;
+      if(dataRef[firstKey]) title=dataRef[firstKey];
+      fieldsConfig.forEach(fc=>{
+        if(!fc.id || fc.id===firstKey) return;
+        const val=dataRef[fc.id];
+        if(!val) return;
+        const display=(val instanceof File)? val.name : val;
+        details+=`<div class="text-xs text-gray-500"><span class="font-medium text-gray-700">${fc.label}:</span> ${display}</div>`;
+      });
+    }
+    el.innerHTML=`
+      <img src="${photoSrc}" class="w-16 h-16 rounded-md object-cover flex-shrink-0">
+      <div class="flex-grow space-y-1">
+        <p class="font-bold">${title}</p>
+        ${details}
+      </div>
+      ${!isReschedule? `<button data-index="${index}" class="remove-item-btn text-red-500 hover:text-red-700 font-semibold flex-shrink-0">Remover</button>`:''}
+    `;
+    donatedItemsList.appendChild(el);
+  });
+  updateItemsCounter();
 }
 
 function populateCampaignHeader(){
-    const actionText=isRescheduleMode? "Você está reagendando para:" : "Você está doando para:";
-    campaignHeader.innerHTML=`
-        <img src="${campaignData.images?.[0] || 'https://placehold.co/100x100/e2e8f0/e2e8f0'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
+  const actionText=isRescheduleMode? "Você está reagendando para:" : "Você está doando para:";
+  campaignHeader.innerHTML=`
+    <img src="${campaignData.images?.[0] || 'https://placehold.co/100x100/e2e8f0/e2e8f0'}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
+    <div>
+      <p class="text-sm text-gray-500">${actionText}</p>
+      <h2 class="text-2xl font-bold text-gray-800">${campaignData.title}</h2>
+      <p class="text-sm font-medium text-gray-600">Organizado por: ${campaignData.entityName}</p>
+    </div>`;
+
+  if(campaignData.deliveryAddress){
+    const addr=campaignData.deliveryAddress;
+    deliveryAddressView.innerHTML=`
+      <div class="flex items-start space-x-3">
+        <div class="flex-shrink-0">
+          <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0L6.343 16.657a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </div>
         <div>
-            <p class="text-sm text-gray-500">${actionText}</p>
-            <h2 class="text-2xl font-bold text-gray-800">${campaignData.title}</h2>
-            <p class="text-sm font-medium text-gray-600">Organizado por: ${campaignData.entityName}</p>
-        </div>`;
-    if(campaignData.deliveryAddress){
-        const addr=campaignData.deliveryAddress;
-        deliveryAddressView.innerHTML=`
-            <div class="flex items-start space-x-3">
-                <div class="flex-shrink-0">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0L6.343 16.657a8 8 0 1111.314 0z"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="text-md font-bold text-gray-800">Local de Entrega</h3>
-                    <p class="text-sm text-gray-600 mt-1">
-                        ${addr.logradouro || ''}, ${addr.numero || 'S/N'}<br>
-                        ${addr.bairro || ''}, ${addr.cidade || ''} - ${addr.estado || ''}<br>
-                        CEP: ${addr.cep || ''}
-                        ${addr.complemento ? `<br>Complemento: ${addr.complemento}`:''}
-                        ${addr.telefone ? `<br>Contato: ${addr.telefone}`:''}
-                    </p>
-                </div>
-            </div>`;
-        deliveryAddressView.classList.remove('hidden');
-    }
+          <h3 class="text-md font-bold text-gray-800">Local de Entrega</h3>
+          <p class="text-sm text-gray-600 mt-1">
+            ${addr.logradouro || ''}, ${addr.numero || 'S/N'}<br>
+            ${addr.bairro || ''}, ${addr.cidade || ''} - ${addr.estado || ''}<br>
+            CEP: ${addr.cep || ''}
+            ${addr.complemento ? `<br>Complemento: ${addr.complemento}`:''}
+            ${addr.telefone ? `<br>Contato: ${addr.telefone}`:''}
+          </p>
+        </div>
+      </div>`;
+    deliveryAddressView.classList.remove('hidden');
+  }
 }
 
 function generateScheduleDays(){
-    scheduleDateSelect.innerHTML='<option value="">Carregando...</option>';
-    const dates=Object.keys(campaignData.disponibilidade || {}).sort();
-    const now=new Date(); now.setHours(0,0,0,0);
-    let html='<option value="">Selecione uma data</option>';
-    let count=0;
-    dates.forEach(ds=>{
-        const date=new Date(ds+'T00:00:00');
-        if(date>=now){
-            html+=`<option value="${ds}">${date.toLocaleDateString('pt-BR',{weekday:'long', day:'2-digit', month:'long'})}</option>`;
-            count++;
-        }
-    });
-    scheduleDateSelect.innerHTML= count? html : '<option value="">Nenhum dia disponível nesta campanha.</option>';
+  scheduleDateSelect.innerHTML='<option value="">Carregando...</option>';
+  const dates=Object.keys(campaignData.disponibilidade || {}).sort();
+  const now=new Date(); now.setHours(0,0,0,0);
+  let html='<option value="">Selecione uma data</option>';
+  let count=0;
+  dates.forEach(ds=>{
+    const date=new Date(ds+'T00:00:00');
+    if(date>=now){
+      html+=`<option value="${ds}">${date.toLocaleDateString('pt-BR',{weekday:'long', day:'2-digit', month:'long'})}</option>`;
+      count++;
+    }
+  });
+  scheduleDateSelect.innerHTML= count? html : '<option value="">Nenhum dia disponível nesta campanha.</option>';
 }
 
 function renderTimeSlotsForDate(dateStr){
-    scheduleSlotsGrid.innerHTML='';
-    scheduleSlotsContainer.classList.remove('hidden');
-    selectedScheduleSlot=null;
-    const times=campaignData.disponibilidade[dateStr] || [];
-    const maxSlots=campaignData.slots || 1;
-    const now=new Date();
-    if(!times.length){
-        scheduleSlotsGrid.innerHTML='<p class="col-span-full text-center text-gray-500">Nenhum horário disponível para esta data.</p>';
-        return;
-    }
-    times.forEach(t=>{
-        const slotDate=new Date(dateStr+'T'+t);
-        if(slotDate < now) return;
-        const used=existingAppointments[slotDate.getTime()] || 0;
-        const remaining=maxSlots - used;
-        const btn=document.createElement('button');
-        btn.className='schedule-slot p-2 rounded-md text-center';
-        btn.disabled=remaining<=0;
-        const vagas=remaining===1?'1 vaga':`${remaining} vagas`;
-        btn.innerHTML=`<span class="font-bold block">${t}</span><span class="text-xs">${vagas}</span>`;
-        btn.onclick=()=>{
-            document.querySelectorAll('.schedule-slot.selected').forEach(s=>s.classList.remove('selected'));
-            btn.classList.add('selected');
-            selectedScheduleSlot=slotDate;
-        };
-        scheduleSlotsGrid.appendChild(btn);
-    });
+  scheduleSlotsGrid.innerHTML='';
+  scheduleSlotsContainer.classList.remove('hidden');
+  selectedScheduleSlot=null;
+  const times=campaignData.disponibilidade[dateStr] || [];
+  const maxSlots=campaignData.slots || 1;
+  const now=new Date();
+  if(!times.length){
+    scheduleSlotsGrid.innerHTML='<p class="col-span-full text-center text-gray-500">Nenhum horário disponível para esta data.</p>';
+    return;
+  }
+  times.forEach(t=>{
+    const slotDate=new Date(dateStr+'T'+t);
+    if(slotDate < now) return;
+    const used=existingAppointments[slotDate.getTime()] || 0;
+    const remaining=maxSlots - used;
+    const btn=document.createElement('button');
+    btn.className='schedule-slot p-2 rounded-md text-center';
+    btn.disabled=remaining<=0;
+    const vagas=remaining===1?'1 vaga':`${remaining} vagas`;
+    btn.innerHTML=`<span class="font-bold block">${t}</span><span class="text-xs">${vagas}</span>`;
+    btn.onclick=()=>{
+      document.querySelectorAll('.schedule-slot.selected').forEach(s=>s.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedScheduleSlot=slotDate;
+    };
+    scheduleSlotsGrid.appendChild(btn);
+  });
 }
 
 scheduleDateSelect.addEventListener('change', e=>{
-    if(e.target.value) renderTimeSlotsForDate(e.target.value);
-    else {
-        scheduleSlotsContainer.classList.add('hidden');
-        scheduleSlotsGrid.innerHTML='';
-        selectedScheduleSlot=null;
-    }
+  if(e.target.value) renderTimeSlotsForDate(e.target.value);
+  else {
+    scheduleSlotsContainer.classList.add('hidden');
+    scheduleSlotsGrid.innerHTML='';
+    selectedScheduleSlot=null;
+  }
 });
 
 /* Modal helpers */
 function closeAppModal(){
-    const modal=document.getElementById('app-modal');
-    modal.classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
-    document.getElementById('modal-title').textContent='';
-    document.getElementById('modal-message-body').innerHTML='';
-    document.getElementById('modal-buttons').innerHTML='';
-    document.getElementById('modal-icon-wrapper').innerHTML=`
-        <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
-             viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>`;
+  const modal=document.getElementById('app-modal');
+  modal.classList.add('hidden');
+  document.body.classList.remove('overflow-hidden');
+  document.getElementById('modal-title').textContent='';
+  document.getElementById('modal-message-body').innerHTML='';
+  document.getElementById('modal-buttons').innerHTML='';
+  document.getElementById('modal-icon-wrapper').innerHTML=`
+    <svg class="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+         viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M5 13l4 4L19 7"/>
+    </svg>`;
 }
 
 function openAppModal({title, bodyHtml, buttons=[], iconHtml=null}) {
-    const modal=document.getElementById('app-modal');
-    document.getElementById('modal-title').textContent=title;
-    document.getElementById('modal-message-body').innerHTML=bodyHtml;
-    const buttonsContainer=document.getElementById('modal-buttons');
-    buttonsContainer.innerHTML='';
-    buttons.forEach(btn=>{
-        const b=document.createElement('button');
-        b.type='button';
-        b.className= btn.className || 'mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:ml-3 sm:w-auto sm:text-sm';
-        b.textContent=btn.label;
-        b.addEventListener('click', ()=>btn.onClick?.(closeAppModal));
-        buttonsContainer.appendChild(b);
-    });
-    if(iconHtml){
-        document.getElementById('modal-icon-wrapper').innerHTML=iconHtml;
-    }
-    modal.classList.remove('hidden');
-    document.body.classList.add('overflow-hidden');
-    document.getElementById('modal-title').focus();
+  const modal=document.getElementById('app-modal');
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-message-body').innerHTML=bodyHtml;
+  const buttonsContainer=document.getElementById('modal-buttons');
+  buttonsContainer.innerHTML='';
+  buttons.forEach(btn=>{
+    const b=document.createElement('button');
+    b.type='button';
+    b.className= btn.className || 'mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:ml-3 sm:w-auto sm:text-sm';
+    b.textContent=btn.label;
+    b.addEventListener('click', ()=>btn.onClick?.(closeAppModal));
+    buttonsContainer.appendChild(b);
+  });
+  if(iconHtml){
+    document.getElementById('modal-icon-wrapper').innerHTML=iconHtml;
+  }
+  modal.classList.remove('hidden');
+  document.body.classList.add('overflow-hidden');
+  setTimeout(()=>document.getElementById('modal-title').focus(),40);
 }
 
 function showItemAddedModal(addedItem){
-    const fieldsConfig=(Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
-        ? campaignTypeSettings[campaignData.type].fields
-        : Object.values(campaignTypeSettings[campaignData.type]?.fields || []))
-        .filter(f=>f.active!==false)
-        .sort((a,b)=>(a.order||0)-(b.order||0));
+  const fieldsConfig=(Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
+    ? campaignTypeSettings[campaignData.type].fields
+    : Object.values(campaignTypeSettings[campaignData.type]?.fields || []))
+    .filter(f=>f.active!==false)
+    .sort((a,b)=>(a.order||0)-(b.order||0));
 
-    let titleValue='Item Adicionado';
-    const dataRef=addedItem.customFields;
-    if(fieldsConfig.length && dataRef[fieldsConfig[0].id]) titleValue=dataRef[fieldsConfig[0].id];
+  let titleValue='Item Adicionado';
+  const dataRef=addedItem.customFields;
+  if(fieldsConfig.length && dataRef[fieldsConfig[0].id]) titleValue=dataRef[fieldsConfig[0].id];
 
-    const imgUrl = addedItem.mainPhotoFile
-        ? URL.createObjectURL(addedItem.mainPhotoFile)
-        : (addedItem.mainPhotoId && dataRef[addedItem.mainPhotoId] instanceof File
-            ? URL.createObjectURL(dataRef[addedItem.mainPhotoId])
-            : 'https://placehold.co/120x120/e2e8f0/cbd5e0?text=Item');
+  const imgUrl = addedItem.mainPhotoFile
+    ? URL.createObjectURL(addedItem.mainPhotoFile)
+    : (addedItem.mainPhotoId && dataRef[addedItem.mainPhotoId] instanceof File
+        ? URL.createObjectURL(dataRef[addedItem.mainPhotoId])
+        : 'https://placehold.co/120x120/e2e8f0/cbd5e0?text=Item');
 
-    let detailsHtml='';
-    fieldsConfig.forEach(fc=>{
-        if(!fc.id) return;
-        const val=dataRef[fc.id];
-        if(!val) return;
-        if(val instanceof File){
-            detailsHtml+=`<div class="flex justify-between"><span class="text-gray-600">${fc.label}:</span><span class="text-gray-800 font-medium">${val.name}</span></div>`;
-        } else if(fc.id!==addedItem.mainPhotoId){
-            detailsHtml+=`<div class="flex justify-between"><span class="text-gray-600">${fc.label}:</span><span class="text-gray-800 font-medium">${val}</span></div>`;
-        }
-    });
+  let detailsHtml='';
+  fieldsConfig.forEach(fc=>{
+    if(!fc.id) return;
+    const val=dataRef[fc.id];
+    const isMedia=['image','camera','video'].includes(fc.type);
+    if(!val || isMedia) return;
+    if(val instanceof File){
+      detailsHtml+=`<div class="flex justify-between"><span class="text-gray-600">${fc.label}:</span><span class="text-gray-800 font-medium">${val.name}</span></div>`;
+    } else if(fc.id!==addedItem.mainPhotoId){
+      detailsHtml+=`<div class="flex justify-between"><span class="text-gray-600">${fc.label}:</span><span class="text-gray-800 font-medium">${val}</span></div>`;
+    }
+  });
 
-    const bodyHtml=`
-        <div class="space-y-4">
-            <div class="flex items-center space-x-4">
-                <img src="${imgUrl}" class="w-20 h-20 rounded-lg object-cover border">
-                <div>
-                    <p class="font-bold text-lg text-gray-800">${titleValue}</p>
-                    <p class="text-xs text-gray-500 mt-1">Código será gerado no envio.</p>
-                </div>
-            </div>
-            <div class="bg-gray-50 rounded-md p-4 space-y-2 text-sm">
-                ${detailsHtml || '<p class="text-gray-500 text-sm">Nenhum detalhe adicional.</p>'}
-            </div>
-        </div>`;
+  const bodyHtml=`
+    <div class="space-y-4">
+      <div class="flex items-center space-x-4">
+        <img src="${imgUrl}" class="w-20 h-20 rounded-lg object-cover border">
+        <div>
+          <p class="font-bold text-lg text-gray-800">${titleValue}</p>
+          <p class="text-xs text-gray-500 mt-1">Código será gerado no envio.</p>
+        </div>
+      </div>
+      <div class="bg-gray-50 rounded-md p-4 space-y-2 text-sm">
+        ${detailsHtml || '<p class="text-gray-500 text-sm">Nenhum detalhe adicional.</p>'}
+      </div>
+      <p class="text-[11px] text-gray-500">Após confirmar a doação, um código numérico sequencial será atribuído.</p>
+    </div>`;
 
-    openAppModal({
-        title:'Item adicionado!',
-        bodyHtml,
-        iconHtml:`<svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                  </svg>`,
-        buttons:[
-            {
-                label:'Adicionar outro',
-                className:'w-full sm:w-auto inline-flex justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700',
-                onClick: close => close()
-            },
-            {
-                label:'Ver lista',
-                className:'mt-3 w-full sm:w-auto inline-flex justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50 sm:mt-0',
-                onClick: close => { close(); document.querySelector('#items-section-anchor')?.scrollIntoView({behavior:'smooth'}); }
-            },
-            {
-                label:'Ir ao agendamento',
-                className:'mt-3 w-full sm:w-auto inline-flex justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 sm:mt-0',
-                onClick: close => { close(); document.querySelector('#schedule-section-anchor')?.scrollIntoView({behavior:'smooth'}); }
-            }
-        ]
-    });
+  openAppModal({
+    title:'Item adicionado!',
+    bodyHtml,
+    iconHtml:`<svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>`,
+    buttons:[
+      {
+        label:'Adicionar outro',
+        className:'w-full sm:w-auto inline-flex justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700',
+        onClick: close => close()
+      },
+      {
+        label:'Ver lista',
+        className:'mt-3 w-full sm:w-auto inline-flex justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50 sm:mt-0',
+        onClick: close => { close(); document.querySelector('#items-section-anchor')?.scrollIntoView({behavior:'smooth'}); }
+      },
+      {
+        label:'Ir ao agendamento',
+        className:'mt-3 w-full sm:w-auto inline-flex justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 sm:mt-0',
+        onClick: close => { close(); document.querySelector('#schedule-section-anchor')?.scrollIntoView({behavior:'smooth'}); }
+      }
+    ]
+  });
 }
 
 addItemBtn.addEventListener('click', () => {
-    addItemError.textContent='';
-    if(isRescheduleMode) return;
-    const customFieldsData = {};
-    const dynamicInputs = dynamicFieldsContainer.querySelectorAll('input, select');
-    let allFieldsValid = true;
-    let mainPhotoFile = null;
-    let mainPhotoId = null;
+  addItemError.textContent='';
+  if(isRescheduleMode) return;
+  const customFieldsData = {};
+  const dynamicInputs = dynamicFieldsContainer.querySelectorAll('input, select');
+  let allFieldsValid = true;
+  let mainPhotoFile = null;
+  let mainPhotoId = null;
 
-    const fieldsConfig = Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
-        ? campaignTypeSettings[campaignData.type].fields
-        : Object.values(campaignTypeSettings[campaignData.type]?.fields || {});
+  const fieldsConfig = Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
+      ? campaignTypeSettings[campaignData.type].fields
+      : Object.values(campaignTypeSettings[campaignData.type]?.fields || {});
 
-    const activeImageFields = fieldsConfig.filter(f=>(f.type==='image'||f.type==='camera') && f.active!==false);
-    if (activeImageFields.length) mainPhotoId=activeImageFields[0].id;
+  const activeImageFields = fieldsConfig.filter(f=>(f.type==='image'||f.type==='camera') && f.active!==false);
+  if (activeImageFields.length) mainPhotoId=activeImageFields[0].id;
 
-    dynamicInputs.forEach(input=>{
-        if(input.required && ((input.type==='file' && input.files.length===0) || !input.value)){
-            allFieldsValid=false;
-        }
-        const file = input.type==='file'? input.files[0] : null;
-        if(input.name){
-            customFieldsData[input.name] = file || input.value;
-        }
-        if(file && mainPhotoId && input.name===mainPhotoId){
-            mainPhotoFile=file;
-        }
-    });
-
-    if(!allFieldsValid){
-        addItemError.textContent='Por favor, preencha todos os campos obrigatórios.';
-        return;
+  dynamicInputs.forEach(input=>{
+    if(input.required && ((input.type==='file' && input.files.length===0) || !input.value)){
+      allFieldsValid=false;
     }
-    const firstRequiredImageField = activeImageFields.find(f=>f.required);
-    if(firstRequiredImageField && !mainPhotoFile){
-        addItemError.textContent=`Por favor, adicione uma "${firstRequiredImageField.label}".`;
-        return;
+    const file = input.type==='file'? input.files[0] : null;
+    if(input.name){
+      customFieldsData[input.name] = file || input.value;
     }
+    if(file && mainPhotoId && input.name===mainPhotoId){
+      mainPhotoFile=file;
+    }
+  });
 
-    const newItem = { mainPhotoFile, mainPhotoId, customFields: customFieldsData };
-    donatedItems.push(newItem);
-    window.donatedItems = donatedItems;
-    renderDonatedItems();
-    addItemForm.reset();
-    dynamicFieldsContainer.querySelectorAll('input[type="file"]').forEach(input=>{
-        const label=document.getElementById(`file-label-${input.name}`);
-        if(label) label.textContent='Selecionar ficheiro';
-    });
-    showItemAddedModal(newItem);
+  if(!allFieldsValid){
+    addItemError.textContent='Por favor, preencha todos os campos obrigatórios.';
+    return;
+  }
+  const firstRequiredImageField = activeImageFields.find(f=>f.required);
+  if(firstRequiredImageField && !mainPhotoFile){
+    addItemError.textContent=`Por favor, adicione uma "${firstRequiredImageField.label}".`;
+    return;
+  }
+
+  const newItem = { mainPhotoFile, mainPhotoId, customFields: customFieldsData };
+  donatedItems.push(newItem);
+  window.donatedItems = donatedItems;
+  renderDonatedItems();
+  addItemForm.reset();
+  dynamicFieldsContainer.querySelectorAll('input[type="file"]').forEach(input=>{
+    const label=document.getElementById(`file-label-${input.name}`);
+    if(label) label.textContent='Selecionar ficheiro';
+  });
+  showItemAddedModal(newItem);
 });
 
 donatedItemsList.addEventListener('click',(e)=>{
-    if(e.target.classList.contains('remove-item-btn')){
-        const index=e.target.dataset.index;
-        donatedItems.splice(index,1);
-        window.donatedItems = donatedItems;
-        renderDonatedItems();
-    }
+  if(e.target.classList.contains('remove-item-btn')){
+    const index=e.target.dataset.index;
+    donatedItems.splice(index,1);
+    window.donatedItems = donatedItems;
+    renderDonatedItems();
+  }
 });
 
+/* Sequencial em lote */
 async function allocateSequences(prefix, count){
-    const ref = doc(db,'counters',`items_${prefix}`);
-    try{
-        const startValue = await runTransaction(db, async (transaction)=>{
-            const snap = await transaction.get(ref);
-            const current = snap.exists()? (snap.data().value || 0) : 0;
-            const newValue = current + count;
-            transaction.set(ref,{ value:newValue, updatedAt:serverTimestamp() },{ merge:true });
-            return current;
-        });
-        return Array.from({length:count},(_,i)=> startValue + i + 1);
-    }catch(err){
-        if(err.code==='permission-denied'){
-            console.warn('[Doação] Sem permissão contador. Fallback.');
-            return null;
-        }
-        console.error('[Doação] Falha allocateSequences:',err);
-        return null;
+  const ref = doc(db,'counters',`items_${prefix}`);
+  try{
+    const startValue = await runTransaction(db, async (transaction)=>{
+      const snap = await transaction.get(ref);
+      const current = snap.exists()? (snap.data().value || 0) : 0;
+      const newValue = current + count;
+      transaction.set(ref,{ value:newValue, updatedAt:serverTimestamp() },{ merge:true });
+      return current;
+    });
+    return Array.from({length:count},(_,i)=> startValue + i + 1);
+  }catch(err){
+    if(err.code==='permission-denied'){
+      console.warn('[Doação] Sem permissão contador. Fallback numérico.');
+      return null;
     }
+    console.error('[Doação] Falha allocateSequences:',err);
+    return null;
+  }
 }
 
-// Substituir fallback antigo
-function generateFallbackCodes(prefix, count) {
-  // Usa timestamp + índice para garantir números (não 100% sequencial global, mas numérico)
-  return Array.from({ length: count }, (_, i) => {
-    const base = Date.now() % 1000000; // últimos 6 dígitos
+/* Fallback numérico (somente números após prefixo) */
+function generateFallbackCodes(prefix, count){
+  // base: últimos 6 dígitos do timestamp, garantindo números (não garante sequencial global, mas é curto e fácil de anotar)
+  const base = Date.now() % 1000000;
+  return Array.from({length:count},(_,i)=>{
     const num = (base + i) % 1000000;
     return `${prefix}-${String(num).padStart(6,'0')}`;
   });
 }
 
 submitDonationBtn.addEventListener('click', async () => {
-    formError.textContent='';
-    if(!isRescheduleMode && donatedItems.length===0){
-        formError.textContent='Adicione pelo menos um item.';
-        return;
-    }
-    if(!selectedScheduleSlot){
-        formError.textContent='Selecione um dia e horário.';
-        return;
-    }
-    const submitBtnText=document.getElementById('submit-btn-text');
-    const submitBtnSpinner=document.getElementById('submit-btn-spinner');
-    submitDonationBtn.disabled=true;
-    submitBtnText.classList.add('hidden');
-    submitBtnSpinner.classList.remove('hidden');
+  formError.textContent='';
+  if(!isRescheduleMode && donatedItems.length===0){
+    formError.textContent='Adicione pelo menos um item.';
+    return;
+  }
+  if(!selectedScheduleSlot){
+    formError.textContent='Selecione um dia e horário.';
+    return;
+  }
+  const submitBtnText=document.getElementById('submit-btn-text');
+  const submitBtnSpinner=document.getElementById('submit-btn-spinner');
+  submitDonationBtn.disabled=true;
+  submitBtnText.classList.add('hidden');
+  submitBtnSpinner.classList.remove('hidden');
 
-    try{
-        const userId = currentUserSession.auth.uid;
-        let itemsToSave;
+  try{
+    const userId = currentUserSession.auth.uid;
+    let itemsToSave;
 
-        if(isRescheduleMode){
-            itemsToSave = donatedItems;
-        } else {
-            const processed = await Promise.all(donatedItems.map(async item=>{
-                const out={...item.customFields};
-                for(const key in item.customFields){
-                    if(item.customFields[key] instanceof File){
-                        const file=item.customFields[key];
-                        const path=`donated_items/${userId}/${Date.now()}_${file.name}`;
-                        const url=await uploadBytes(storageRef(storage,path), file).then(s=>getDownloadURL(s.ref));
-                        out[key]=url;
-                    }
-                }
-                const fieldsCfg=(Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
-                    ? campaignTypeSettings[campaignData.type].fields
-                    : Object.values(campaignTypeSettings[campaignData.type]?.fields || []))
-                    .filter(f=>f.active!==false)
-                    .sort((a,b)=>(a.order||0)-(b.order||0));
-                let itemTitle=campaignData.title;
-                if(fieldsCfg.length && out[fieldsCfg[0].id]) itemTitle=out[fieldsCfg[0].id];
-                const photoURL = item.mainPhotoId ? out[item.mainPhotoId] : null;
-                return {pendingTitle:itemTitle, out, photoURL};
-            }));
-
-            let sequences = await allocateSequences(campaignTypePrefix, processed.length);
-            let codes = sequences
-                ? sequences.map(s=>`${campaignTypePrefix}-${String(s).padStart(6,'0')}`)
-                : generateFallbackCodes(campaignTypePrefix, processed.length);
-
-            itemsToSave = processed.map((p,idx)=>({
-                ...p.out,
-                type: p.pendingTitle,
-                photoURL: p.photoURL,
-                status: 'pending',
-                uniqueCode: codes[idx]
-            }));
+    if(isRescheduleMode){
+      itemsToSave = donatedItems;
+    } else {
+      const processed = await Promise.all(donatedItems.map(async item=>{
+        const out={...item.customFields};
+        for(const key in item.customFields){
+          if(item.customFields[key] instanceof File){
+            const file=item.customFields[key];
+            const path=`donated_items/${userId}/${Date.now()}_${file.name}`;
+            const url=await uploadBytes(storageRef(storage,path), file).then(s=>getDownloadURL(s.ref));
+            out[key]=url;
+          }
         }
+        const fieldsCfg=(Array.isArray(campaignTypeSettings[campaignData.type]?.fields)
+          ? campaignTypeSettings[campaignData.type].fields
+          : Object.values(campaignTypeSettings[campaignData.type]?.fields || []))
+          .filter(f=>f.active!==false)
+          .sort((a,b)=>(a.order||0)-(b.order||0));
+        let itemTitle=campaignData.title;
+        if(fieldsCfg.length && out[fieldsCfg[0].id]) itemTitle=out[fieldsCfg[0].id];
+        const photoURL = item.mainPhotoId ? out[item.mainPhotoId] : null;
+        return {pendingTitle:itemTitle, out, photoURL};
+      }));
 
-        const privacyValue=isRescheduleMode
-            ? (rescheduleData.privacy || 'public')
-            : document.querySelector('input[name="privacy"]:checked').value;
+      let sequences = await allocateSequences(campaignTypePrefix, processed.length);
+      let codes = sequences
+        ? sequences.map(s=>`${campaignTypePrefix}-${String(s).padStart(6,'0')}`)
+        : generateFallbackCodes(campaignTypePrefix, processed.length);
 
-        const donationData = {
-            donorId: userId,
-            donorName: currentUserSession.profile?.displayName ?? currentUserSession.auth?.displayName ?? "Doador Anônimo",
-            donorPhoto: currentUserSession.profile?.photoURL ?? currentUserSession.auth?.photoURL ?? null,
-            campaignId: campaignId,
-            campaignTitle: campaignData.title,
-            entityId: campaignData.entityId,
-            items: itemsToSave,
-            status: 'scheduled',
-            privacy: privacyValue,
-            createdAt: Timestamp.now(),
-            scheduledAt: Timestamp.fromDate(selectedScheduleSlot),
-            campaignType: campaignData.type || 'default'
-        };
-
-        if(isRescheduleMode){
-            const batch=writeBatch(db);
-            const newRef=doc(collection(db, paths.donations));
-            batch.set(newRef, donationData);
-            const oldRef=doc(db, paths.donationDoc(rescheduleData.oldDonationId));
-            batch.update(oldRef,{ status:'reagendado' });
-            await batch.commit();
-            localStorage.removeItem('rescheduleData');
-        } else {
-            await addDoc(collection(db, paths.donations), donationData);
-        }
-
-        const message=`O doador ${donationData.donorName} ${isRescheduleMode?'reagendou':'agendou'} uma entrega para a campanha "${donationData.campaignTitle}".`;
-        const targetId = donationData.entityId === 'app_faz_bem' ? campaignData.creatorId : donationData.entityId;
-        await createNotification(targetId, message, 'gerenciar-agendamentos.html');
-
-        const successMsg=isRescheduleMode ? 'Sua doação foi reagendada com sucesso!' : 'Sua doação foi registrada com sucesso!';
-        await showAlertModal('Sucesso!', successMsg);
-        window.removeEventListener('beforeunload', beforeUnloadHandler);
-        window.location.href='minhas-entregas.html';
-    }catch(error){
-        console.error("ERRO DETALHADO AO REGISTRAR DOAÇÃO:", error);
-        formError.textContent=`Erro ao registrar doação: ${error.message}`;
-    }finally{
-        submitDonationBtn.disabled=false;
-        submitBtnText.classList.remove('hidden');
-        submitBtnSpinner.classList.add('hidden');
+      itemsToSave = processed.map((p,idx)=>({
+        ...p.out,
+        type: p.pendingTitle,
+        photoURL: p.photoURL,
+        status: 'pending',
+        uniqueCode: codes[idx]
+      }));
     }
+
+    const privacyValue=isRescheduleMode
+      ? (rescheduleData.privacy || 'public')
+      : document.querySelector('input[name="privacy"]:checked').value;
+
+    const donationData = {
+      donorId: userId,
+      donorName: currentUserSession.profile?.displayName ?? currentUserSession.auth?.displayName ?? "Doador Anônimo",
+      donorPhoto: currentUserSession.profile?.photoURL ?? currentUserSession.auth?.photoURL ?? null,
+      campaignId: campaignId,
+      campaignTitle: campaignData.title,
+      entityId: campaignData.entityId,
+      items: itemsToSave,
+      status: 'scheduled',
+      privacy: privacyValue,
+      createdAt: Timestamp.now(),
+      scheduledAt: Timestamp.fromDate(selectedScheduleSlot),
+      campaignType: campaignData.type || 'default'
+    };
+
+    if(isRescheduleMode){
+      const batch=writeBatch(db);
+      const newRef=doc(collection(db, paths.donations));
+      batch.set(newRef, donationData);
+      const oldRef=doc(db, paths.donationDoc(rescheduleData.oldDonationId));
+      batch.update(oldRef,{ status:'reagendado' });
+      await batch.commit();
+      localStorage.removeItem('rescheduleData');
+    } else {
+      await addDoc(collection(db, paths.donations), donationData);
+    }
+
+    const message=`O doador ${donationData.donorName} ${isRescheduleMode?'reagendou':'agendou'} uma entrega para a campanha "${donationData.campaignTitle}".`;
+    const targetId = donationData.entityId === 'app_faz_bem' ? campaignData.creatorId : donationData.entityId;
+    await createNotification(targetId, message, 'gerenciar-agendamentos.html');
+
+    const successMsg=isRescheduleMode ? 'Sua doação foi reagendada com sucesso!' : 'Sua doação foi registrada com sucesso!';
+    await showAlertModal('Sucesso!', successMsg);
+    window.removeEventListener('beforeunload', beforeUnloadHandler);
+    window.location.href='minhas-entregas.html';
+  }catch(error){
+    console.error("ERRO DETALHADO AO REGISTRAR DOAÇÃO:", error);
+    formError.textContent=`Erro ao registrar doação: ${error.message}`;
+  }finally{
+    submitDonationBtn.disabled=false;
+    submitBtnText.classList.remove('hidden');
+    submitBtnSpinner.classList.add('hidden');
+  }
 });
 
 function beforeUnloadHandler(e){
-    if(donatedItems.length>0 && !isRescheduleMode){
-        e.preventDefault();
-        e.returnValue='';
-    }
+  if(donatedItems.length>0 && !isRescheduleMode){
+    e.preventDefault();
+    e.returnValue='';
+  }
 }
 window.addEventListener('beforeunload', beforeUnloadHandler);
 
 initializeApp();
 
-// SW register (caso ainda não)
 if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('service-worker.js').catch(console.error);
+  navigator.serviceWorker.register('service-worker.js').catch(console.error);
 }
 </script>
 </body>
