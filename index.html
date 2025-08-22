@@ -1,481 +1,867 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>App Faz Bem - Campanhas</title>
+<meta charset="UTF-8">
+<title>App Faz Bem - Campanhas</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#22c55e" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f2917" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="logo.png">
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="preconnect" href="https://firestore.googleapis.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="/app-faz-bem/style.css" rel="stylesheet">
+<link href="mobile-enhancements.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <meta name="theme-color" content="#22c55e">
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="logo.png">
-    <link rel="icon" href="logo.png" type="image/png">
+<style>
+/* ===== Base ===== */
+body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+.loader{border:4px solid #f3f3f3;border-top:4px solid #22c55e;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
 
-    <link href="/app-faz-bem/style.css" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+/* ===== Accordions ===== */
+.accordion-header{width:100%;background:transparent;border:none;border-bottom:1px solid #e5e7eb;
+padding:.75rem 1rem;display:flex;justify-content:space-between;align-items:center;cursor:pointer;
+transition:background-color .2s;font-size:1.05rem;font-weight:600;line-height:1.3;}
+.accordion-header:focus-visible{outline:2px solid #16a34a;outline-offset:2px;border-radius:.5rem;}
+.accordion-header:hover{background:#f3f4f6;}
+.accordion-arrow{width:1.4rem;height:1.4rem;transition:transform .3s ease;}
+.accordion-header.active .accordion-arrow{transform:rotate(180deg);}
+.accordion-content{max-height:0;overflow:hidden;transition:max-height .5s ease;}
+.accordion-content-inner{padding:1.25rem .5rem .5rem;}
 
-    <style>
-        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #22c55e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .urgent-badge { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 50% { opacity: .7; } }
-        
-        .donor-avatar-container { position: relative; display: inline-block; }
-        .donor-avatar { transition: transform 0.2s ease-in-out; }
-        .donor-avatar:hover { transform: scale(1.1); z-index: 10; }
-        .star-badge { position: absolute; bottom: -2px; right: -4px; background-color: #f59e0b; color: white; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; border: 2px solid white; z-index: 11; }
-        
-        .like-button { cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px; color: #6b7280; transition: color 0.2s; }
-        .like-button:hover, .like-button.liked { color: #ef4444; }
-        
-        .media-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        .media-item { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity 1s ease-in-out; opacity: 0; }
-        .media-item.active { opacity: 1; z-index: 1; }
+/* ===== Campaign Card ===== */
+.campaign-card{cursor:pointer;transition:transform .28s ease, box-shadow .28s ease;}
+.campaign-card:focus-visible{outline:2px solid #2563eb;outline-offset:2px;border-radius:.9rem;}
+.campaign-card:hover{transform:translateY(-4px);}
+.campaign-encerrada{filter:grayscale(.85);background:#f9fafb;}
+.campaign-encerrada .like-button{pointer-events:none;filter:grayscale(1);}
+.media-wrapper{position:relative;height:12rem;width:100%;overflow:hidden;}
+.media-container{position:absolute;inset:0;}
+.media-item{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 1s ease;opacity:0;filter:brightness(.95);}
+.media-item.active{opacity:1;z-index:1;}
+.media-skeleton{position:absolute;inset:0;background:#e2e8f0;}
+.media-skeleton::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:skeleton 1.2s infinite;}
+@keyframes skeleton{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
 
-        .campaign-card { cursor: pointer; transition: transform 0.3s ease, box-shadow 0.3s ease; }
-        .campaign-encerrada { filter: grayscale(90%); background-color: #f9fafb; cursor: pointer; }
-        .campaign-encerrada .like-button { pointer-events: none; filter: grayscale(100%); }
+/* ===== Badges ===== */
+.urgent-badge{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite;}
+@keyframes pulse{50%{opacity:.7;}}
+.status-chip{font-size:.55rem;letter-spacing:.5px;font-weight:700;padding:4px 8px;border-radius:999px;display:inline-block;text-transform:uppercase;}
+.progress-bar{height:8px;border-radius:4px;overflow:hidden;background:#e2e8f0;}
+.progress-bar > span{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#059669);}
 
-        .accordion-header {
-            width: 100%; background-color: transparent; border: none; border-bottom: 1px solid #e5e7eb; border-radius: 0;
-            padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center;
-            cursor: pointer; transition: background-color 0.2s ease-in-out; font-size: 1.25rem; font-weight: 600;
-        }
-        .accordion-header:hover { background-color: #f3f4f6; }
-        .accordion-arrow { width: 1.5rem; height: 1.5rem; transition: transform 0.3s ease-in-out; pointer-events: none; }
-        .accordion-header.active .accordion-arrow { transform: rotate(180deg); }
-        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; background-color: transparent; }
-        .accordion-content-inner { padding: 1.5rem 0.5rem; }
+/* ===== Donors / Likes ===== */
+.donor-avatar-container{position:relative;display:inline-block;}
+.donor-avatar{transition:transform .2s;}
+.donor-avatar:hover{transform:scale(1.08);z-index:10;}
+.star-badge{position:absolute;bottom:-2px;right:-4px;background:#f59e0b;color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;}
+.like-button{cursor:pointer;display:flex;align-items:center;gap:4px;font-size:12px;color:#64748b;transition:color .2s;}
+.like-button:hover,.like-button.liked{color:#ef4444;}
+.like-button:focus-visible{outline:2px solid #ef4444;outline-offset:2px;border-radius:6px;}
 
-        /* Estilos para o Dropdown de Filtro Interno */
-        .filter-dropdown-container { position: relative; z-index: 10; }
-        .filter-dropdown-menu {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background-color: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            z-index: 20;
-            min-width: 150px;
-            display: none; /* Controlado por JS */
-        }
-        .filter-dropdown-item {
-            display: block;
-            width: 100%;
-            padding: 0.75rem 1rem;
-            text-align: left;
-            font-size: 0.875rem;
-            color: #374151;
-            cursor: pointer;
-        }
-        .filter-dropdown-item:hover { background-color: #f3f4f6; }
-        .filter-dropdown-item.active { font-weight: 600; color: #16a34a; }
-    </style>
+/* ===== Filter Dropdown ===== */
+.filter-dropdown-container{position:relative;z-index:20;}
+.filter-dropdown-menu{position:absolute;top:100%;right:0;background:#fff;border-radius:.75rem;box-shadow:0 12px 32px -8px rgba(0,0,0,.15),0 0 0 1px rgba(0,0,0,.04);min-width:170px;display:none;padding:.4rem;}
+.filter-dropdown-item{display:block;width:100%;padding:.6rem .85rem;text-align:left;font-size:.8rem;font-weight:500;color:#374151;border-radius:.55rem;cursor:pointer;}
+.filter-dropdown-item:hover{background:#f1f5f9;}
+.filter-dropdown-item.active{background:#dcfce7;color:#166534;font-weight:600;}
+
+/* ===== Accessibility & Mobile Enhancements ===== */
+#global-aria-live[data-visually-hidden="true"]{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);}
+.offline-banner{display:none;}
+.offline-banner.active{display:flex;}
+/* FAB for quick scroll / refresh */
+@media (max-width:640px){
+  .fab-bar-home{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;gap:.75rem;padding:.75rem .9rem calc(.75rem + env(safe-area-inset-bottom));
+    backdrop-filter:blur(12px);background:rgba(255,255,255,.92);border-top:1px solid #e2e8f0;}
+  .dark .fab-bar-home{background:rgba(15,23,42,.85);border-color:#334155;}
+  .fab-bar-home button{flex:1;min-height:3.1rem;border-radius:.9rem;font-weight:600;}
+  body.has-fab-bottom{padding-bottom:4.75rem;}
+}
+
+/* Safe mapping classes for dynamic colors (prevent purge if using processor) */
+.safe-color-green{--tw-bg-opacity:1;}
+.safe-color-blue{}
+.safe-color-red{}
+.safe-color-yellow{}
+.safe-color-purple{}
+.safe-color-gray{}
+
+/* Focus ring util (in case tailwind purge removed) */
+:focus-visible{outline:2px solid #2563eb;outline-offset:2px;}
+</style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+<div id="global-aria-live" aria-live="polite" data-visually-hidden="true"></div>
+<div id="app-header"></div>
 
-    <div id="app-header"></div>
-
-    <main id="page-content">
-        <div class="container mx-auto max-w-4xl p-4 sm:p-6">
-            <header class="text-center my-8">
-                <h1 class="text-4xl sm:text-5xl font-bold text-green-600">Faz Bem</h1>
-                <p class="text-lg text-gray-600 mt-2">Conectando corações e transformando vidas.</p>
-            </header>
-
-            <div class="space-y-4">
-                <div class="accordion-item bg-white rounded-lg shadow-sm">
-                    <button class="accordion-header" onclick="window.toggleAccordion(this)">
-                        <span class="text-gray-800">Campanhas Ativas <span id="count-ativas" class="font-normal text-gray-500"></span></span>
-                        <div class="flex items-center gap-4">
-                            <div id="filter-dropdown-ativas" class="filter-dropdown-container"></div>
-                            <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                    </button>
-                    <div class="accordion-content">
-                        <div class="accordion-content-inner">
-                            <div id="active-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-                            <p id="active-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha encontrada.</p>
-                            <div id="pagination-ativas" class="text-center mt-8"></div>
-                        </div>
-                    </div>
-                </div>
-                <div id="accordion-proximas" class="accordion-item bg-white rounded-lg shadow-sm" style="display: none;">
-                    <button class="accordion-header" onclick="window.toggleAccordion(this)">
-                        <span class="text-gray-800">Próximas Campanhas <span id="count-proximas" class="font-normal text-gray-500"></span></span>
-                        <div class="flex items-center gap-4">
-                            <div id="filter-dropdown-proximas" class="filter-dropdown-container"></div>
-                            <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                    </button>
-                    <div class="accordion-content">
-                        <div class="accordion-content-inner">
-                            <div id="upcoming-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-                            <p id="upcoming-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha encontrada.</p>
-                            <div id="pagination-proximas" class="text-center mt-8"></div>
-                        </div>
-                    </div>
-                </div>
-                <div id="accordion-recentes" class="accordion-item bg-white rounded-lg shadow-sm" style="display: none;">
-                    <button class="accordion-header" onclick="window.toggleAccordion(this)">
-                        <span class="text-gray-800">Campanhas Encerradas <span id="count-recentes" class="font-normal text-gray-500"></span></span>
-                         <div class="flex items-center gap-4">
-                            <div id="filter-dropdown-recentes" class="filter-dropdown-container"></div>
-                            <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                    </button>
-                    <div class="accordion-content">
-                         <div class="accordion-content-inner">
-                            <div id="recent-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-                            <p id="recent-campaigns-empty" class="hidden text-center text-gray-500 py-4">Nenhuma campanha encontrada.</p>
-                            <div id="pagination-recentes" class="text-center mt-8"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="loading-container" class="text-center py-10">
-                <div class="loader mx-auto"></div>
-                <p class="mt-4 text-gray-600">A carregar campanhas...</p>
-            </div>
-
-            <footer class="text-center mt-20 py-4 border-t">
-                <p class="text-gray-500 text-sm">
-                    <span class="font-semibold text-gray-700">
-                        <span class="text-lg align-middle">&copy;</span>ássia & @lice Nery
-                    </span> 
-                    2025 App Faz Bem. Uma iniciativa comunitária.
-                </p>
-            </footer>
-        </div>
-    </main>
-
-    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
-                            <div class="mt-2"><div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
-            </div>
-        </div>
+<main id="page-content">
+  <div class="container mx-auto max-w-5xl p-4 sm:p-6">
+    <!-- Offline Banner -->
+    <div id="offline-banner" class="offline-banner items-center gap-2 mb-4 px-3 py-2 rounded-md bg-yellow-50 text-yellow-800 text-xs font-medium">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z"/>
+      </svg>
+      Você está offline. Exibindo dados mais recentes em cache.
     </div>
-    
-    <script type="module">
-        import { db, paths } from './app-config.js';
-        import { collection, onSnapshot, query, orderBy, doc, setDoc, deleteDoc, serverTimestamp } from './firebase-services.js';
-        import { injectHeader } from './app-header.js';
-        import { getCurrentUser } from './auth-service.js';
-        import { showAlertModal } from './modal-handler.js';
 
-        const ITEMS_PER_PAGE = 4;
-        const state = {
-            allCampaigns: [], allDonations: [], allLikes: [], currentUser: null, settings: {},
-            sections: {
-                ativas: { filter: 'all', visibleCount: ITEMS_PER_PAGE, key: 'active' },
-                proximas: { filter: 'all', visibleCount: ITEMS_PER_PAGE, key: 'upcoming' },
-                recentes: { filter: 'all', visibleCount: ITEMS_PER_PAGE, key: 'recent' }
-            }
-        };
+    <header class="text-center my-8">
+      <h1 class="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent tracking-tight">Faz Bem</h1>
+      <p class="text-base sm:text-lg text-gray-600 mt-2">Conectando corações e transformando vidas.</p>
+    </header>
 
-        const campaignLists = {
-            ativas: document.getElementById('active-campaigns-list'),
-            proximas: document.getElementById('upcoming-campaigns-list'),
-            recentes: document.getElementById('recent-campaigns-list')
-        };
-        const emptyPlaceholders = {
-            ativas: document.getElementById('active-campaigns-empty'),
-            proximas: document.getElementById('upcoming-campaigns-empty'),
-            recentes: document.getElementById('recent-campaigns-empty'),
-        };
-        const paginationContainers = {
-            ativas: document.getElementById('pagination-ativas'),
-            proximas: document.getElementById('pagination-proximas'),
-            recentes: document.getElementById('pagination-recentes')
-        };
-        let countdownIntervals = {}, slideshowIntervals = {};
+    <!-- Quick Filters (mobile suggestion) -->
+    <div id="home-quick-filters" class="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar">
+      <!-- (Reservado para filtros futuros: prioridade, urgente, etc.) -->
+    </div>
 
-        async function initializeApp() {
-            await injectHeader();
-            state.currentUser = await getCurrentUser();
-            setupDataListeners();
-            setupEventListeners();
+    <div class="space-y-5">
+      <!-- ATIVAS -->
+      <section class="accordion-item bg-white rounded-xl shadow-sm border border-gray-200" id="sec-ativas">
+        <button class="accordion-header" data-accordion="ativas">
+          <span class="text-gray-800 flex items-center gap-2">
+            Campanhas Ativas
+            <span id="count-ativas" class="font-normal text-gray-500 text-sm"></span>
+          </span>
+          <div class="flex items-center gap-4">
+            <div id="filter-dropdown-ativas" class="filter-dropdown-container"></div>
+            <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+        </button>
+        <div class="accordion-content" id="accordion-ativas-content">
+          <div class="accordion-content-inner">
+            <div id="active-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            <p id="active-campaigns-empty" class="hidden text-center text-gray-500 py-6 text-sm">Nenhuma campanha encontrada.</p>
+            <div id="pagination-ativas" class="text-center mt-8"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PRÓXIMAS -->
+      <section id="accordion-proximas" class="accordion-item bg-white rounded-xl shadow-sm border border-gray-200 hidden">
+        <button class="accordion-header" data-accordion="proximas">
+          <span class="text-gray-800 flex items-center gap-2">
+            Próximas Campanhas
+            <span id="count-proximas" class="font-normal text-gray-500 text-sm"></span>
+          </span>
+          <div class="flex items-center gap-4">
+            <div id="filter-dropdown-proximas" class="filter-dropdown-container"></div>
+            <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+        </button>
+        <div class="accordion-content" id="accordion-proximas-content">
+          <div class="accordion-content-inner">
+            <div id="upcoming-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            <p id="upcoming-campaigns-empty" class="hidden text-center text-gray-500 py-6 text-sm">Nenhuma campanha encontrada.</p>
+            <div id="pagination-proximas" class="text-center mt-8"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ENCERRADAS -->
+      <section id="accordion-recentes" class="accordion-item bg-white rounded-xl shadow-sm border border-gray-200 hidden">
+        <button class="accordion-header" data-accordion="recentes">
+          <span class="text-gray-800 flex items-center gap-2">
+            Campanhas Encerradas
+            <span id="count-recentes" class="font-normal text-gray-500 text-sm"></span>
+          </span>
+          <div class="flex items-center gap-4">
+            <div id="filter-dropdown-recentes" class="filter-dropdown-container"></div>
+            <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+        </button>
+        <div class="accordion-content" id="accordion-recentes-content">
+          <div class="accordion-content-inner">
+            <div id="recent-campaigns-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            <p id="recent-campaigns-empty" class="hidden text-center text-gray-500 py-6 text-sm">Nenhuma campanha encontrada.</p>
+            <div id="pagination-recentes" class="text-center mt-8"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="loading-container" class="text-center py-16">
+      <div class="loader mx-auto"></div>
+      <p class="mt-4 text-gray-600 text-sm font-medium">Carregando campanhas...</p>
+    </div>
+
+    <footer class="text-center mt-20 py-6 border-t border-gray-200">
+      <p class="text-gray-500 text-xs sm:text-sm leading-relaxed">
+        <span class="font-semibold text-gray-700">
+          <span class="text-lg align-middle">&copy;</span>ássia & @lice Nery
+        </span>
+        2025 App Faz Bem. Uma iniciativa comunitária.
+      </p>
+    </footer>
+  </div>
+</main>
+
+<!-- Modal base (reutiliza modal-handler) -->
+<div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+    <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+    <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div class="sm:flex sm:items-start">
+          <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+            <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12A9 9 0 113 12a9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+            <h3 class="text-lg leading-6 font-semibold text-gray-900" id="modal-title"></h3>
+            <div class="mt-2">
+              <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- FAB Mobile -->
+<div class="fab-bar-home" id="fab-bar-home" style="display:none;">
+  <button id="fab-scroll-top" class="bg-blue-600 text-white text-sm shadow-md hover:bg-blue-700 active:scale-95 transition">Topo</button>
+  <button id="fab-refresh" class="bg-green-600 text-white text-sm shadow-md hover:bg-green-700 active:scale-95 transition">Atualizar</button>
+</div>
+
+<script type="module">
+/* ========= Imports ========= */
+import { db, paths } from './app-config.js';
+import { collection, onSnapshot, query, orderBy, doc, setDoc, deleteDoc, serverTimestamp } from './firebase-services.js';
+import { injectHeader } from './app-header.js';
+import { getCurrentUser } from './auth-service.js';
+import { showAlertModal } from './modal-handler.js';
+
+/* ========= Config ========= */
+const ITEMS_PER_PAGE = 4;
+const COLOR_SAFE = ['green','blue','red','yellow','purple','gray'];
+
+/* ========= Global State ========= */
+const state = {
+  allCampaigns: [],
+  allDonations: [],
+  allLikes: [],
+  currentUser: null,
+  settings: {},
+  sections: {
+    ativas:   { filter: 'all', visibleCount: ITEMS_PER_PAGE, key: 'active' },
+    proximas: { filter: 'all', visibleCount: ITEMS_PER_PAGE, key: 'upcoming' },
+    recentes: { filter: 'all', visibleCount: ITEMS_PER_PAGE, key: 'recent' }
+  }
+};
+
+/* DOM refs */
+const campaignLists = {
+  ativas:   document.getElementById('active-campaigns-list'),
+  proximas: document.getElementById('upcoming-campaigns-list'),
+  recentes: document.getElementById('recent-campaigns-list')
+};
+const emptyPlaceholders = {
+  ativas:   document.getElementById('active-campaigns-empty'),
+  proximas: document.getElementById('upcoming-campaigns-empty'),
+  recentes: document.getElementById('recent-campaigns-empty')
+};
+const paginationContainers = {
+  ativas:   document.getElementById('pagination-ativas'),
+  proximas: document.getElementById('pagination-proximas'),
+  recentes: document.getElementById('pagination-recentes')
+};
+const loadingContainer = document.getElementById('loading-container');
+const offlineBanner = document.getElementById('offline-banner');
+
+let countdownIntervals = {};
+let slideshowIntervals = {};
+
+/* ========= Utility / Helpers ========= */
+function showToast(message, type='success', ttl=3000){
+  const c=document.getElementById('toast-container');
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span>${message}</span>`;
+  c.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>el.remove(),400); }, ttl);
+}
+
+function announce(msg){
+  const live=document.getElementById('global-aria-live');
+  if(!live) return;
+  live.textContent='';
+  setTimeout(()=> live.textContent = msg, 40);
+}
+
+function ensureColor(color){
+  return COLOR_SAFE.includes(color)? color : 'gray';
+}
+
+function mapColorClasses(color){
+  // Return static class names to prevent purge issues
+  switch(color){
+    case 'green':  return { badgeBg:'bg-green-100', badgeText:'text-green-800', border:'border-green-500' };
+    case 'blue':   return { badgeBg:'bg-blue-100',  badgeText:'text-blue-800',  border:'border-blue-500' };
+    case 'red':    return { badgeBg:'bg-red-100',   badgeText:'text-red-800',   border:'border-red-500' };
+    case 'yellow': return { badgeBg:'bg-yellow-100',badgeText:'text-yellow-800',border:'border-yellow-500' };
+    case 'purple': return { badgeBg:'bg-purple-100',badgeText:'text-purple-800',border:'border-purple-500' };
+    default:       return { badgeBg:'bg-gray-100',  badgeText:'text-gray-800',  border:'border-gray-400' };
+  }
+}
+
+function updateOfflineStatus(){
+  if(!navigator.onLine){
+    offlineBanner.classList.add('active');
+    announce('Sem conexão. Alguns dados podem estar desatualizados.');
+  } else offlineBanner.classList.remove('active');
+}
+window.addEventListener('online', updateOfflineStatus);
+window.addEventListener('offline', updateOfflineStatus);
+
+/* ========= Initialization ========= */
+async function initializeApp(){
+  await injectHeader();
+  state.currentUser = await getCurrentUser();
+  setupDataListeners();
+  setupGlobalEvents();
+  enableFabIfMobile();
+  updateOfflineStatus();
+}
+
+function setupDataListeners(){
+  onSnapshot(doc(db, paths.configDoc('campaignTypes')), (s) => {
+    state.settings = s.exists() ? s.data() : {};
+    renderAllSections();
+  });
+
+  onSnapshot(query(collection(db, paths.campaigns), orderBy("createdAt","desc")), (s) => {
+    state.allCampaigns = s.docs.map(d=>({ id:d.id, ...d.data() }));
+    renderAllSections();
+  });
+
+  onSnapshot(query(collection(db, paths.donations)), (s) => {
+    state.allDonations = s.docs.map(d=>d.data());
+    renderAllSections();
+  });
+
+  onSnapshot(query(collection(db, paths.likes)), (s) => {
+    state.allLikes = s.docs.map(d=>({ id:d.id, ...d.data() }));
+    renderAllSections();
+  });
+}
+
+/* ========= Rendering ========= */
+function renderAllSections(){
+  if(state.allCampaigns.length === 0 && Object.keys(state.settings).length === 0){
+    // Still loading configs
+  } else {
+    loadingContainer.style.display='none';
+  }
+
+  // Clear intervals
+  Object.values(countdownIntervals).forEach(clearInterval);
+  Object.values(slideshowIntervals).forEach(clearInterval);
+  countdownIntervals = {};
+  slideshowIntervals = {};
+
+  const now = new Date();
+
+  const active   = state.allCampaigns.filter(c => c.status === 'active'   && c.startsAt?.toDate() <= now && c.expiresAt?.toDate() >  now);
+  const upcoming = state.allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt?.toDate() >  now);
+  const recent   = state.allCampaigns.filter(c => c.expiresAt?.toDate() && c.expiresAt.toDate() <= now);
+
+  renderSection('ativas', active);
+  renderSection('proximas', upcoming);
+  renderSection('recentes', recent);
+
+  document.getElementById('accordion-proximas').classList.toggle('hidden', upcoming.length === 0);
+  document.getElementById('accordion-recentes').classList.toggle('hidden', recent.length === 0);
+
+  // Auto-open first accordion if none open
+  const firstHeader = document.querySelector('.accordion-header');
+  if(firstHeader && !firstHeader.classList.contains('active')){
+    firstHeader.classList.add('active');
+  }
+  document.querySelectorAll('.accordion-header.active').forEach(h=>{
+    const panel = h.nextElementSibling;
+    if(panel) panel.style.maxHeight = panel.scrollHeight+'px';
+  });
+}
+
+function renderSection(sectionKey, campaignsArray){
+  const sectionState = state.sections[sectionKey];
+  const filtered = campaignsArray.filter(c => sectionState.filter === 'all' || c.type === sectionState.filter);
+  document.getElementById(`count-${sectionKey}`).textContent = `(${filtered.length})`;
+  const visible = filtered.slice(0, sectionState.visibleCount);
+  renderCampaignsList(sectionKey, visible, filtered.length);
+  renderFilterDropdown(sectionKey, campaignsArray);
+}
+
+function renderCampaignsList(sectionKey, campaigns, totalFiltered){
+  const listEl = campaignLists[sectionKey];
+  const emptyEl = emptyPlaceholders[sectionKey];
+  const paginationEl = paginationContainers[sectionKey];
+  listEl.innerHTML='';
+
+  if(campaigns.length === 0){
+    emptyEl.classList.remove('hidden');
+  } else {
+    emptyEl.classList.add('hidden');
+
+    const fragment = document.createDocumentFragment();
+    campaigns.forEach(c=>{
+      const donations = state.allDonations.filter(don => don.campaignId === c.id);
+      const likes     = state.allLikes.filter(lk => lk.campaignId === c.id);
+      const cardHTML  = createCampaignCard(c, donations, likes, state.sections[sectionKey].key);
+      const wrapper=document.createElement('div');
+      wrapper.innerHTML=cardHTML;
+      fragment.appendChild(wrapper.firstElementChild);
+    });
+    listEl.appendChild(fragment);
+
+    // Setup dynamic features per card
+    campaigns.forEach(c=>{
+      const isEncerrada = c.expiresAt?.toDate() && c.expiresAt.toDate() <= new Date();
+      if(sectionKey === 'ativas' && !isEncerrada){
+        startCountdown(c.id, c.expiresAt?.toDate());
+        startMediaSlideshow(c.id);
+      }
+    });
+
+    // Lazy load images
+    applyLazyLoading(listEl.querySelectorAll('img.media-item'));
+  }
+
+  paginationEl.innerHTML='';
+  if(totalFiltered > campaigns.length){
+    const btn=document.createElement('button');
+    btn.className='bg-green-600 text-white font-semibold py-2 px-6 rounded-full shadow hover:bg-green-700 transition text-sm';
+    btn.textContent='Carregar Mais';
+    btn.addEventListener('click', ()=> window.loadMore(sectionKey));
+    paginationEl.appendChild(btn);
+  }
+}
+
+function renderFilterDropdown(sectionKey, campaigns){
+  const container = document.getElementById(`filter-dropdown-${sectionKey}`);
+  const sectionState = state.sections[sectionKey];
+  const typesInUse = [...new Set(campaigns.map(c=>c.type))].filter(Boolean);
+
+  if(typesInUse.length <= 1){
+    container.innerHTML='';
+    return;
+  }
+
+  const currentLabel = sectionState.filter === 'all'
+    ? 'Filtrar'
+    : (state.settings[sectionState.filter]?.label || sectionState.filter);
+
+  let items = `<button class="filter-dropdown-item ${sectionState.filter==='all'?'active':''}" data-filter="all">Todos os Tipos</button>`;
+  typesInUse.forEach(type=>{
+    const label = state.settings[type]?.label || type;
+    items += `<button class="filter-dropdown-item ${sectionState.filter===type?'active':''}" data-filter="${type}">${label}</button>`;
+  });
+
+  container.innerHTML=`
+    <button class="text-xs font-semibold text-gray-600 hover:text-green-600 flex items-center gap-1 px-2 py-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500" data-filter-trigger="${sectionKey}">
+      ${currentLabel}
+      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+      </svg>
+    </button>
+    <div id="filter-menu-${sectionKey}" class="filter-dropdown-menu" role="menu" aria-label="Filtro de ${sectionKey}">
+      ${items}
+    </div>
+  `;
+}
+
+/* ========= Card Builder ========= */
+function createCampaignCard(campaign, donations, likes, listKey){
+  const settings = state.settings[campaign.type] || state.settings['default'] || { label: 'Campanha', color: 'gray' };
+  const color = ensureColor(settings.color || 'gray');
+  const colorClasses = mapColorClasses(color);
+
+  const isCampaignActive = listKey === 'active';
+  const isEncerrada = listKey === 'recent' || (campaign.expiresAt?.toDate() && campaign.expiresAt.toDate() <= new Date());
+  const baseBorder = `border-2 ${colorClasses.border}`;
+  const cardClasses = `campaign-card flex flex-col bg-white rounded-xl shadow-sm overflow-hidden focus:outline-none transition
+    ${isEncerrada ? 'campaign-encerrada' : 'hover:shadow-xl'} ${baseBorder}`;
+
+  // Media
+  let mediaHtml='';
+  if(!isEncerrada){
+    const mediaItems=[];
+    if(campaign.videoUrl) mediaItems.push({type:'video',src:campaign.videoUrl});
+    (campaign.images||[]).forEach(src=>mediaItems.push({type:'image',src}));
+    if(mediaItems.length===0) mediaItems.push({type:'image',src:'https://placehold.co/600x400/e2e8f0/cbd5e0?text=Sem+Imagem'});
+    mediaItems.forEach((m,i)=>{
+      if(m.type==='video'){
+        mediaHtml += `<video class="media-item ${i===0?'active':''}" data-lazy="true" muted playsinline loop preload="none"></video>
+          <link rel="preload" as="video" href="${m.src}">`;
+      } else {
+        mediaHtml += `<img class="media-item ${i===0?'active':''}" data-src="${m.src}" alt="Imagem da campanha ${campaign.title}" loading="lazy">`;
+      }
+    });
+  } else {
+    const first = (campaign.images && campaign.images[0]) || 'https://placehold.co/600x400/e2e8f0/cbd5e0?text=Sem+Imagem';
+    mediaHtml = `<img class="media-item active" data-src="${first}" alt="Imagem da campanha ${campaign.title}" loading="lazy">`;
+  }
+
+  // Status tag
+  let statusTag='';
+  if(campaign.status==='upcoming') statusTag='<span class="status-chip bg-blue-500 text-white">PRÓXIMA</span>';
+  else if(isCampaignActive && campaign.priority==='high') statusTag='<span class="status-chip bg-red-500 text-white urgent-badge">URGENTE</span>';
+
+  // Countdown
+  let countdownHtml='';
+  if(isCampaignActive) countdownHtml = `<span id="countdown-${campaign.id}" class="bg-black/60 text-white text-[10px] font-semibold px-2 py-1 rounded-full">...</span>`;
+
+  // Goal progress
+  let goalHtml='';
+  if(campaign.goal){
+    const completedItems = donations.reduce((total,d)=> total + (d.items||[]).filter(i=>i.status==='completed').length, 0);
+    const goal = parseInt(campaign.goal,10);
+    const progress = goal>0? Math.min(100,(completedItems/goal)*100) : 0;
+    goalHtml = `
+      <div class="space-y-1">
+        <div class="flex justify-between text-[11px] font-medium text-gray-500">
+          <span>Meta</span><span>${completedItems}/${goal}</span>
+        </div>
+        <div class="progress-bar">
+          <span style="width:${progress}%"></span>
+        </div>
+      </div>`;
+  }
+
+  // Donors with completed
+  const donorsWithCompleted = Object.values(
+    donations.reduce((acc,d)=>{
+      if(d.campaignId===campaign.id && Array.isArray(d.items) && d.items.some(i=>i.status==='completed')){
+        acc[d.donorId]=d;
+      }
+      return acc;
+    },{})
+  );
+
+  let donorsHtml='';
+  if(donorsWithCompleted.length>0){
+    donorsHtml = donorsWithCompleted.slice(0,5).map(don=>{
+      const donorLikes = likes.filter(l => l.donorId===don.donorId && l.campaignId===campaign.id);
+      const userHasLiked = state.currentUser?.auth && donorLikes.some(l => l.likerId===state.currentUser.auth.uid);
+      const isAnonymous = don.privacy==='anonymous';
+      const photoURL = isAnonymous
+        ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A'
+        : don.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
+      const displayName = isAnonymous ? 'Anônimo' : (don.donorName||'Doador');
+      return `
+        <div class="text-center flex flex-col items-center">
+          <div class="donor-avatar-container">
+            <img src="${photoURL}" alt="Foto de ${displayName}" title="${displayName}"
+              class="donor-avatar inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover">
+            <div class="star-badge" title="Entrega concluída">
+              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+              </svg>
+            </div>
+          </div>
+          <button class="like-button mt-1 ${userHasLiked?'liked':''}" data-campaign-id="${campaign.id}" data-donor-id="${don.donorId}" aria-label="Curtir doador">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
+            </svg>
+            <span class="like-count">${donorLikes.length}</span>
+          </button>
+        </div>
+      `;
+    }).join('');
+    if(donorsWithCompleted.length>5){
+      donorsHtml += `<div class="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 text-gray-600 text-xs font-bold ring-2 ring-white">+${donorsWithCompleted.length-5}</div>`;
+    }
+  } else {
+    donorsHtml = isEncerrada
+      ? '<p class="text-xs text-gray-500">Nenhum apoiador com entrega concluída.</p>'
+      : '<p class="text-xs text-green-600 font-medium">Seja o primeiro a apoiar!</p>';
+  }
+
+  const verifiedBadgeHtml = campaign.entityVerified
+    ? `<svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+       </svg>`
+    : '';
+
+  return `
+    <article tabindex="0" data-id="${campaign.id}" class="${cardClasses}" role="button" aria-label="Campanha ${campaign.title}">
+      <div class="media-wrapper">
+        <div class="media-container">
+          <div class="media-skeleton"></div>
+          ${mediaHtml}
+        </div>
+        ${isEncerrada
+          ? `<div class="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
+               <span class="text-white text-sm font-bold uppercase tracking-wider">Encerrada</span>
+             </div>`
+          : ''
         }
-        
-        function setupDataListeners() {
-            onSnapshot(doc(db, paths.configDoc('campaignTypes')), (s) => { state.settings = s.exists() ? s.data() : {}; renderAllSections(); });
-            onSnapshot(query(collection(db, paths.campaigns), orderBy("createdAt", "desc")), (s) => { state.allCampaigns = s.docs.map(d => ({ id: d.id, ...d.data() })); renderAllSections(); });
-            onSnapshot(query(collection(db, paths.donations)), (s) => { state.allDonations = s.docs.map(d => d.data()); renderAllSections(); });
-            onSnapshot(query(collection(db, paths.likes)), (s) => { state.allLikes = s.docs.map(d => ({id: d.id, ...d.data()})); renderAllSections(); });
+      </div>
+      <div class="p-5 flex flex-col flex-grow">
+        <div class="flex justify-between items-start gap-2 mb-2">
+          <p class="uppercase tracking-wide text-[10px] text-gray-600 font-semibold flex items-center gap-1">
+            <span class="truncate max-w-[10rem]" title="${campaign.entityName}">${campaign.entityName}</span>
+            ${verifiedBadgeHtml}
+          </p>
+          <span class="text-[10px] font-semibold px-2 py-1 rounded-full ${colorClasses.badgeBg} ${colorClasses.badgeText}">
+            ${settings.label}
+          </span>
+        </div>
+        <h3 class="text-base leading-snug font-bold text-gray-900 line-clamp-2" title="${campaign.title}">
+          ${campaign.title}
+        </h3>
+        <div class="flex justify-between items-center mt-2 min-h-[20px]">
+          <div>${statusTag}</div>
+          <div>${countdownHtml}</div>
+        </div>
+        <div class="mt-3 space-y-3 flex-grow">
+          ${goalHtml}
+        </div>
+        <div class="pt-4 mt-4 border-t border-dashed border-gray-200">
+          <h4 class="text-xs font-semibold text-gray-700 mb-3 tracking-wide uppercase">Apoiadores</h4>
+          <div class="flex flex-wrap items-end gap-x-2 gap-y-3">${donorsHtml}</div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+/* ========= Dynamic Features ========= */
+function startCountdown(id, expiresAt){
+  if(!expiresAt || countdownIntervals[id]) return;
+  const el = document.getElementById(`countdown-${id}`);
+  if(!el) return;
+  function update(){
+    const dist = expiresAt.getTime() - Date.now();
+    if(dist <= 0){
+      clearInterval(countdownIntervals[id]);
+      el.textContent='Encerrada';
+      el.classList.replace('bg-black/60','bg-red-600');
+      return;
+    }
+    const d = Math.floor(dist/86400000);
+    const h = Math.floor((dist%86400000)/3600000);
+    el.textContent = d>0 ? `Encerra em: ${d}d ${h}h` : `Encerra em: ${h}h`;
+  }
+  update();
+  countdownIntervals[id] = setInterval(update, 60000);
+}
+
+function startMediaSlideshow(id){
+  if(slideshowIntervals[id]) return;
+  const card = document.querySelector(`[data-id="${id}"]`);
+  if(!card) return;
+  const items = card.querySelectorAll('.media-item');
+  if(items.length <= 1) return;
+  let idx = 0;
+  slideshowIntervals[id] = setInterval(()=>{
+    if(document.hidden) return;
+    items[idx].classList.remove('active');
+    idx = (idx+1)%items.length;
+    items[idx].classList.add('active');
+  }, 5000);
+}
+
+/* Lazy image load */
+function applyLazyLoading(nodeList){
+  if(!('IntersectionObserver' in window)) return; // fallback browser loads by default
+  const io = new IntersectionObserver(entries=>{
+    entries.forEach(ent=>{
+      if(ent.isIntersecting){
+        const img = ent.target;
+        if(img.dataset.src){
+          img.src = img.dataset.src;
+          img.removeAttribute('data-src');
         }
-        
-        function renderAllSections() {
-            const loadingContainer = document.getElementById('loading-container');
-            if (state.allCampaigns.length === 0 && Object.keys(state.settings).length > 0) { loadingContainer.style.display = 'none'; return; }
-            loadingContainer.style.display = 'none';
-            Object.values(countdownIntervals).forEach(clearInterval);
-            Object.values(slideshowIntervals).forEach(clearInterval);
-            countdownIntervals = {}; slideshowIntervals = {};
+        io.unobserve(img);
+      }
+    });
+  }, { rootMargin:'150px' });
+  nodeList.forEach(img=> io.observe(img));
+}
 
-            const now = new Date();
-            const active = state.allCampaigns.filter(c => c.status === 'active' && c.startsAt?.toDate() <= now && c.expiresAt?.toDate() > now);
-            const upcoming = state.allCampaigns.filter(c => c.status === 'upcoming' && c.startsAt?.toDate() > now);
-            const recent = state.allCampaigns.filter(c => c.expiresAt?.toDate() <= now);
+/* ========= Events ========= */
+function setupGlobalEvents(){
+  // Card / like / accordion / filter interactions
+  document.addEventListener('click', (e)=>{
+    const likeBtn = e.target.closest('.like-button');
+    const card    = e.target.closest('.campaign-card');
+    const filterTrigger = e.target.closest('[data-filter-trigger]');
+    const filterItem    = e.target.closest('.filter-dropdown-item');
+    const accordionBtn  = e.target.closest('.accordion-header');
 
-            renderSection('ativas', active);
-            renderSection('proximas', upcoming);
-            renderSection('recentes', recent);
-            
-            document.getElementById('accordion-proximas').style.display = upcoming.length > 0 ? 'block' : 'none';
-            document.getElementById('accordion-recentes').style.display = recent.length > 0 ? 'block' : 'none';
+    if(filterTrigger){
+      const key = filterTrigger.dataset.filterTrigger;
+      toggleFilterMenu(key);
+      return;
+    }
+    if(filterItem){
+      const menu = filterItem.closest('.filter-dropdown-menu');
+      const sectionKey = menu.id.replace('filter-menu-','');
+      setFilter(sectionKey, filterItem.dataset.filter);
+      return;
+    }
+    if(accordionBtn){
+      toggleAccordion(accordionBtn);
+      return;
+    }
+    if(likeBtn){
+      e.stopPropagation();
+      handleLikeClick(likeBtn);
+      return;
+    }
+    if(card){
+      handleCardClick(card);
+    }
+    // Click outside dropdowns closes
+    if(!e.target.closest('.filter-dropdown-container')){
+      document.querySelectorAll('.filter-dropdown-menu').forEach(m=> m.style.display='none');
+    }
+  });
 
-            const firstHeader = document.querySelector('.accordion-header');
-            if (firstHeader && !firstHeader.classList.contains('active')) {
-                firstHeader.classList.add('active');
-            }
-            
-            document.querySelectorAll('.accordion-header.active').forEach(header => {
-                const activeContent = header.nextElementSibling;
-                if (activeContent) activeContent.style.maxHeight = activeContent.scrollHeight + 'px';
-            });
-        }
+  document.getElementById('fab-scroll-top')?.addEventListener('click', ()=>{
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+  document.getElementById('fab-refresh')?.addEventListener('click', ()=>{
+    showToast('Atualizando...', 'success', 1200);
+    renderAllSections();
+  });
 
-        function renderSection(sectionKey, allCampaignsForSection) {
-            const sectionState = state.sections[sectionKey];
-            const filtered = allCampaignsForSection.filter(c => sectionState.filter === 'all' || c.type === sectionState.filter);
+  window.addEventListener('resize', enableFabIfMobile);
+}
 
-            document.getElementById(`count-${sectionKey}`).textContent = `(${filtered.length})`;
+function enableFabIfMobile(){
+  const fab=document.getElementById('fab-bar-home');
+  if(window.innerWidth<=640){
+    fab.style.display='flex';
+    document.body.classList.add('has-fab-bottom');
+  } else {
+    fab.style.display='none';
+    document.body.classList.remove('has-fab-bottom');
+  }
+}
 
-            const visibleCampaigns = filtered.slice(0, sectionState.visibleCount);
-            renderCampaignsList(sectionKey, visibleCampaigns, filtered.length);
-            renderFilterDropdown(sectionKey, allCampaignsForSection);
-        }
+/* ========= Actions ========= */
+async function handleLikeClick(likeButton){
+  if(!state.currentUser?.auth){
+    showAlertModal("Ação necessária","Você precisa estar logado para curtir.");
+    return;
+  }
+  if(!state.currentUser.isVerified){
+    showAlertModal("Verifique seu E-mail","Você precisa verificar seu e-mail para poder curtir.");
+    return;
+  }
+  const { campaignId, donorId } = likeButton.dataset;
+  const likerId = state.currentUser.auth.uid;
+  const likeDocRef = doc(db, paths.likeDoc(`${campaignId}_${donorId}_${likerId}`));
 
-        function renderCampaignsList(sectionKey, campaigns, totalFiltered) {
-            const listEl = campaignLists[sectionKey];
-            const emptyEl = emptyPlaceholders[sectionKey];
-            const paginationEl = paginationContainers[sectionKey];
-            listEl.innerHTML = '';
+  try{
+    if(likeButton.classList.contains('liked')){
+      await deleteDoc(likeDocRef);
+    } else {
+      await setDoc(likeDocRef,{
+        campaignId, donorId, likerId,
+        likerName: state.currentUser.profile.displayName || 'Usuário',
+        likerPhotoURL: state.currentUser.profile.photoURL || null,
+        createdAt: serverTimestamp()
+      });
+    }
+  }catch(err){
+    console.error('Erro like:',err);
+    showAlertModal('Erro','Não foi possível registrar sua curtida.');
+  }
+}
 
-            if (campaigns.length === 0) {
-                emptyEl.classList.remove('hidden');
-            } else {
-                emptyEl.classList.add('hidden');
-                campaigns.forEach(c => {
-                    const d = state.allDonations.filter(don => don.campaignId === c.id);
-                    const l = state.allLikes.filter(lk => lk.campaignId === c.id);
-                    listEl.innerHTML += createCampaignCard(c, d, l, state.sections[sectionKey].key);
-                });
-                campaigns.forEach(c => {
-                    const isEncerrada = c.expiresAt?.toDate() && c.expiresAt.toDate() <= new Date();
-                    if (sectionKey === 'ativas' && !isEncerrada) { startCountdown(c.id, c.expiresAt?.toDate()); startMediaSlideshow(c.id); }
-                });
-            }
+function handleCardClick(card){
+  if(!state.currentUser?.auth){
+    showAlertModal("Acesso Restrito","Você precisa estar logado para ver os detalhes da campanha.");
+    return;
+  }
+  const id=card.dataset.id;
+  if(id) window.location.href=`detalhes.html?id=${id}`;
+}
 
-            paginationEl.innerHTML = '';
-            if (totalFiltered > campaigns.length) {
-                paginationEl.innerHTML = `<button onclick="window.loadMore('${sectionKey}')" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-full shadow-md hover:bg-green-700 transition">Carregar Mais</button>`;
-            }
-        }
+/* ========= Accordion ========= */
+function toggleAccordion(headerEl){
+  headerEl.classList.toggle('active');
+  const panel = headerEl.nextElementSibling;
+  if(!panel) return;
+  if(panel.style.maxHeight){
+    panel.style.maxHeight=null;
+  } else {
+    // close others (optional)
+    document.querySelectorAll('.accordion-header').forEach(h=>{
+      if(h!==headerEl){
+        h.classList.remove('active');
+        const p = h.nextElementSibling;
+        if(p) p.style.maxHeight=null;
+      }
+    });
+    requestAnimationFrame(()=> panel.style.maxHeight = panel.scrollHeight+'px');
+  }
+}
 
-        function renderFilterDropdown(sectionKey, campaigns) {
-            const container = document.getElementById(`filter-dropdown-${sectionKey}`);
-            const sectionState = state.sections[sectionKey];
-            const typesInUse = [...new Set(campaigns.map(c => c.type))];
+/* ========= Filter Menu ========= */
+function toggleFilterMenu(sectionKey){
+  const menu=document.getElementById(`filter-menu-${sectionKey}`);
+  if(!menu) return;
+  const visible=menu.style.display==='block';
+  document.querySelectorAll('.filter-dropdown-menu').forEach(m=> m.style.display='none');
+  menu.style.display = visible? 'none' : 'block';
+  if(!visible){
+    // Focus first item for accessibility
+    setTimeout(()=> menu.querySelector('.filter-dropdown-item')?.focus(),40);
+  }
+}
 
-            if (typesInUse.length <= 1) { container.innerHTML = ''; return; }
+function setFilter(sectionKey, filterValue){
+  state.sections[sectionKey].filter = filterValue;
+  state.sections[sectionKey].visibleCount = ITEMS_PER_PAGE;
+  renderAllSections();
+  const menu = document.getElementById(`filter-menu-${sectionKey}`);
+  if(menu) menu.style.display='none';
+  showToast('Filtro aplicado','success',1500);
+}
 
-            const currentFilterLabel = sectionState.filter === 'all' ? 'Filtrar' : (state.settings[sectionState.filter]?.label || sectionState.filter);
-            
-            let itemsHtml = `<button class="filter-dropdown-item ${sectionState.filter === 'all' ? 'active' : ''}" onclick="window.setFilter('${sectionKey}', 'all', event)">Todos os Tipos</button>`;
-            typesInUse.forEach(type => {
-                const settings = state.settings[type] || { label: type };
-                itemsHtml += `<button class="filter-dropdown-item ${sectionState.filter === type ? 'active' : ''}" onclick="window.setFilter('${sectionKey}', '${type}', event)">${settings.label}</button>`;
-            });
+/* ========= Pagination ========= */
+function loadMore(sectionKey){
+  state.sections[sectionKey].visibleCount += ITEMS_PER_PAGE;
+  renderAllSections();
+}
 
-            container.innerHTML = `
-                <button onclick="window.toggleFilterMenu('${sectionKey}', event)" class="text-sm font-medium text-gray-500 hover:text-green-600 flex items-center gap-1">
-                    ${currentFilterLabel}
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                </button>
-                <div id="filter-menu-${sectionKey}" class="filter-dropdown-menu">${itemsHtml}</div>
-            `;
-        }
+/* ========= Expose to window (legacy handlers) ========= */
+window.loadMore = loadMore;
+window.setFilter = setFilter;
+window.toggleAccordion = toggleAccordion;
+window.toggleFilterMenu = toggleFilterMenu;
 
-        function createCampaignCard(campaign, donations, likes, listKey) {
-            const settings = state.settings[campaign.type] || state.settings['default'] || { label: 'Campanha', color: 'gray' };
-            const isCampaignActive = listKey === 'active';
-            const isEncerrada = listKey === 'recent' || (campaign.expiresAt?.toDate() && campaign.expiresAt.toDate() <= new Date());
-            const cardClasses = `campaign-card flex flex-col bg-white rounded-lg shadow-lg overflow-hidden border-2 border-${settings.color}-500 ${isEncerrada ? 'campaign-encerrada' : 'hover:shadow-xl hover:-translate-y-1'}`;
+/* ========= Start ========= */
+initializeApp();
 
-            let mediaHtml = '';
-            if (!isEncerrada) {
-                const mediaItems = [];
-                if (campaign.videoUrl) mediaItems.push({ type: 'video', src: campaign.videoUrl });
-                (campaign.images || []).forEach(src => mediaItems.push({ type: 'image', src }));
-                if (mediaItems.length === 0) mediaItems.push({ type: 'image', src: 'https://placehold.co/600x400/e2e8f0/e2e8f0?text=Sem+Imagem' });
-                mediaItems.forEach((media, index) => {
-                    if (media.type === 'video') { mediaHtml += `<video class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" muted autoplay playsinline loop></video>`; } 
-                    else { mediaHtml += `<img class="media-item ${index === 0 ? 'active' : ''}" src="${media.src}" alt="Imagem da campanha ${campaign.title}">`; }
-                });
-            } else {
-                 const firstImage = (campaign.images && campaign.images[0]) || 'https://placehold.co/600x400/e2e8f0/e2e8f0?text=Sem+Imagem';
-                 mediaHtml = `<img class="media-item active" src="${firstImage}" alt="Imagem da campanha ${campaign.title}">`;
-            }
-
-            let statusTag = '';
-            if (campaign.status === 'upcoming') { statusTag = `<span class="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">PRÓXIMA</span>`; } 
-            else if (isCampaignActive && campaign.priority === 'high') { statusTag = `<span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full urgent-badge">URGENTE</span>`; }
-
-            let countdownHtml = '';
-            if (isCampaignActive) { countdownHtml = `<span id="countdown-${campaign.id}" class="bg-black bg-opacity-60 text-white text-xs font-semibold px-2 py-1 rounded-full">A calcular...</span>`; }
-            
-            let goalHtml = '';
-            if (campaign.goal) {
-                const currentAmount = donations.reduce((total, d) => total + (d.items || []).filter(i => i.status === 'completed').length, 0);
-                const goal = parseInt(campaign.goal, 10);
-                const progress = goal > 0 ? Math.min(100, (currentAmount / goal) * 100) : 0;
-                goalHtml = `<div><div class="flex justify-between text-xs font-medium text-gray-500"><span>Meta Atingida</span><span>${currentAmount} / ${goal}</span></div><div class="w-full bg-gray-200 rounded-full h-2 mt-1"><div class="bg-green-500 h-2 rounded-full" style="width: ${progress}%"></div></div></div>`;
-            }
-
-            const donorsWithCompletedItems = Object.values(donations.reduce((acc, d) => { if (d.campaignId === campaign.id && Array.isArray(d.items) && d.items.some(i => i.status === 'completed')) acc[d.donorId] = d; return acc; }, {}));
-            
-            let donorsHtml = '';
-            if (donorsWithCompletedItems.length > 0) {
-                donorsHtml = donorsWithCompletedItems.slice(0, 5).map(donation => {
-                    const donorLikes = likes.filter(l => l.donorId === donation.donorId && l.campaignId === campaign.id);
-                    const userHasLiked = state.currentUser?.auth && donorLikes.some(like => like.likerId === state.currentUser.auth.uid);
-                    const isAnonymous = donation.privacy === 'anonymous';
-                    const photoURL = isAnonymous ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A' : donation.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
-                    const displayName = isAnonymous ? 'Anônimo' : donation.donorName;
-                    return `<div class="text-center"><div class="donor-avatar-container"><img src="${photoURL}" alt="Foto de ${displayName}" title="${displayName}" class="donor-avatar inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover"><div class="star-badge" title="Doação Concluída!"><svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></div></div><div class="like-button mt-1 ${userHasLiked ? 'liked' : ''}" data-campaign-id="${campaign.id}" data-donor-id="${donation.donorId}" title="Curtir"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path></svg><span class="like-count">${donorLikes.length}</span></div></div>`;
-                }).join('');
-                if (donorsWithCompletedItems.length > 5) donorsHtml += `<div class="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 text-gray-600 text-xs font-bold ring-2 ring-white">+${donorsWithCompletedItems.length - 5}</div>`;
-            } else {
-                donorsHtml = isEncerrada ? '<p class="text-sm text-gray-500">Nenhum apoiador com entrega concluída.</p>' : '<p class="text-sm text-green-600 font-medium">Seja o primeiro a apoiar e fazer o bem!</p>';
-            }
-            
-            const verifiedBadgeHtml = `<svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" title="Entidade Verificada"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>`;
-
-            return `
-                <div data-id="${campaign.id}" class="${cardClasses}">
-                    <div class="relative h-48 w-full">
-                        <div class="media-container">${mediaHtml}</div>
-                        ${isEncerrada ? `<div class="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-10"><span class="text-white text-xl font-bold uppercase tracking-wider">Encerrada</span></div>` : ''}
-                    </div>
-                    <div class="p-6 flex-grow flex flex-col">
-                        <div class="flex justify-between items-center mb-2">
-                            <p class="uppercase tracking-wide text-sm text-gray-600 font-semibold flex items-center gap-1">
-                                ${campaign.entityName}
-                                ${campaign.entityVerified ? verifiedBadgeHtml : ''}
-                            </p>
-                            <span class="text-xs font-semibold px-2 py-1 rounded-full bg-${settings.color}-100 text-${settings.color}-800">${settings.label}</span>
-                        </div>
-                        <h3 class="block text-xl leading-tight font-bold text-black truncate" title="${campaign.title}">${campaign.title}</h3>
-                        <div class="flex justify-between items-center mt-2 min-h-[22px]">
-                            <div>${statusTag}</div>
-                            <div>${countdownHtml}</div>
-                        </div>
-                        <div class="mt-2 space-y-3 flex-grow">${goalHtml}</div>
-                         <div class="px-0 pt-4 border-t mt-4">
-                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Apoiadores</h4>
-                            <div class="flex flex-wrap items-end gap-x-2 gap-y-4">${donorsHtml}</div>
-                        </div>
-                    </div>
-                </div>`;
-        }
-        
-        function setupEventListeners() {
-            document.querySelector('main').addEventListener('click', (e) => {
-                const likeButton = e.target.closest('.like-button');
-                const card = e.target.closest('.campaign-card');
-                const filterContainer = e.target.closest('.filter-dropdown-container');
-
-                if (filterContainer) { return; } // Previne que o clique no container do filtro feche o acordeão
-                if (likeButton) { e.stopPropagation(); handleLikeClick(likeButton); } 
-                else if (card) { handleCardClick(card); }
-            });
-            window.addEventListener('click', (e) => {
-                if (!e.target.closest('.filter-dropdown-container')) {
-                    document.querySelectorAll('.filter-dropdown-menu').forEach(menu => menu.style.display = 'none');
-                }
-            });
-        }
-        
-        async function handleLikeClick(likeButton) {
-            if (!state.currentUser?.auth) { showAlertModal("Ação necessária", "Você precisa estar logado para curtir."); return; }
-            if (!state.currentUser.isVerified) { showAlertModal("Verifique seu E-mail", "Você precisa verificar seu e-mail para poder curtir."); return; }
-            const { campaignId, donorId } = likeButton.dataset;
-            const likerId = state.currentUser.auth.uid;
-            const likeDocRef = doc(db, paths.likeDoc(`${campaignId}_${donorId}_${likerId}`));
-            try {
-                if (likeButton.classList.contains('liked')) { await deleteDoc(likeDocRef); }
-                else { await setDoc(likeDocRef, { campaignId, donorId, likerId, likerName: state.currentUser.profile.displayName || 'Usuário', likerPhotoURL: state.currentUser.profile.photoURL || null, createdAt: serverTimestamp() }); }
-            } catch (error) { console.error("Erro ao curtir:", error); showAlertModal("Erro", "Não foi possível registrar sua curtida."); }
-        }
-
-        function handleCardClick(card) {
-            if (!state.currentUser?.auth) {
-                showAlertModal("Acesso Restrito", "Você precisa estar logado para ver os detalhes da campanha. Por favor, faça o login.");
-                return;
-            }
-            const campaignId = card.dataset.id;
-            if (campaignId) window.location.href = `detalhes.html?id=${campaignId}`;
-        }
-        
-        function startCountdown(id, expiresAt) { if (!expiresAt || countdownIntervals[id]) return; const el = document.getElementById(`countdown-${id}`); if (!el) return; const update = () => { const dist = expiresAt.getTime() - new Date().getTime(); if (dist < 0) { clearInterval(countdownIntervals[id]); el.parentElement.innerHTML = ''; return; } const d = Math.floor(dist / 864e5), h = Math.floor(dist % 864e5 / 36e5); el.textContent = `Encerra em: ${d}d ${h}h`; }; update(); countdownIntervals[id] = setInterval(update, 60000); }
-        function startMediaSlideshow(id) { if (slideshowIntervals[id]) return; const card = document.querySelector(`[data-id="${id}"]`); if (!card) return; const items = card.querySelectorAll(`.media-item`); if (items.length <= 1) return; let idx = 0; const next = () => { if (document.hidden) return; items[idx].classList.remove('active'); idx = (idx + 1) % items.length; items[idx].classList.add('active'); }; slideshowIntervals[id] = setInterval(next, 5000); }
-        
-        // Funções Globais Acessíveis pelo HTML via window
-        window.toggleAccordion = (headerElement) => {
-            const contentElement = headerElement.nextElementSibling;
-            headerElement.classList.toggle('active');
-            if (contentElement.style.maxHeight) {
-                contentElement.style.maxHeight = null;
-            } else {
-                setTimeout(() => { contentElement.style.maxHeight = contentElement.scrollHeight + "px"; }, 50);
-            }
-        };
-
-        window.toggleFilterMenu = (key, event) => {
-            event.stopPropagation();
-            const menu = document.getElementById(`filter-menu-${key}`);
-            if (menu) {
-                const isVisible = menu.style.display === 'block';
-                document.querySelectorAll('.filter-dropdown-menu').forEach(m => m.style.display = 'none');
-                menu.style.display = isVisible ? 'none' : 'block';
-            }
-        };
-
-        window.setFilter = (sectionKey, filterValue, event) => {
-            event.stopPropagation();
-            state.sections[sectionKey].filter = filterValue;
-            state.sections[sectionKey].visibleCount = ITEMS_PER_PAGE;
-            renderAllSections();
-            const menu = document.getElementById(`filter-menu-${sectionKey}`);
-            if (menu) menu.style.display = 'none';
-        };
-
-        window.loadMore = (sectionKey) => {
-            state.sections[sectionKey].visibleCount += ITEMS_PER_PAGE;
-            renderAllSections();
-        };
-
-        initializeApp();
-    </script>
+/* ========= Service Worker (PWA) ========= */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('service-worker.js').catch(console.error);
+}
+</script>
 </body>
 </html>
