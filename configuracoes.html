@@ -1,710 +1,682 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurações Gerais - Faz Bem</title>
-    
-    <meta name="theme-color" content="#22c55e">
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="logo.png">
-    <link rel="icon" href="logo.png" type="image/png">
-
-    <link href="/app-faz-bem/style.css" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #16a34a; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .switch { position: relative; display: inline-block; width: 40px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #22c55e; }
-        input:checked + .slider:before { transform: translateX(16px); }
-    </style>
+<meta charset="UTF-8">
+<title>Configurações Gerais - Faz Bem</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#22c55e" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f2917" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<link rel="preconnect" href="https://firestore.googleapis.com">
+<link href="/app-faz-bem/style.css" rel="stylesheet">
+<link href="mobile-enhancements.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body { font-family:'Inter',sans-serif; }
+.loader { border:4px solid #f3f3f3;border-top:4px solid #16a34a;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;}
+@keyframes spin { to { transform: rotate(360deg);} }
+.switch { position:relative; display:inline-block; width:40px; height:24px; }
+.switch input { opacity:0; width:0; height:0; }
+.slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#ccc; transition:.4s; border-radius:34px; }
+.slider:before { position:absolute; content:""; height:16px; width:16px; left:4px; bottom:4px; background:#fff; transition:.4s; border-radius:50%; }
+input:checked + .slider { background:#22c55e; }
+input:checked + .slider:before { transform:translateX(16px); }
+</style>
 </head>
 <body class="bg-gray-100">
+<div id="global-aria-live" aria-live="polite" data-visually-hidden="true"></div>
+<div id="app-header"></div>
 
-    <div id="app-header"></div>
-
-    <main id="page-content">
-        <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
-            <div class="text-center">
-                <div class="loader mx-auto"></div>
-                <p class="mt-4 text-gray-600">A carregar configurações...</p>
-            </div>
-        </div>
-
-        <div id="config-view" class="hidden container mx-auto max-w-7xl p-4 sm:p-6 my-8">
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-3xl font-bold text-gray-800">Configurações Gerais</h1>
-                <a href="superadmin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Coluna Tipos de Campanha -->
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Tipos de Campanha</h2>
-                    <div id="campaign-types-list" class="space-y-2 mb-6"></div>
-                    
-                    <div class="pt-4 border-t">
-                        <h3 class="text-lg font-medium text-gray-700 mb-4">Prefixos para Códigos de Itens</h3>
-                        <p class="text-sm text-gray-600 mb-4">
-                            Configure prefixos de 3 letras (A-Z) para gerar códigos únicos dos itens de cada tipo de campanha.
-                            Os códigos seguirão o formato: <code class="bg-gray-100 px-1 py-0.5 rounded">PREFIXO-000001</code>
-                        </p>
-                        <div id="campaign-prefixes-list" class="space-y-3 mb-4"></div>
-                        <button type="button" id="save-prefixes-btn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
-                            Salvar Prefixos
-                        </button>
-                    </div>
-                    
-                    <!-- Form para Adicionar/Editar Tipos -->
-                    <form id="campaign-type-form" class="space-y-4 pt-4 border-t">
-                        <h3 id="campaign-form-title" class="font-medium text-gray-700">Adicionar/Editar Tipo</h3>
-                        <input type="hidden" id="campaign-type-id-hidden" name="campaign-type-id-hidden">
-                        <div>
-                            <label for="campaign-type-id" class="block text-sm font-medium text-gray-600">ID (ex: agasalho, cesta_basica)*</label>
-                            <input type="text" id="campaign-type-id" name="campaign-type-id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                        </div>
-                        <div>
-                            <label for="campaign-type-label" class="block text-sm font-medium text-gray-600">Rótulo (ex: Agasalhos)*</label>
-                            <input type="text" id="campaign-type-label" name="campaign-type-label" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                        </div>
-                        <div>
-                            <label for="campaign-type-prefix" class="block text-sm font-medium text-gray-600">Prefixo (3 letras A-Z)*</label>
-                            <input type="text" id="campaign-type-prefix" name="campaign-type-prefix" required maxlength="3" pattern="[A-Z]{3}" placeholder="ABC" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm uppercase">
-                            <p class="text-xs text-gray-500 mt-1">3 letras maiúsculas para códigos únicos (ex: ABC-000001)</p>
-                        </div>
-                        <div>
-                            <label for="campaign-type-color" class="block text-sm font-medium text-gray-600">Cor</label>
-                            <select id="campaign-type-color" name="campaign-type-color" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                                <option value="green">Verde</option>
-                                <option value="blue">Azul</option>
-                                <option value="yellow">Amarelo</option>
-                                <option value="red">Vermelho</option>
-                                <option value="purple">Roxo</option>
-                                <option value="gray">Cinza</option>
-                            </select>
-                        </div>
-                        <div class="flex items-center space-x-4">
-                            <div class="flex items-center">
-                                <label class="switch">
-                                    <input type="checkbox" id="campaign-type-active" name="campaign-type-active" checked>
-                                    <span class="slider"></span>
-                                </label>
-                                <label for="campaign-type-active" class="ml-2 text-sm font-medium text-gray-600">Ativo</label>
-                            </div>
-                            <div class="flex-1">
-                                <label for="campaign-type-order" class="block text-sm font-medium text-gray-600">Ordem de Exibição</label>
-                                <input type="number" id="campaign-type-order" name="campaign-type-order" min="1" placeholder="1" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            </div>
-                        </div>
-                        <div class="flex justify-end space-x-3">
-                            <button type="button" id="cancel-edit-btn" class="hidden px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button>
-                            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Salvar Tipo</button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Coluna Campos Personalizados -->
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Campos Personalizados dos Itens</h2>
-                    <div class="mb-4">
-                        <label for="field-campaign-type-select" class="block text-sm font-medium text-gray-600">Gerir campos para o tipo:</label>
-                        <select id="field-campaign-type-select" name="field-campaign-type-select" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></select>
-                    </div>
-                    <div id="custom-fields-editor" class="hidden">
-                        <div id="custom-fields-list" class="space-y-2 mb-6"></div>
-                        <form id="custom-field-form" novalidate class="space-y-4 pt-4 border-t">
-                            <h3 id="custom-field-form-title" class="font-medium text-gray-700">Adicionar Novo Campo</h3>
-                            <input type="hidden" id="original-field-id" name="original-field-id">
-                            <div>
-                                <label for="field-label" class="block text-sm font-medium text-gray-600">Rótulo (ex: Data de Validade)*</label>
-                                <input type="text" id="field-label" name="field-label" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" data-required>
-                            </div>
-                            <div>
-                                <label for="field-id" class="block text-sm font-medium text-gray-600">ID do Campo (gerado do Rótulo, sem espaços/acentos)*</label>
-                                <input type="text" id="field-id" name="field-id" readonly class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100" data-required>
-                                <p id="field-id-warning" class="hidden text-xs text-yellow-600 mt-1">Atenção: Alterar o ID pode afetar dados existentes.</p>
-                            </div>
-                            <div>
-                                <label for="field-type" class="block text-sm font-medium text-gray-600">Tipo de Campo</label>
-                                <select id="field-type" name="field-type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                                    <option value="text">Texto Curto</option>
-                                    <option value="select">Lista de Opções</option>
-                                    <option value="date">Data</option>
-                                    <option value="image">Upload de Imagem</option>
-                                    <option value="camera">Foto (Câmera)</option>
-                                    <option value="video">Upload de Vídeo</option>
-                                </select>
-                            </div>
-                            <div id="field-options-container" class="hidden">
-                                <label for="field-options" class="block text-sm font-medium text-gray-600">Opções (separadas por vírgula)</label>
-                                <input type="text" id="field-options" name="field-options" placeholder="P, M, G, GG" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            </div>
-                            <div class="flex items-center">
-                                <input id="field-required" name="field-required" type="checkbox" class="h-4 w-4 text-green-600 border-gray-300 rounded">
-                                <label for="field-required" class="ml-2 block text-sm text-gray-900">Obrigatório?</label>
-                            </div>
-                            <div class="flex justify-end space-x-3">
-                                <button type="button" id="cancel-field-edit-btn" class="hidden px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button>
-                                <button type="submit" id="submit-field-btn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Adicionar Campo</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-    
-    <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
-                            <div class="mt-2">
-                                <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
-            </div>
+<main id="page-content">
+    <div id="loading-view" class="min-h-[calc(100vh-80px)] flex items-center justify-center">
+        <div class="text-center">
+            <div class="loader mx-auto"></div>
+            <p class="mt-4 text-gray-600">A carregar configurações...</p>
         </div>
     </div>
 
-    <script type="module">
-        import { db, paths } from './app-config.js';
-        import { doc, getDoc, updateDoc, deleteField } from './firebase-services.js';
-        import { injectHeader } from './app-header.js';
-        import { getCurrentUser } from './auth-service.js';
-        import { showAlertModal, showConfirmationModal } from './modal-handler.js';
+    <div id="config-view" class="hidden container mx-auto max-w-7xl p-4 sm:p-6 my-8">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Configurações Gerais</h1>
+            <a href="superadmin.html" class="text-sm font-medium text-gray-600 hover:text-green-600">← Voltar ao Painel</a>
+        </div>
 
-        // DOM refs
-        let loadingView, configView, campaignTypesList, campaignTypeForm, campaignFormTitle;
-        let campaignTypeIdInput, campaignTypeLabelInput, campaignTypePrefixInput, campaignTypeColorSelect, campaignTypeActiveInput, campaignTypeOrderInput, cancelEditBtn;
-        let fieldCampaignTypeSelect, customFieldsEditor, customFieldsList, customFieldForm;
-        let fieldLabelInput, fieldIdInput, fieldIdWarning, fieldTypeSelect;
-        let fieldOptionsContainer, fieldOptionsInput, fieldRequiredCheckbox;
-        let cancelFieldEditBtn, submitFieldBtn, customFieldFormTitle, originalFieldIdInput;
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Coluna Tipos -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Tipos de Campanha</h2>
+                <div id="campaign-types-list" class="space-y-2 mb-6"></div>
 
-        let campaignTypesData = {};
+                <div class="pt-4 border-t">
+                    <h3 class="text-lg font-medium text-gray-700 mb-4">Prefixos para Códigos de Itens</h3>
+                    <p class="text-sm text-gray-600 mb-4">
+                        Configure prefixos de 3 letras (A-Z). Os códigos gerados: <code class="bg-gray-100 px-1 py-0.5 rounded">PREFIXO-000001</code>.
+                    </p>
+                    <div id="campaign-prefixes-list" class="space-y-3 mb-4"></div>
+                    <button type="button" id="save-prefixes-btn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 btn-touch">Salvar Prefixos</button>
+                </div>
 
-        function safeAddListener(element, event, handler) {
-            if (element) {
-                element.addEventListener(event, handler);
-            } else {
-                console.warn(`Element not found for event listener: ${event}`);
-            }
+                <form id="campaign-type-form" class="space-y-4 pt-4 border-t">
+                    <h3 id="campaign-form-title" class="font-medium text-gray-700">Adicionar/Editar Tipo</h3>
+                    <input type="hidden" id="campaign-type-id-hidden" name="campaign-type-id-hidden">
+                    <div>
+                        <label for="campaign-type-id" class="block text-sm font-medium text-gray-600">ID (ex: agasalho)*</label>
+                        <input type="text" id="campaign-type-id" name="campaign-type-id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="campaign-type-label" class="block text-sm font-medium text-gray-600">Rótulo*</label>
+                        <input type="text" id="campaign-type-label" name="campaign-type-label" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="campaign-type-prefix" class="block text-sm font-medium text-gray-600">Prefixo (3 letras A-Z)*</label>
+                        <input type="text" id="campaign-type-prefix" name="campaign-type-prefix" required maxlength="3" pattern="[A-Z]{3}" placeholder="ABC" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm uppercase">
+                        <p class="text-xs text-gray-500 mt-1">3 letras maiúsculas (ex: ABC)</p>
+                    </div>
+                    <div>
+                        <label for="campaign-type-color" class="block text-sm font-medium text-gray-600">Cor</label>
+                        <select id="campaign-type-color" name="campaign-type-color" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <option value="green">Verde</option>
+                            <option value="blue">Azul</option>
+                            <option value="yellow">Amarelo</option>
+                            <option value="red">Vermelho</option>
+                            <option value="purple">Roxo</option>
+                            <option value="gray">Cinza</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center">
+                            <label class="switch">
+                                <input type="checkbox" id="campaign-type-active" name="campaign-type-active" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <label for="campaign-type-active" class="ml-2 text-sm font-medium text-gray-600">Ativo</label>
+                        </div>
+                        <div class="flex-1">
+                            <label for="campaign-type-order" class="block text-sm font-medium text-gray-600">Ordem</label>
+                            <input type="number" id="campaign-type-order" name="campaign-type-order" min="1" placeholder="1" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancel-edit-btn" class="hidden px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 btn-touch">Salvar Tipo</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Coluna Campos Personalizados -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold text-gray-800 border-b pb-3 mb-4">Campos Personalizados</h2>
+                <div class="mb-4">
+                    <label for="field-campaign-type-select" class="block text-sm font-medium text-gray-600">Gerir campos para:</label>
+                    <select id="field-campaign-type-select" name="field-campaign-type-select" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></select>
+                </div>
+                <div id="custom-fields-editor" class="hidden">
+                    <div id="custom-fields-list" class="space-y-2 mb-6"></div>
+                    <form id="custom-field-form" novalidate class="space-y-4 pt-4 border-t">
+                        <h3 id="custom-field-form-title" class="font-medium text-gray-700">Adicionar Novo Campo</h3>
+                        <input type="hidden" id="original-field-id" name="original-field-id">
+                        <div>
+                            <label for="field-label" class="block text-sm font-medium text-gray-600">Rótulo*</label>
+                            <input type="text" id="field-label" name="field-label" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" data-required>
+                        </div>
+                        <div>
+                            <label for="field-id" class="block text-sm font-medium text-gray-600">ID (gerado do Rótulo)*</label>
+                            <input type="text" id="field-id" name="field-id" readonly class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100" data-required>
+                            <p id="field-id-warning" class="hidden text-xs text-yellow-600 mt-1">Alterar o ID pode afetar dados existentes.</p>
+                        </div>
+                        <div>
+                            <label for="field-type" class="block text-sm font-medium text-gray-600">Tipo</label>
+                            <select id="field-type" name="field-type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                <option value="text">Texto Curto</option>
+                                <option value="select">Lista de Opções</option>
+                                <option value="date">Data</option>
+                                <option value="image">Upload de Imagem</option>
+                                <option value="camera">Foto (Câmera)</option>
+                                <option value="video">Upload de Vídeo</option>
+                            </select>
+                        </div>
+                        <div id="field-options-container" class="hidden">
+                            <label for="field-options" class="block text-sm font-medium text-gray-600">Opções (separadas por vírgula)</label>
+                            <input type="text" id="field-options" name="field-options" placeholder="P, M, G, GG" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div class="flex items-center">
+                            <input id="field-required" name="field-required" type="checkbox" class="h-4 w-4 text-green-600 border-gray-300 rounded">
+                            <label for="field-required" class="ml-2 block text-sm text-gray-900">Obrigatório?</label>
+                        </div>
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" id="cancel-field-edit-btn" class="hidden px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button>
+                            <button type="submit" id="submit-field-btn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 btn-touch">Adicionar Campo</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Modal Global -->
+<div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div class="sm:flex sm:items-start">
+          <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title"></h3>
+            <div class="mt-2">
+              <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { db, paths } from './app-config.js';
+import { doc, getDoc, updateDoc, deleteField } from './firebase-services.js';
+import { injectHeader } from './app-header.js';
+import { getCurrentUser } from './auth-service.js';
+import { showAlertModal, showConfirmationModal } from './modal-handler.js';
+
+let loadingView, configView, campaignTypesList, campaignTypeForm, campaignFormTitle;
+let campaignTypeIdInput, campaignTypeLabelInput, campaignTypePrefixInput, campaignTypeColorSelect, campaignTypeActiveInput, campaignTypeOrderInput, cancelEditBtn;
+let fieldCampaignTypeSelect, customFieldsEditor, customFieldsList, customFieldForm;
+let fieldLabelInput, fieldIdInput, fieldIdWarning, fieldTypeSelect;
+let fieldOptionsContainer, fieldOptionsInput, fieldRequiredCheckbox;
+let cancelFieldEditBtn, submitFieldBtn, customFieldFormTitle, originalFieldIdInput;
+
+let campaignTypesData = {};
+
+function showToast(msg,type='success'){const c=document.getElementById('toast-container');const el=document.createElement('div');el.className='toast '+type;el.textContent=msg;c.appendChild(el);setTimeout(()=>{el.style.opacity='0';setTimeout(()=>el.remove(),350)},3500);}
+
+function safeAddListener(el, ev, fn){ if(el) el.addEventListener(ev, fn); }
+
+function initializeDOM(){
+    loadingView=document.getElementById('loading-view');
+    configView=document.getElementById('config-view');
+    campaignTypesList=document.getElementById('campaign-types-list');
+    campaignTypeForm=document.getElementById('campaign-type-form');
+    campaignFormTitle=document.getElementById('campaign-form-title');
+    campaignTypeIdInput=document.getElementById('campaign-type-id');
+    campaignTypeLabelInput=document.getElementById('campaign-type-label');
+    campaignTypePrefixInput=document.getElementById('campaign-type-prefix');
+    campaignTypeColorSelect=document.getElementById('campaign-type-color');
+    campaignTypeActiveInput=document.getElementById('campaign-type-active');
+    campaignTypeOrderInput=document.getElementById('campaign-type-order');
+    cancelEditBtn=document.getElementById('cancel-edit-btn');
+    fieldCampaignTypeSelect=document.getElementById('field-campaign-type-select');
+    customFieldsEditor=document.getElementById('custom-fields-editor');
+    customFieldsList=document.getElementById('custom-fields-list');
+    customFieldForm=document.getElementById('custom-field-form');
+    fieldLabelInput=document.getElementById('field-label');
+    fieldIdInput=document.getElementById('field-id');
+    fieldIdWarning=document.getElementById('field-id-warning');
+    fieldTypeSelect=document.getElementById('field-type');
+    fieldOptionsContainer=document.getElementById('field-options-container');
+    fieldOptionsInput=document.getElementById('field-options');
+    fieldRequiredCheckbox=document.getElementById('field-required');
+    cancelFieldEditBtn=document.getElementById('cancel-field-edit-btn');
+    submitFieldBtn=document.getElementById('submit-field-btn');
+    customFieldFormTitle=document.getElementById('custom-field-form-title');
+    originalFieldIdInput=document.getElementById('original-field-id');
+}
+
+async function initializeApp(){
+    const canProceed=await injectHeader();
+    if(!canProceed) return;
+    const userSession=await getCurrentUser();
+    if(!userSession || userSession.profile?.role!=='superadmin'){
+        window.location.href='index.html';
+        return;
+    }
+    await loadConfigs();
+    setupEvents();
+    loadingView.classList.add('hidden');
+    configView.classList.remove('hidden');
+}
+
+async function loadConfigs(){
+    const ref=doc(db, paths.configDoc('campaignTypes'));
+    const snap=await getDoc(ref);
+    campaignTypesData = snap.exists()? snap.data(): {};
+    for(const t in campaignTypesData){
+        const fieldsObject=campaignTypesData[t].fields;
+        if(fieldsObject && !Array.isArray(fieldsObject)){
+            campaignTypesData[t].fields=Object.values(fieldsObject);
         }
+    }
+    renderCampaignTypes();
+    populateFieldCampaignTypeSelect();
+}
 
-        function initializeDOMElements() {
-            loadingView = document.getElementById('loading-view');
-            configView = document.getElementById('config-view');
-            campaignTypesList = document.getElementById('campaign-types-list');
-            campaignTypeForm = document.getElementById('campaign-type-form');
-            campaignFormTitle = document.getElementById('campaign-form-title');
-            campaignTypeIdInput = document.getElementById('campaign-type-id');
-            campaignTypeLabelInput = document.getElementById('campaign-type-label');
-            campaignTypePrefixInput = document.getElementById('campaign-type-prefix');
-            campaignTypeColorSelect = document.getElementById('campaign-type-color');
-            campaignTypeActiveInput = document.getElementById('campaign-type-active');
-            campaignTypeOrderInput = document.getElementById('campaign-type-order');
-            cancelEditBtn = document.getElementById('cancel-edit-btn');
-            fieldCampaignTypeSelect = document.getElementById('field-campaign-type-select');
-            customFieldsEditor = document.getElementById('custom-fields-editor');
-            customFieldsList = document.getElementById('custom-fields-list');
-            customFieldForm = document.getElementById('custom-field-form');
-            fieldLabelInput = document.getElementById('field-label');
-            fieldIdInput = document.getElementById('field-id');
-            fieldIdWarning = document.getElementById('field-id-warning');
-            fieldTypeSelect = document.getElementById('field-type');
-            fieldOptionsContainer = document.getElementById('field-options-container');
-            fieldOptionsInput = document.getElementById('field-options');
-            fieldRequiredCheckbox = document.getElementById('field-required');
-            cancelFieldEditBtn = document.getElementById('cancel-field-edit-btn');
-            submitFieldBtn = document.getElementById('submit-field-btn');
-            customFieldFormTitle = document.getElementById('custom-field-form-title');
-            originalFieldIdInput = document.getElementById('original-field-id');
+function renderCampaignTypes(){
+    campaignTypesList.innerHTML='';
+    const sorted=Object.entries(campaignTypesData).sort(([,a],[,b])=> (a.order||0)-(b.order||0));
+    sorted.forEach(([id,data])=>{
+        const colorClass=`bg-${data.color || 'green'}-500`;
+        const activeStatus=data.active !== false ? 'Ativo':'Inativo';
+        const activeClass=data.active !== false ? 'text-green-600':'text-gray-400';
+        const div=document.createElement('div');
+        div.className='flex items-center justify-between p-3 rounded-md hover:bg-gray-50 border border-gray-200';
+        div.innerHTML=`
+          <div class="flex items-center gap-3">
+            <span class="w-4 h-4 rounded-full ${colorClass}"></span>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-medium">${data.label}</span>
+                <span class="text-xs text-gray-500">(${id})</span>
+                ${data.prefix ? `<span class="text-xs bg-gray-800 text-white px-2 py-0.5 rounded font-mono">${data.prefix}</span>`:''}
+              </div>
+              <div class="text-xs ${activeClass}">
+                ${activeStatus} • Ordem: ${data.order || 0}
+              </div>
+            </div>
+          </div>
+          <div>
+            <button data-action="edit-type" data-id="${id}" class="text-sm text-blue-600 hover:underline">Editar</button>
+          </div>`;
+        campaignTypesList.appendChild(div);
+    });
+    renderCampaignPrefixes();
+}
+
+function renderCampaignPrefixes(){
+    const list=document.getElementById('campaign-prefixes-list');
+    list.innerHTML='';
+    Object.entries(campaignTypesData).forEach(([id,data])=>{
+        const colorClass=`bg-${data.color}-500`;
+        const current=data.prefix || '';
+        const row=document.createElement('div');
+        row.className='flex items-center justify-between p-3 border rounded-md';
+        row.innerHTML=`
+          <div class="flex items-center gap-3">
+            <span class="w-3 h-3 rounded-full ${colorClass}"></span>
+            <span class="font-medium">${data.label}</span>
+            <span class="text-xs text-gray-500">(${id})</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-600">Prefixo:</label>
+            <input type="text" data-campaign-type="${id}" value="${current}" placeholder="ABC" maxlength="3"
+              class="prefix-input w-16 px-2 py-1 text-sm border-gray-300 rounded border text-center uppercase font-mono">
+          </div>`;
+        list.appendChild(row);
+    });
+    validatePrefixUniqueness();
+}
+
+function populateFieldCampaignTypeSelect(){
+    const currentVal=fieldCampaignTypeSelect.value;
+    fieldCampaignTypeSelect.innerHTML='<option value="">Selecione um tipo...</option>';
+    Object.entries(campaignTypesData).forEach(([id,data])=>{
+        fieldCampaignTypeSelect.innerHTML+=`<option value="${id}">${data.label}</option>`;
+    });
+    fieldCampaignTypeSelect.value=currentVal;
+}
+
+function renderCustomFields(campaignTypeId){
+    customFieldsList.innerHTML='';
+    const typeData=campaignTypesData[campaignTypeId] || {};
+    const fields=(typeData.fields || []).sort((a,b)=>(a.order||0)-(b.order||0));
+    if(fields.length===0){
+        customFieldsList.innerHTML='<p class="text-sm text-gray-500 text-center p-2">Nenhum campo personalizado.</p>';
+    }
+    fields.forEach((field,index)=>{
+        const item=document.createElement('div');
+        item.className=`flex items-center justify-between p-2 rounded-md hover:bg-gray-50 ${field.active===false?'opacity-50':''}`;
+        item.innerHTML=`
+          <div class="flex items-center space-x-4">
+            <div class="flex flex-col">
+              <button data-action="move-field" data-direction="up" data-index="${index}" ${index===0?'disabled':''} class="disabled:opacity-20">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a 1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
+              </button>
+              <button data-action="move-field" data-direction="down" data-index="${index}" ${index===fields.length-1?'disabled':''} class="disabled:opacity-20">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a 1 1 0 011.414 0L10 10.586l3.293-3.293a 1 1 0 111.414 1.414l-4 4a 1 1 0 01-1.414 0l-4-4a 1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+              </button>
+            </div>
+            <div>
+              <p class="font-medium">${field.label} <span class="text-xs text-gray-500">(${field.id})</span></p>
+              <p class="text-xs text-gray-400">Tipo: ${field.type}${field.required ? ' (Obrigatório)':''}</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-4">
+            <label class="switch" title="${field.active ? 'Desativar':'Ativar'}">
+              <input type="checkbox" data-action="toggle-active" data-index="${index}" ${field.active===false?'':'checked'}>
+              <span class="slider"></span>
+            </label>
+            <button data-action="edit-field" data-index="${index}" class="text-sm text-blue-600 hover:underline">Editar</button>
+            <button data-action="delete-field" data-index="${index}" class="text-sm text-red-600 hover:underline">Excluir</button>
+          </div>`;
+        customFieldsList.appendChild(item);
+    });
+}
+
+function generateSlug(text){
+    return text.toString().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/\s+/g,'_').replace(/[^\w\-]+/g,'')
+        .replace(/\_\_+/g,'_').replace(/^_+/,'').replace(/_+$/,'');
+}
+
+function resetCustomFieldForm(){
+    customFieldForm.reset();
+    customFieldFormTitle.textContent='Adicionar Novo Campo';
+    submitFieldBtn.textContent='Adicionar Campo';
+    originalFieldIdInput.value='';
+    fieldIdInput.readOnly=true;
+    fieldIdInput.classList.add('bg-gray-100');
+    fieldIdWarning.classList.add('hidden');
+    cancelFieldEditBtn.classList.add('hidden');
+    fieldOptionsContainer.classList.add('hidden');
+    toggleFieldFormRequired(false);
+}
+
+function toggleFieldFormRequired(enable){
+    customFieldForm.querySelectorAll('[data-required]').forEach(el=>{ el.required=enable; });
+}
+
+function setupEvents(){
+    safeAddListener(campaignTypesList,'click',e=>{
+        const btn=e.target.closest('button[data-action="edit-type"]');
+        if(!btn) return;
+        const id=btn.dataset.id;
+        const data=campaignTypesData[id];
+        campaignFormTitle.textContent='Editar Tipo de Campanha';
+        campaignTypeIdInput.value=id;
+        campaignTypeIdInput.disabled=true;
+        campaignTypeLabelInput.value=data.label || '';
+        campaignTypePrefixInput.value=data.prefix || '';
+        campaignTypeColorSelect.value=data.color || 'green';
+        campaignTypeActiveInput.checked=data.active !== false;
+        campaignTypeOrderInput.value=data.order || 0;
+        cancelEditBtn.classList.remove('hidden');
+    });
+
+    safeAddListener(cancelEditBtn,'click',()=>{
+        campaignTypeForm.reset();
+        campaignFormTitle.textContent='Adicionar/Editar Tipo';
+        campaignTypeIdInput.disabled=false;
+        cancelEditBtn.classList.add('hidden');
+    });
+
+    safeAddListener(campaignTypeForm,'submit',async e=>{
+        e.preventDefault();
+        const id=campaignTypeIdInput.value.trim().toLowerCase();
+        const label=campaignTypeLabelInput.value.trim();
+        const prefix=campaignTypePrefixInput.value.trim().toUpperCase();
+        const color=campaignTypeColorSelect.value;
+        const active=campaignTypeActiveInput.checked;
+        const order=parseInt(campaignTypeOrderInput.value)||0;
+
+        if(!id||!label||!prefix){
+            showAlertModal('Erro','ID, Rótulo e Prefixo são obrigatórios.');
+            return;
         }
-
-        async function initializeApp() {
-            const canProceed = await injectHeader();
-            if (!canProceed) return;
-            const userSession = await getCurrentUser();
-            if (!userSession || userSession.profile?.role !== 'superadmin') {
-                window.location.href = 'index.html';
-                return;
-            }
-            await loadConfigs();
-            setupEventListeners();
-            loadingView?.classList.add('hidden');
-            configView?.classList.remove('hidden');
+        if(!/^[A-Z]{3}$/.test(prefix)){
+            showAlertModal('Erro','Prefixo deve conter exatamente 3 letras maiúsculas.');
+            return;
         }
-
-        async function loadConfigs() {
-            const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-            const campaignTypesSnap = await getDoc(campaignTypesRef);
-            campaignTypesData = campaignTypesSnap.exists() ? campaignTypesSnap.data() : {};
-            for (const typeId in campaignTypesData) {
-                const fieldsObject = campaignTypesData[typeId].fields;
-                if (fieldsObject && !Array.isArray(fieldsObject)) {
-                    campaignTypesData[typeId].fields = Object.values(fieldsObject);
-                }
-            }
+        const currentEditingId = campaignFormTitle.textContent.includes('Editar') ? campaignTypeIdInput.value.trim().toLowerCase() : null;
+        const duplicate=Object.entries(campaignTypesData).find(([existingId,data])=> existingId!==currentEditingId && data.prefix===prefix);
+        if(duplicate){
+            showAlertModal('Erro',`Prefixo "${prefix}" já usado em "${duplicate[1].label}".`);
+            return;
+        }
+        const ref=doc(db, paths.configDoc('campaignTypes'));
+        if(!campaignTypesData[id]) campaignTypesData[id]={ fields:[] };
+        Object.assign(campaignTypesData[id], { label,prefix,color,active,order });
+        const updateData={
+            [`${id}.label`]:label,
+            [`${id}.prefix`]:prefix,
+            [`${id}.color`]:color,
+            [`${id}.active`]:active,
+            [`${id}.order`]:order
+        };
+        try{
+            await updateDoc(ref, updateData, { merge:true });
+            showToast('Tipo salvo','success');
             renderCampaignTypes();
             populateFieldCampaignTypeSelect();
+            cancelEditBtn.click();
+        }catch(err){
+            showAlertModal('Erro','Não foi possível salvar: '+err.message);
+            await loadConfigs();
         }
+    });
 
-        function renderCampaignTypes() {
-            campaignTypesList.innerHTML = '';
-            const sortedEntries = Object.entries(campaignTypesData)
-                .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
-            sortedEntries.forEach(([id, data]) => {
-                const colorClass = `bg-${data.color || 'green'}-500`;
-                const activeStatus = data.active !== false ? 'Ativo' : 'Inativo';
-                const activeClass = data.active !== false ? 'text-green-600' : 'text-gray-400';
-                const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-3 rounded-md hover:bg-gray-50 border border-gray-200';
-                item.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <span class="w-4 h-4 rounded-full ${colorClass}"></span>
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <span class="font-medium">${data.label}</span>
-                                <span class="text-xs text-gray-500">(${id})</span>
-                                ${data.prefix ? `<span class="text-xs bg-gray-800 text-white px-2 py-0.5 rounded font-mono">${data.prefix}</span>` : ''}
-                            </div>
-                            <div class="text-xs ${activeClass}">
-                                ${activeStatus} • Ordem: ${data.order || 0}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="space-x-3">
-                        <button data-action="edit-type" data-id="${id}" class="text-sm text-blue-600 hover:underline">Editar</button>
-                    </div>`;
-                campaignTypesList.appendChild(item);
-            });
-            renderCampaignPrefixes();
+    safeAddListener(fieldCampaignTypeSelect,'change',e=>{
+        const val=e.target.value;
+        customFieldsEditor.classList.toggle('hidden', !val);
+        if(val) renderCustomFields(val);
+        resetCustomFieldForm();
+    });
+
+    safeAddListener(fieldTypeSelect,'change',e=>{
+        fieldOptionsContainer.classList.toggle('hidden', e.target.value!=='select');
+    });
+
+    safeAddListener(fieldLabelInput,'input',()=>{
+        if(!originalFieldIdInput.value){
+            fieldIdInput.value=generateSlug(fieldLabelInput.value);
         }
+    });
 
-        function renderCampaignPrefixes() {
-            const prefixesList = document.getElementById('campaign-prefixes-list');
-            prefixesList.innerHTML = '';
-            Object.entries(campaignTypesData).forEach(([id, data]) => {
-                const currentPrefix = data.prefix || '';
-                const colorClass = `bg-${data.color}-500`;
-                const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-3 border rounded-md';
-                item.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <span class="w-3 h-3 rounded-full ${colorClass}"></span>
-                        <span class="font-medium">${data.label}</span>
-                        <span class="text-xs text-gray-500">(${id})</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <label class="text-sm text-gray-600">Prefixo:</label>
-                        <input 
-                            type="text" 
-                            data-campaign-type="${id}"
-                            value="${currentPrefix}"
-                            placeholder="ABC"
-                            maxlength="3"
-                            class="prefix-input w-16 px-2 py-1 text-sm border-gray-300 rounded border text-center uppercase"
-                            style="font-family: monospace;"
-                        >
-                    </div>`;
-                prefixesList.appendChild(item);
-            });
-        }
-
-        function populateFieldCampaignTypeSelect() {
-            const currentVal = fieldCampaignTypeSelect.value;
-            fieldCampaignTypeSelect.innerHTML = '<option value="">Selecione um tipo...</option>';
-            Object.entries(campaignTypesData).forEach(([id, data]) => {
-                fieldCampaignTypeSelect.innerHTML += `<option value="${id}">${data.label}</option>`;
-            });
-            fieldCampaignTypeSelect.value = currentVal;
-        }
-
-        function renderCustomFields(campaignTypeId) {
-            customFieldsList.innerHTML = '';
-            const typeData = campaignTypesData[campaignTypeId] || {};
-            const fields = (typeData.fields || []).sort((a, b) => (a.order || 0) - (b.order || 0));
-            if (fields.length === 0) {
-                customFieldsList.innerHTML = '<p class="text-sm text-gray-500 text-center p-2">Nenhum campo personalizado.</p>';
+    safeAddListener(customFieldsList,'click',async e=>{
+        const button=e.target.closest('button, input[type="checkbox"]');
+        if(!button) return;
+        const campaignTypeId=fieldCampaignTypeSelect.value;
+        const index=parseInt(button.dataset.index,10);
+        let fields=campaignTypesData[campaignTypeId].fields || [];
+        const action=button.dataset.action;
+        if(action==='edit-field'){
+            const fld=fields[index];
+            customFieldFormTitle.textContent='Editar Campo';
+            submitFieldBtn.textContent='Salvar Alterações';
+            originalFieldIdInput.value=fld.id;
+            fieldLabelInput.value=fld.label;
+            fieldIdInput.value=fld.id;
+            fieldIdInput.readOnly=false;
+            fieldIdInput.classList.remove('bg-gray-100');
+            fieldIdWarning.classList.remove('hidden');
+            fieldTypeSelect.value=fld.type;
+            fieldRequiredCheckbox.checked=fld.required || false;
+            fieldOptionsContainer.classList.toggle('hidden', fld.type!=='select');
+            if(fld.type==='select') fieldOptionsInput.value=(fld.options||[]).join(', ');
+            cancelFieldEditBtn.classList.remove('hidden');
+            toggleFieldFormRequired(true);
+        } else if(['delete-field','move-field','toggle-active'].includes(action)){
+            if(action==='delete-field'){
+                const confirmed=await showConfirmationModal('Excluir Campo','Tem certeza?');
+                if(!confirmed) return;
+                fields.splice(index,1);
+            } else if(action==='move-field'){
+                const direction=button.dataset.direction;
+                if(direction==='up' && index>0){
+                    [fields[index],fields[index-1]]=[fields[index-1],fields[index]];
+                } else if(direction==='down' && index<fields.length-1){
+                    [fields[index],fields[index+1]]=[fields[index+1],fields[index]];
+                }
+            } else if(action==='toggle-active'){
+                fields[index].active=button.checked;
             }
-            fields.forEach((field, index) => {
-                const item = document.createElement('div');
-                item.className = `flex items-center justify-between p-2 rounded-md hover:bg-gray-50 ${field.active === false ? 'opacity-50' : ''}`;
-                item.innerHTML = `
-                    <div class="flex items-center space-x-4">
-                        <div class="flex flex-col">
-                            <button data-action="move-field" data-direction="up" data-index="${index}" ${index === 0 ? 'disabled' : ''} class="disabled:opacity-20">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
-                            </button>
-                            <button data-action="move-field" data-direction="down" data-index="${index}" ${index === fields.length - 1 ? 'disabled' : ''} class="disabled:opacity-20">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
-                            </button>
-                        </div>
-                        <div>
-                            <p class="font-medium">${field.label} <span class="text-xs text-gray-500">(${field.id})</span></p>
-                            <p class="text-xs text-gray-400">Tipo: ${field.type}${field.required ? ' (Obrigatório)' : ''}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <label class="switch" title="${field.active ? 'Desativar' : 'Ativar'}">
-                            <input type="checkbox" data-action="toggle-active" data-index="${index}" ${field.active === false ? '' : 'checked'}>
-                            <span class="slider"></span>
-                        </label>
-                        <button data-action="edit-field" data-index="${index}" class="text-sm text-blue-600 hover:underline">Editar</button>
-                        <button data-action="delete-field" data-index="${index}" class="text-sm text-red-600 hover:underline">Excluir</button>
-                    </div>`;
-                customFieldsList.appendChild(item);
-            });
-        }
-
-        function generateSlug(text) {
-            return text.toString().toLowerCase()
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                .replace(/\s+/g, '_').replace(/[^\w\-]+/g, '')
-                .replace(/\_\_+/g, '_').replace(/^_+/, '').replace(/_+$/, '');
-        }
-
-        function resetCustomFieldForm() {
-            customFieldForm.reset();
-            customFieldFormTitle.textContent = 'Adicionar Novo Campo';
-            submitFieldBtn.textContent = 'Adicionar Campo';
-            originalFieldIdInput.value = '';
-            fieldIdInput.readOnly = true;
-            fieldIdInput.classList.add('bg-gray-100');
-            fieldIdWarning.classList.add('hidden');
-            cancelFieldEditBtn.classList.add('hidden');
-            fieldOptionsContainer.classList.add('hidden');
-            toggleFieldFormRequired(false);
-        }
-
-        function toggleFieldFormRequired(enable) {
-            customFieldForm.querySelectorAll('[data-required]').forEach(el => {
-                el.required = enable;
-            });
-        }
-
-        function setupEventListeners() {
-            safeAddListener(campaignTypesList, 'click', (e) => {
-                const button = e.target.closest('button[data-action="edit-type"]');
-                if (!button) return;
-                const id = button.dataset.id;
-                const data = campaignTypesData[id];
-                campaignFormTitle.textContent = 'Editar Tipo de Campanha';
-                campaignTypeIdInput.value = id;
-                campaignTypeIdInput.disabled = true;
-                campaignTypeLabelInput.value = data.label || '';
-                campaignTypePrefixInput.value = data.prefix || '';
-                campaignTypeColorSelect.value = data.color || 'green';
-                campaignTypeActiveInput.checked = data.active !== false;
-                campaignTypeOrderInput.value = data.order || 0;
-                cancelEditBtn.classList.remove('hidden');
-            });
-
-            safeAddListener(cancelEditBtn, 'click', () => {
-                campaignTypeForm.reset();
-                campaignFormTitle.textContent = 'Adicionar Novo Tipo';
-                campaignTypeIdInput.disabled = false;
-                cancelEditBtn.classList.add('hidden');
-            });
-
-            safeAddListener(campaignTypeForm, 'submit', async (e) => {
-                e.preventDefault();
-                const id = campaignTypeIdInput.value.trim().toLowerCase();
-                const label = campaignTypeLabelInput.value.trim();
-                const prefix = campaignTypePrefixInput.value.trim().toUpperCase();
-                const color = campaignTypeColorSelect.value;
-                const active = campaignTypeActiveInput.checked;
-                const order = parseInt(campaignTypeOrderInput.value) || 0;
-
-                if (!id || !label || !prefix) {
-                    showAlertModal('Erro', 'ID, Rótulo e Prefixo são obrigatórios.');
-                    return;
-                }
-                if (!/^[A-Z]{3}$/.test(prefix)) {
-                    showAlertModal('Erro', 'Prefixo deve conter exatamente 3 letras maiúsculas (A-Z).');
-                    return;
-                }
-                const currentEditingId = campaignFormTitle.textContent.includes('Editar') ? campaignTypeIdInput.value.trim().toLowerCase() : null;
-                const duplicatePrefix = Object.entries(campaignTypesData).find(([existingId, data]) =>
-                    existingId !== currentEditingId && data.prefix === prefix
-                );
-                if (duplicatePrefix) {
-                    showAlertModal('Erro', `Prefixo "${prefix}" já está sendo usado no tipo "${duplicatePrefix[1].label}".`);
-                    return;
-                }
-
-                const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-                if (!campaignTypesData[id]) {
-                    campaignTypesData[id] = { fields: [] };
-                }
-                Object.assign(campaignTypesData[id], { label, prefix, color, active, order });
-
-                const updateData = {
-                    [`${id}.label`]: label,
-                    [`${id}.prefix`]: prefix,
-                    [`${id}.color`]: color,
-                    [`${id}.active`]: active,
-                    [`${id}.order`]: order
-                };
-                try {
-                    await updateDoc(campaignTypesRef, updateData, { merge: true });
-                    showAlertModal('Sucesso!', 'Tipo de campanha salvo com sucesso.');
-                    renderCampaignTypes();
-                    populateFieldCampaignTypeSelect();
-                    cancelEditBtn.click();
-                } catch (error) {
-                    showAlertModal('Erro', `Não foi possível salvar: ${error.message}`);
-                    await loadConfigs();
-                }
-            });
-
-            safeAddListener(fieldCampaignTypeSelect, 'change', (e) => {
-                const selectedType = e.target.value;
-                customFieldsEditor.classList.toggle('hidden', !selectedType);
-                if (selectedType) {
-                    renderCustomFields(selectedType);
-                    toggleFieldFormRequired(true);
-                } else {
-                    toggleFieldFormRequired(false);
-                }
-                resetCustomFieldForm();
-            });
-
-            safeAddListener(fieldTypeSelect, 'change', (e) => {
-                fieldOptionsContainer.classList.toggle('hidden', e.target.value !== 'select');
-            });
-
-            safeAddListener(fieldLabelInput, 'input', () => {
-                if (!originalFieldIdInput.value) {
-                    fieldIdInput.value = generateSlug(fieldLabelInput.value);
-                }
-            });
-
-            safeAddListener(customFieldsList, 'click', async (e) => {
-                const button = e.target.closest('button, input[type="checkbox"]');
-                if (!button) return;
-                const campaignTypeId = fieldCampaignTypeSelect.value;
-                const index = parseInt(button.dataset.index, 10);
-                let fields = campaignTypesData[campaignTypeId].fields || [];
-                const action = button.dataset.action;
-
-                if (action === 'edit-field') {
-                    const fieldData = fields[index];
-                    customFieldFormTitle.textContent = 'Editar Campo';
-                    submitFieldBtn.textContent = 'Salvar Alterações';
-                    originalFieldIdInput.value = fieldData.id;
-                    fieldLabelInput.value = fieldData.label;
-                    fieldIdInput.value = fieldData.id;
-                    fieldIdInput.readOnly = false;
-                    fieldIdInput.classList.remove('bg-gray-100');
-                    fieldIdWarning.classList.remove('hidden');
-                    fieldTypeSelect.value = fieldData.type;
-                    fieldRequiredCheckbox.checked = fieldData.required || false;
-                    fieldOptionsContainer.classList.toggle('hidden', fieldData.type !== 'select');
-                    if (fieldData.type === 'select') {
-                        fieldOptionsInput.value = (fieldData.options || []).join(', ');
-                    }
-                    cancelFieldEditBtn.classList.remove('hidden');
-                    toggleFieldFormRequired(true);
-                } else if (action === 'delete-field' || action === 'move-field' || action === 'toggle-active') {
-                    if (action === 'delete-field') {
-                        const confirmed = await showConfirmationModal('Excluir Campo', `Tem a certeza? Esta ação não pode ser desfeita.`);
-                        if (!confirmed) return;
-                        fields.splice(index, 1);
-                    } else if (action === 'move-field') {
-                        const direction = button.dataset.direction;
-                        if (direction === 'up' && index > 0) {
-                            [fields[index], fields[index - 1]] = [fields[index - 1], fields[index]];
-                        } else if (direction === 'down' && index < fields.length - 1) {
-                            [fields[index], fields[index + 1]] = [fields[index + 1], fields[index]];
-                        }
-                    } else if (action === 'toggle-active') {
-                        fields[index].active = button.checked;
-                    }
-                    const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-                    try {
-                        fields.forEach((field, idx) => field.order = idx);
-                        await updateDoc(campaignTypesRef, { [`${campaignTypeId}.fields`]: fields });
-                        campaignTypesData[campaignTypeId].fields = fields;
-                        renderCustomFields(campaignTypeId);
-                    } catch (error) {
-                        showAlertModal('Erro', `Não foi possível salvar a alteração: ${error.message}`);
-                        await loadConfigs();
-                    }
-                }
-            });
-
-            safeAddListener(cancelFieldEditBtn, 'click', resetCustomFieldForm);
-
-            safeAddListener(customFieldForm, 'submit', async (e) => {
-                e.preventDefault();
-                const campaignTypeId = fieldCampaignTypeSelect.value;
-                let fieldId = fieldIdInput.value.trim();
-                const fieldLabel = fieldLabelInput.value.trim();
-                const fieldType = fieldTypeSelect.value;
-                const isRequired = fieldRequiredCheckbox.checked;
-                const originalFieldId = originalFieldIdInput.value;
-
-                if (!campaignTypeId || !fieldId || !fieldLabel) {
-                    showAlertModal('Erro', 'Tipo de Campanha, Rótulo e ID do Campo são obrigatórios.');
-                    return;
-                }
-
-                const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-                const fields = campaignTypesData[campaignTypeId]?.fields || [];
-
-                if (originalFieldId) {
-                    const fieldIndex = fields.findIndex(f => f.id === originalFieldId);
-                    if (fieldIndex > -1) {
-                        if (fields.some((f, idx) => f.id === fieldId && idx !== fieldIndex)) {
-                            showAlertModal('Erro', `O ID de campo "${fieldId}" já pertence a outro campo.`);
-                            return;
-                        }
-                        const newFieldData = { ...fields[fieldIndex], id: fieldId, label: fieldLabel, type: fieldType, required: isRequired };
-                        if (fieldType === 'select') {
-                            newFieldData.options = fieldOptionsInput.value.split(',').map(opt => opt.trim()).filter(Boolean);
-                        }
-                        fields[fieldIndex] = newFieldData;
-                    }
-                } else {
-                    const uniqueSuffix = Math.random().toString(36).substring(2, 8);
-                    fieldId = `${fieldId}_${uniqueSuffix}`;
-                    if (fields.some(f => f.id === fieldId)) {
-                        showAlertModal('Erro', `O ID de campo "${fieldId}" já existe. Tente um Rótulo ligeiramente diferente.`);
-                        return;
-                    }
-                    const newFieldData = { id: fieldId, label: fieldLabel, type: fieldType, required: isRequired, active: true };
-                    if (fieldType === 'select') {
-                        const options = fieldOptionsInput.value.split(',').map(opt => opt.trim()).filter(Boolean);
-                        if (options.length === 0) {
-                            showAlertModal('Erro', 'Para "Lista de Opções", forneça as opções separadas por vírgula.');
-                            return;
-                        }
-                        newFieldData.options = options;
-                    }
-                    fields.push(newFieldData);
-                }
-
-                try {
-                    fields.forEach((field, idx) => field.order = idx);
-                    await updateDoc(campaignTypesRef, { [`${campaignTypeId}.fields`]: fields });
-                    showAlertModal('Sucesso!', 'Campo salvo com sucesso.');
-                    campaignTypesData[campaignTypeId].fields = fields;
-                    renderCustomFields(campaignTypeId);
-                    resetCustomFieldForm();
-                } catch (error) {
-                    showAlertModal('Erro', `Não foi possível salvar o campo: ${error.message}`);
-                    await loadConfigs();
-                }
-            });
-
-            // Inputs de prefixo
-            safeAddListener(document, 'input', (e) => {
-                if (!e.target.classList.contains('prefix-input')) return;
-                let value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
-                e.target.value = value;
-                validatePrefixUniqueness();
-            });
-
-            const savePrefixesBtn = document.getElementById('save-prefixes-btn');
-            safeAddListener(savePrefixesBtn, 'click', async () => {
-                await savePrefixes();
-            });
-        }
-
-        function validatePrefixUniqueness() {
-            const prefixInputs = document.querySelectorAll('.prefix-input');
-            const prefixes = new Set();
-            let hasError = false;
-            prefixInputs.forEach(input => {
-                const value = input.value.trim();
-                input.classList.remove('border-red-500', 'border-green-500');
-                if (value.length === 3) {
-                    if (prefixes.has(value)) {
-                        input.classList.add('border-red-500');
-                        hasError = true;
-                    } else {
-                        input.classList.add('border-green-500');
-                        prefixes.add(value);
-                    }
-                }
-            });
-            const saveBtn = document.getElementById('save-prefixes-btn');
-            saveBtn.disabled = hasError;
-            saveBtn.classList.toggle('opacity-50', hasError);
-            saveBtn.classList.toggle('cursor-not-allowed', hasError);
-        }
-
-        async function savePrefixes() {
-            const prefixInputs = document.querySelectorAll('.prefix-input');
-            const updates = {};
-            let isValid = true;
-            prefixInputs.forEach(input => {
-                const campaignType = input.dataset.campaignType;
-                const prefix = input.value.trim();
-                if (prefix && !/^[A-Z]{3}$/.test(prefix)) {
-                    showAlertModal('Erro', `Prefixo "${prefix}" inválido. Use exatamente 3 letras maiúsculas (A-Z).`);
-                    isValid = false;
-                    return;
-                }
-                if (prefix) {
-                    updates[`${campaignType}.prefix`] = prefix;
-                } else {
-                    updates[`${campaignType}.prefix`] = deleteField();
-                }
-            });
-            if (!isValid) return;
-            const prefixes = Object.values(updates).filter(p => typeof p === 'string');
-            const uniquePrefixes = new Set(prefixes);
-            if (prefixes.length !== uniquePrefixes.size) {
-                showAlertModal('Erro', 'Cada prefixo deve ser único. Por favor, corrija as duplicações.');
-                return;
-            }
-            try {
-                const campaignTypesRef = doc(db, paths.configDoc('campaignTypes'));
-                await updateDoc(campaignTypesRef, updates);
-                prefixInputs.forEach(input => {
-                    const campaignType = input.dataset.campaignType;
-                    const prefix = input.value.trim();
-                    if (prefix) {
-                        campaignTypesData[campaignType].prefix = prefix;
-                    } else {
-                        delete campaignTypesData[campaignType].prefix;
-                    }
-                });
-                showAlertModal('Sucesso!', 'Prefixos salvos com sucesso.');
-                validatePrefixUniqueness();
-            } catch (error) {
-                showAlertModal('Erro', `Não foi possível salvar os prefixos: ${error.message}`);
+            const ref=doc(db, paths.configDoc('campaignTypes'));
+            try{
+                fields.forEach((f,i)=>f.order=i);
+                await updateDoc(ref,{ [`${campaignTypeId}.fields`]:fields });
+                campaignTypesData[campaignTypeId].fields=fields;
+                renderCustomFields(campaignTypeId);
+                showToast('Alteração salva','success');
+            }catch(err){
+                showAlertModal('Erro','Não foi possível salvar: '+err.message);
                 await loadConfigs();
             }
         }
+    });
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            initializeDOMElements();
-            await initializeApp();
+    safeAddListener(cancelFieldEditBtn,'click', resetCustomFieldForm);
+
+    safeAddListener(customFieldForm,'submit', async e=>{
+        e.preventDefault();
+        const campaignTypeId=fieldCampaignTypeSelect.value;
+        let fieldId=fieldIdInput.value.trim();
+        const fieldLabel=fieldLabelInput.value.trim();
+        const fieldType=fieldTypeSelect.value;
+        const isRequired=fieldRequiredCheckbox.checked;
+        const originalFieldId=originalFieldIdInput.value;
+        if(!campaignTypeId||!fieldId||!fieldLabel){
+            showAlertModal('Erro','Tipo, Rótulo e ID são obrigatórios.');
+            return;
+        }
+        const ref=doc(db, paths.configDoc('campaignTypes'));
+        const fields=campaignTypesData[campaignTypeId]?.fields || [];
+        if(originalFieldId){
+            const idx=fields.findIndex(f=>f.id===originalFieldId);
+            if(idx>-1){
+                if(fields.some((f,i)=>f.id===fieldId && i!==idx)){
+                    showAlertModal('Erro',`ID "${fieldId}" já existe.`);
+                    return;
+                }
+                const updated={ ...fields[idx], id:fieldId, label:fieldLabel, type:fieldType, required:isRequired };
+                if(fieldType==='select'){
+                    updated.options=fieldOptionsInput.value.split(',').map(o=>o.trim()).filter(Boolean);
+                } else {
+                    delete updated.options;
+                }
+                fields[idx]=updated;
+            }
+        } else {
+            const uniqueSuffix=Math.random().toString(36).substring(2,8);
+            fieldId=`${fieldId}_${uniqueSuffix}`;
+            if(fields.some(f=>f.id===fieldId)){
+                showAlertModal('Erro','ID já existe, altere o rótulo levemente.');
+                return;
+            }
+            const newField={ id:fieldId, label:fieldLabel, type:fieldType, required:isRequired, active:true };
+            if(fieldType==='select'){
+                const opts=fieldOptionsInput.value.split(',').map(o=>o.trim()).filter(Boolean);
+                if(!opts.length){
+                    showAlertModal('Erro','Informe opções para o campo de lista.');
+                    return;
+                }
+                newField.options=opts;
+            }
+            fields.push(newField);
+        }
+        try{
+            fields.forEach((f,i)=>f.order=i);
+            await updateDoc(ref,{ [`${campaignTypeId}.fields`]:fields });
+            campaignTypesData[campaignTypeId].fields=fields;
+            renderCustomFields(campaignTypeId);
+            resetCustomFieldForm();
+            showToast('Campo salvo','success');
+        }catch(err){
+            showAlertModal('Erro','Não foi possível salvar: '+err.message);
+            await loadConfigs();
+        }
+    });
+
+    safeAddListener(document,'input',e=>{
+        if(!e.target.classList.contains('prefix-input')) return;
+        let value=e.target.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+        e.target.value=value;
+        validatePrefixUniqueness();
+    });
+
+    safeAddListener(document.getElementById('save-prefixes-btn'),'click', savePrefixes);
+}
+
+function validatePrefixUniqueness(){
+    const prefixInputs=document.querySelectorAll('.prefix-input');
+    const prefixes=new Set();
+    let hasError=false;
+    prefixInputs.forEach(input=>{
+        const val=input.value.trim();
+        input.classList.remove('border-red-500','border-green-500');
+        if(val.length===3){
+            if(prefixes.has(val)){
+                input.classList.add('border-red-500');
+                hasError=true;
+            } else {
+                input.classList.add('border-green-500');
+                prefixes.add(val);
+            }
+        }
+    });
+    const saveBtn=document.getElementById('save-prefixes-btn');
+    saveBtn.disabled=hasError;
+    saveBtn.classList.toggle('opacity-50',hasError);
+    saveBtn.classList.toggle('cursor-not-allowed',hasError);
+}
+
+async function savePrefixes(){
+    const prefixInputs=document.querySelectorAll('.prefix-input');
+    const updates={};
+    let isValid=true;
+    prefixInputs.forEach(input=>{
+        const campaignType=input.dataset.campaignType;
+        const prefix=input.value.trim();
+        if(prefix && !/^[A-Z]{3}$/.test(prefix)){
+            showAlertModal('Erro',`Prefixo "${prefix}" inválido.`);
+            isValid=false;
+            return;
+        }
+        if(prefix){
+            updates[`${campaignType}.prefix`]=prefix;
+        } else {
+            updates[`${campaignType}.prefix`]=deleteField();
+        }
+    });
+    if(!isValid) return;
+    const prefixes=Object.values(updates).filter(p=>typeof p==='string');
+    const unique=new Set(prefixes);
+    if(prefixes.length!==unique.size){
+        showAlertModal('Erro','Cada prefixo deve ser único.');
+        return;
+    }
+    try{
+        const ref=doc(db, paths.configDoc('campaignTypes'));
+        await updateDoc(ref, updates);
+        prefixInputs.forEach(input=>{
+            const type=input.dataset.campaignType;
+            const prefix=input.value.trim();
+            if(prefix){
+                campaignTypesData[type].prefix=prefix;
+            } else {
+                delete campaignTypesData[type].prefix;
+            }
         });
-    </script>
+        showToast('Prefixos salvos','success');
+        validatePrefixUniqueness();
+    }catch(err){
+        showAlertModal('Erro','Não foi possível salvar prefixos: '+err.message);
+        await loadConfigs();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async ()=>{
+    initializeDOM();
+    await initializeApp();
+});
+
+if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js');
+</script>
 </body>
 </html>
