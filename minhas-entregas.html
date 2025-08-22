@@ -47,15 +47,17 @@ body { font-family:'Inter',sans-serif; }
 .qr-container img { width:100%; height:100%; object-fit:contain; }
 .inline-btn { font-size:.65rem; font-weight:600; letter-spacing:.5px; text-transform:uppercase; padding:4px 8px; border-radius:6px; background:#e2e8f0; color:#334155; display:inline-flex; align-items:center; gap:4px;}
 .inline-btn:hover { background:#cbd5e1; }
-.modal-actions-grid { display:grid; gap:.75rem; margin-top:1.25rem; }
-@media (min-width:480px){ .modal-actions-grid { grid-template-columns:repeat(2,1fr);} }
-.print-note { font-size:.6rem; text-transform:uppercase; letter-spacing:.5px; font-weight:600; background:#f1f5f9; padding:3px 6px; border-radius:6px; display:inline-block; }
+.inline-btn:disabled { opacity:.45; cursor:not-allowed; }
 .border-color-green { border-left:4px solid #16a34a; }
 .border-color-red { border-left:4px solid #dc2626; }
 .border-color-yellow { border-left:4px solid #d97706; }
 .border-color-blue { border-left:4px solid #2563eb; }
 .border-color-purple { border-left:4px solid #7e22ce; }
 .border-color-gray { border-left:4px solid #64748b; }
+.print-note { font-size:.6rem; text-transform:uppercase; letter-spacing:.5px; font-weight:600; background:#f1f5f9; padding:3px 6px; border-radius:6px; display:inline-block; }
+@media print {
+  .no-print { display:none !important; }
+}
 </style>
 </head>
 <body class="bg-gray-50">
@@ -77,6 +79,10 @@ body { font-family:'Inter',sans-serif; }
         <p class="text-sm text-gray-500 mt-1" id="subtitle-helper">Gerencie seus agendamentos e comprovantes de entrega.</p>
       </div>
       <div class="flex items-center gap-3">
+        <button id="print-scheduled-btn" class="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50" title="Imprimir QR Codes agendados (visíveis)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V3h12v6M6 18h12v3H6z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 14h12v-2H6z"/></svg>
+          Imprimir QRs
+        </button>
         <button id="open-code-search" class="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5v14"/></svg>
           Digitar Código
@@ -133,6 +139,7 @@ body { font-family:'Inter',sans-serif; }
   </div>
 </main>
 
+<!-- Modal base (estrutura usada pelo showDetailsModal) -->
 <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
   <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
     <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
@@ -160,6 +167,7 @@ body { font-family:'Inter',sans-serif; }
 
 <div class="toast-container" id="toast-container"></div>
 
+<!-- FAB mobile -->
 <div class="fab-bar" id="fab-bar" style="display:none;">
   <button id="fab-scroll-top" class="bg-blue-600 text-white">Topo</button>
   <button id="fab-refresh" class="bg-green-600 text-white">Atualizar</button>
@@ -176,7 +184,7 @@ import { showDetailsModal } from './modal-handler.js';
 /* State */
 let loadingView, deliveriesView, deliveriesList, noDeliveriesPlaceholder;
 let tabsContainer, loadMoreContainer, loadMoreBtn, searchInput, quickFiltersContainer;
-let liveStatusEl, offlineBanner, refreshBtn, openCodeSearchBtn;
+let liveStatusEl, offlineBanner, refreshBtn, openCodeSearchBtn, printScheduledBtn;
 
 let allUserDonations = [];
 let filteredWorkingList = [];
@@ -190,6 +198,7 @@ let currentUserId = null;
 let unsubscribeSnapshot = null;
 let intersectionObserver = null;
 
+/* Mapeamento cores -> classe de borda */
 const codeColorMap = {
   green: 'border-color-green',
   red: 'border-color-red',
@@ -267,8 +276,6 @@ function buildQRDataImage(code){
     const qr=qrcode(0,'L');
     qr.addData(code);
     qr.make();
-    // createImgTag returns <img src="data:image/gif;base64,...">
-    // Pegamos apenas o src
     const imgTag = qr.createImgTag(6,6);
     const srcMatch = imgTag.match(/src="([^"]+)"/);
     return srcMatch ? srcMatch[1] : '';
@@ -373,7 +380,6 @@ function renderActiveTabData(append=false){
   if(filteredWorkingList.length===0){
     noDeliveriesPlaceholder.classList.remove('hidden');
     loadMoreContainer.classList.add('hidden');
-    return;
   } else {
     noDeliveriesPlaceholder.classList.add('hidden');
   }
@@ -393,6 +399,8 @@ function renderActiveTabData(append=false){
   } else {
     loadMoreContainer.classList.add('hidden');
   }
+
+  updatePrintScheduledButtonState();
   hydrateQRCodesDeferred();
   announce(`${filteredWorkingList.length} doações encontradas`);
 }
@@ -549,7 +557,6 @@ function copyText(text){
   });
 }
 
-/* NOVO: impressão sem script remoto (usa data URI gerada agora) */
 function openPrintLabel(uniqueCode, campaignTitle){
   const qrSrc = buildQRDataImage(uniqueCode);
   const win=window.open('', '_blank','noopener,width=480,height=640');
@@ -572,12 +579,75 @@ function openPrintLabel(uniqueCode, campaignTitle){
     +'<h1>'+safeTitle+'</h1>'
     +'<div class="qr">'+(qrSrc?'<img src="'+qrSrc+'" alt="QR Code">':'<p>QR indisponível</p>')+'</div>'
     +'<div class="code">'+uniqueCode+'</div>'
-    +'<div class="note"><strong>Instruções:</strong><br>1. Cole esta etiqueta no item.<br>2. Se não puder imprimir, escreva o código acima no item (legível).<br>3. Leve no dia e horário agendados.<br>4. A entidade confirmará com QR ou código.</div>'
+    +'<div class="note"><strong>Instruções:</strong><br>1. Cole esta etiqueta no item.<br>2. Se não puder imprimir, escreva o código acima no item.<br>3. Leve no dia e horário agendados.<br>4. A entidade confirmará com QR ou código.</div>'
     +'<button onclick="window.print()">Imprimir</button>'
     +'</div></body></html>';
   win.document.write(html);
   win.document.close();
   setTimeout(()=>{ try{ win.print(); }catch(_){} }, 500);
+}
+
+/* Impressão em lote (apenas “Agendadas” visíveis) */
+function printScheduledVisible(){
+  const activeTab = tabsContainer.querySelector('.tab-button.active')?.dataset.tab;
+  if(activeTab!=='scheduled'){
+    showToast('Vá para "Agendadas" para imprimir.', 'error');
+    return;
+  }
+  // Lista já filtrada: filteredWorkingList (todas na aba)
+  const scheduledDonations = filteredWorkingList;
+  const itemsToPrint = [];
+  scheduledDonations.forEach(d=>{
+    (d.items||[]).forEach((item, idx)=>{
+      if(item.status!=='completed'){
+        itemsToPrint.push({
+          code: item.uniqueCode,
+          campaign: d.campaignTitle,
+          pair: `${d.id}|${idx}`,
+          photo: item.photoURL || ''
+        });
+      }
+    });
+  });
+  if(!itemsToPrint.length){
+    showToast('Nenhum item agendado para imprimir.','error');
+    return;
+  }
+  // Gera HTML
+  const parts = itemsToPrint.map(it=>{
+    const qrSrc = buildQRDataImage(it.pair);
+    return `
+      <section style="page-break-inside:avoid;border:1px solid #e2e8f0;border-radius:16px;padding:16px;margin:0 0 18px;font-family:Inter,system-ui,sans-serif;">
+        <h2 style="margin:0 0 8px;font-size:15px;color:#111827">${it.campaign}</h2>
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+          <div style="flex:0 0 auto;text-align:center;">
+            ${qrSrc?`<img src="${qrSrc}" alt="QR" style="width:140px;height:140px;object-fit:contain;">`:`<div style="width:140px;height:140px;display:flex;align-items:center;justify-content:center;background:#f1f5f9;color:#64748b;font-size:12px;">QR</div>`}
+            <p style="margin:6px 0 0;font-size:11px;color:#475569;">Apresente este QR</p>
+          </div>
+          <div style="flex:1 1 auto;min-width:160px;">
+            <div style="font-size:27px;font-weight:800;letter-spacing:2px;font-family:ui-monospace,Consolas,monospace;background:#111827;color:#fff;padding:10px 14px;border-radius:14px;display:inline-block;">
+              ${it.code || '(sem código)'}
+            </div>
+            <p style="margin:10px 0 0;font-size:11px;line-height:1.5;color:#334155;">
+              Se não puder imprimir, escreva o código de forma legível no item para facilitar a conferência.
+            </p>
+          </div>
+        </div>
+      </section>`;
+  }).join('');
+  const html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>QRs Agendados</title>'
+    +'<meta name="viewport" content="width=device-width,initial-scale=1">'
+    +'<style>@page{margin:16mm;}body{margin:0;padding:16px;background:#fff;}h1{font-size:20px;font-family:Inter,system-ui,sans-serif;margin:0 0 18px;}section{break-after:auto;}@media print{button{display:none}}</style>'
+    +'</head><body>'
+    +'<button onclick="window.print()" style="position:fixed;top:12px;right:12px;padding:8px 14px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">Imprimir</button>'
+    +'<h1>QR Codes Agendados</h1>'
+    + parts
+    +'</body></html>';
+  const w=window.open('', '_blank','noopener,width=900,height=900,scrollbars=yes');
+  if(!w){ showToast('Pop-up bloqueado pelo navegador','error'); return; }
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>{ try{ w.print(); }catch(_){} }, 600);
 }
 
 function openCodeSearchModal(){
@@ -625,6 +695,7 @@ function openCodeSearchModal(){
   },60);
 }
 
+/* Modal item (SEM botão interno "Fechar" duplicado) */
 function openItemModal(donation, item, itemIndex){
   const campaign=campaignsCache.get(donation.campaignId);
   const details=generateItemDetailsHtml(item, campaign?.type || 'default');
@@ -654,9 +725,6 @@ function openItemModal(donation, item, itemIndex){
         <div id="modal-item-qrcode" class="mx-auto w-44 h-44"></div>
         <p class="text-[11px] text-gray-500 mt-2">QR para conferência na entrega.</p>
       </div>
-      <div class="modal-actions-grid">
-        <button class="w-full inline-flex justify-center rounded-md bg-white border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" data-close-modal>Fechar</button>
-      </div>
     </div>`;
   showDetailsModal(item.type || 'Detalhes do Item', modalHtml);
   setTimeout(()=> generateQRCode('modal-item-qrcode', `${donation.id}|${itemIndex}`),60);
@@ -673,13 +741,9 @@ function openItemModal(donation, item, itemIndex){
       openPrintLabel(btn.dataset.code, btn.dataset.campaign);
     }
   });
-  modalBody.querySelectorAll('[data-close-modal]').forEach(b=> b.addEventListener('click', ()=> {
-    document.getElementById('app-modal').classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
-  }));
 }
 
-/* Event delegation */
+/* Delegation */
 function setupDelegation(){
   deliveriesList.addEventListener('click',(e)=>{
     const copyEl=e.target.closest('.code-chip[data-code]');
@@ -753,6 +817,7 @@ function setupUIEvents(){
     renderActiveTabData(false);
   });
   openCodeSearchBtn.addEventListener('click', openCodeSearchModal);
+  printScheduledBtn.addEventListener('click', printScheduledVisible);
 }
 
 /* Online / FAB */
@@ -828,6 +893,18 @@ function listenUserDonations(){
   });
 }
 
+/* Atualiza estado do botão imprimir lote */
+function updatePrintScheduledButtonState(){
+  const activeTab = tabsContainer.querySelector('.tab-button.active')?.dataset.tab;
+  if(activeTab==='scheduled'){
+    printScheduledBtn.disabled=false;
+    printScheduledBtn.title='Imprimir QR Codes agendados visíveis';
+  } else {
+    printScheduledBtn.disabled=true;
+    printScheduledBtn.title='Disponível apenas na aba Agendadas';
+  }
+}
+
 /* Init */
 async function initializeApp(){
   const canProceed = await injectHeader();
@@ -861,16 +938,16 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   offlineBanner = document.getElementById('offline-banner');
   refreshBtn = document.getElementById('refresh-btn');
   openCodeSearchBtn = document.getElementById('open-code-search');
+  printScheduledBtn = document.getElementById('print-scheduled-btn');
 
   initSkeleton();
   setupDelegation();
   setupUIEvents();
   await initializeApp();
+  updatePrintScheduledButtonState();
 });
 
-if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(console.error);
-
-/* Simple modal utilities if needed (openAppModal used by code search) */
+/* Modal util (para code search) */
 function openAppModal({title, bodyHtml, buttons=[], iconHtml=null}){
   const modal=document.getElementById('app-modal');
   document.getElementById('modal-title').textContent=title;
@@ -896,6 +973,8 @@ function closeAppModal(){
   modal.classList.add('hidden');
   document.body.classList.remove('overflow-hidden');
 }
+
+if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(console.error);
 </script>
 </body>
 </html>
