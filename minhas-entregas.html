@@ -26,7 +26,7 @@ body { font-family:'Inter',sans-serif; }
 .item-card { transition:.18s ease; }
 .item-card:hover { transform:translateY(-2px); box-shadow:0 4px 14px -4px rgba(0,0,0,.08); }
 .status-chip { font-size:.625rem; letter-spacing:.5px; text-transform:uppercase; font-weight:600; padding:3px 8px; border-radius:999px; display:inline-flex; align-items:center; gap:4px;}
-.code-chip { display:inline-flex; align-items:center; gap:.4rem; background:#1e293b; color:#f8fafc; padding:.4rem .65rem; border-radius:.65rem; font-family:ui-monospace,Consolas,"Liberation Mono",Menlo,monospace; font-weight:600; letter-spacing:.5px; font-size:.8rem; cursor:pointer; position:relative;}
+.code-chip { display:inline-flex; align-items:center; gap:.4rem; background:#1e293b; color:#f8fafc; padding:.35rem .6rem; border-radius:.6rem; font-family:ui-monospace,Consolas,"Liberation Mono",Menlo,monospace; font-weight:600; letter-spacing:.5px; font-size:.75rem; cursor:pointer; position:relative;}
 .code-chip.large { font-size:1.4rem; padding:.9rem 1.15rem; border-radius:1rem; }
 .code-chip:active { transform:scale(.97); }
 .code-chip .copy-hint { position:absolute; bottom:-1.15rem; left:50%; transform:translateX(-50%); background:#1e293b; color:#fff; padding:2px 6px; border-radius:6px; font-size:.55rem; opacity:0; pointer-events:none; transition:.2s;}
@@ -88,17 +88,15 @@ body { font-family:'Inter',sans-serif; }
       </div>
     </div>
 
-    <!-- Tabs -->
     <div class="border-b border-gray-200 mb-4">
       <nav id="tabs-container" class="-mb-px flex overflow-x-auto no-scrollbar space-x-6" aria-label="Tabs">
-        <button data-tab="scheduled" class="tab-button active relative whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none">Agendadas</button>
+        <button data-tab="scheduled" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Agendadas</button>
         <button data-tab="overdue" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Vencidas</button>
         <button data-tab="cancelled" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Canceladas</button>
         <button data-tab="history" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Histórico</button>
       </nav>
     </div>
 
-    <!-- Quick filters -->
     <div id="quick-filters" class="flex gap-2 overflow-x-auto pb-2 mb-4">
       <div class="filter-pill" data-filter="next7">Próx. 7 dias</div>
       <div class="filter-pill" data-filter="morning">Manhã</div>
@@ -108,7 +106,6 @@ body { font-family:'Inter',sans-serif; }
       <div class="filter-pill" data-filter="hasMultipleItems">Múltiplos Itens</div>
     </div>
 
-    <!-- Search -->
     <div class="mb-6 flex items-center gap-3">
       <div class="flex-1 relative">
         <input id="search-input" type="search" placeholder="Buscar por campanha ou código..." class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
@@ -117,7 +114,6 @@ body { font-family:'Inter',sans-serif; }
       <button id="clear-filters" class="text-xs font-semibold text-gray-500 hover:text-gray-700">Limpar</button>
     </div>
 
-    <!-- Live status / offline -->
     <div id="live-status" class="hidden mb-4 text-xs font-medium text-blue-700 bg-blue-50 px-3 py-2 rounded-md flex items-center gap-2">
       <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> Atualização em tempo real
     </div>
@@ -126,7 +122,6 @@ body { font-family:'Inter',sans-serif; }
       Offline - exibindo dados em cache
     </div>
 
-    <!-- List -->
     <div id="deliveries-list" class="space-y-8"></div>
     <p id="no-deliveries-placeholder" class="hidden text-center text-gray-500 py-10 bg-white rounded-lg shadow text-sm">Nenhuma doação encontrada para este conjunto de filtros.</p>
 
@@ -138,7 +133,6 @@ body { font-family:'Inter',sans-serif; }
   </div>
 </main>
 
-<!-- Modal base -->
 <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
   <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
     <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
@@ -164,22 +158,22 @@ body { font-family:'Inter',sans-serif; }
   </div>
 </div>
 
-<!-- Toast -->
 <div class="toast-container" id="toast-container"></div>
 
-<!-- FAB mobile -->
 <div class="fab-bar" id="fab-bar" style="display:none;">
   <button id="fab-scroll-top" class="bg-blue-600 text-white">Topo</button>
   <button id="fab-refresh" class="bg-green-600 text-white">Atualizar</button>
 </div>
 
 <script type="module">
+/* Imports */
 import { db, paths } from './app-config.js';
 import { collection, query, where, onSnapshot, doc, getDoc } from './firebase-services.js';
 import { injectHeader } from './app-header.js';
 import { getCurrentUser } from './auth-service.js';
 import { showDetailsModal } from './modal-handler.js';
 
+/* State */
 let loadingView, deliveriesView, deliveriesList, noDeliveriesPlaceholder;
 let tabsContainer, loadMoreContainer, loadMoreBtn, searchInput, quickFiltersContainer;
 let liveStatusEl, offlineBanner, refreshBtn, openCodeSearchBtn;
@@ -215,7 +209,8 @@ const STATUS_TRANSLATIONS = {
   reagendado: 'Reagendada'
 };
 
-function showToast(message, type='success', ttl=3500){
+/* Utilities */
+function showToast(message, type='success', ttl=3000){
   const c=document.getElementById('toast-container');
   const el=document.createElement('div');
   el.className=`toast ${type}`;
@@ -223,16 +218,12 @@ function showToast(message, type='success', ttl=3500){
   c.appendChild(el);
   setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>el.remove(),400); }, ttl);
 }
-
-window.addEventListener('message',(e)=>{
-  if(e.data?.type==='toast'){ showToast(e.data.message, e.data.status==='success'?'success':'error'); }
-});
-
 function announce(msg){
   const reg=document.getElementById('global-aria-live');
-  if(reg){ reg.textContent=''; setTimeout(()=>reg.textContent=msg,40); }
+  if(!reg) return;
+  reg.textContent='';
+  setTimeout(()=>reg.textContent=msg,50);
 }
-
 function formatDateTime(ts){
   if(!ts?.toDate) return { date:'--', time:'--' };
   const d=ts.toDate();
@@ -257,6 +248,35 @@ function computeGroupStatus(d){
   return d.status || 'scheduled';
 }
 
+function generateQRCode(elementId, text){
+  const el=document.getElementById(elementId);
+  if(!el) return;
+  try{
+    const qr=qrcode(0,'L');
+    qr.addData(text);
+    qr.make();
+    el.innerHTML=qr.createImgTag(4,4);
+  }catch(err){
+    console.error('Erro QR', elementId, err);
+    el.innerHTML='<p class="text-xs text-red-500">QR erro</p>';
+  }
+}
+
+function buildQRDataImage(code){
+  try{
+    const qr=qrcode(0,'L');
+    qr.addData(code);
+    qr.make();
+    // createImgTag returns <img src="data:image/gif;base64,...">
+    // Pegamos apenas o src
+    const imgTag = qr.createImgTag(6,6);
+    const srcMatch = imgTag.match(/src="([^"]+)"/);
+    return srcMatch ? srcMatch[1] : '';
+  }catch(e){
+    return '';
+  }
+}
+
 function generateItemDetailsHtml(item, campaignType){
   let detailsHtml='<div class="space-y-1">';
   const cfgRaw = campaignTypeSettings[campaignType]?.fields;
@@ -278,6 +298,7 @@ function generateItemDetailsHtml(item, campaignType){
   return detailsHtml;
 }
 
+/* Filters */
 function applyFilters(base){
   let list=[...base];
   if(searchQuery){
@@ -336,6 +357,7 @@ function filterByTab(list, tab){
   }
 }
 
+/* Rendering */
 function renderActiveTabData(append=false){
   const activeTab = tabsContainer.querySelector('.tab-button.active')?.dataset.tab || 'scheduled';
   if(!append){
@@ -345,7 +367,8 @@ function renderActiveTabData(append=false){
 
   const base = allUserDonations.filter(d=>d.donorId===currentUserId);
   const byTab = filterByTab(base, activeTab);
-  filteredWorkingList = applyFilters(byTab).sort((a,b)=>(b.createdAt?.toMillis()||0)-(a.createdAt?.toMillis()||0));
+  filteredWorkingList = applyFilters(byTab)
+    .sort((a,b)=>(b.createdAt?.toMillis()||0)-(a.createdAt?.toMillis()||0));
 
   if(filteredWorkingList.length===0){
     noDeliveriesPlaceholder.classList.remove('hidden');
@@ -455,7 +478,7 @@ function createCard(donation, campaign, tab){
     return `<div class="item-card flex items-start gap-4 p-3 bg-gray-50 rounded-lg border group hover:bg-white cursor-pointer"
                 data-action="open-item" data-donation-id="${donation.id}" data-item-index="${idx}">
               <img src="${item.photoURL || 'https://placehold.co/64x64/e2e8f0/cbd5e0?text=Item'}"
-                   class="w-16 h-16 rounded-md object-cover flex-shrink-0 border">
+                   class="w-16 h-16 rounded-md object-cover flex-shrink-0 border" loading="lazy">
               <div class="flex-1 space-y-1">
                 <p class="font-bold text-sm text-gray-800 flex flex-wrap items-center gap-2">
                   ${item.type || 'Item'} ${codeBlock}
@@ -496,20 +519,6 @@ function createCard(donation, campaign, tab){
   return wrapper;
 }
 
-function generateQRCode(elementId, text){
-  const el=document.getElementById(elementId);
-  if(!el) return;
-  try{
-    const qr=qrcode(0,'L');
-    qr.addData(text);
-    qr.make();
-    el.innerHTML=qr.createImgTag(4,4);
-  }catch(err){
-    console.error('Erro QR', elementId, err);
-    el.innerHTML='<p class="text-xs text-red-500">QR erro</p>';
-  }
-}
-
 function hydrateQRCodesDeferred(){
   if(intersectionObserver) intersectionObserver.disconnect();
   intersectionObserver = new IntersectionObserver(entries=>{
@@ -540,57 +549,35 @@ function copyText(text){
   });
 }
 
+/* NOVO: impressão sem script remoto (usa data URI gerada agora) */
 function openPrintLabel(uniqueCode, campaignTitle){
+  const qrSrc = buildQRDataImage(uniqueCode);
   const win=window.open('', '_blank','noopener,width=480,height=640');
   if(!win) return;
-  const html=`<!DOCTYPE html>
-  <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8">
-    <title>Etiqueta - ${uniqueCode}</title>
-    <style>
-      body { font-family: 'Inter', system-ui, sans-serif; margin:0; padding:16px; background:#fff; }
-      .wrap { max-width:360px; margin:0 auto; text-align:center; }
-      h1 { font-size:20px; margin:4px 0 12px; }
-      .code { font-size:32px; font-weight:800; font-family: ui-monospace,Consolas,monospace; letter-spacing:2px; background:#111827; color:#fff; padding:12px 16px; border-radius:14px; display:inline-block; margin:12px 0;}
-      .qr img { width:200px; height:200px; }
-      p { font-size:12px; line-height:1.4; margin:8px 0; }
-      .note { background:#f1f5f9; padding:8px 10px; border-radius:8px; font-size:11px; text-align:left; }
-      @media print {
-        body { padding:8px; }
-        button { display:none; }
-        .no-print { display:none; }
-      }
-      .actions { margin-top:12px; }
-      button { padding:8px 14px; border:none; border-radius:8px; background:#16a34a; color:#fff; font-weight:600; cursor:pointer; }
-      button:hover { background:#15803d; }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <h1>${campaignTitle || 'Doação'}</h1>
-      <div id="qr-label" class="qr" aria-label="QR Code"></div>
-      <div class="code">${uniqueCode}</div>
-      <div class="note">
-        <strong>Instruções:</strong><br>
-        1. Cole esta etiqueta no item.<br>
-        2. Caso não possa imprimir, escreva o código acima no item (legível).<br>
-        3. Leve o item no dia e horário agendados.<br>
-        4. A entidade fará a leitura do QR ou conferirá o código escrito.
-      </div>
-      <div class="actions">
-        <button onclick="window.print()">Imprimir</button>
-      </div>
-    </div>
-    <script>
-      ${generateQRCode.toString()}
-      generateQRCode('qr-label', '${uniqueCode}');
-      window.onload = () => setTimeout(()=>window.print(), 400);
-    </script>
-  </body>
-  </html>`;
+  const safeTitle=(campaignTitle||'Doação').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Etiqueta - '+uniqueCode+'</title>'
+    +'<style>'
+    +'body{font-family:Inter,system-ui,sans-serif;margin:0;padding:16px;background:#fff;}'
+    +'.wrap{max-width:360px;margin:0 auto;text-align:center;}'
+    +'h1{font-size:20px;margin:4px 0 12px;}'
+    +'.code{font-size:32px;font-weight:800;font-family:ui-monospace,Consolas,monospace;letter-spacing:2px;background:#111827;color:#fff;padding:12px 16px;border-radius:14px;display:inline-block;margin:12px 0;}'
+    +'.qr img{width:200px;height:200px;}'
+    +'p{font-size:12px;line-height:1.4;margin:8px 0;}'
+    +'.note{background:#f1f5f9;padding:8px 10px;border-radius:8px;font-size:11px;text-align:left;}'
+    +'@media print{body{padding:8px;}button{display:none;}}'
+    +'button{padding:8px 14px;border:none;border-radius:8px;background:#16a34a;color:#fff;font-weight:600;cursor:pointer;margin-top:12px;}'
+    +'button:hover{background:#15803d;}'
+    +'</style></head><body>'
+    +'<div class="wrap">'
+    +'<h1>'+safeTitle+'</h1>'
+    +'<div class="qr">'+(qrSrc?'<img src="'+qrSrc+'" alt="QR Code">':'<p>QR indisponível</p>')+'</div>'
+    +'<div class="code">'+uniqueCode+'</div>'
+    +'<div class="note"><strong>Instruções:</strong><br>1. Cole esta etiqueta no item.<br>2. Se não puder imprimir, escreva o código acima no item (legível).<br>3. Leve no dia e horário agendados.<br>4. A entidade confirmará com QR ou código.</div>'
+    +'<button onclick="window.print()">Imprimir</button>'
+    +'</div></body></html>';
   win.document.write(html);
   win.document.close();
+  setTimeout(()=>{ try{ win.print(); }catch(_){} }, 500);
 }
 
 function openCodeSearchModal(){
@@ -613,30 +600,29 @@ function openCodeSearchModal(){
   });
   setTimeout(()=>{
     const input=document.getElementById('code-search-input');
-    input.focus();
-    input.addEventListener('input', ()=>{
+    const resultEl=document.getElementById('code-search-result');
+    input?.focus();
+    input?.addEventListener('input', ()=>{
       const val=input.value.trim().toUpperCase();
-      const resultEl=document.getElementById('code-search-result');
       if(!val){
         resultEl.textContent='';
         return;
       }
-      const donation = allUserDonations.find(d=> (d.items||[]).some(i=> (i.uniqueCode||'').toUpperCase()===val));
+      const donation=allUserDonations.find(d=> (d.items||[]).some(i=> (i.uniqueCode||'').toUpperCase()===val));
       if(donation){
-        resultEl.innerHTML=`<span class="text-green-600 font-semibold">Encontrado:</span> ${donation.campaignTitle}`;
-        // Scroll highlight
+        resultEl.innerHTML='<span class="text-green-600 font-semibold">Encontrado:</span> '+donation.campaignTitle;
         const card = Array.from(deliveriesList.querySelectorAll('.code-chip'))
           .find(el=>el.dataset.code===val)?.closest('.item-card');
         if(card){
           card.classList.add('ring','ring-2','ring-green-400');
-          card.scrollIntoView({behavior:'smooth', block:'center'});
-          setTimeout(()=>card.classList.remove('ring','ring-2','ring-green-400'), 2500);
+          card.scrollIntoView({behavior:'smooth',block:'center'});
+          setTimeout(()=>card.classList.remove('ring','ring-2','ring-green-400'),2500);
         }
       } else {
-        resultEl.innerHTML=`<span class="text-red-600 font-semibold">Não encontrado.</span>`;
+        resultEl.innerHTML='<span class="text-red-600 font-semibold">Não encontrado.</span>';
       }
     });
-  },80);
+  },60);
 }
 
 function openItemModal(donation, item, itemIndex){
@@ -652,7 +638,7 @@ function openItemModal(donation, item, itemIndex){
              <button class="inline-btn" data-action="print-label" data-code="${item.uniqueCode}" data-campaign="${donation.campaignTitle}">Imprimir Etiqueta</button>
              <button class="inline-btn" data-action="copy-code" data-code="${item.uniqueCode}">Copiar</button>
           </div>
-          <span class="print-note">Se não imprimir, escreva este código legível no item.</span>
+          <span class="print-note">Se não imprimir, escreva este código no item.</span>
        </div>`
     : '<p class="text-xs text-gray-400">Código ainda não disponível.</p>';
 
@@ -666,7 +652,7 @@ function openItemModal(donation, item, itemIndex){
       <div class="bg-gray-50 p-4 rounded-lg border text-xs space-y-2">${details}</div>
       <div class="text-center">
         <div id="modal-item-qrcode" class="mx-auto w-44 h-44"></div>
-        <p class="text-[11px] text-gray-500 mt-2">QR Code para conferência no momento da entrega.</p>
+        <p class="text-[11px] text-gray-500 mt-2">QR para conferência na entrega.</p>
       </div>
       <div class="modal-actions-grid">
         <button class="w-full inline-flex justify-center rounded-md bg-white border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" data-close-modal>Fechar</button>
@@ -675,7 +661,6 @@ function openItemModal(donation, item, itemIndex){
   showDetailsModal(item.type || 'Detalhes do Item', modalHtml);
   setTimeout(()=> generateQRCode('modal-item-qrcode', `${donation.id}|${itemIndex}`),60);
 
-  // Delegação dentro do modal
   const modalBody=document.getElementById('modal-message-body');
   modalBody.addEventListener('click',(e)=>{
     const btn=e.target.closest('[data-action]');
@@ -694,6 +679,7 @@ function openItemModal(donation, item, itemIndex){
   }));
 }
 
+/* Event delegation */
 function setupDelegation(){
   deliveriesList.addEventListener('click',(e)=>{
     const copyEl=e.target.closest('.code-chip[data-code]');
@@ -726,6 +712,7 @@ function setupDelegation(){
   });
 }
 
+/* UI events */
 function setupUIEvents(){
   searchInput.addEventListener('input', ()=>{
     searchQuery=searchInput.value.trim();
@@ -768,6 +755,7 @@ function setupUIEvents(){
   openCodeSearchBtn.addEventListener('click', openCodeSearchModal);
 }
 
+/* Online / FAB */
 function updateOnlineStatus(){
   if(!navigator.onLine){
     offlineBanner.classList.remove('hidden');
@@ -790,9 +778,10 @@ function toggleFab(){
   }
 }
 
+/* Skeleton */
 function initSkeleton(){
   const skeletonWrap=document.createElement('div');
-  skeletonWrap.className='space-y-4';
+  skeletonWrap.className='space-y-4 w-full px-4';
   for(let i=0;i<3;i++){
     const sk=document.createElement('div');
     sk.className='skeleton-block';
@@ -802,6 +791,7 @@ function initSkeleton(){
   loadingView.appendChild(skeletonWrap);
 }
 
+/* Data */
 async function loadCampaignTypes(){
   const snap=await getDoc(doc(db, paths.configDoc('campaignTypes')));
   campaignTypeSettings = snap.exists()? snap.data() : {};
@@ -838,6 +828,7 @@ function listenUserDonations(){
   });
 }
 
+/* Init */
 async function initializeApp(){
   const canProceed = await injectHeader();
   if(!canProceed) return;
@@ -879,7 +870,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
 
 if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(console.error);
 
-/* Modal utilities (reutiliza estrutura existente) */
+/* Simple modal utilities if needed (openAppModal used by code search) */
 function openAppModal({title, bodyHtml, buttons=[], iconHtml=null}){
   const modal=document.getElementById('app-modal');
   document.getElementById('modal-title').textContent=title;
