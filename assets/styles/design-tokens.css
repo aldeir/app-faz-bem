@@ -1,6 +1,14 @@
 /* =============================================================================
    DESIGN TOKENS
    Foundation layer for consistent design system
+   
+   📖 Documentação: docs/design-system/tokens.md
+   📋 ADR 0001: docs/adr/0001-design-tokens.md
+   
+   NOTA DE MIGRAÇÃO:
+   Tokens existentes devem ser mantidos para compatibilidade durante migração.
+   Novos componentes devem usar APENAS tokens definidos aqui.
+   Evitar valores hardcoded - sempre preferir var(--token-name).
    ============================================================================= */
 
 :root {
