@@ -1,53 +1,90 @@
 <!DOCTYPE html>
 <html lang="pt-BR" class="h-full">
 <head>
-<meta charset="UTF-8">
-<title>App Faz Bem - Campanhas</title>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#22c55e" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f2917" media="(prefers-color-scheme: dark)">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="logo.png">
-<link rel="icon" href="logo.png" type="image/png">
-<link rel="preconnect" href="https://firestore.googleapis.com">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="/app-faz-bem/style.css" rel="stylesheet">
-<link href="mobile-enhancements.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="assets/styles/design-tokens.css" rel="stylesheet">
-<link href="assets/styles/ui-core.css" rel="stylesheet">
-<script src="assets/js/ui-countdown.js"></script>
-<style>
-/* ---------- GLOBAL / BASE ---------- */
-html,body{font-family:'Inter',sans-serif;}
-body{background:#f8fafc;color:#1e293b;min-height:100vh;position:relative;overflow-x:hidden;}
-.hero-bg-layer{
-  position:fixed;inset:0;z-index:-1;
-  background:
-    linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,.92)),
-    url('bg-faz-bem.png') center 40%/cover no-repeat;
-  opacity:.55;
-  mix-blend-mode:normal;
-  filter:brightness(1.05) saturate(1.05);
-  pointer-events:none;
-}
-@media (prefers-color-scheme: dark){
-  body{background:#0f172a;color:#e2e8f0;}
-  .hero-bg-layer{
-    background:
-      linear-gradient(rgba(15,23,42,.90),rgba(15,23,42,.92)),
-      url('bg-faz-bem.png') center 35%/cover no-repeat;
-    opacity:.65;
-    filter:brightness(1.25);
-  }
-}
+  <!--
+    Revisão 2025-08-23:
+    - Corrigido ReferenceError: countdownIntervals (removido uso legado)
+    - Adicionada meta mobile-web-app-capable
+    - Ajustado carregamento do script ui-countdown com defer
+    - Adicionado fallback para imagem de fundo ausente
+    - Reinvocação segura de initCountdownBadges após renderização dinâmica
+  -->
+  <meta charset="UTF-8">
+  <title>App Faz Bem - Campanhas</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#22c55e" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f2917" media="(prefers-color-scheme: dark)">
+  <!-- Nova meta recomendada -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <!-- Mantida para compatibilidade iOS (console avisa depreciação, mas ainda é aceita) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-/* ---------- LOADER ---------- */
-.loader{border:4px solid #e2e8f0;border-top:4px solid #22c55e;border-radius:50%;width:42px;height:42px;animation:spin 1s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="logo.png">
+  <link rel="icon" href="logo.png" type="image/png">
+
+  <link rel="preconnect" href="https://firestore.googleapis.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Ajuste conforme estrutura real de pastas -->
+  <link href="/app-faz-bem/style.css" rel="stylesheet">
+  <link href="mobile-enhancements.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="assets/styles/design-tokens.css" rel="stylesheet">
+  <link href="assets/styles/ui-core.css" rel="stylesheet">
+
+  <!-- defer evita bloqueio e garante que badges possam inicializar após HTML -->
+  <script src="assets/js/ui-countdown.js" defer></script>
+
+  <style>
+  /* ---------- GLOBAL / BASE ---------- */
+  html,body{font-family:'Inter',sans-serif;}
+  body{
+    background:#f8fafc;
+    color:#1e293b;
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+  }
+  .hero-bg-layer{
+    position:fixed;inset:0;z-index:-1;
+    /* Tente primeiro um caminho em assets; se não existir, tenta no diretório atual; se nenhum existir fica só o gradiente */
+    background:
+      linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,.92)),
+      url('assets/images/bg-faz-bem.png') center 40%/cover no-repeat,
+      linear-gradient(135deg,#f1f5f9,#e2e8f0);
+    opacity:.55;
+    mix-blend-mode:normal;
+    filter:brightness(1.05) saturate(1.05);
+    pointer-events:none;
+  }
+  /* Caso a imagem verdadeira esteja no mesmo diretório e você vá adicioná-la depois,
+     mantenha também essa declaração em cascata (opcional). */
+  @supports (background-blend-mode:overlay){
+    .hero-bg-layer{
+      background:
+        linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,.92)),
+        url('bg-faz-bem.png') center 40%/cover no-repeat,
+        linear-gradient(135deg,#f1f5f9,#e2e8f0);
+    }
+  }
+  @media (prefers-color-scheme: dark){
+    body{background:#0f172a;color:#e2e8f0;}
+    .hero-bg-layer{
+      background:
+        linear-gradient(rgba(15,23,42,.90),rgba(15,23,42,.92)),
+        url('assets/images/bg-faz-bem.png') center 35%/cover no-repeat,
+        linear-gradient(135deg,#1e293b,#0f172a);
+      opacity:.65;
+      filter:brightness(1.25);
+    }
+  }
+
+  /* ---------- LOADER ---------- */
+  .loader{border:4px solid #e2e8f0;border-top:4px solid #22c55e;border-radius:50%;width:42px;height:42px;animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
 
 /* ---------- ACCESSIBILITY ---------- */
 #global-aria-live[data-visually-hidden="true"]{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);border:0;}
@@ -147,7 +184,7 @@ body{background:#f8fafc;color:#1e293b;min-height:100vh;position:relative;overflo
   min-height:100%;
   transition:transform .28s,box-shadow .28s,border-color .28s;
   isolation:isolate;
-  padding:0; /* remove overlay padding; internal handled by .card-body */
+  padding:0;
 }
 .campaign-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px -8px rgba(16,185,129,.35);}
 .campaign-card:active{transform:translateY(-1px) scale(.985);}
@@ -272,7 +309,7 @@ footer{font-size:.7rem;}
 footer p{opacity:.85;}
 @media (min-width:640px){footer{font-size:.75rem;}}
 
-/* ---------- TOAST (from mobile-enhancements.css rely) ---------- */
+/* ---------- TOAST ---------- */
 .toast-container{position:fixed;bottom:calc(1rem + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:.6rem;width:min(92%,420px);}
 .toast{background:#1e293b;color:#f8fafc;padding:.75rem .95rem;border-radius:.85rem;font-size:.8rem;font-weight:500;box-shadow:0 8px 26px -8px rgba(0,0,0,.35);animation:toastIn .32s ease;display:flex;align-items:flex-start;gap:.6rem;}
 .toast.success{background:#065f46;}
@@ -282,608 +319,609 @@ footer p{opacity:.85;}
 /* ---------- UTILITIES ---------- */
 .no-scrollbar::-webkit-scrollbar{display:none;}
 .no-scrollbar{scrollbar-width:none;-ms-overflow-style:none;}
-</style>
+  </style>
 </head>
 <body>
-<div class="hero-bg-layer" aria-hidden="true"></div>
-<div id="global-aria-live" aria-live="polite" data-visually-hidden="true"></div>
-<div id="app-header"></div>
+  <div class="hero-bg-layer" aria-hidden="true"></div>
+  <div id="global-aria-live" aria-live="polite" data-visually-hidden="true"></div>
+  <div id="app-header"></div>
 
-<main id="page-content">
-  <div class="container mx-auto max-w-6xl p-4 sm:p-6">
-    <!-- Offline Banner -->
-    <div id="offline-banner" class="offline-banner items-center gap-2 mb-4 px-3 py-2 rounded-md bg-yellow-50 text-yellow-800 text-[11px] font-medium">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z"/>
-      </svg>
-      Você está offline. Exibindo dados em cache.
-    </div>
-
-    <header class="text-center my-7 sm:my-10">
-      <h1 class="brand-heading">Faz&nbsp;Bem</h1>
-      <p class="tagline mt-3">Conectando corações e transformando vidas.</p>
-    </header>
-
-    <!-- Placeholder future quick filters -->
-    <div id="home-quick-filters" class="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar"></div>
-
-    <div class="space-y-6">
-      <!-- ATIVAS -->
-      <section class="accordion-item" id="sec-ativas">
-        <button class="accordion-header" data-accordion="ativas">
-          <span class="flex items-center gap-2">
-            <span>Campanhas Ativas</span>
-            <span id="count-ativas" class="font-normal text-gray-500 text-sm"></span>
-          </span>
-          <div class="flex items-center gap-4">
-            <div id="filter-dropdown-ativas" class="filter-dropdown-container"></div>
-            <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-            </svg>
-          </div>
-        </button>
-        <div class="accordion-content" id="accordion-ativas-content">
-          <div class="accordion-content-inner">
-            <div id="active-campaigns-list"></div>
-            <p id="active-campaigns-empty" class="hidden text-center text-gray-500 py-5 text-sm">Nenhuma campanha encontrada.</p>
-            <div id="pagination-ativas" class="text-center pt-2"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- PROXIMAS -->
-      <section id="accordion-proximas" class="accordion-item hidden">
-        <button class="accordion-header" data-accordion="proximas">
-          <span class="flex items-center gap-2">
-            <span>Próximas Campanhas</span>
-            <span id="count-proximas" class="font-normal text-gray-500 text-sm"></span>
-          </span>
-          <div class="flex items-center gap-4">
-            <div id="filter-dropdown-proximas" class="filter-dropdown-container"></div>
-            <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-            </svg>
-          </div>
-        </button>
-        <div class="accordion-content" id="accordion-proximas-content">
-          <div class="accordion-content-inner">
-            <div id="upcoming-campaigns-list"></div>
-            <p id="upcoming-campaigns-empty" class="hidden text-center text-gray-500 py-5 text-sm">Nenhuma campanha encontrada.</p>
-            <div id="pagination-proximas" class="text-center pt-2"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- RECENTES -->
-      <section id="accordion-recentes" class="accordion-item hidden">
-        <button class="accordion-header" data-accordion="recentes">
-          <span class="flex items-center gap-2">
-            <span>Campanhas Encerradas</span>
-            <span id="count-recentes" class="font-normal text-gray-500 text-sm"></span>
-          </span>
-          <div class="flex items-center gap-4">
-            <div id="filter-dropdown-recentes" class="filter-dropdown-container"></div>
-            <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-            </svg>
-          </div>
-        </button>
-        <div class="accordion-content" id="accordion-recentes-content">
-          <div class="accordion-content-inner">
-            <div id="recent-campaigns-list"></div>
-            <p id="recent-campaigns-empty" class="hidden text-center text-gray-500 py-5 text-sm">Nenhuma campanha encontrada.</p>
-            <div id="pagination-recentes" class="text-center pt-2"></div>
-          </div>
-        </div>
-      </section>
-    </div>
-
-    <div id="loading-container" class="text-center py-20">
-      <div class="loader mx-auto"></div>
-      <p class="mt-4 text-gray-600 text-sm font-medium">Carregando campanhas...</p>
-    </div>
-
-    <footer class="text-center mt-20 py-6 border-t border-gray-200">
-      <p class="text-gray-500 leading-relaxed">
-        <span class="font-semibold text-gray-700">
-          <span class="text-lg align-middle">&copy;</span>ássia & @lice Nery
-        </span>
-        2025 App Faz Bem. Uma iniciativa comunitária.
-      </p>
-    </footer>
-  </div>
-</main>
-
-<!-- Modal base -->
-<div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-    <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-    <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
-      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-        <div class="sm:flex sm:items-start">
-          <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-            <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12A9 9 0 113 12a9 9 0 0118 0z"/>
-            </svg>
-          </div>
-          <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-            <h3 class="text-lg leading-6 font-semibold text-gray-900" id="modal-title"></h3>
-            <div class="mt-2">
-              <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
-            </div>
-          </div>
-        </div>
+  <main id="page-content">
+    <div class="container mx-auto max-w-6xl p-4 sm:p-6">
+      <!-- Offline Banner -->
+      <div id="offline-banner" class="offline-banner items-center gap-2 mb-4 px-3 py-2 rounded-md bg-yellow-50 text-yellow-800 text-[11px] font-medium">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z"/>
+        </svg>
+        Você está offline. Exibindo dados em cache.
       </div>
-      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
-    </div>
-  </div>
-</div>
 
-<!-- Toast -->
-<div class="toast-container" id="toast-container"></div>
+      <header class="text-center my-7 sm:my-10">
+        <h1 class="brand-heading">Faz&nbsp;Bem</h1>
+        <p class="tagline mt-3">Conectando corações e transformando vidas.</p>
+      </header>
 
-<!-- FAB Mobile -->
-<div class="fab-bar-home" id="fab-bar-home" style="display:none;">
-  <button id="fab-scroll-top" class="bg-blue-600 text-white shadow hover:bg-blue-700 active:scale-95 transition">Topo</button>
-  <button id="fab-refresh" class="bg-green-600 text-white shadow hover:bg-green-700 active:scale-95 transition">Atualizar</button>
-</div>
+      <div id="home-quick-filters" class="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar"></div>
 
-<script type="module">
-import { db, paths } from './app-config.js';
-import { collection, onSnapshot, query, orderBy, doc, setDoc, deleteDoc, serverTimestamp } from './firebase-services.js';
-import { injectHeader } from './app-header.js';
-import { getCurrentUser } from './auth-service.js';
-import { showAlertModal } from './modal-handler.js';
-
-const ITEMS_PER_PAGE=4;
-const COLOR_SAFE=['green','blue','red','yellow','purple','gray'];
-const state={
-  allCampaigns:[],allDonations:[],allLikes:[],currentUser:null,settings:{},
-  sections:{
-    ativas:{filter:'all',visibleCount:ITEMS_PER_PAGE,key:'active'},
-    proximas:{filter:'all',visibleCount:ITEMS_PER_PAGE,key:'upcoming'},
-    recentes:{filter:'all',visibleCount:ITEMS_PER_PAGE,key:'recent'}
-  }
-};
-const lists={
-  ativas:document.getElementById('active-campaigns-list'),
-  proximas:document.getElementById('upcoming-campaigns-list'),
-  recentes:document.getElementById('recent-campaigns-list')
-};
-const empties={
-  ativas:document.getElementById('active-campaigns-empty'),
-  proximas:document.getElementById('upcoming-campaigns-empty'),
-  recentes:document.getElementById('recent-campaigns-empty')
-};
-const pagers={
-  ativas:document.getElementById('pagination-ativas'),
-  proximas:document.getElementById('pagination-proximas'),
-  recentes:document.getElementById('pagination-recentes')
-};
-const loadingContainer=document.getElementById('loading-container');
-const offlineBanner=document.getElementById('offline-banner');
-
-let slideshowIntervals={};
-
-function showToast(msg,type='success',ttl=3000){
-  const c=document.getElementById('toast-container');const el=document.createElement('div');
-  el.className=`toast ${type}`;el.innerHTML=`<span>${msg}</span>`;
-  c.appendChild(el);setTimeout(()=>{el.style.opacity='0';setTimeout(()=>el.remove(),400);},ttl);
-}
-function announce(msg){
-  const live=document.getElementById('global-aria-live'); if(!live) return;
-  live.textContent=''; setTimeout(()=>live.textContent=msg,40);
-}
-function ensureColor(c){return COLOR_SAFE.includes(c)?c:'gray';}
-function colorMap(c){
-  switch(c){
-    case 'green':return{badgeBg:'bg-green-100',badgeText:'text-green-800',border:'border-green-500'};
-    case 'blue':return{badgeBg:'bg-blue-100',badgeText:'text-blue-800',border:'border-blue-500'};
-    case 'red':return{badgeBg:'bg-red-100',badgeText:'text-red-800',border:'border-red-500'};
-    case 'yellow':return{badgeBg:'bg-yellow-100',badgeText:'text-yellow-800',border:'border-yellow-500'};
-    case 'purple':return{badgeBg:'bg-purple-100',badgeText:'text-purple-800',border:'border-purple-500'};
-    default:return{badgeBg:'bg-gray-100',badgeText:'text-gray-800',border:'border-gray-400'};
-  }
-}
-function updateOfflineStatus(){
-  if(!navigator.onLine){offlineBanner.classList.add('active');announce('Sem conexão. Dados podem estar desatualizados.');}
-  else offlineBanner.classList.remove('active');
-}
-window.addEventListener('online',updateOfflineStatus);
-window.addEventListener('offline',updateOfflineStatus);
-
-async function initializeApp(){
-  await injectHeader();
-  state.currentUser=await getCurrentUser();
-  setupDataListeners();
-  setupEvents();
-  enableFabIfMobile();
-  updateOfflineStatus();
-}
-
-function setupDataListeners(){
-  onSnapshot(doc(db, paths.configDoc('campaignTypes')),(s)=>{
-    state.settings=s.exists()?s.data():{};
-    renderAll();
-  });
-  onSnapshot(query(collection(db, paths.campaigns),orderBy('createdAt','desc')),(s)=>{
-    state.allCampaigns=s.docs.map(d=>({id:d.id,...d.data()}));
-    renderAll();
-  });
-  onSnapshot(query(collection(db, paths.donations)),(s)=>{
-    state.allDonations=s.docs.map(d=>d.data());
-    renderAll();
-  });
-  onSnapshot(query(collection(db, paths.likes)),(s)=>{
-    state.allLikes=s.docs.map(d=>({id:d.id,...d.data()}));
-    renderAll();
-  });
-}
-
-function renderAll(){
-  if(state.allCampaigns.length || Object.keys(state.settings).length) loadingContainer.style.display='none';
-
-  Object.values(countdownIntervals).forEach(clearInterval);
-  Object.values(slideshowIntervals).forEach(clearInterval);
-  slideshowIntervals={};
-
-  const now=new Date();
-  const active=state.allCampaigns.filter(c=>c.status==='active' && c.startsAt?.toDate()<=now && c.expiresAt?.toDate()>now);
-  const upcoming=state.allCampaigns.filter(c=>c.status==='upcoming' && c.startsAt?.toDate()>now);
-  const recent=state.allCampaigns.filter(c=>c.expiresAt?.toDate() && c.expiresAt.toDate()<=now);
-
-  renderSection('ativas',active);
-  renderSection('proximas',upcoming);
-  renderSection('recentes',recent);
-
-  document.getElementById('accordion-proximas').classList.toggle('hidden',!upcoming.length);
-  document.getElementById('accordion-recentes').classList.toggle('hidden',!recent.length);
-
-  const firstHeader=document.querySelector('.accordion-header');
-  if(firstHeader && !firstHeader.classList.contains('active')){
-    firstHeader.classList.add('active');
-  }
-  document.querySelectorAll('.accordion-header.active').forEach(h=>{
-    const panel=h.nextElementSibling;
-    if(panel) panel.style.maxHeight=panel.scrollHeight+'px';
-  });
-}
-
-function renderSection(key,arr){
-  const sectionState=state.sections[key];
-  const filtered=arr.filter(c=>sectionState.filter==='all' || c.type===sectionState.filter);
-  document.getElementById(`count-${key}`).textContent=`(${filtered.length})`;
-  const visible=filtered.slice(0,sectionState.visibleCount);
-  renderList(key,visible,filtered.length);
-  renderFilter(key,arr);
-}
-
-function renderList(key,campaigns,totalFiltered){
-  const list=lists[key]; const empty=empties[key]; const pager=pagers[key];
-  list.innerHTML='';
-  if(!campaigns.length){empty.classList.remove('hidden');pager.innerHTML='';return;}
-  empty.classList.add('hidden');
-
-  const frag=document.createDocumentFragment();
-  campaigns.forEach(c=>{
-    const donations=state.allDonations.filter(d=>d.campaignId===c.id);
-    const likes=state.allLikes.filter(l=>l.campaignId===c.id);
-    const cardHTML=buildCard(c,donations,likes,state.sections[key].key);
-    const wrap=document.createElement('div');wrap.innerHTML=cardHTML;frag.appendChild(wrap.firstElementChild);
-  });
-  list.appendChild(frag);
-
-  // after append start timers
-  campaigns.forEach(c=>{
-    const isEncerrada=c.expiresAt?.toDate() && c.expiresAt.toDate()<=new Date();
-    if(key==='ativas' && !isEncerrada){
-      // Countdown badges are now auto-initialized by ui-countdown.js
-      startSlideshow(c.id);
-    }
-  });
-  lazyLoadImages(list.querySelectorAll('img.media-item'));
-
-  pager.innerHTML='';
-  if(totalFiltered>campaigns.length){
-    const btn=document.createElement('button');
-    btn.className='bg-green-600 text-white font-semibold py-2 px-6 rounded-full shadow hover:bg-green-700 transition text-sm';
-    btn.textContent='Carregar Mais';
-    btn.addEventListener('click',()=>loadMore(key));
-    pager.appendChild(btn);
-  }
-}
-
-function renderFilter(sectionKey,campaigns){
-  const container=document.getElementById(`filter-dropdown-${sectionKey}`);
-  const sectionState=state.sections[sectionKey];
-  const types=[...new Set(campaigns.map(c=>c.type))].filter(Boolean);
-  if(types.length<=1){container.innerHTML='';return;}
-  const currentLabel= sectionState.filter==='all'
-    ?'Filtrar'
-    :(state.settings[sectionState.filter]?.label || sectionState.filter);
-  let items=`<button class="filter-dropdown-item ${sectionState.filter==='all'?'active':''}" data-filter="all">Todos os Tipos</button>`;
-  types.forEach(t=>{
-    const label=state.settings[t]?.label || t;
-    items+=`<button class="filter-dropdown-item ${sectionState.filter===t?'active':''}" data-filter="${t}">${label}</button>`;
-  });
-  container.innerHTML=`
-    <button class="text-[11px] font-semibold text-emerald-700 hover:text-emerald-600 flex items-center gap-1 px-2 py-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-      data-filter-trigger="${sectionKey}">
-      ${currentLabel}
-      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
-      </svg>
-    </button>
-    <div id="filter-menu-${sectionKey}" class="filter-dropdown-menu" role="menu" aria-label="Filtro de ${sectionKey}">
-      ${items}
-    </div>
-  `;
-}
-
-function buildCard(campaign,donations,likes,listKey){
-  const settings=state.settings[campaign.type] || state.settings['default'] || {label:'Campanha',color:'gray'};
-  const color=ensureColor(settings.color || 'gray');
-  const cm=colorMap(color);
-  const isActive=listKey==='active';
-  const isClosed=listKey==='recent' || (campaign.expiresAt?.toDate() && campaign.expiresAt.toDate()<=new Date());
-  const baseBorder=`border ${cm.border}`;
-  const cardClasses=`campaign-card ${isClosed?'campaign-encerrada':''} ${baseBorder}`;
-
-  // media
-  let mediaHtml='';
-  if(!isClosed){
-    const items=[];
-    if(campaign.videoUrl) items.push({type:'video',src:campaign.videoUrl});
-    (campaign.images||[]).forEach(src=>items.push({type:'image',src}));
-    if(!items.length) items.push({type:'image',src:'https://placehold.co/600x400/e2e8f0/cbd5e0?text=Sem+Imagem'});
-    items.forEach((m,i)=>{
-      mediaHtml += `<img class="media-item ${i===0?'active':''}" data-src="${m.src}" alt="Imagem da campanha ${campaign.title}" loading="lazy">`;
-    });
-  } else {
-    const first=(campaign.images && campaign.images[0]) || 'https://placehold.co/600x400/e2e8f0/cbd5e0?text=Sem+Imagem';
-    mediaHtml = `<img class="media-item active" data-src="${first}" alt="Imagem da campanha ${campaign.title}" loading="lazy">`;
-  }
-
-  // status
-  let statusTag='';
-  if(campaign.status==='upcoming') statusTag='<span class="status-chip bg-blue-600 text-white">PRÓXIMA</span>';
-  else if(isActive && campaign.priority==='high') statusTag='<span class="status-chip bg-red-600 text-white urgent-badge">URGENTE</span>';
-
-  // countdown
-  let countdownHtml='';
-  if(isActive) {
-    const deadline = campaign.expiresAt?.toDate()?.toISOString() || '';
-    countdownHtml=`<span class="countdown-badge" data-deadline="${deadline}" data-campaign-id="${campaign.id}" data-precision="minutes">...</span>`;
-  }
-
-  // goal
-  let goalHtml='';
-  if(campaign.goal){
-    const completed=donations.reduce((acc,d)=> acc + (d.items||[]).filter(i=>i.status==='completed').length,0);
-    const goal=parseInt(campaign.goal,10);
-    const pct= goal>0 ? Math.min(100,(completed/goal)*100) : 0;
-    goalHtml=`
-      <div class="progress-group space-y-1">
-        <div class="flex justify-between text-[11px] text-gray-500 font-medium">
-          <span>Meta</span><span>${completed}/${goal}</span>
-        </div>
-        <div class="progress-bar"><span style="width:${pct}%"></span></div>
-      </div>`;
-  }
-
-  // donors
-  const donorsWithCompleted=Object.values(donations.reduce((acc,d)=>{
-    if(d.campaignId===campaign.id && Array.isArray(d.items) && d.items.some(i=>i.status==='completed')) acc[d.donorId]=d;
-    return acc;
-  },{}));
-
-  let donorsHtml='';
-  if(donorsWithCompleted.length){
-    donorsHtml=donorsWithCompleted.slice(0,5).map(d=>{
-      const dLikes=likes.filter(l=>l.donorId===d.donorId && l.campaignId===campaign.id);
-      const liked=state.currentUser?.auth && dLikes.some(l=>l.likerId===state.currentUser.auth.uid);
-      const anonymous=d.privacy==='anonymous';
-      const photo= anonymous ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A'
-                             : d.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
-      const name = anonymous ? 'Anônimo' : (d.donorName||'Doador');
-      return `
-        <div class="text-center flex flex-col items-center">
-          <div class="donor-avatar-container">
-            <img src="${photo}" alt="Foto de ${name}" title="${name}" class="donor-avatar inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover">
-            <div class="star-badge" title="Entrega concluída">
-              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+      <div class="space-y-6">
+        <!-- ATIVAS -->
+        <section class="accordion-item" id="sec-ativas">
+          <button class="accordion-header" data-accordion="ativas">
+            <span class="flex items-center gap-2">
+              <span>Campanhas Ativas</span>
+              <span id="count-ativas" class="font-normal text-gray-500 text-sm"></span>
+            </span>
+            <div class="flex items-center gap-4">
+              <div id="filter-dropdown-ativas" class="filter-dropdown-container"></div>
+              <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
             </div>
-          </div>
-          <button class="like-button mt-1 ${liked?'liked':''}" data-campaign-id="${campaign.id}" data-donor-id="${d.donorId}" aria-label="Curtir doador">
-            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/></svg>
-            <span class="like-count">${dLikes.length}</span>
           </button>
-        </div>`;
-    }).join('');
-    if(donorsWithCompleted.length>5){
-      donorsHtml+=`<div class="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 text-gray-600 text-[11px] font-bold ring-2 ring-white">+${donorsWithCompleted.length-5}</div>`;
+          <div class="accordion-content" id="accordion-ativas-content">
+            <div class="accordion-content-inner">
+              <div id="active-campaigns-list"></div>
+              <p id="active-campaigns-empty" class="hidden text-center text-gray-500 py-5 text-sm">Nenhuma campanha encontrada.</p>
+              <div id="pagination-ativas" class="text-center pt-2"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PROXIMAS -->
+        <section id="accordion-proximas" class="accordion-item hidden">
+          <button class="accordion-header" data-accordion="proximas">
+            <span class="flex items-center gap-2">
+              <span>Próximas Campanhas</span>
+              <span id="count-proximas" class="font-normal text-gray-500 text-sm"></span>
+            </span>
+            <div class="flex items-center gap-4">
+              <div id="filter-dropdown-proximas" class="filter-dropdown-container"></div>
+              <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </button>
+          <div class="accordion-content" id="accordion-proximas-content">
+            <div class="accordion-content-inner">
+              <div id="upcoming-campaigns-list"></div>
+              <p id="upcoming-campaigns-empty" class="hidden text-center text-gray-500 py-5 text-sm">Nenhuma campanha encontrada.</p>
+              <div id="pagination-proximas" class="text-center pt-2"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- RECENTES -->
+        <section id="accordion-recentes" class="accordion-item hidden">
+          <button class="accordion-header" data-accordion="recentes">
+            <span class="flex items-center gap-2">
+              <span>Campanhas Encerradas</span>
+              <span id="count-recentes" class="font-normal text-gray-500 text-sm"></span>
+            </span>
+            <div class="flex items-center gap-4">
+              <div id="filter-dropdown-recentes" class="filter-dropdown-container"></div>
+              <svg class="accordion-arrow text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </button>
+          <div class="accordion-content" id="accordion-recentes-content">
+            <div class="accordion-content-inner">
+              <div id="recent-campaigns-list"></div>
+              <p id="recent-campaigns-empty" class="hidden text-center text-gray-500 py-5 text-sm">Nenhuma campanha encontrada.</p>
+              <div id="pagination-recentes" class="text-center pt-2"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div id="loading-container" class="text-center py-20">
+        <div class="loader mx-auto"></div>
+        <p class="mt-4 text-gray-600 text-sm font-medium">Carregando campanhas...</p>
+      </div>
+
+      <footer class="text-center mt-20 py-6 border-t border-gray-200">
+        <p class="text-gray-500 leading-relaxed">
+          <span class="font-semibold text-gray-700">
+            <span class="text-lg align-middle">&copy;</span>ássia & @lice Nery
+          </span>
+          2025 App Faz Bem. Uma iniciativa comunitária.
+        </p>
+      </footer>
+    </div>
+  </main>
+
+  <!-- Modal base -->
+  <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+      <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+      <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+          <div class="sm:flex sm:items-start">
+            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+              <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12A9 9 0 113 12a9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+              <h3 class="text-lg leading-6 font-semibold text-gray-900" id="modal-title"></h3>
+              <div class="mt-2">
+                <div class="text-sm text-gray-600 space-y-2" id="modal-message-body"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-buttons"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- FAB Mobile -->
+  <div class="fab-bar-home" id="fab-bar-home" style="display:none;">
+    <button id="fab-scroll-top" class="bg-blue-600 text-white shadow hover:bg-blue-700 active:scale-95 transition">Topo</button>
+    <button id="fab-refresh" class="bg-green-600 text-white shadow hover:bg-green-700 active:scale-95 transition">Atualizar</button>
+  </div>
+
+  <script type="module">
+  import { db, paths } from './app-config.js';
+  import { collection, onSnapshot, query, orderBy, doc, setDoc, deleteDoc, serverTimestamp } from './firebase-services.js';
+  import { injectHeader } from './app-header.js';
+  import { getCurrentUser } from './auth-service.js';
+  import { showAlertModal } from './modal-handler.js';
+
+  const ITEMS_PER_PAGE=4;
+  const COLOR_SAFE=['green','blue','red','yellow','purple','gray'];
+  const state={
+    allCampaigns:[],allDonations:[],allLikes:[],currentUser:null,settings:{},
+    sections:{
+      ativas:{filter:'all',visibleCount:ITEMS_PER_PAGE,key:'active'},
+      proximas:{filter:'all',visibleCount:ITEMS_PER_PAGE,key:'upcoming'},
+      recentes:{filter:'all',visibleCount:ITEMS_PER_PAGE,key:'recent'}
     }
-  }else{
-    donorsHtml = isClosed
-      ? '<p class="text-[11px] text-gray-500">Nenhuma entrega concluída.</p>'
-      : '<p class="text-[11px] text-emerald-600 font-medium">Seja o primeiro a apoiar!</p>';
+  };
+  const lists={
+    ativas:document.getElementById('active-campaigns-list'),
+    proximas:document.getElementById('upcoming-campaigns-list'),
+    recentes:document.getElementById('recent-campaigns-list')
+  };
+  const empties={
+    ativas:document.getElementById('active-campaigns-empty'),
+    proximas:document.getElementById('upcoming-campaigns-empty'),
+    recentes:document.getElementById('recent-campaigns-empty')
+  };
+  const pagers={
+    ativas:document.getElementById('pagination-ativas'),
+    proximas:document.getElementById('pagination-proximas'),
+    recentes:document.getElementById('pagination-recentes')
+  };
+  const loadingContainer=document.getElementById('loading-container');
+  const offlineBanner=document.getElementById('offline-banner');
+
+  let slideshowIntervals={};
+
+  function showToast(msg,type='success',ttl=3000){
+    const c=document.getElementById('toast-container');const el=document.createElement('div');
+    el.className=`toast ${type}`;el.innerHTML=`<span>${msg}</span>`;
+    c.appendChild(el);setTimeout(()=>{el.style.opacity='0';setTimeout(()=>el.remove(),400);},ttl);
+  }
+  function announce(msg){
+    const live=document.getElementById('global-aria-live'); if(!live) return;
+    live.textContent=''; setTimeout(()=>live.textContent=msg,40);
+  }
+  function ensureColor(c){return COLOR_SAFE.includes(c)?c:'gray';}
+  function colorMap(c){
+    switch(c){
+      case 'green':return{badgeBg:'bg-green-100',badgeText:'text-green-800',border:'border-green-500'};
+      case 'blue':return{badgeBg:'bg-blue-100',badgeText:'text-blue-800',border:'border-blue-500'};
+      case 'red':return{badgeBg:'bg-red-100',badgeText:'text-red-800',border:'border-red-500'};
+      case 'yellow':return{badgeBg:'bg-yellow-100',badgeText:'text-yellow-800',border:'border-yellow-500'};
+      case 'purple':return{badgeBg:'bg-purple-100',badgeText:'text-purple-800',border:'border-purple-500'};
+      default:return{badgeBg:'bg-gray-100',badgeText:'text-gray-800',border:'border-gray-400'};
+    }
+  }
+  function updateOfflineStatus(){
+    if(!navigator.onLine){offlineBanner.classList.add('active');announce('Sem conexão. Dados podem estar desatualizados.');}
+    else offlineBanner.classList.remove('active');
+  }
+  window.addEventListener('online',updateOfflineStatus);
+  window.addEventListener('offline',updateOfflineStatus);
+
+  async function initializeApp(){
+    await injectHeader();
+    try {
+      state.currentUser=await getCurrentUser();
+    } catch(e){
+      console.warn('Falha ao obter usuário atual', e);
+      state.currentUser=null;
+    }
+    setupDataListeners();
+    setupEvents();
+    enableFabIfMobile();
+    updateOfflineStatus();
   }
 
-  const verified=campaign.entityVerified?`<svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>`:'';
+  function setupDataListeners(){
+    onSnapshot(doc(db, paths.configDoc('campaignTypes')),(s)=>{
+      state.settings=s.exists()?s.data():{};
+      renderAll();
+    });
+    onSnapshot(query(collection(db, paths.campaigns),orderBy('createdAt','desc')),(s)=>{
+      state.allCampaigns=s.docs.map(d=>({id:d.id,...d.data()}));
+      renderAll();
+    });
+    onSnapshot(query(collection(db, paths.donations)),(s)=>{
+      state.allDonations=s.docs.map(d=>d.data());
+      renderAll();
+    });
+    onSnapshot(query(collection(db, paths.likes)),(s)=>{
+      state.allLikes=s.docs.map(d=>({id:d.id,...d.data()}));
+      renderAll();
+    });
+  }
 
-  return `
-    <article tabindex="0" data-id="${campaign.id}" class="${cardClasses}" role="button" aria-label="Campanha ${campaign.title}">
-      <div class="media-wrapper">
-        <div class="media-container">
-          <div class="media-skeleton"></div>
-          ${mediaHtml}
-        </div>
-        ${isClosed?`<div class="absolute inset-0 bg-black/55 flex items-center justify-center z-10">
-            <span class="text-white text-[11px] font-bold tracking-widest uppercase">Encerrada</span>
-          </div>`:''}
-      </div>
-      <div class="card-body">
-        <div class="top-row">
-          <p class="uppercase tracking-wide text-[10px] text-gray-600 font-semibold flex items-center gap-1">
-            <span class="truncate max-w-[8.5rem]" title="${campaign.entityName}">${campaign.entityName}</span>${verified}
-          </p>
-          <span class="text-[10px] font-semibold px-2 py-1 rounded-full ${cm.badgeBg} ${cm.badgeText}">${settings.label}</span>
-        </div>
-        <h3 class="card-title" title="${campaign.title}">${campaign.title}</h3>
-        <div class="flex justify-between items-center mt-1 min-h-[20px]">
-          <div>${statusTag}</div>
-          <div>${countdownHtml}</div>
-        </div>
-        ${goalHtml}
-        <div class="pt-3 mt-auto border-t border-dashed border-gray-200">
-          <h4 class="text-[10px] font-semibold text-gray-600 mb-2 tracking-wide uppercase">Apoiadores</h4>
-          <div class="donor-strip">${donorsHtml}</div>
-        </div>
-      </div>
-    </article>`;
-}
+  function renderAll(){
+    if(state.allCampaigns.length || Object.keys(state.settings).length) loadingContainer.style.display='none';
 
-function startSlideshow(id){
-  if(slideshowIntervals[id]) return;
-  const card=document.querySelector(`[data-id="${id}"]`); if(!card) return;
-  const items=card.querySelectorAll('.media-item');
-  if(items.length<=1) return;
-  let idx=0;
-  slideshowIntervals[id]=setInterval(()=>{
-    if(document.hidden) return;
-    items[idx].classList.remove('active');
-    idx=(idx+1)%items.length;
-    items[idx].classList.add('active');
-  },5000);
-}
+    // Limpa slideshows ativos
+    Object.values(slideshowIntervals).forEach(clearInterval);
+    slideshowIntervals={};
 
-function lazyLoadImages(nodeList){
-  if(!('IntersectionObserver' in window)) return;
-  const io=new IntersectionObserver(entries=>{
-    entries.forEach(ent=>{
-      if(ent.isIntersecting){
-        const img=ent.target;
-        if(img.dataset.src){img.src=img.dataset.src;img.removeAttribute('data-src');}
-        io.unobserve(img);
+    const now=new Date();
+    const active=state.allCampaigns.filter(c=>c.status==='active' && c.startsAt?.toDate()<=now && c.expiresAt?.toDate()>now);
+    const upcoming=state.allCampaigns.filter(c=>c.status==='upcoming' && c.startsAt?.toDate()>now);
+    const recent=state.allCampaigns.filter(c=>c.expiresAt?.toDate() && c.expiresAt.toDate()<=now);
+
+    renderSection('ativas',active);
+    renderSection('proximas',upcoming);
+    renderSection('recentes',recent);
+
+    document.getElementById('accordion-proximas').classList.toggle('hidden',!upcoming.length);
+    document.getElementById('accordion-recentes').classList.toggle('hidden',!recent.length);
+
+    const firstHeader=document.querySelector('.accordion-header');
+    if(firstHeader && !firstHeader.classList.contains('active')){
+      firstHeader.classList.add('active');
+    }
+    document.querySelectorAll('.accordion-header.active').forEach(h=>{
+      const panel=h.nextElementSibling;
+      if(panel) panel.style.maxHeight=panel.scrollHeight+'px';
+    });
+
+    // (Re)Inicializa badges de contagem unificada (se módulo expôs a função)
+    if(typeof window.initCountdownBadges === 'function'){
+      window.initCountdownBadges();
+    }
+  }
+
+  function renderSection(key,arr){
+    const sectionState=state.sections[key];
+    const filtered=arr.filter(c=>sectionState.filter==='all' || c.type===sectionState.filter);
+    document.getElementById(`count-${key}`).textContent=`(${filtered.length})`;
+    const visible=filtered.slice(0,sectionState.visibleCount);
+    renderList(key,visible,filtered.length);
+    renderFilter(key,arr);
+  }
+
+  function renderList(key,campaigns,totalFiltered){
+    const list=lists[key]; const empty=empties[key]; const pager=pagers[key];
+    list.innerHTML='';
+    if(!campaigns.length){empty.classList.remove('hidden');pager.innerHTML='';return;}
+    empty.classList.add('hidden');
+
+    const frag=document.createDocumentFragment();
+    campaigns.forEach(c=>{
+      const donations=state.allDonations.filter(d=>d.campaignId===c.id);
+      const likes=state.allLikes.filter(l=>l.campaignId===c.id);
+      const cardHTML=buildCard(c,donations,likes,state.sections[key].key);
+      const wrap=document.createElement('div');wrap.innerHTML=cardHTML;frag.appendChild(wrap.firstElementChild);
+    });
+    list.appendChild(frag);
+
+    campaigns.forEach(c=>{
+      const isEncerrada=c.expiresAt?.toDate() && c.expiresAt.toDate()<=new Date();
+      if(key==='ativas' && !isEncerrada){
+        startSlideshow(c.id);
       }
     });
-  },{rootMargin:'150px'});
-  nodeList.forEach(img=> io.observe(img));
-}
+    lazyLoadImages(list.querySelectorAll('img.media-item'));
 
-/* ---------- Events ---------- */
-function setupEvents(){
-  document.addEventListener('click',e=>{
-    const like=e.target.closest('.like-button');
-    const card=e.target.closest('.campaign-card');
-    const filterTrigger=e.target.closest('[data-filter-trigger]');
-    const filterItem=e.target.closest('.filter-dropdown-item');
-    const accordionBtn=e.target.closest('.accordion-header');
+    pager.innerHTML='';
+    if(totalFiltered>campaigns.length){
+      const btn=document.createElement('button');
+      btn.className='bg-green-600 text-white font-semibold py-2 px-6 rounded-full shadow hover:bg-green-700 transition text-sm';
+      btn.textContent='Carregar Mais';
+      btn.addEventListener('click',()=>loadMore(key));
+      pager.appendChild(btn);
+    }
+  }
 
-    if(filterTrigger){toggleFilterMenu(filterTrigger.dataset.filterTrigger);return;}
-    if(filterItem){
-      const menu=filterItem.closest('.filter-dropdown-menu');
-      const key=menu.id.replace('filter-menu-','');
-      setFilter(key,filterItem.dataset.filter);
+  function renderFilter(sectionKey,campaigns){
+    const container=document.getElementById(`filter-dropdown-${sectionKey}`);
+    const sectionState=state.sections[sectionKey];
+    const types=[...new Set(campaigns.map(c=>c.type))].filter(Boolean);
+    if(types.length<=1){container.innerHTML='';return;}
+    const currentLabel= sectionState.filter==='all'
+      ?'Filtrar'
+      :(state.settings[sectionState.filter]?.label || sectionState.filter);
+    let items=`<button class="filter-dropdown-item ${sectionState.filter==='all'?'active':''}" data-filter="all">Todos os Tipos</button>`;
+    types.forEach(t=>{
+      const label=state.settings[t]?.label || t;
+      items+=`<button class="filter-dropdown-item ${sectionState.filter===t?'active':''}" data-filter="${t}">${label}</button>`;
+    });
+    container.innerHTML=`
+      <button class="text-[11px] font-semibold text-emerald-700 hover:text-emerald-600 flex items-center gap-1 px-2 py-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+        data-filter-trigger="${sectionKey}">
+        ${currentLabel}
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+      <div id="filter-menu-${sectionKey}" class="filter-dropdown-menu" role="menu" aria-label="Filtro de ${sectionKey}">
+        ${items}
+      </div>
+    `;
+  }
+
+  function buildCard(campaign,donations,likes,listKey){
+    const settings=state.settings[campaign.type] || state.settings['default'] || {label:'Campanha',color:'gray'};
+    const color=ensureColor(settings.color || 'gray');
+    const cm=colorMap(color);
+    const isActive=listKey==='active';
+    const isClosed=listKey==='recent' || (campaign.expiresAt?.toDate() && campaign.expiresAt.toDate()<=new Date());
+    const baseBorder=`border ${cm.border}`;
+    const cardClasses=`campaign-card ${isClosed?'campaign-encerrada':''} ${baseBorder}`;
+
+    let mediaHtml='';
+    if(!isClosed){
+      const items=[];
+      if(campaign.videoUrl) items.push({type:'video',src:campaign.videoUrl});
+      (campaign.images||[]).forEach(src=>items.push({type:'image',src}));
+      if(!items.length) items.push({type:'image',src:'https://placehold.co/600x400/e2e8f0/cbd5e0?text=Sem+Imagem'});
+      items.forEach((m,i)=>{
+        mediaHtml += `<img class="media-item ${i===0?'active':''}" data-src="${m.src}" alt="Imagem da campanha ${campaign.title}" loading="lazy">`;
+      });
+    } else {
+      const first=(campaign.images && campaign.images[0]) || 'https://placehold.co/600x400/e2e8f0/cbd5e0?text=Sem+Imagem';
+      mediaHtml = `<img class="media-item active" data-src="${first}" alt="Imagem da campanha ${campaign.title}" loading="lazy">`;
+    }
+
+    let statusTag='';
+    if(campaign.status==='upcoming') statusTag='<span class="status-chip bg-blue-600 text-white">PRÓXIMA</span>';
+    else if(isActive && campaign.priority==='high') statusTag='<span class="status-chip bg-red-600 text-white urgent-badge">URGENTE</span>';
+
+    let countdownHtml='';
+    if(isActive) {
+      const deadline = campaign.expiresAt?.toDate()?.toISOString() || '';
+      countdownHtml=`<span class="countdown-badge" data-deadline="${deadline}" data-campaign-id="${campaign.id}" data-precision="minutes">...</span>`;
+    }
+
+    let goalHtml='';
+    if(campaign.goal){
+      const completed=donations.reduce((acc,d)=> acc + (d.items||[]).filter(i=>i.status==='completed').length,0);
+      const goal=parseInt(campaign.goal,10);
+      const pct= goal>0 ? Math.min(100,(completed/goal)*100) : 0;
+      goalHtml=`
+        <div class="progress-group space-y-1">
+          <div class="flex justify-between text-[11px] text-gray-500 font-medium">
+            <span>Meta</span><span>${completed}/${goal}</span>
+          </div>
+          <div class="progress-bar"><span style="width:${pct}%"></span></div>
+        </div>`;
+    }
+
+    const donorsWithCompleted=Object.values(donations.reduce((acc,d)=>{
+      if(d.campaignId===campaign.id && Array.isArray(d.items) && d.items.some(i=>i.status==='completed')) acc[d.donorId]=d;
+      return acc;
+    },{}));
+
+    let donorsHtml='';
+    if(donorsWithCompleted.length){
+      donorsHtml=donorsWithCompleted.slice(0,5).map(d=>{
+        const dLikes=likes.filter(l=>l.donorId===d.donorId && l.campaignId===campaign.id);
+        const liked=state.currentUser?.auth && dLikes.some(l=>l.likerId===state.currentUser.auth.uid);
+        const anonymous=d.privacy==='anonymous';
+        const photo= anonymous ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A'
+                               : d.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
+        const name = anonymous ? 'Anônimo' : (d.donorName||'Doador');
+        return `
+          <div class="text-center flex flex-col items-center">
+            <div class="donor-avatar-container">
+              <img src="${photo}" alt="Foto de ${name}" title="${name}" class="donor-avatar inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover">
+              <div class="star-badge" title="Entrega concluída">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              </div>
+            </div>
+            <button class="like-button mt-1 ${liked?'liked':''}" data-campaign-id="${campaign.id}" data-donor-id="${d.donorId}" aria-label="Curtir doador">
+              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/></svg>
+              <span class="like-count">${dLikes.length}</span>
+            </button>
+          </div>`;
+      }).join('');
+      if(donorsWithCompleted.length>5){
+        donorsHtml+=`<div class="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 text-gray-600 text-[11px] font-bold ring-2 ring-white">+${donorsWithCompleted.length-5}</div>`;
+      }
+    }else{
+      donorsHtml = isClosed
+        ? '<p class="text-[11px] text-gray-500">Nenhuma entrega concluída.</p>'
+        : '<p class="text-[11px] text-emerald-600 font-medium">Seja o primeiro a apoiar!</p>';
+    }
+
+    const verified=campaign.entityVerified?`<svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>`:'';
+
+    return `
+      <article tabindex="0" data-id="${campaign.id}" class="${cardClasses}" role="button" aria-label="Campanha ${campaign.title}">
+        <div class="media-wrapper">
+          <div class="media-container">
+            <div class="media-skeleton"></div>
+            ${mediaHtml}
+          </div>
+          ${isClosed?`<div class="absolute inset-0 bg-black/55 flex items-center justify-center z-10">
+              <span class="text-white text-[11px] font-bold tracking-widest uppercase">Encerrada</span>
+            </div>`:''}
+        </div>
+        <div class="card-body">
+          <div class="top-row">
+            <p class="uppercase tracking-wide text-[10px] text-gray-600 font-semibold flex items-center gap-1">
+              <span class="truncate max-w-[8.5rem]" title="${campaign.entityName}">${campaign.entityName}</span>${verified}
+            </p>
+            <span class="text-[10px] font-semibold px-2 py-1 rounded-full ${cm.badgeBg} ${cm.badgeText}">${settings.label}</span>
+          </div>
+          <h3 class="card-title" title="${campaign.title}">${campaign.title}</h3>
+          <div class="flex justify-between items-center mt-1 min-h-[20px]">
+            <div>${statusTag}</div>
+            <div>${countdownHtml}</div>
+          </div>
+          ${goalHtml}
+          <div class="pt-3 mt-auto border-t border-dashed border-gray-200">
+            <h4 class="text-[10px] font-semibold text-gray-600 mb-2 tracking-wide uppercase">Apoiadores</h4>
+            <div class="donor-strip">${donorsHtml}</div>
+          </div>
+        </div>
+      </article>`;
+  }
+
+  function startSlideshow(id){
+    if(slideshowIntervals[id]) return;
+    const card=document.querySelector(`[data-id="${id}"]`); if(!card) return;
+    const items=card.querySelectorAll('.media-item');
+    if(items.length<=1) return;
+    let idx=0;
+    slideshowIntervals[id]=setInterval(()=>{
+      if(document.hidden) return;
+      items[idx].classList.remove('active');
+      idx=(idx+1)%items.length;
+      items[idx].classList.add('active');
+    },5000);
+  }
+
+  function lazyLoadImages(nodeList){
+    if(!('IntersectionObserver' in window)) return;
+    const io=new IntersectionObserver(entries=>{
+      entries.forEach(ent=>{
+        if(ent.isIntersecting){
+          const img=ent.target;
+          if(img.dataset.src){img.src=img.dataset.src;img.removeAttribute('data-src');}
+          io.unobserve(img);
+        }
+      });
+    },{rootMargin:'150px'});
+    nodeList.forEach(img=> io.observe(img));
+  }
+
+  /* ---------- Events ---------- */
+  function setupEvents(){
+    document.addEventListener('click',e=>{
+      const like=e.target.closest('.like-button');
+      const card=e.target.closest('.campaign-card');
+      const filterTrigger=e.target.closest('[data-filter-trigger]');
+      const filterItem=e.target.closest('.filter-dropdown-item');
+      const accordionBtn=e.target.closest('.accordion-header');
+
+      if(filterTrigger){toggleFilterMenu(filterTrigger.dataset.filterTrigger);return;}
+      if(filterItem){
+        const menu=filterItem.closest('.filter-dropdown-menu');
+        const key=menu.id.replace('filter-menu-','');
+        setFilter(key,filterItem.dataset.filter);
+        return;
+      }
+      if(accordionBtn){toggleAccordion(accordionBtn);return;}
+      if(like){e.stopPropagation();handleLikeClick(like);return;}
+      if(card){handleCardClick(card);return;}
+      if(!e.target.closest('.filter-dropdown-container')){
+        document.querySelectorAll('.filter-dropdown-menu').forEach(m=>m.style.display='none');
+      }
+    });
+
+    document.getElementById('fab-scroll-top')?.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+    document.getElementById('fab-refresh')?.addEventListener('click',()=>{showToast('Atualizando...','success',1200);renderAll();});
+    window.addEventListener('resize',enableFabIfMobile);
+  }
+
+  function enableFabIfMobile(){
+    const fab=document.getElementById('fab-bar-home');
+    if(window.innerWidth<=640){fab.style.display='flex';document.body.classList.add('has-fab-bottom');}
+    else {fab.style.display='none';document.body.classList.remove('has-fab-bottom');}
+  }
+
+  /* ---------- Actions ---------- */
+  async function handleLikeClick(btn){
+    if(!state.currentUser?.auth){showAlertModal('Ação necessária','Faça login para curtir.');return;}
+    if(!state.currentUser.isVerified){showAlertModal('Verifique seu e-mail','Verifique seu e-mail para curtir.');return;}
+    const {campaignId,donorId}=btn.dataset;
+    const likerId=state.currentUser.auth.uid;
+    const ref=doc(db, paths.likeDoc(`${campaignId}_${donorId}_${likerId}`));
+    try{
+      if(btn.classList.contains('liked')) await deleteDoc(ref);
+      else await setDoc(ref,{
+        campaignId,donorId,likerId,
+        likerName:state.currentUser.profile.displayName || 'Usuário',
+        likerPhotoURL:state.currentUser.profile.photoURL || null,
+        createdAt:serverTimestamp()
+      });
+    }catch(err){
+      console.error(err);
+      showAlertModal('Erro','Não foi possível registrar sua curtida.');
+    }
+  }
+
+  function handleCardClick(card){
+    if(!state.currentUser?.auth){
+      showAlertModal('Acesso Restrito','Faça login para ver os detalhes.');
       return;
     }
-    if(accordionBtn){toggleAccordion(accordionBtn);return;}
-    if(like){e.stopPropagation();handleLikeClick(like);return;}
-    if(card){handleCardClick(card);return;}
-    if(!e.target.closest('.filter-dropdown-container')){
-      document.querySelectorAll('.filter-dropdown-menu').forEach(m=>m.style.display='none');
+    const id=card.dataset.id;
+    if(id) window.location.href=`detalhes.html?id=${id}`;
+  }
+
+  /* ---------- Accordion & Filter ---------- */
+  function toggleAccordion(header){
+    header.classList.toggle('active');
+    const panel=header.nextElementSibling;
+    if(!panel) return;
+    if(panel.style.maxHeight){
+      panel.style.maxHeight=null;
+    }else{
+      document.querySelectorAll('.accordion-header').forEach(h=>{
+        if(h!==header){h.classList.remove('active');const p=h.nextElementSibling;p&&(p.style.maxHeight=null);}
+      });
+      requestAnimationFrame(()=>panel.style.maxHeight=panel.scrollHeight+'px');
     }
-  });
-
-  document.getElementById('fab-scroll-top')?.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
-  document.getElementById('fab-refresh')?.addEventListener('click',()=>{showToast('Atualizando...','success',1200);renderAll();});
-  window.addEventListener('resize',enableFabIfMobile);
-}
-
-function enableFabIfMobile(){
-  const fab=document.getElementById('fab-bar-home');
-  if(window.innerWidth<=640){fab.style.display='flex';document.body.classList.add('has-fab-bottom');}
-  else {fab.style.display='none';document.body.classList.remove('has-fab-bottom');}
-}
-
-/* ---------- Actions ---------- */
-async function handleLikeClick(btn){
-  if(!state.currentUser?.auth){showAlertModal('Ação necessária','Faça login para curtir.');return;}
-  if(!state.currentUser.isVerified){showAlertModal('Verifique seu e-mail','Verifique seu e-mail para curtir.');return;}
-  const {campaignId,donorId}=btn.dataset;
-  const likerId=state.currentUser.auth.uid;
-  const ref=doc(db, paths.likeDoc(`${campaignId}_${donorId}_${likerId}`));
-  try{
-    if(btn.classList.contains('liked')) await deleteDoc(ref);
-    else await setDoc(ref,{
-      campaignId,donorId,likerId,
-      likerName:state.currentUser.profile.displayName || 'Usuário',
-      likerPhotoURL:state.currentUser.profile.photoURL || null,
-      createdAt:serverTimestamp()
-    });
-  }catch(err){
-    console.error(err);
-    showAlertModal('Erro','Não foi possível registrar sua curtida.');
   }
-}
-
-function handleCardClick(card){
-  if(!state.currentUser?.auth){
-    showAlertModal('Acesso Restrito','Faça login para ver os detalhes.');
-    return;
+  function toggleFilterMenu(key){
+    const menu=document.getElementById(`filter-menu-${key}`); if(!menu) return;
+    const visible=menu.style.display==='block';
+    document.querySelectorAll('.filter-dropdown-menu').forEach(m=>m.style.display='none');
+    menu.style.display=visible?'none':'block';
+    if(!visible) setTimeout(()=>menu.querySelector('.filter-dropdown-item')?.focus(),40);
   }
-  const id=card.dataset.id;
-  if(id) window.location.href=`detalhes.html?id=${id}`;
-}
-
-/* ---------- Accordion & Filter (exported) ---------- */
-function toggleAccordion(header){
-  header.classList.toggle('active');
-  const panel=header.nextElementSibling;
-  if(!panel) return;
-  if(panel.style.maxHeight){
-    panel.style.maxHeight=null;
-  }else{
-    document.querySelectorAll('.accordion-header').forEach(h=>{
-      if(h!==header){h.classList.remove('active');const p=h.nextElementSibling;p&&(p.style.maxHeight=null);}
-    });
-    requestAnimationFrame(()=>panel.style.maxHeight=panel.scrollHeight+'px');
+  function setFilter(key,val){
+    state.sections[key].filter=val;
+    state.sections[key].visibleCount=ITEMS_PER_PAGE;
+    renderAll();
+    const menu=document.getElementById(`filter-menu-${key}`); if(menu) menu.style.display='none';
+    showToast('Filtro aplicado','success',1400);
   }
-}
-function toggleFilterMenu(key){
-  const menu=document.getElementById(`filter-menu-${key}`); if(!menu) return;
-  const visible=menu.style.display==='block';
-  document.querySelectorAll('.filter-dropdown-menu').forEach(m=>m.style.display='none');
-  menu.style.display=visible?'none':'block';
-  if(!visible) setTimeout(()=>menu.querySelector('.filter-dropdown-item')?.focus(),40);
-}
-function setFilter(key,val){
-  state.sections[key].filter=val;
-  state.sections[key].visibleCount=ITEMS_PER_PAGE;
-  renderAll();
-  const menu=document.getElementById(`filter-menu-${key}`); if(menu) menu.style.display='none';
-  showToast('Filtro aplicado','success',1400);
-}
-function loadMore(key){
-  state.sections[key].visibleCount+=ITEMS_PER_PAGE;
-  renderAll();
-}
+  function loadMore(key){
+    state.sections[key].visibleCount+=ITEMS_PER_PAGE;
+    renderAll();
+  }
 
-/* ---------- Export to window for legacy onclick (if any remains) ---------- */
-window.loadMore=loadMore;
-window.setFilter=setFilter;
-window.toggleAccordion=toggleAccordion;
-window.toggleFilterMenu=toggleFilterMenu;
+  /* ---------- Export para legado (se houver) ---------- */
+  window.loadMore=loadMore;
+  window.setFilter=setFilter;
+  window.toggleAccordion=toggleAccordion;
+  window.toggleFilterMenu=toggleFilterMenu;
 
-/* ---------- Start ---------- */
-initializeApp();
+  /* ---------- Start ---------- */
+  initializeApp();
 
-/* ---------- Service Worker ---------- */
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('service-worker.js').catch(console.error);
-}
-</script>
+  /* ---------- Service Worker ---------- */
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('service-worker.js').catch(console.error);
+  }
+  </script>
 </body>
 </html>
-
