@@ -19,6 +19,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="assets/styles/design-tokens.css" rel="stylesheet">
 <link href="assets/styles/ui-core.css" rel="stylesheet">
+<script src="assets/js/ui-countdown.js"></script>
 <style>
 /* ---------- GLOBAL / BASE ---------- */
 html,body{font-family:'Inter',sans-serif;}
@@ -463,7 +464,7 @@ const pagers={
 const loadingContainer=document.getElementById('loading-container');
 const offlineBanner=document.getElementById('offline-banner');
 
-let countdownIntervals={},slideshowIntervals={};
+let slideshowIntervals={};
 
 function showToast(msg,type='success',ttl=3000){
   const c=document.getElementById('toast-container');const el=document.createElement('div');
@@ -525,7 +526,7 @@ function renderAll(){
 
   Object.values(countdownIntervals).forEach(clearInterval);
   Object.values(slideshowIntervals).forEach(clearInterval);
-  countdownIntervals={};slideshowIntervals={};
+  slideshowIntervals={};
 
   const now=new Date();
   const active=state.allCampaigns.filter(c=>c.status==='active' && c.startsAt?.toDate()<=now && c.expiresAt?.toDate()>now);
@@ -577,7 +578,7 @@ function renderList(key,campaigns,totalFiltered){
   campaigns.forEach(c=>{
     const isEncerrada=c.expiresAt?.toDate() && c.expiresAt.toDate()<=new Date();
     if(key==='ativas' && !isEncerrada){
-      startCountdown(c.id,c.expiresAt?.toDate());
+      // Countdown badges are now auto-initialized by ui-countdown.js
       startSlideshow(c.id);
     }
   });
@@ -651,7 +652,10 @@ function buildCard(campaign,donations,likes,listKey){
 
   // countdown
   let countdownHtml='';
-  if(isActive) countdownHtml=`<span id="countdown-${campaign.id}" class="bg-black/55 text-white text-[10px] font-semibold px-2 py-1 rounded-full">...</span>`;
+  if(isActive) {
+    const deadline = campaign.expiresAt?.toDate()?.toISOString() || '';
+    countdownHtml=`<span class="countdown-badge" data-deadline="${deadline}" data-campaign-id="${campaign.id}" data-precision="minutes">...</span>`;
+  }
 
   // goal
   let goalHtml='';
@@ -738,114 +742,6 @@ function buildCard(campaign,donations,likes,listKey){
         </div>
       </div>
     </article>`;
-}
-
-/**
- * startCountdown
- * - Aplica cores diferentes conforme a urgência:
- *    > 48h  : verde forte
- *    24–48h : verde/amarelo
- *    6–24h  : âmbar
- *    1–6h   : laranja/vermelho claro
- *    < 1h   : vermelho intenso + pulsar
- * - Ao encerrar: texto "Encerrada" + fundo vermelho.
- * - Atualiza a cada 60s (ou antes se você quiser).
- *
- * Requisitos:
- *  - Um elemento com id="countdown-{id}" já no DOM
- *  - Variável global countdownIntervals = {} (objeto) para controlar múltiplos timers
- */
-function startCountdown(id, expiresAt) {
-  if (!expiresAt || countdownIntervals[id]) return;
-
-  const el = document.getElementById(`countdown-${id}`);
-  if (!el) return;
-
-  // Remova possíveis estilos anteriores
-  el.classList.remove(
-    'text-white','text-emerald-700','text-green-700','text-yellow-700',
-    'text-amber-600','text-orange-600','text-red-600','text-red-700',
-    'animate-pulse','bg-red-600'
-  );
-  el.style.removeProperty('color');
-  el.style.removeProperty('background-color');
-
-  // Padroniza base visual (ajuste conforme seu design)
-  el.classList.add(
-    'font-semibold',
-    'tracking-wide',
-    'rounded-full'
-  );
-
-  // Função que aplica cores conforme horas restantes usando design tokens
-  function applyColor(distMs) {
-    const hours = distMs / 3600000;
-
-    // Remove classes de animação antigas
-    el.classList.remove('animate-pulse');
-    
-    // Reset inline styles
-    el.style.removeProperty('color');
-
-    // Lógica de faixas usando tokens de urgência:
-    if (hours > 48) {
-      // Muito tempo - verde
-      el.style.color = 'var(--color-urgent-low)';
-    } else if (hours > 24) {
-      // Confortável - verde
-      el.style.color = 'var(--color-urgent-low)';
-    } else if (hours > 6) {
-      // Entrando em atenção - amarelo/médio
-      el.style.color = 'var(--color-urgent-medium)';
-    } else if (hours > 1) {
-      // Crítico - vermelho
-      el.style.color = 'var(--color-urgent-high)';
-    } else {
-      // Menos de 1h: crítico com pulse
-      el.style.color = 'var(--color-urgent-high)';
-      el.classList.add('animate-pulse');
-    }
-  }
-
-  function formatCountdown(dist) {
-    const totalMinutes = Math.floor(dist / 60000);
-    if (totalMinutes <= 0) return 'Encerrada';
-
-    const days = Math.floor(totalMinutes / (60 * 24));
-    const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
-    const mins = totalMinutes % 60;
-
-    if (days > 0) {
-      return `Encerra em: ${days}d ${hours}h`;
-    }
-    if (hours > 0) {
-      return `Encerra em: ${hours}h ${mins}m`;
-    }
-    return `Encerra em: ${mins}m`;
-  }
-
-  function tick() {
-    const now = Date.now();
-    const dist = expiresAt.getTime() - now;
-
-    if (dist <= 0) {
-      clearInterval(countdownIntervals[id]);
-      el.textContent = 'Encerrada';
-      el.classList.remove('animate-pulse');
-      el.style.backgroundColor = 'var(--color-urgent-high)';
-      el.style.color = 'var(--color-text-inverse)';
-      return;
-    }
-
-    applyColor(dist);
-    el.textContent = formatCountdown(dist);
-
-    // Acessibilidade (aria-label para leitores de tela)
-    el.setAttribute('aria-label', el.textContent.replace('Encerra em: ','Encerra em '));
-  }
-
-  tick(); // primeira atualização imediata
-  countdownIntervals[id] = setInterval(tick, 60000); // atualiza a cada 60s
 }
 
 function startSlideshow(id){
