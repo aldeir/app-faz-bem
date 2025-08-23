@@ -9,15 +9,12 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="logo.png">
   <link rel="icon" href="logo.png" type="image/png">
-
   <link rel="preconnect" href="https://firestore.googleapis.com">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
   <link href="/app-faz-bem/style.css" rel="stylesheet">
   <link href="mobile-enhancements.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -26,22 +23,28 @@
   <script src="assets/js/ui-countdown.js" defer></script>
 
   <style>
+  :root{
+    --hero-overlay-light-from: rgba(255,255,255,.70);
+    --hero-overlay-light-to:   rgba(255,255,255,.80);
+    --hero-overlay-dark-from:  rgba(15,23,42,.78);
+    --hero-overlay-dark-to:    rgba(15,23,42,.85);
+  }
   html,body{font-family:'Inter',sans-serif;}
   body{background:#f8fafc;color:#1e293b;min-height:100vh;position:relative;overflow-x:hidden;}
   .hero-bg-layer{
     position:fixed;inset:0;z-index:-1;
     background:
-      linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,.92)),
+      linear-gradient(var(--hero-overlay-light-from),var(--hero-overlay-light-to)),
       url('assets/images/bg-faz-bem.png') center 40%/cover no-repeat,
       linear-gradient(135deg,#f1f5f9,#e2e8f0);
-    opacity:.55;
-    filter:brightness(1.05) saturate(1.05);
+    opacity:.75;
+    filter:brightness(1.02) saturate(1.08);
     pointer-events:none;
   }
   @supports (background-blend-mode:overlay){
     .hero-bg-layer{
       background:
-        linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,.92)),
+        linear-gradient(var(--hero-overlay-light-from),var(--hero-overlay-light-to)),
         url('bg-faz-bem.png') center 40%/cover no-repeat,
         linear-gradient(135deg,#f1f5f9,#e2e8f0);
     }
@@ -50,10 +53,11 @@
     body{background:#0f172a;color:#e2e8f0;}
     .hero-bg-layer{
       background:
-        linear-gradient(rgba(15,23,42,.90),rgba(15,23,42,.92)),
+        linear-gradient(var(--hero-overlay-dark-from),var(--hero-overlay-dark-to)),
         url('assets/images/bg-faz-bem.png') center 35%/cover no-repeat,
         linear-gradient(135deg,#1e293b,#0f172a);
-      opacity:.65;filter:brightness(1.25);
+      opacity:.80;
+      filter:brightness(1.18) saturate(1.04);
     }
   }
 
@@ -64,24 +68,25 @@
   :focus-visible{outline:2px solid #2563eb;outline-offset:3px;border-radius:6px;}
 
   .brand-heading{font-size:clamp(2.75rem,6vw,4.25rem);font-weight:800;line-height:1;position:relative;display:inline-block;letter-spacing:-1px;
-    background:linear-gradient(115deg,#16a34a 0%,#22c55e 18%,#34d399 32%,#16a34a 55%,#15803d 75%,#22c55e 100%);background-size:180% 180%;
-    -webkit-background-clip:text;color:transparent;animation:brandShift 8s ease-in-out infinite;
+    background:linear-gradient(115deg,#16a34a 0%,#22c55e 18%,#34d399 32%,#16a34a 55%,#15803d 75%,#22c55e 100%);
+    background-size:180% 180%;-webkit-background-clip:text;color:transparent;
+    animation:brandShift 8s ease-in-out infinite;
     text-shadow:0 2px 4px rgba(0,0,0,.08),0 6px 25px -8px rgba(16,185,129,.55);}
   .brand-heading::after{content:"";position:absolute;inset:-6px;background:radial-gradient(circle at 35% 25%,rgba(34,197,94,.35),transparent 70%);filter:blur(28px);z-index:-1;opacity:.6;}
   @keyframes brandShift{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
   .tagline{font-size:clamp(.95rem,1.9vw,1.22rem);font-weight:500;color:#475569;}
   @media (prefers-color-scheme: dark){.tagline{color:#94a3b8;}}
 
-  .accordion-item{backdrop-filter:blur(6px);background:rgba(255,255,255,.86);border:1px solid #e2e8f0;border-radius:1.15rem;box-shadow:0 4px 18px -6px rgba(0,0,0,.08);transition:box-shadow .3s,transform .3s;}
+  .accordion-item{backdrop-filter:blur(6px);background:rgba(255,255,255,.9);border:1px solid #e2e8f0;border-radius:1.15rem;box-shadow:0 4px 18px -6px rgba(0,0,0,.08);transition:box-shadow .3s,transform .3s;}
   .accordion-item:hover{box-shadow:0 8px 38px -10px rgba(0,0,0,.15);}
-  @media (prefers-color-scheme: dark){.accordion-item{background:rgba(30,41,59,.78);border-color:#334155;box-shadow:0 4px 22px -8px rgba(0,0,0,.6);}}
+  @media (prefers-color-scheme: dark){.accordion-item{background:rgba(30,41,59,.82);border-color:#334155;box-shadow:0 4px 22px -8px rgba(0,0,0,.6);}}
   .accordion-header{width:100%;background:linear-gradient(90deg,rgba(34,197,94,.07),transparent);border:none;padding:1rem 1.35rem;border-radius:1.15rem;
     display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:1.05rem;font-weight:600;color:#134e33;transition:background .25s;}
-  .accordion-header.active{background:linear-gradient(90deg,rgba(34,197,94,.13),transparent);}
-  .accordion-header:hover{background:linear-gradient(90deg,rgba(34,197,94,.18),transparent);}
+  .accordion-header.active{background:linear-gradient(90deg,rgba(34,197,94,.14),transparent);}
+  .accordion-header:hover{background:linear-gradient(90deg,rgba(34,197,94,.19),transparent);}
   @media (prefers-color-scheme: dark){
-    .accordion-header{color:#bbf7d0;background:linear-gradient(90deg,rgba(34,197,94,.15),rgba(30,41,59,.1));}
-    .accordion-header.active{background:linear-gradient(90deg,rgba(34,197,94,.28),rgba(30,41,59,.15));}
+    .accordion-header{color:#bbf7d0;background:linear-gradient(90deg,rgba(34,197,94,.18),rgba(30,41,59,.12));}
+    .accordion-header.active{background:linear-gradient(90deg,rgba(34,197,94,.30),rgba(30,41,59,.18));}
   }
   .accordion-arrow{width:1.35rem;height:1.35rem;transition:transform .35s;}
   .accordion-header.active .accordion-arrow{transform:rotate(180deg);}
@@ -98,7 +103,17 @@
 
   .media-wrapper{position:relative;height:12rem;width:100%;overflow:hidden;background:#0f172a;}
   .media-container{position:absolute;inset:0;}
-  .media-item{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s;filter:brightness(.94);}
+  .media-item{
+    position:absolute;inset:0;width:100%;height:100%;
+    object-fit:cover;
+    opacity:0;
+    transition:opacity .6s;
+    filter:brightness(.95);
+    /* Oculta o texto de fallback (alt) enquanto não carregou */
+    color:transparent;
+    font-size:0;
+    line-height:0;
+  }
   .media-item.active{z-index:1;}
   .media-item.loaded{opacity:1;}
   .media-skeleton{position:absolute;inset:0;background:#e2e8f0;}
@@ -112,7 +127,6 @@
   .progress-group{margin-top:.15rem;}
   .progress-bar{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;}
   .progress-bar>span{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#059669);}
-
   .status-chip{font-size:.56rem;letter-spacing:.5px;padding:4px 8px;font-weight:700;border-radius:999px;text-transform:uppercase;background:#16a34a;color:#fff;box-shadow:0 2px 4px -1px rgba(0,0,0,.15);}
 
   .donor-strip{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.7rem .55rem;}
@@ -514,21 +528,21 @@
     let mediaHtml='';
     if(!isClosed){
       const items=[];
-      if(campaign.videoUrl) items.push({type:'image',src:campaign.videoUrl}); // (mantido como imagem de placeholder se video thumbs não gerado)
+      if(campaign.videoUrl) items.push({type:'image',src:campaign.videoUrl});
       (campaign.images||[]).forEach(src=>items.push({type:'image',src}));
       if(!items.length) items.push({type:'image',src:'https://placehold.co/600x400/e2e8f0/cbd5e0?text=Sem+Imagem'});
       items.forEach((m,i)=>{
         const eager = isFirstActive && i===0;
-        const common = `class="media-item ${i===0?'active':''}" alt="Imagem da campanha ${campaign.title}"`;
+        const base = `class="media-item ${i===0?'active':''}" alt="Imagem da campanha ${campaign.title}" width="600" height="400"`;
         if(eager){
-          mediaHtml += `<img ${common} src="${m.src}" loading="eager" fetchpriority="high" decoding="async" data-lazy="false">`;
+          mediaHtml += `<img ${base} src="${m.src}" loading="eager" fetchpriority="high" decoding="async" data-lazy="false">`;
         }else{
-          mediaHtml += `<img ${common} data-src="${m.src}" loading="lazy" data-lazy="true">`;
+          mediaHtml += `<img ${base} data-src="${m.src}" loading="lazy" data-lazy="true">`;
         }
       });
     } else {
       const first=(campaign.images && campaign.images[0]) || 'https://placehold.co/600x400/e2e8f0/cbd5e0?text=Sem+Imagem';
-      mediaHtml = `<img class="media-item active" data-src="${first}" alt="Imagem da campanha ${campaign.title}" loading="lazy" data-lazy="true">`;
+      mediaHtml = `<img class="media-item active" data-src="${first}" alt="Imagem da campanha ${campaign.title}" width="600" height="400" loading="lazy" data-lazy="true">`;
     }
 
     let statusTag='';
@@ -607,7 +621,7 @@
           <p class="uppercase tracking-wide text-[10px] text-gray-600 font-semibold flex items-center gap-1">
             <span class="truncate max-w-[8.5rem]" title="${campaign.entityName}">${campaign.entityName}</span>${verified}
           </p>
-          <span class="text-[10px] font-semibold px-2 py-1 rounded-full ${cm.badgeBg} ${cm.badgeText}">${settings.label}</span>
+            <span class="text-[10px] font-semibold px-2 py-1 rounded-full ${cm.badgeBg} ${cm.badgeText}">${settings.label}</span>
         </div>
         <h3 class="card-title" title="${campaign.title}">${campaign.title}</h3>
         <div class="flex justify-between items-center mt-1 min-h-[20px]">
@@ -625,7 +639,7 @@
 
   function startSlideshow(id){
     if(slideshowIntervals[id]) return;
-    const card=document.querySelector(`[data-id="${id}"]`); if(!card) return;
+    const card=document.querySelector(`[data-id="\${id}"]`); if(!card) return;
     const items=card.querySelectorAll('.media-item');
     if(items.length<=1) return;
     let idx=0;
@@ -642,7 +656,15 @@
       const skeleton=card.querySelector('.media-skeleton');
       const imgs=[...card.querySelectorAll('.media-item')];
       let loadedCount=0;
+      const total=imgs.length;
+      const timeoutId=setTimeout(()=>{if(skeleton) skeleton.remove();},4000); // fallback
+
       imgs.forEach(img=>{
+        if(img.getAttribute('data-lazy')==='true' && img.dataset.src){
+          // src será definido pelo lazy observer
+        }else if(img.getAttribute('data-lazy')==='false' && !img.src && img.dataset.src){
+          img.src=img.dataset.src;
+        }
         if(img.complete && img.naturalWidth>0){
           markLoaded(img);
         }else{
@@ -650,10 +672,12 @@
           img.addEventListener('error',()=>markLoaded(img),{once:true});
         }
       });
+
       function markLoaded(img){
-        img.classList.add('loaded');
+        if(!img.classList.contains('loaded')) img.classList.add('loaded');
         loadedCount++;
-        if(loadedCount===imgs.length || (imgs.length===1 && loadedCount===1)){
+        if(loadedCount===total){
+          clearTimeout(timeoutId);
           if(skeleton) skeleton.remove();
         }
       }
