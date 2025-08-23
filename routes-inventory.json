@@ -1,0 +1,32 @@
+[
+  {
+    "path": "/",
+    "authRequired": false,
+    "status": "planned"
+  },
+  {
+    "path": "/login",
+    "authRequired": false,
+    "status": "planned"
+  },
+  {
+    "path": "/items",
+    "authRequired": true,
+    "status": "planned"
+  },
+  {
+    "path": "/items/:id",
+    "authRequired": true,
+    "status": "planned"
+  },
+  {
+    "path": "/perfil",
+    "authRequired": true,
+    "status": "planned"
+  },
+  {
+    "path": "/sobre",
+    "authRequired": false,
+    "status": "planned"
+  }
+]
