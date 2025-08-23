@@ -1,22 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-BR" class="h-full">
 <head>
-  <!--
-    Revisão 2025-08-23:
-    - Corrigido ReferenceError: countdownIntervals (removido uso legado)
-    - Adicionada meta mobile-web-app-capable
-    - Ajustado carregamento do script ui-countdown com defer
-    - Adicionado fallback para imagem de fundo ausente
-    - Reinvocação segura de initCountdownBadges após renderização dinâmica
-  -->
   <meta charset="UTF-8">
   <title>App Faz Bem - Campanhas</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#22c55e" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0f2917" media="(prefers-color-scheme: dark)">
-  <!-- Nova meta recomendada -->
   <meta name="mobile-web-app-capable" content="yes">
-  <!-- Mantida para compatibilidade iOS (console avisa depreciação, mas ainda é aceita) -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
@@ -28,40 +18,26 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <!-- Ajuste conforme estrutura real de pastas -->
   <link href="/app-faz-bem/style.css" rel="stylesheet">
   <link href="mobile-enhancements.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="assets/styles/design-tokens.css" rel="stylesheet">
   <link href="assets/styles/ui-core.css" rel="stylesheet">
-
-  <!-- defer evita bloqueio e garante que badges possam inicializar após HTML -->
   <script src="assets/js/ui-countdown.js" defer></script>
 
   <style>
-  /* ---------- GLOBAL / BASE ---------- */
   html,body{font-family:'Inter',sans-serif;}
-  body{
-    background:#f8fafc;
-    color:#1e293b;
-    min-height:100vh;
-    position:relative;
-    overflow-x:hidden;
-  }
+  body{background:#f8fafc;color:#1e293b;min-height:100vh;position:relative;overflow-x:hidden;}
   .hero-bg-layer{
     position:fixed;inset:0;z-index:-1;
-    /* Tente primeiro um caminho em assets; se não existir, tenta no diretório atual; se nenhum existir fica só o gradiente */
     background:
       linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,.92)),
       url('assets/images/bg-faz-bem.png') center 40%/cover no-repeat,
       linear-gradient(135deg,#f1f5f9,#e2e8f0);
     opacity:.55;
-    mix-blend-mode:normal;
     filter:brightness(1.05) saturate(1.05);
     pointer-events:none;
   }
-  /* Caso a imagem verdadeira esteja no mesmo diretório e você vá adicioná-la depois,
-     mantenha também essa declaração em cascata (opcional). */
   @supports (background-blend-mode:overlay){
     .hero-bg-layer{
       background:
@@ -77,248 +53,117 @@
         linear-gradient(rgba(15,23,42,.90),rgba(15,23,42,.92)),
         url('assets/images/bg-faz-bem.png') center 35%/cover no-repeat,
         linear-gradient(135deg,#1e293b,#0f172a);
-      opacity:.65;
-      filter:brightness(1.25);
+      opacity:.65;filter:brightness(1.25);
     }
   }
 
-  /* ---------- LOADER ---------- */
   .loader{border:4px solid #e2e8f0;border-top:4px solid #22c55e;border-radius:50%;width:42px;height:42px;animation:spin 1s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
-/* ---------- ACCESSIBILITY ---------- */
-#global-aria-live[data-visually-hidden="true"]{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);border:0;}
-:focus-visible{outline:2px solid #2563eb;outline-offset:3px;border-radius:6px;}
+  #global-aria-live[data-visually-hidden="true"]{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);border:0;}
+  :focus-visible{outline:2px solid #2563eb;outline-offset:3px;border-radius:6px;}
 
-/* ---------- TITLE / BRAND ---------- */
-.brand-heading{
-  font-size:clamp(2.75rem,6vw,4.25rem);
-  font-weight:800;
-  line-height:1;
-  position:relative;
-  display:inline-block;
-  letter-spacing:-1px;
-  background:
-    linear-gradient(115deg,#16a34a 0%,#22c55e 18%,#34d399 32%,#16a34a 55%,#15803d 75%,#22c55e 100%);
-  background-size:180% 180%;
-  -webkit-background-clip:text;
-  color:transparent;
-  animation:brandShift 8s ease-in-out infinite;
-  text-shadow:0 2px 4px rgba(0,0,0,.08),0 6px 25px -8px rgba(16,185,129,.55);
-}
-.brand-heading::after{
-  content:"";
-  position:absolute;inset:-6px;
-  background:radial-gradient(circle at 35% 25%,rgba(34,197,94,.35),transparent 70%);
-  filter:blur(28px);
-  z-index:-1;
-  opacity:.6;
-}
-@keyframes brandShift{
-  0%{background-position:0% 50%;}
-  50%{background-position:100% 50%;}
-  100%{background-position:0% 50%;}
-}
+  .brand-heading{font-size:clamp(2.75rem,6vw,4.25rem);font-weight:800;line-height:1;position:relative;display:inline-block;letter-spacing:-1px;
+    background:linear-gradient(115deg,#16a34a 0%,#22c55e 18%,#34d399 32%,#16a34a 55%,#15803d 75%,#22c55e 100%);background-size:180% 180%;
+    -webkit-background-clip:text;color:transparent;animation:brandShift 8s ease-in-out infinite;
+    text-shadow:0 2px 4px rgba(0,0,0,.08),0 6px 25px -8px rgba(16,185,129,.55);}
+  .brand-heading::after{content:"";position:absolute;inset:-6px;background:radial-gradient(circle at 35% 25%,rgba(34,197,94,.35),transparent 70%);filter:blur(28px);z-index:-1;opacity:.6;}
+  @keyframes brandShift{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
+  .tagline{font-size:clamp(.95rem,1.9vw,1.22rem);font-weight:500;color:#475569;}
+  @media (prefers-color-scheme: dark){.tagline{color:#94a3b8;}}
 
-/* Subheading */
-.tagline{font-size:clamp(.95rem,1.9vw,1.22rem);font-weight:500;color:#475569;}
-@media (prefers-color-scheme: dark){
-  .tagline{color:#94a3b8;}
-}
-
-/* ---------- ACCORDION STRUCTURE ---------- */
-.accordion-item{
-  backdrop-filter:blur(6px);
-  background:rgba(255,255,255,.86);
-  border:1px solid #e2e8f0;
-  border-radius:1.15rem;
-  box-shadow:0 4px 18px -6px rgba(0,0,0,.08);
-  transition:box-shadow .3s,transform .3s;
-}
-.accordion-item:hover{box-shadow:0 8px 38px -10px rgba(0,0,0,.15);}
-@media (prefers-color-scheme: dark){
-  .accordion-item{background:rgba(30,41,59,.78);border-color:#334155;box-shadow:0 4px 22px -8px rgba(0,0,0,.6);}
-}
-.accordion-header{
-  width:100%;
-  background:linear-gradient(90deg,rgba(34,197,94,.07),transparent);
-  border:none;
-  padding:1rem 1.35rem;
-  border-radius:1.15rem;
-  display:flex;justify-content:space-between;align-items:center;
-  cursor:pointer;
-  font-size:1.05rem;
-  font-weight:600;
-  color:#134e33;
-  transition:background .25s;
-}
-.accordion-header.active{background:linear-gradient(90deg,rgba(34,197,94,.13),transparent);}
-.accordion-header:hover{background:linear-gradient(90deg,rgba(34,197,94,.18),transparent);}
-@media (prefers-color-scheme: dark){
-  .accordion-header{color:#bbf7d0;background:linear-gradient(90deg,rgba(34,197,94,.15),rgba(30,41,59,.1));}
-  .accordion-header.active{background:linear-gradient(90deg,rgba(34,197,94,.28),rgba(30,41,59,.15));}
-}
-.accordion-arrow{width:1.35rem;height:1.35rem;transition:transform .35s;}
-.accordion-header.active .accordion-arrow{transform:rotate(180deg);}
-.accordion-content{max-height:0;overflow:hidden;transition:max-height .5s ease;}
-.accordion-content-inner{
-  padding:1.35rem 1.35rem 1.25rem;
-  display:flex;flex-direction:column;gap:1.2rem;
-}
-
-/* ---------- CAMPAIGN GRID & CARDS ---------- */
-#active-campaigns-list,#upcoming-campaigns-list,#recent-campaigns-list{
-  display:grid;
-  gap:1.35rem;
-  grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));
-}
-
-.campaign-card{
-  position:relative;
-  background:linear-gradient(145deg,#ffffff 0%,#f1f5f9 100%);
-  border:1px solid #e2e8f0;
-  border-radius:1rem;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-  min-height:100%;
-  transition:transform .28s,box-shadow .28s,border-color .28s;
-  isolation:isolate;
-  padding:0;
-}
-.campaign-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px -8px rgba(16,185,129,.35);}
-.campaign-card:active{transform:translateY(-1px) scale(.985);}
-@media (prefers-color-scheme: dark){
-  .campaign-card{background:linear-gradient(140deg,#1e293b,#0f172a);border-color:#334155;}
-  .campaign-card:hover{box-shadow:0 10px 28px -8px rgba(16,185,129,.55);}
-}
-.campaign-encerrada{filter:grayscale(.88) brightness(.88);}
-.campaign-encerrada .card-body{opacity:.9;}
-
-.media-wrapper{position:relative;height:12rem;width:100%;overflow:hidden;background:#0f172a;}
-.media-container{position:absolute;inset:0;}
-.media-item{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1s;filter:brightness(.94);}
-.media-item.active{opacity:1;z-index:1;}
-.media-skeleton{position:absolute;inset:0;background:#e2e8f0;}
-.media-skeleton::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:skeleton 1.2s infinite;}
-@keyframes skeleton{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
-@media (prefers-color-scheme: dark){.media-skeleton{background:#1e293b;}}
-
-.card-body{
-  padding:1.15rem 1.15rem 1.2rem;
-  display:flex;
-  flex-direction:column;
-  flex-grow:1;
-  gap:.75rem;
-}
-.card-body > .top-row{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;}
-.card-title{
-  font-weight:700;
-  font-size:1rem;
-  line-height:1.2;
-  display:-webkit-box;
-  -webkit-line-clamp:2;
-  -webkit-box-orient:vertical;
-  overflow:hidden;
-}
-.progress-group{margin-top:.15rem;}
-.progress-bar{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;}
-.progress-bar > span{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#059669);}
-
-.status-chip{
-  font-size:.56rem;
-  letter-spacing:.5px;
-  padding:4px 8px;
-  font-weight:700;
-  border-radius:999px;
-  text-transform:uppercase;
-  background:#16a34a;
-  color:#fff;
-  box-shadow:0 2px 4px -1px rgba(0,0,0,.15);
-}
-
-.donor-strip{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.7rem .55rem;}
-.donor-avatar-container{position:relative;display:inline-block;}
-.donor-avatar{transition:transform .24s;}
-.donor-avatar:hover{transform:scale(1.07);}
-.star-badge{position:absolute;bottom:-2px;right:-4px;background:#f59e0b;color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;}
-.like-button{cursor:pointer;display:flex;align-items:center;gap:4px;font-size:11px;color:#64748b;transition:color .25s;}
-.like-button:hover,.like-button.liked{color:#ef4444;}
-
-@media (prefers-color-scheme: dark){
-  .accordion-content-inner{background:transparent;}
-  .campaign-card{background:linear-gradient(145deg,#1e293b,#0f172a);}
-  .card-title{color:#f1f5f9;}
-  .progress-bar{background:#334155;}
-}
-
-/* ---------- FILTER DROPDOWN ---------- */
-.filter-dropdown-container{position:relative;z-index:30;}
-.filter-dropdown-menu{
-  position:absolute;top:110%;right:0;
-  background:#fff;
-  border:1px solid #e2e8f0;
-  border-radius:.85rem;
-  box-shadow:0 14px 38px -10px rgba(0,0,0,.15),0 0 0 1px rgba(0,0,0,.03);
-  padding:.55rem;
-  width:190px;
-  display:none;
-}
-.filter-dropdown-item{
-  width:100%;text-align:left;
-  font-size:.75rem;font-weight:500;
-  padding:.55rem .7rem;
-  border-radius:.55rem;
-  color:#334155;
-  background:transparent;
-  cursor:pointer;
-  transition:background .2s,color .2s;
-}
-.filter-dropdown-item:hover{background:#f1f5f9;}
-.filter-dropdown-item.active{background:#dcfce7;color:#166534;font-weight:600;}
-@media (prefers-color-scheme: dark){
-  .filter-dropdown-menu{background:#1e293b;border-color:#334155;}
-  .filter-dropdown-item{color:#cbd5e1;}
-  .filter-dropdown-item:hover{background:#334155;}
-  .filter-dropdown-item.active{background:#065f46;color:#fff;}
-}
-
-/* ---------- OFFLINE BANNER ---------- */
-.offline-banner{display:none;}
-.offline-banner.active{display:flex;}
-.offline-banner svg{flex-shrink:0;}
-
-/* ---------- FAB MOBILE ---------- */
-@media (max-width:640px){
-  .fab-bar-home{
-    position:fixed;left:0;right:0;bottom:0;z-index:70;
-    display:flex;gap:.85rem;padding:.75rem .95rem calc(.8rem + env(safe-area-inset-bottom));
-    backdrop-filter:blur(12px);
-    background:rgba(255,255,255,.93);
-    border-top:1px solid #e2e8f0;
-  }
-  .fab-bar-home button{flex:1;min-height:3.05rem;border-radius:.95rem;font-weight:600;font-size:.85rem;}
-  body.has-fab-bottom{padding-bottom:4.85rem;}
+  .accordion-item{backdrop-filter:blur(6px);background:rgba(255,255,255,.86);border:1px solid #e2e8f0;border-radius:1.15rem;box-shadow:0 4px 18px -6px rgba(0,0,0,.08);transition:box-shadow .3s,transform .3s;}
+  .accordion-item:hover{box-shadow:0 8px 38px -10px rgba(0,0,0,.15);}
+  @media (prefers-color-scheme: dark){.accordion-item{background:rgba(30,41,59,.78);border-color:#334155;box-shadow:0 4px 22px -8px rgba(0,0,0,.6);}}
+  .accordion-header{width:100%;background:linear-gradient(90deg,rgba(34,197,94,.07),transparent);border:none;padding:1rem 1.35rem;border-radius:1.15rem;
+    display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:1.05rem;font-weight:600;color:#134e33;transition:background .25s;}
+  .accordion-header.active{background:linear-gradient(90deg,rgba(34,197,94,.13),transparent);}
+  .accordion-header:hover{background:linear-gradient(90deg,rgba(34,197,94,.18),transparent);}
   @media (prefers-color-scheme: dark){
-    .fab-bar-home{background:rgba(15,23,42,.86);border-color:#334155;}
+    .accordion-header{color:#bbf7d0;background:linear-gradient(90deg,rgba(34,197,94,.15),rgba(30,41,59,.1));}
+    .accordion-header.active{background:linear-gradient(90deg,rgba(34,197,94,.28),rgba(30,41,59,.15));}
   }
-}
+  .accordion-arrow{width:1.35rem;height:1.35rem;transition:transform .35s;}
+  .accordion-header.active .accordion-arrow{transform:rotate(180deg);}
+  .accordion-content{max-height:0;overflow:hidden;transition:max-height .5s ease;}
+  .accordion-content-inner{padding:1.35rem 1.35rem 1.25rem;display:flex;flex-direction:column;gap:1.2rem;}
 
-/* ---------- FOOTER ---------- */
-footer{font-size:.7rem;}
-footer p{opacity:.85;}
-@media (min-width:640px){footer{font-size:.75rem;}}
+  #active-campaigns-list,#upcoming-campaigns-list,#recent-campaigns-list{display:grid;gap:1.35rem;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));}
+  .campaign-card{position:relative;background:linear-gradient(145deg,#ffffff 0%,#f1f5f9 100%);border:1px solid #e2e8f0;border-radius:1rem;overflow:hidden;display:flex;flex-direction:column;min-height:100%;transition:transform .28s,box-shadow .28s,border-color .28s;isolation:isolate;padding:0;}
+  .campaign-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px -8px rgba(16,185,129,.35);}
+  .campaign-card:active{transform:translateY(-1px) scale(.985);}
+  @media (prefers-color-scheme: dark){.campaign-card{background:linear-gradient(140deg,#1e293b,#0f172a);border-color:#334155;}.campaign-card:hover{box-shadow:0 10px 28px -8px rgba(16,185,129,.55);}}
+  .campaign-encerrada{filter:grayscale(.88) brightness(.88);}
+  .campaign-encerrada .card-body{opacity:.9;}
 
-/* ---------- TOAST ---------- */
-.toast-container{position:fixed;bottom:calc(1rem + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:.6rem;width:min(92%,420px);}
-.toast{background:#1e293b;color:#f8fafc;padding:.75rem .95rem;border-radius:.85rem;font-size:.8rem;font-weight:500;box-shadow:0 8px 26px -8px rgba(0,0,0,.35);animation:toastIn .32s ease;display:flex;align-items:flex-start;gap:.6rem;}
-.toast.success{background:#065f46;}
-.toast.error{background:#991b1b;}
-@keyframes toastIn{from{opacity:0;transform:translate(-50%,8px);}to{opacity:1;transform:translate(-50%,0);}}
+  .media-wrapper{position:relative;height:12rem;width:100%;overflow:hidden;background:#0f172a;}
+  .media-container{position:absolute;inset:0;}
+  .media-item{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s;filter:brightness(.94);}
+  .media-item.active{z-index:1;}
+  .media-item.loaded{opacity:1;}
+  .media-skeleton{position:absolute;inset:0;background:#e2e8f0;}
+  .media-skeleton::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:skeleton 1.2s infinite;}
+  @keyframes skeleton{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
+  @media (prefers-color-scheme: dark){.media-skeleton{background:#1e293b;}}
 
-/* ---------- UTILITIES ---------- */
-.no-scrollbar::-webkit-scrollbar{display:none;}
-.no-scrollbar{scrollbar-width:none;-ms-overflow-style:none;}
+  .card-body{padding:1.15rem 1.15rem 1.2rem;display:flex;flex-direction:column;flex-grow:1;gap:.75rem;}
+  .card-body>.top-row{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;}
+  .card-title{font-weight:700;font-size:1rem;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .progress-group{margin-top:.15rem;}
+  .progress-bar{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;}
+  .progress-bar>span{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#059669);}
+
+  .status-chip{font-size:.56rem;letter-spacing:.5px;padding:4px 8px;font-weight:700;border-radius:999px;text-transform:uppercase;background:#16a34a;color:#fff;box-shadow:0 2px 4px -1px rgba(0,0,0,.15);}
+
+  .donor-strip{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.7rem .55rem;}
+  .donor-avatar-container{position:relative;display:inline-block;}
+  .donor-avatar{transition:transform .24s;}
+  .donor-avatar:hover{transform:scale(1.07);}
+  .star-badge{position:absolute;bottom:-2px;right:-4px;background:#f59e0b;color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;}
+  .like-button{cursor:pointer;display:flex;align-items:center;gap:4px;font-size:11px;color:#64748b;transition:color .25s;}
+  .like-button:hover,.like-button.liked{color:#ef4444;}
+  @media (prefers-color-scheme: dark){
+    .accordion-content-inner{background:transparent;}
+    .campaign-card{background:linear-gradient(145deg,#1e293b,#0f172a);}
+    .card-title{color:#f1f5f9;}
+    .progress-bar{background:#334155;}
+  }
+
+  .filter-dropdown-container{position:relative;z-index:30;}
+  .filter-dropdown-menu{position:absolute;top:110%;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:.85rem;box-shadow:0 14px 38px -10px rgba(0,0,0,.15),0 0 0 1px rgba(0,0,0,.03);padding:.55rem;width:190px;display:none;}
+  .filter-dropdown-item{width:100%;text-align:left;font-size:.75rem;font-weight:500;padding:.55rem .7rem;border-radius:.55rem;color:#334155;background:transparent;cursor:pointer;transition:background .2s,color .2s;}
+  .filter-dropdown-item:hover{background:#f1f5f9;}
+  .filter-dropdown-item.active{background:#dcfce7;color:#166534;font-weight:600;}
+  @media (prefers-color-scheme: dark){
+    .filter-dropdown-menu{background:#1e293b;border-color:#334155;}
+    .filter-dropdown-item{color:#cbd5e1;}
+    .filter-dropdown-item:hover{background:#334155;}
+    .filter-dropdown-item.active{background:#065f46;color:#fff;}
+  }
+
+  .offline-banner{display:none;}
+  .offline-banner.active{display:flex;}
+  .offline-banner svg{flex-shrink:0;}
+
+  @media (max-width:640px){
+    .fab-bar-home{position:fixed;left:0;right:0;bottom:0;z-index:70;display:flex;gap:.85rem;padding:.75rem .95rem calc(.8rem + env(safe-area-inset-bottom));backdrop-filter:blur(12px);background:rgba(255,255,255,.93);border-top:1px solid #e2e8f0;}
+    .fab-bar-home button{flex:1;min-height:3.05rem;border-radius:.95rem;font-weight:600;font-size:.85rem;}
+    body.has-fab-bottom{padding-bottom:4.85rem;}
+    @media (prefers-color-scheme: dark){.fab-bar-home{background:rgba(15,23,42,.86);border-color:#334155;}}
+  }
+
+  footer{font-size:.7rem;}
+  footer p{opacity:.85;}
+  @media (min-width:640px){footer{font-size:.75rem;}}
+
+  .toast-container{position:fixed;bottom:calc(1rem + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:.6rem;width:min(92%,420px);}
+  .toast{background:#1e293b;color:#f8fafc;padding:.75rem .95rem;border-radius:.85rem;font-size:.8rem;font-weight:500;box-shadow:0 8px 26px -8px rgba(0,0,0,.35);animation:toastIn .32s ease;display:flex;align-items:flex-start;gap:.6rem;}
+  .toast.success{background:#065f46;}
+  .toast.error{background:#991b1b;}
+  @keyframes toastIn{from{opacity:0;transform:translate(-50%,8px);}to{opacity:1;transform:translate(-50%,0);}}
+
+  .no-scrollbar::-webkit-scrollbar{display:none;}
+  .no-scrollbar{scrollbar-width:none;-ms-overflow-style:none;}
   </style>
 </head>
 <body>
@@ -328,7 +173,6 @@ footer p{opacity:.85;}
 
   <main id="page-content">
     <div class="container mx-auto max-w-6xl p-4 sm:p-6">
-      <!-- Offline Banner -->
       <div id="offline-banner" class="offline-banner items-center gap-2 mb-4 px-3 py-2 rounded-md bg-yellow-50 text-yellow-800 text-[11px] font-medium">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z"/>
@@ -344,7 +188,6 @@ footer p{opacity:.85;}
       <div id="home-quick-filters" class="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar"></div>
 
       <div class="space-y-6">
-        <!-- ATIVAS -->
         <section class="accordion-item" id="sec-ativas">
           <button class="accordion-header" data-accordion="ativas">
             <span class="flex items-center gap-2">
@@ -367,7 +210,6 @@ footer p{opacity:.85;}
           </div>
         </section>
 
-        <!-- PROXIMAS -->
         <section id="accordion-proximas" class="accordion-item hidden">
           <button class="accordion-header" data-accordion="proximas">
             <span class="flex items-center gap-2">
@@ -390,7 +232,6 @@ footer p{opacity:.85;}
           </div>
         </section>
 
-        <!-- RECENTES -->
         <section id="accordion-recentes" class="accordion-item hidden">
           <button class="accordion-header" data-accordion="recentes">
             <span class="flex items-center gap-2">
@@ -430,7 +271,6 @@ footer p{opacity:.85;}
     </div>
   </main>
 
-  <!-- Modal base -->
   <div id="app-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
       <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
@@ -456,10 +296,8 @@ footer p{opacity:.85;}
     </div>
   </div>
 
-  <!-- Toast -->
   <div class="toast-container" id="toast-container"></div>
 
-  <!-- FAB Mobile -->
   <div class="fab-bar-home" id="fab-bar-home" style="display:none;">
     <button id="fab-scroll-top" class="bg-blue-600 text-white shadow hover:bg-blue-700 active:scale-95 transition">Topo</button>
     <button id="fab-refresh" class="bg-green-600 text-white shadow hover:bg-green-700 active:scale-95 transition">Atualizar</button>
@@ -482,6 +320,7 @@ footer p{opacity:.85;}
       recentes:{filter:'all',visibleCount:ITEMS_PER_PAGE,key:'recent'}
     }
   };
+
   const lists={
     ativas:document.getElementById('active-campaigns-list'),
     proximas:document.getElementById('upcoming-campaigns-list'),
@@ -501,6 +340,11 @@ footer p{opacity:.85;}
   const offlineBanner=document.getElementById('offline-banner');
 
   let slideshowIntervals={};
+  let renderTimer=null;
+  let lastActiveIdsKey='';
+  let countdownInitCount=0;
+
+  function debounceRender(){clearTimeout(renderTimer);renderTimer=setTimeout(renderAll,90);}
 
   function showToast(msg,type='success',ttl=3000){
     const c=document.getElementById('toast-container');const el=document.createElement('div');
@@ -531,12 +375,7 @@ footer p{opacity:.85;}
 
   async function initializeApp(){
     await injectHeader();
-    try {
-      state.currentUser=await getCurrentUser();
-    } catch(e){
-      console.warn('Falha ao obter usuário atual', e);
-      state.currentUser=null;
-    }
+    try{state.currentUser=await getCurrentUser();}catch(e){console.warn('Falha usuário',e);}
     setupDataListeners();
     setupEvents();
     enableFabIfMobile();
@@ -544,35 +383,35 @@ footer p{opacity:.85;}
   }
 
   function setupDataListeners(){
-    onSnapshot(doc(db, paths.configDoc('campaignTypes')),(s)=>{
-      state.settings=s.exists()?s.data():{};
-      renderAll();
-    });
+    onSnapshot(doc(db, paths.configDoc('campaignTypes')),(s)=>{state.settings=s.exists()?s.data():{};debounceRender();});
     onSnapshot(query(collection(db, paths.campaigns),orderBy('createdAt','desc')),(s)=>{
       state.allCampaigns=s.docs.map(d=>({id:d.id,...d.data()}));
-      renderAll();
+      debounceRender();
     });
     onSnapshot(query(collection(db, paths.donations)),(s)=>{
       state.allDonations=s.docs.map(d=>d.data());
-      renderAll();
+      debounceRender();
     });
     onSnapshot(query(collection(db, paths.likes)),(s)=>{
       state.allLikes=s.docs.map(d=>({id:d.id,...d.data()}));
-      renderAll();
+      debounceRender();
     });
   }
 
   function renderAll(){
     if(state.allCampaigns.length || Object.keys(state.settings).length) loadingContainer.style.display='none';
 
-    // Limpa slideshows ativos
-    Object.values(slideshowIntervals).forEach(clearInterval);
-    slideshowIntervals={};
-
     const now=new Date();
     const active=state.allCampaigns.filter(c=>c.status==='active' && c.startsAt?.toDate()<=now && c.expiresAt?.toDate()>now);
     const upcoming=state.allCampaigns.filter(c=>c.status==='upcoming' && c.startsAt?.toDate()>now);
     const recent=state.allCampaigns.filter(c=>c.expiresAt?.toDate() && c.expiresAt.toDate()<=now);
+
+    const activeIdsKey=active.map(c=>c.id).join('|');
+    if(activeIdsKey!==lastActiveIdsKey){
+      Object.values(slideshowIntervals).forEach(clearInterval);
+      slideshowIntervals={};
+      lastActiveIdsKey=activeIdsKey;
+    }
 
     renderSection('ativas',active);
     renderSection('proximas',upcoming);
@@ -582,17 +421,15 @@ footer p{opacity:.85;}
     document.getElementById('accordion-recentes').classList.toggle('hidden',!recent.length);
 
     const firstHeader=document.querySelector('.accordion-header');
-    if(firstHeader && !firstHeader.classList.contains('active')){
-      firstHeader.classList.add('active');
-    }
+    if(firstHeader && !firstHeader.classList.contains('active')) firstHeader.classList.add('active');
     document.querySelectorAll('.accordion-header.active').forEach(h=>{
       const panel=h.nextElementSibling;
       if(panel) panel.style.maxHeight=panel.scrollHeight+'px';
     });
 
-    // (Re)Inicializa badges de contagem unificada (se módulo expôs a função)
-    if(typeof window.initCountdownBadges === 'function'){
-      window.initCountdownBadges();
+    if(typeof window.initCountdownBadges==='function'){
+      countdownInitCount++;
+      window.initCountdownBadges({nonce:countdownInitCount});
     }
   }
 
@@ -612,21 +449,21 @@ footer p{opacity:.85;}
     empty.classList.add('hidden');
 
     const frag=document.createDocumentFragment();
-    campaigns.forEach(c=>{
+    campaigns.forEach((c,idx)=>{
       const donations=state.allDonations.filter(d=>d.campaignId===c.id);
       const likes=state.allLikes.filter(l=>l.campaignId===c.id);
-      const cardHTML=buildCard(c,donations,likes,state.sections[key].key);
+      const cardHTML=buildCard(c,donations,likes,state.sections[key].key,(key==='ativas' && idx===0));
       const wrap=document.createElement('div');wrap.innerHTML=cardHTML;frag.appendChild(wrap.firstElementChild);
     });
     list.appendChild(frag);
 
     campaigns.forEach(c=>{
       const isEncerrada=c.expiresAt?.toDate() && c.expiresAt.toDate()<=new Date();
-      if(key==='ativas' && !isEncerrada){
-        startSlideshow(c.id);
-      }
+      if(key==='ativas' && !isEncerrada) startSlideshow(c.id);
     });
-    lazyLoadImages(list.querySelectorAll('img.media-item'));
+
+    wireImageLoading(list);
+    lazyLoadImages(list.querySelectorAll('img.media-item[data-lazy="true"]'));
 
     pager.innerHTML='';
     if(totalFiltered>campaigns.length){
@@ -665,7 +502,7 @@ footer p{opacity:.85;}
     `;
   }
 
-  function buildCard(campaign,donations,likes,listKey){
+  function buildCard(campaign,donations,likes,listKey,isFirstActive){
     const settings=state.settings[campaign.type] || state.settings['default'] || {label:'Campanha',color:'gray'};
     const color=ensureColor(settings.color || 'gray');
     const cm=colorMap(color);
@@ -677,15 +514,21 @@ footer p{opacity:.85;}
     let mediaHtml='';
     if(!isClosed){
       const items=[];
-      if(campaign.videoUrl) items.push({type:'video',src:campaign.videoUrl});
+      if(campaign.videoUrl) items.push({type:'image',src:campaign.videoUrl}); // (mantido como imagem de placeholder se video thumbs não gerado)
       (campaign.images||[]).forEach(src=>items.push({type:'image',src}));
       if(!items.length) items.push({type:'image',src:'https://placehold.co/600x400/e2e8f0/cbd5e0?text=Sem+Imagem'});
       items.forEach((m,i)=>{
-        mediaHtml += `<img class="media-item ${i===0?'active':''}" data-src="${m.src}" alt="Imagem da campanha ${campaign.title}" loading="lazy">`;
+        const eager = isFirstActive && i===0;
+        const common = `class="media-item ${i===0?'active':''}" alt="Imagem da campanha ${campaign.title}"`;
+        if(eager){
+          mediaHtml += `<img ${common} src="${m.src}" loading="eager" fetchpriority="high" decoding="async" data-lazy="false">`;
+        }else{
+          mediaHtml += `<img ${common} data-src="${m.src}" loading="lazy" data-lazy="true">`;
+        }
       });
     } else {
       const first=(campaign.images && campaign.images[0]) || 'https://placehold.co/600x400/e2e8f0/cbd5e0?text=Sem+Imagem';
-      mediaHtml = `<img class="media-item active" data-src="${first}" alt="Imagem da campanha ${campaign.title}" loading="lazy">`;
+      mediaHtml = `<img class="media-item active" data-src="${first}" alt="Imagem da campanha ${campaign.title}" loading="lazy" data-lazy="true">`;
     }
 
     let statusTag='';
@@ -693,8 +536,8 @@ footer p{opacity:.85;}
     else if(isActive && campaign.priority==='high') statusTag='<span class="status-chip bg-red-600 text-white urgent-badge">URGENTE</span>';
 
     let countdownHtml='';
-    if(isActive) {
-      const deadline = campaign.expiresAt?.toDate()?.toISOString() || '';
+    if(isActive){
+      const deadline=campaign.expiresAt?.toDate()?.toISOString()||'';
       countdownHtml=`<span class="countdown-badge" data-deadline="${deadline}" data-campaign-id="${campaign.id}" data-precision="minutes">...</span>`;
     }
 
@@ -703,13 +546,12 @@ footer p{opacity:.85;}
       const completed=donations.reduce((acc,d)=> acc + (d.items||[]).filter(i=>i.status==='completed').length,0);
       const goal=parseInt(campaign.goal,10);
       const pct= goal>0 ? Math.min(100,(completed/goal)*100) : 0;
-      goalHtml=`
-        <div class="progress-group space-y-1">
-          <div class="flex justify-between text-[11px] text-gray-500 font-medium">
-            <span>Meta</span><span>${completed}/${goal}</span>
-          </div>
-          <div class="progress-bar"><span style="width:${pct}%"></span></div>
-        </div>`;
+      goalHtml=`<div class="progress-group space-y-1">
+        <div class="flex justify-between text-[11px] text-gray-500 font-medium">
+          <span>Meta</span><span>${completed}/${goal}</span>
+        </div>
+        <div class="progress-bar"><span style="width:${pct}%"></span></div>
+      </div>`;
     }
 
     const donorsWithCompleted=Object.values(donations.reduce((acc,d)=>{
@@ -726,19 +568,18 @@ footer p{opacity:.85;}
         const photo= anonymous ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A'
                                : d.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
         const name = anonymous ? 'Anônimo' : (d.donorName||'Doador');
-        return `
-          <div class="text-center flex flex-col items-center">
-            <div class="donor-avatar-container">
-              <img src="${photo}" alt="Foto de ${name}" title="${name}" class="donor-avatar inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover">
-              <div class="star-badge" title="Entrega concluída">
-                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-              </div>
+        return `<div class="text-center flex flex-col items-center">
+          <div class="donor-avatar-container">
+            <img src="${photo}" alt="Foto de ${name}" title="${name}" class="donor-avatar inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover">
+            <div class="star-badge" title="Entrega concluída">
+              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             </div>
-            <button class="like-button mt-1 ${liked?'liked':''}" data-campaign-id="${campaign.id}" data-donor-id="${d.donorId}" aria-label="Curtir doador">
-              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/></svg>
-              <span class="like-count">${dLikes.length}</span>
-            </button>
-          </div>`;
+          </div>
+          <button class="like-button mt-1 ${liked?'liked':''}" data-campaign-id="${campaign.id}" data-donor-id="${d.donorId}" aria-label="Curtir doador">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/></svg>
+            <span class="like-count">${dLikes.length}</span>
+          </button>
+        </div>`;
       }).join('');
       if(donorsWithCompleted.length>5){
         donorsHtml+=`<div class="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 text-gray-600 text-[11px] font-bold ring-2 ring-white">+${donorsWithCompleted.length-5}</div>`;
@@ -751,36 +592,35 @@ footer p{opacity:.85;}
 
     const verified=campaign.entityVerified?`<svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>`:'';
 
-    return `
-      <article tabindex="0" data-id="${campaign.id}" class="${cardClasses}" role="button" aria-label="Campanha ${campaign.title}">
-        <div class="media-wrapper">
-          <div class="media-container">
-            <div class="media-skeleton"></div>
-            ${mediaHtml}
-          </div>
-          ${isClosed?`<div class="absolute inset-0 bg-black/55 flex items-center justify-center z-10">
-              <span class="text-white text-[11px] font-bold tracking-widest uppercase">Encerrada</span>
-            </div>`:''}
+    return `<article tabindex="0" data-id="${campaign.id}" class="${cardClasses}" role="button" aria-label="Campanha ${campaign.title}">
+      <div class="media-wrapper">
+        <div class="media-container">
+          <div class="media-skeleton"></div>
+          ${mediaHtml}
         </div>
-        <div class="card-body">
-          <div class="top-row">
-            <p class="uppercase tracking-wide text-[10px] text-gray-600 font-semibold flex items-center gap-1">
-              <span class="truncate max-w-[8.5rem]" title="${campaign.entityName}">${campaign.entityName}</span>${verified}
-            </p>
-            <span class="text-[10px] font-semibold px-2 py-1 rounded-full ${cm.badgeBg} ${cm.badgeText}">${settings.label}</span>
-          </div>
-          <h3 class="card-title" title="${campaign.title}">${campaign.title}</h3>
-          <div class="flex justify-between items-center mt-1 min-h-[20px]">
-            <div>${statusTag}</div>
-            <div>${countdownHtml}</div>
-          </div>
-          ${goalHtml}
-          <div class="pt-3 mt-auto border-t border-dashed border-gray-200">
-            <h4 class="text-[10px] font-semibold text-gray-600 mb-2 tracking-wide uppercase">Apoiadores</h4>
-            <div class="donor-strip">${donorsHtml}</div>
-          </div>
+        ${isClosed?`<div class="absolute inset-0 bg-black/55 flex items-center justify-center z-10">
+            <span class="text-white text-[11px] font-bold tracking-widest uppercase">Encerrada</span>
+          </div>`:''}
+      </div>
+      <div class="card-body">
+        <div class="top-row">
+          <p class="uppercase tracking-wide text-[10px] text-gray-600 font-semibold flex items-center gap-1">
+            <span class="truncate max-w-[8.5rem]" title="${campaign.entityName}">${campaign.entityName}</span>${verified}
+          </p>
+          <span class="text-[10px] font-semibold px-2 py-1 rounded-full ${cm.badgeBg} ${cm.badgeText}">${settings.label}</span>
         </div>
-      </article>`;
+        <h3 class="card-title" title="${campaign.title}">${campaign.title}</h3>
+        <div class="flex justify-between items-center mt-1 min-h-[20px]">
+          <div>${statusTag}</div>
+          <div>${countdownHtml}</div>
+        </div>
+        ${goalHtml}
+        <div class="pt-3 mt-auto border-t border-dashed border-gray-200">
+          <h4 class="text-[10px] font-semibold text-gray-600 mb-2 tracking-wide uppercase">Apoiadores</h4>
+          <div class="donor-strip">${donorsHtml}</div>
+        </div>
+      </div>
+    </article>`;
   }
 
   function startSlideshow(id){
@@ -797,21 +637,51 @@ footer p{opacity:.85;}
     },5000);
   }
 
+  function wireImageLoading(root){
+    root.querySelectorAll('.campaign-card').forEach(card=>{
+      const skeleton=card.querySelector('.media-skeleton');
+      const imgs=[...card.querySelectorAll('.media-item')];
+      let loadedCount=0;
+      imgs.forEach(img=>{
+        if(img.complete && img.naturalWidth>0){
+          markLoaded(img);
+        }else{
+          img.addEventListener('load',()=>markLoaded(img),{once:true});
+          img.addEventListener('error',()=>markLoaded(img),{once:true});
+        }
+      });
+      function markLoaded(img){
+        img.classList.add('loaded');
+        loadedCount++;
+        if(loadedCount===imgs.length || (imgs.length===1 && loadedCount===1)){
+          if(skeleton) skeleton.remove();
+        }
+      }
+    });
+  }
+
   function lazyLoadImages(nodeList){
-    if(!('IntersectionObserver' in window)) return;
+    if(!('IntersectionObserver' in window)) {
+      nodeList.forEach(img=>{
+        if(img.dataset.src){img.src=img.dataset.src;img.removeAttribute('data-src');}
+      });
+      return;
+    }
     const io=new IntersectionObserver(entries=>{
       entries.forEach(ent=>{
         if(ent.isIntersecting){
           const img=ent.target;
-          if(img.dataset.src){img.src=img.dataset.src;img.removeAttribute('data-src');}
+          if(img.dataset.src){
+            img.src=img.dataset.src;
+            img.removeAttribute('data-src');
+          }
           io.unobserve(img);
         }
       });
-    },{rootMargin:'150px'});
+    },{rootMargin:'300px'});
     nodeList.forEach(img=> io.observe(img));
   }
 
-  /* ---------- Events ---------- */
   function setupEvents(){
     document.addEventListener('click',e=>{
       const like=e.target.closest('.like-button');
@@ -846,7 +716,6 @@ footer p{opacity:.85;}
     else {fab.style.display='none';document.body.classList.remove('has-fab-bottom');}
   }
 
-  /* ---------- Actions ---------- */
   async function handleLikeClick(btn){
     if(!state.currentUser?.auth){showAlertModal('Ação necessária','Faça login para curtir.');return;}
     if(!state.currentUser.isVerified){showAlertModal('Verifique seu e-mail','Verifique seu e-mail para curtir.');return;}
@@ -876,7 +745,6 @@ footer p{opacity:.85;}
     if(id) window.location.href=`detalhes.html?id=${id}`;
   }
 
-  /* ---------- Accordion & Filter ---------- */
   function toggleAccordion(header){
     header.classList.toggle('active');
     const panel=header.nextElementSibling;
@@ -909,16 +777,13 @@ footer p{opacity:.85;}
     renderAll();
   }
 
-  /* ---------- Export para legado (se houver) ---------- */
   window.loadMore=loadMore;
   window.setFilter=setFilter;
   window.toggleAccordion=toggleAccordion;
   window.toggleFilterMenu=toggleFilterMenu;
 
-  /* ---------- Start ---------- */
   initializeApp();
 
-  /* ---------- Service Worker ---------- */
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('service-worker.js').catch(console.error);
   }
