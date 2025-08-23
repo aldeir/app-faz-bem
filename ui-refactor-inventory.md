@@ -1,14 +1,14 @@
 # UI Refactor Inventory Report
 
-Generated: 8/23/2025, 12:38:39 PM
+Generated: 8/23/2025, 8:55:42 PM
 
 ## Summary
 
 - **Total Files**: 27
-- **Total Lines**: 11,161
-- **Total Size**: 554.87 KB
-- **Average Lines/File**: 413
-- **Average Size/File**: 20.55 KB
+- **Total Lines**: 10,983
+- **Total Size**: 553.85 KB
+- **Average Lines/File**: 407
+- **Average Size/File**: 20.51 KB
 
 ### Priority Distribution
 
@@ -47,7 +47,7 @@ Generated: 8/23/2025, 12:38:39 PM
 |------|----------|-------|-----------|---------------|------------|
 | minhas-entregas.html | Medium | 981 | 44.27 | 3 | 34.81 |
 | gerenciar-agendamentos.html | Medium | 1443 | 62.37 | 1 | 20.43 |
-| index.html | Low | 994 | 42.34 | 1 | 16.94 |
+| index.html | Low | 819 | 41.83 | 1 | 17.19 |
 | perfil-doador.html | Low | 565 | 31.14 | 1 | 14.65 |
 | registrar-doacao.html | Low | 859 | 39.22 | 1 | 14.59 |
 | criar-campanha.html | Low | 622 | 33.5 | 1 | 14.22 |
@@ -58,10 +58,10 @@ Generated: 8/23/2025, 12:38:39 PM
 | configuracoes.html | Low | 683 | 34.62 | 1 | 11.83 |
 | gerenciar-entidades.html | Low | 450 | 24.05 | 1 | 11.5 |
 | perfil-admin.html | Low | 243 | 11.74 | 1 | 11.43 |
+| detalhes.html | Low | 430 | 24.69 | 1 | 11.3 |
 | gerenciar-campanhas.html | Low | 342 | 16.66 | 1 | 10.42 |
 | gerenciar-doadores.html | Low | 342 | 16.59 | 1 | 10.42 |
 | login.html | Low | 251 | 14.01 | 1 | 9.51 |
-| detalhes.html | Low | 433 | 25.2 | 1 | 9.33 |
 | cadastro-entidade.html | Low | 185 | 14.62 | 1 | 8.85 |
 | superadmin.html | Low | 143 | 7.17 | 1 | 8.43 |
 | recuperar-senha.html | Low | 130 | 5.79 | 1 | 8.3 |

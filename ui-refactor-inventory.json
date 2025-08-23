@@ -1,12 +1,12 @@
 {
-  "timestamp": "2025-08-23T12:38:39.206Z",
+  "timestamp": "2025-08-23T20:55:42.017Z",
   "summary": {
     "overview": {
       "totalFiles": 27,
-      "totalLines": 11161,
-      "totalSizeKB": 554.87,
-      "avgLinesPerFile": 413,
-      "avgSizePerFile": 20.55
+      "totalLines": 10983,
+      "totalSizeKB": 553.85,
+      "avgLinesPerFile": 407,
+      "avgSizePerFile": 20.51
     },
     "priorities": {
       "Medium": 2,
@@ -36,10 +36,10 @@
           "configuracoes.html",
           "gerenciar-entidades.html",
           "perfil-admin.html",
+          "detalhes.html",
           "gerenciar-campanhas.html",
           "gerenciar-doadores.html",
           "login.html",
-          "detalhes.html",
           "cadastro-entidade.html",
           "superadmin.html",
           "recuperar-senha.html",
@@ -225,10 +225,10 @@
     {
       "file": "index.html",
       "title": "App Faz Bem - Campanhas",
-      "lines": 994,
-      "sizeKB": 42.34,
+      "lines": 819,
+      "sizeKB": 41.83,
       "meta": {
-        "count": 6,
+        "count": 7,
         "tags": [
           {
             "type": "unknown",
@@ -251,6 +251,11 @@
             "raw": "<meta name=\"theme-color\" content=\"#0f2917\" media=\"(prefers-color-scheme: dark)\">"
           },
           {
+            "type": "mobile-web-app-capable",
+            "content": "yes",
+            "raw": "<meta name=\"mobile-web-app-capable\" content=\"yes\">"
+          },
+          {
             "type": "apple-mobile-web-app-capable",
             "content": "yes",
             "raw": "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">"
@@ -266,15 +271,15 @@
         "inlineStyles": {
           "blocks": 1,
           "attributes": 2,
-          "totalLines": 263
+          "totalLines": 157
         },
         "inlineScripts": {
-          "blocks": 1,
-          "totalLines": 560
+          "blocks": 2,
+          "totalLines": 497
         },
         "external": {
           "css": 5,
-          "js": 0
+          "js": 1
         }
       },
       "dependencies": {
@@ -285,7 +290,9 @@
           "assets/styles/design-tokens.css",
           "assets/styles/ui-core.css"
         ],
-        "js": [],
+        "js": [
+          "assets/js/ui-countdown.js"
+        ],
         "fonts": 3,
         "hasGoogleFonts": true,
         "hasTailwind": true,
@@ -296,7 +303,7 @@
         "hasThemeColor": true,
         "hasManifest": true
       },
-      "complexity": 16.94,
+      "complexity": 17.19,
       "priority": "Low"
     },
     {
@@ -957,6 +964,69 @@
       "priority": "Low"
     },
     {
+      "file": "detalhes.html",
+      "title": "Detalhes da Campanha - App Faz Bem",
+      "lines": 430,
+      "sizeKB": 24.69,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 36
+        },
+        "inlineScripts": {
+          "blocks": 2,
+          "totalLines": 265
+        },
+        "external": {
+          "css": 4,
+          "js": 1
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "assets/styles/design-tokens.css",
+          "assets/styles/ui-core.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        ],
+        "js": [
+          "assets/js/ui-countdown.js"
+        ],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 11.3,
+      "priority": "Low"
+    },
+    {
       "file": "gerenciar-campanhas.html",
       "title": "Gerenciar Campanhas - Faz Bem",
       "lines": 342,
@@ -1131,65 +1201,6 @@
         "hasManifest": true
       },
       "complexity": 9.51,
-      "priority": "Low"
-    },
-    {
-      "file": "detalhes.html",
-      "title": "Detalhes da Campanha - App Faz Bem",
-      "lines": 433,
-      "sizeKB": 25.2,
-      "meta": {
-        "count": 3,
-        "tags": [
-          {
-            "type": "unknown",
-            "content": "",
-            "raw": "<meta charset=\"UTF-8\">"
-          },
-          {
-            "type": "viewport",
-            "content": "width=device-width, initial-scale=1.0",
-            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
-          },
-          {
-            "type": "theme-color",
-            "content": "#22c55e",
-            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
-          }
-        ]
-      },
-      "inline": {
-        "inlineStyles": {
-          "blocks": 1,
-          "attributes": 0,
-          "totalLines": 36
-        },
-        "inlineScripts": {
-          "blocks": 1,
-          "totalLines": 270
-        },
-        "external": {
-          "css": 2,
-          "js": 0
-        }
-      },
-      "dependencies": {
-        "css": [
-          "/app-faz-bem/style.css",
-          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-        ],
-        "js": [],
-        "fonts": 3,
-        "hasGoogleFonts": true,
-        "hasTailwind": true,
-        "hasBootstrap": false
-      },
-      "mobile": {
-        "hasViewport": true,
-        "hasThemeColor": true,
-        "hasManifest": true
-      },
-      "complexity": 9.33,
       "priority": "Low"
     },
     {
