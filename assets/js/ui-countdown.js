@@ -252,7 +252,12 @@
    * @param {string} selector - CSS selector for countdown elements
    * @param {Object} options - Global configuration options
    */
-  function initCountdownBadges(selector = '.countdown-badge[data-deadline]', options = {}) {
+function initCountdownBadges(selector = '.countdown-badge[data-deadline]', options = {}) {
+  // Permite chamada initCountdownBadges({ ...options })
+  if (typeof selector === 'object' && selector !== null) {
+    options = selector;
+    selector = '.countdown-badge[data-deadline]';
+  }
     const elements = document.querySelectorAll(selector);
     
     elements.forEach(element => {
