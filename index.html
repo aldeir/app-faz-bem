@@ -441,10 +441,11 @@
       if(panel) panel.style.maxHeight=panel.scrollHeight+'px';
     });
 
-    if(typeof window.initCountdownBadges==='function'){
-      countdownInitCount++;
-      window.initCountdownBadges({nonce:countdownInitCount});
-    }
+if (typeof window.initCountdownBadges === 'function') {
+  countdownInitCount++;
+  // Primeiro parâmetro = seletor (mantemos default), segundo = opções
+  window.initCountdownBadges(undefined, { nonce: countdownInitCount });
+}
   }
 
   function renderSection(key,arr){
@@ -814,3 +815,4 @@
   </script>
 </body>
 </html>
+
