@@ -279,6 +279,119 @@ body {
   background-color: var(--color-neutral-700);
 }
 
+/* Countdown Badge Component */
+.countdown-badge {
+  /* CSS custom properties for dynamic theming */
+  --_bg: var(--countdown-normal-bg);
+  --_fg: var(--countdown-normal-fg);
+  --_bd: var(--countdown-normal-border);
+  
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  background-color: var(--_bg);
+  color: var(--_fg);
+  border: 1px solid var(--_bd);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  transition: var(--transition-colors);
+  white-space: nowrap;
+}
+
+/* State variations using data attributes */
+.countdown-badge[data-state="normal"] {
+  --_bg: var(--countdown-normal-bg);
+  --_fg: var(--countdown-normal-fg);
+  --_bd: var(--countdown-normal-border);
+}
+
+.countdown-badge[data-state="approaching"] {
+  --_bg: var(--countdown-approaching-bg);
+  --_fg: var(--countdown-approaching-fg);
+  --_bd: var(--countdown-approaching-border);
+}
+
+.countdown-badge[data-state="warn"] {
+  --_bg: var(--countdown-warn-bg);
+  --_fg: var(--countdown-warn-fg);
+  --_bd: var(--countdown-warn-border);
+}
+
+.countdown-badge[data-state="danger"] {
+  --_bg: var(--countdown-danger-bg);
+  --_fg: var(--countdown-danger-fg);
+  --_bd: var(--countdown-danger-border);
+}
+
+.countdown-badge[data-state="critical"] {
+  --_bg: var(--countdown-critical-bg);
+  --_fg: var(--countdown-critical-fg);
+  --_bd: var(--countdown-critical-border);
+  animation: countdown-pulse 1.5s ease-in-out infinite alternate;
+}
+
+.countdown-badge[data-state="ended"] {
+  --_bg: var(--countdown-ended-bg);
+  --_fg: var(--countdown-ended-fg);
+  --_bd: var(--countdown-ended-border);
+}
+
+/* Pulse animation for critical state */
+@keyframes countdown-pulse {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .countdown-badge[data-state="critical"] {
+    animation: none;
+  }
+}
+
+/* Optional micro call-to-action for danger/critical states */
+.countdown-badge .badge-cta {
+  display: none;
+  margin-left: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  background-color: color-mix(in srgb, var(--_fg) 10%, transparent);
+  color: var(--_fg);
+  text-decoration: none;
+  font-size: var(--font-size-xs);
+  transition: var(--transition-colors);
+}
+
+.countdown-badge[data-state="danger"]:hover .badge-cta,
+.countdown-badge[data-state="critical"]:hover .badge-cta,
+.countdown-badge[data-state="danger"]:focus-within .badge-cta,
+.countdown-badge[data-state="critical"]:focus-within .badge-cta {
+  display: inline-flex;
+}
+
+.countdown-badge .badge-cta:hover,
+.countdown-badge .badge-cta:focus {
+  background-color: color-mix(in srgb, var(--_fg) 20%, transparent);
+}
+
+/* Icon slot for countdown badge */
+.countdown-badge .badge-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+}
+
 /* Mobile Optimizations */
 @media (max-width: 640px) {
   .btn {

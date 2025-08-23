@@ -11,6 +11,9 @@
     <link rel="icon" href="logo.png" type="image/png">
 
     <link href="/app-faz-bem/style.css" rel="stylesheet">
+    <link href="assets/styles/design-tokens.css" rel="stylesheet">
+    <link href="assets/styles/ui-core.css" rel="stylesheet">
+    <script src="assets/js/ui-countdown.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -81,9 +84,9 @@
                     <div class="sticky top-24">
                         <h1 id="campaign-title" class="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight"></h1>
                         <p class="mt-2 text-md text-gray-500">por <span id="entity-name" class="font-semibold text-gray-700"></span></p>
-                        <div id="countdown-container" class="mt-6 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 p-4 rounded-r-lg">
-                            <h3 class="font-bold">Esta campanha termina em:</h3>
-                            <div id="countdown-timer" class="text-2xl font-mono font-bold"></div>
+                        <div class="mt-6">
+                            <h3 class="text-lg font-bold text-gray-700 mb-2">Status da Campanha</h3>
+                            <span id="countdown-badge" class="countdown-badge" data-deadline="" data-precision="seconds">Carregando...</span>
                         </div>
                         <div id="goal-container" class="mt-6">
                             <div class="flex justify-between items-end">
@@ -179,7 +182,6 @@
         let campaignUnsubscribe = null;
         let donationsUnsubscribe = null;
         let likesUnsubscribe = null;
-        let countdownInterval;
 
         async function initializeApp() {
             const canProceed = await injectHeader(); 
@@ -237,33 +239,28 @@
             document.getElementById('campaign-docs').textContent = operation.requiredDocs || '';
             document.getElementById('docs-block').style.display = operation.requiredDocs ? 'flex' : 'none';
 
-            if (campaign.expiresAt) { updateCountdown(campaign.expiresAt.toDate()); }
+            // Update countdown badge with campaign deadline
+            if (campaign.expiresAt) {
+                const countdownBadge = document.getElementById('countdown-badge');
+                const deadline = campaign.expiresAt.toDate();
+                countdownBadge.setAttribute('data-deadline', deadline.toISOString());
+                countdownBadge.setAttribute('data-campaign-id', campaignId);
+                
+                // Manually start countdown if auto-init didn't catch it
+                if (window.countdownUtils) {
+                    window.countdownUtils.startCountdown(countdownBadge, { precision: 'seconds' });
+                }
+            }
         }
 
-        function updateCountdown(expiresAt) {
-            if (countdownInterval) clearInterval(countdownInterval);
-            const timerEl = document.getElementById('countdown-timer');
-            const countdownContainer = document.getElementById('countdown-container');
-            
-            countdownInterval = setInterval(() => {
-                const now = new Date().getTime();
-                const distance = expiresAt.getTime() - now;
-                if (distance < 0) {
-                    clearInterval(countdownInterval);
-                    countdownContainer.innerHTML = '<h3 class="font-bold text-red-700">Campanha Encerrada</h3>';
-                    countdownContainer.classList.replace('bg-yellow-100', 'bg-red-100');
-                    countdownContainer.classList.replace('border-yellow-400', 'border-red-400');
-                    helpButton.disabled = true;
-                    helpButton.textContent = 'Campanha Encerrada';
-                    return;
-                }
-                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-                timerEl.innerHTML = `${String(days).padStart(2, '0')}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
-            }, 1000);
-        }
+        // Listen for countdown ended events to handle campaign end
+        document.addEventListener('countdown:ended', function(event) {
+            const helpButton = document.getElementById('help-button');
+            if (helpButton) {
+                helpButton.disabled = true;
+                helpButton.textContent = 'Campanha Encerrada';
+            }
+        });
 
         function loadCampaignDetails() {
             if (campaignUnsubscribe) campaignUnsubscribe();

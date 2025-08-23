@@ -46,10 +46,41 @@
   --color-info-500: #3b82f6;
   --color-info-700: #1d4ed8;
   
-  /* Urgency Colors for countdown */
+  /* Urgency Colors for countdown - Legacy (to be deprecated) */
   --color-urgent-high: #dc2626;    /* red-600 */
   --color-urgent-medium: #f59e0b;  /* amber-500 */
   --color-urgent-low: #22c55e;     /* green-500 */
+  
+  /* Countdown Badge State Tokens */
+  /* Normal state - plenty of time (>72h) */
+  --countdown-normal-bg: var(--color-neutral-100);
+  --countdown-normal-fg: var(--color-neutral-600);
+  --countdown-normal-border: var(--color-neutral-200);
+  
+  /* Approaching state - moderate time (24-72h) */
+  --countdown-approaching-bg: var(--color-neutral-200);
+  --countdown-approaching-fg: var(--color-neutral-700);
+  --countdown-approaching-border: var(--color-neutral-300);
+  
+  /* Warning state - attention needed (6-24h) */
+  --countdown-warn-bg: var(--color-warning-50);
+  --countdown-warn-fg: var(--color-warning-700);
+  --countdown-warn-border: var(--color-warning-500);
+  
+  /* Danger state - urgent (1-6h) */
+  --countdown-danger-bg: #fef2f2;  /* red-50 */
+  --countdown-danger-fg: var(--color-error-700);
+  --countdown-danger-border: #f87171; /* red-400 */
+  
+  /* Critical state - very urgent (<1h) */
+  --countdown-critical-bg: var(--color-error-500);
+  --countdown-critical-fg: var(--color-neutral-0);
+  --countdown-critical-border: var(--color-error-700);
+  
+  /* Ended state - campaign finished */
+  --countdown-ended-bg: var(--color-neutral-800);
+  --countdown-ended-fg: var(--color-neutral-0);
+  --countdown-ended-border: var(--color-neutral-700);
   
   /* Background & Surface */
   --color-bg-primary: var(--color-neutral-50);
@@ -157,6 +188,31 @@
     /* Adjust primary colors for dark mode */
     --color-primary-500: #4ade80;
     --color-primary-600: #22c55e;
+    
+    /* Countdown Badge State Tokens - Dark Mode */
+    --countdown-normal-bg: var(--color-neutral-700);
+    --countdown-normal-fg: var(--color-neutral-300);
+    --countdown-normal-border: var(--color-neutral-600);
+    
+    --countdown-approaching-bg: var(--color-neutral-600);
+    --countdown-approaching-fg: var(--color-neutral-200);
+    --countdown-approaching-border: var(--color-neutral-500);
+    
+    --countdown-warn-bg: #451a03; /* amber-950 */
+    --countdown-warn-fg: #fbbf24; /* amber-400 */
+    --countdown-warn-border: #d97706; /* amber-600 */
+    
+    --countdown-danger-bg: #450a0a; /* red-950 */
+    --countdown-danger-fg: #f87171; /* red-400 */
+    --countdown-danger-border: #dc2626; /* red-600 */
+    
+    --countdown-critical-bg: var(--color-error-600);
+    --countdown-critical-fg: var(--color-neutral-0);
+    --countdown-critical-border: var(--color-error-500);
+    
+    --countdown-ended-bg: var(--color-neutral-700);
+    --countdown-ended-fg: var(--color-neutral-200);
+    --countdown-ended-border: var(--color-neutral-600);
   }
 }
 
@@ -176,4 +232,29 @@
   
   --color-primary-500: #4ade80;
   --color-primary-600: #22c55e;
+  
+  /* Countdown Badge State Tokens - Dark Mode */
+  --countdown-normal-bg: var(--color-neutral-700);
+  --countdown-normal-fg: var(--color-neutral-300);
+  --countdown-normal-border: var(--color-neutral-600);
+  
+  --countdown-approaching-bg: var(--color-neutral-600);
+  --countdown-approaching-fg: var(--color-neutral-200);
+  --countdown-approaching-border: var(--color-neutral-500);
+  
+  --countdown-warn-bg: #451a03; /* amber-950 */
+  --countdown-warn-fg: #fbbf24; /* amber-400 */
+  --countdown-warn-border: #d97706; /* amber-600 */
+  
+  --countdown-danger-bg: #450a0a; /* red-950 */
+  --countdown-danger-fg: #f87171; /* red-400 */
+  --countdown-danger-border: #dc2626; /* red-600 */
+  
+  --countdown-critical-bg: var(--color-error-600);
+  --countdown-critical-fg: var(--color-neutral-0);
+  --countdown-critical-border: var(--color-error-500);
+  
+  --countdown-ended-bg: var(--color-neutral-700);
+  --countdown-ended-fg: var(--color-neutral-200);
+  --countdown-ended-border: var(--color-neutral-600);
 }
