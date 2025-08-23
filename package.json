@@ -2,7 +2,8 @@
   "name": "app-faz-bem",
   "version": "1.0.0",
   "scripts": {
-    "build-css": "tailwindcss -i ./input.css -o ./style.css --watch"
+    "build-css": "tailwindcss -i ./input.css -o ./style.css --watch",
+    "inventory": "node scripts/inventory-pages.mjs"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.1"

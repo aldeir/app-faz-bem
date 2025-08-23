@@ -17,6 +17,8 @@
 <link href="/app-faz-bem/style.css" rel="stylesheet">
 <link href="mobile-enhancements.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="assets/styles/design-tokens.css" rel="stylesheet">
+<link href="assets/styles/ui-core.css" rel="stylesheet">
 <style>
 /* ---------- GLOBAL / BASE ---------- */
 html,body{font-family:'Inter',sans-serif;}
@@ -765,6 +767,8 @@ function startCountdown(id, expiresAt) {
     'text-amber-600','text-orange-600','text-red-600','text-red-700',
     'animate-pulse','bg-red-600'
   );
+  el.style.removeProperty('color');
+  el.style.removeProperty('background-color');
 
   // Padroniza base visual (ajuste conforme seu design)
   el.classList.add(
@@ -773,35 +777,33 @@ function startCountdown(id, expiresAt) {
     'rounded-full'
   );
 
-  // Função que aplica classes conforme horas restantes
+  // Função que aplica cores conforme horas restantes usando design tokens
   function applyColor(distMs) {
     const hours = distMs / 3600000;
 
-    // Limpa classes de cor/efeito
-    el.classList.remove(
-      'text-emerald-700','text-green-700','text-yellow-700',
-      'text-amber-600','text-orange-600','text-red-600','text-red-700','animate-pulse'
-    );
+    // Remove classes de animação antigas
+    el.classList.remove('animate-pulse');
+    
+    // Reset inline styles
+    el.style.removeProperty('color');
 
-    // Lógica de faixas (ajuste se quiser outras cores/limiares):
+    // Lógica de faixas usando tokens de urgência:
     if (hours > 48) {
-      // Muito tempo
-      el.classList.add('text-emerald-700');
+      // Muito tempo - verde
+      el.style.color = 'var(--color-urgent-low)';
     } else if (hours > 24) {
-      // Confortável
-      el.classList.add('text-green-700');
-    } else if (hours > 12) {
-      // Entrando em atenção
-      el.classList.add('text-yellow-700');
+      // Confortável - verde
+      el.style.color = 'var(--color-urgent-low)';
     } else if (hours > 6) {
-      // Mais perto
-      el.classList.add('text-amber-600');
+      // Entrando em atenção - amarelo/médio
+      el.style.color = 'var(--color-urgent-medium)';
     } else if (hours > 1) {
-      // Quase chegando
-      el.classList.add('text-orange-600');
+      // Crítico - vermelho
+      el.style.color = 'var(--color-urgent-high)';
     } else {
-      // Menos de 1h: crítico
-      el.classList.add('text-red-600','animate-pulse');
+      // Menos de 1h: crítico com pulse
+      el.style.color = 'var(--color-urgent-high)';
+      el.classList.add('animate-pulse');
     }
   }
 
@@ -830,8 +832,8 @@ function startCountdown(id, expiresAt) {
       clearInterval(countdownIntervals[id]);
       el.textContent = 'Encerrada';
       el.classList.remove('animate-pulse');
-      el.classList.add('bg-red-600','text-white');
-      // Opcional: remover ou alterar fundo anterior
+      el.style.backgroundColor = 'var(--color-urgent-high)';
+      el.style.color = 'var(--color-text-inverse)';
       return;
     }
 

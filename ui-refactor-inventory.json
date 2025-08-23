@@ -1,0 +1,1789 @@
+{
+  "timestamp": "2025-08-23T12:37:04.336Z",
+  "summary": {
+    "overview": {
+      "totalFiles": 27,
+      "totalLines": 11161,
+      "totalSizeKB": 554.87,
+      "avgLinesPerFile": 413,
+      "avgSizePerFile": 20.55
+    },
+    "priorities": {
+      "Medium": 2,
+      "Low": 25
+    },
+    "issues": {
+      "highComplexity": 0,
+      "hasInlineStyles": 27,
+      "needsMobileOptimization": 0
+    },
+    "recommendations": [
+      {
+        "type": "cleanup",
+        "title": "Extract Inline Styles",
+        "description": "27 files have inline <style> blocks that should be extracted to external CSS.",
+        "files": [
+          "minhas-entregas.html",
+          "gerenciar-agendamentos.html",
+          "index.html",
+          "perfil-doador.html",
+          "registrar-doacao.html",
+          "criar-campanha.html",
+          "receber-doacao.html",
+          "perfil-entidade.html",
+          "cadastro-doador.html",
+          "gerenciar-agendamentos-global.html",
+          "configuracoes.html",
+          "gerenciar-entidades.html",
+          "perfil-admin.html",
+          "gerenciar-campanhas.html",
+          "gerenciar-doadores.html",
+          "login.html",
+          "detalhes.html",
+          "cadastro-entidade.html",
+          "superadmin.html",
+          "recuperar-senha.html",
+          "verificar-email.html",
+          "termos-de-servico.html",
+          "politica-de-privacidade.html",
+          "admin.html",
+          "notificacoes.html",
+          "offline.html",
+          "aguardando-aprovacao.html"
+        ]
+      },
+      {
+        "type": "optimization",
+        "title": "Large File Optimization",
+        "description": "9 files exceed 500 lines and may benefit from component extraction.",
+        "files": [
+          "minhas-entregas.html",
+          "gerenciar-agendamentos.html",
+          "index.html",
+          "perfil-doador.html",
+          "registrar-doacao.html",
+          "criar-campanha.html",
+          "receber-doacao.html",
+          "gerenciar-agendamentos-global.html",
+          "configuracoes.html"
+        ]
+      }
+    ]
+  },
+  "pages": [
+    {
+      "file": "minhas-entregas.html",
+      "title": "Minhas Doações / Entregas - Faz Bem",
+      "lines": 981,
+      "sizeKB": 44.27,
+      "meta": {
+        "count": 9,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width,initial-scale=1,viewport-fit=cover",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\" media=\"(prefers-color-scheme: light)\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#0f2917",
+            "raw": "<meta name=\"theme-color\" content=\"#0f2917\" media=\"(prefers-color-scheme: dark)\">"
+          },
+          {
+            "type": "apple-mobile-web-app-capable",
+            "content": "yes",
+            "raw": "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">"
+          },
+          {
+            "type": "apple-mobile-web-app-status-bar-style",
+            "content": "black-translucent",
+            "raw": "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\">"
+          },
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width,initial-scale=1",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 3,
+          "attributes": 12,
+          "totalLines": 54
+        },
+        "inlineScripts": {
+          "blocks": 2,
+          "totalLines": 804
+        },
+        "external": {
+          "css": 3,
+          "js": 1
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "mobile-enhancements.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [
+          "https://cdn.jsdelivr.net/npm/qrcode-generator/qrcode.js"
+        ],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 34.81,
+      "priority": "Medium"
+    },
+    {
+      "file": "gerenciar-agendamentos.html",
+      "title": "Gerenciar Agendamentos",
+      "lines": 1443,
+      "sizeKB": 62.37,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\"/>"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"/>"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 1,
+          "totalLines": 45
+        },
+        "inlineScripts": {
+          "blocks": 1,
+          "totalLines": 1170
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 20.43,
+      "priority": "Medium"
+    },
+    {
+      "file": "index.html",
+      "title": "App Faz Bem - Campanhas",
+      "lines": 994,
+      "sizeKB": 42.34,
+      "meta": {
+        "count": 6,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width,initial-scale=1,viewport-fit=cover",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\" media=\"(prefers-color-scheme: light)\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#0f2917",
+            "raw": "<meta name=\"theme-color\" content=\"#0f2917\" media=\"(prefers-color-scheme: dark)\">"
+          },
+          {
+            "type": "apple-mobile-web-app-capable",
+            "content": "yes",
+            "raw": "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">"
+          },
+          {
+            "type": "apple-mobile-web-app-status-bar-style",
+            "content": "black-translucent",
+            "raw": "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 2,
+          "totalLines": 263
+        },
+        "inlineScripts": {
+          "blocks": 1,
+          "totalLines": 560
+        },
+        "external": {
+          "css": 5,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "mobile-enhancements.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
+          "assets/styles/design-tokens.css",
+          "assets/styles/ui-core.css"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 16.94,
+      "priority": "Low"
+    },
+    {
+      "file": "perfil-doador.html",
+      "title": "Meu Perfil - Faz Bem",
+      "lines": 565,
+      "sizeKB": 31.14,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 8
+        },
+        "inlineScripts": {
+          "blocks": 3,
+          "totalLines": 412
+        },
+        "external": {
+          "css": 3,
+          "js": 2
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+          "https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css"
+        ],
+        "js": [
+          "https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js",
+          "https://unpkg.com/imask"
+        ],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 14.65,
+      "priority": "Low"
+    },
+    {
+      "file": "registrar-doacao.html",
+      "title": "Registrar Doação - Faz Bem",
+      "lines": 859,
+      "sizeKB": 39.22,
+      "meta": {
+        "count": 6,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width,initial-scale=1,viewport-fit=cover",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\" media=\"(prefers-color-scheme: light)\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#0f2917",
+            "raw": "<meta name=\"theme-color\" content=\"#0f2917\" media=\"(prefers-color-scheme: dark)\">"
+          },
+          {
+            "type": "apple-mobile-web-app-capable",
+            "content": "yes",
+            "raw": "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">"
+          },
+          {
+            "type": "apple-mobile-web-app-status-bar-style",
+            "content": "black-translucent",
+            "raw": "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 1,
+          "totalLines": 12
+        },
+        "inlineScripts": {
+          "blocks": 1,
+          "totalLines": 684
+        },
+        "external": {
+          "css": 3,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "mobile-enhancements.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 14.59,
+      "priority": "Low"
+    },
+    {
+      "file": "criar-campanha.html",
+      "title": "Criar Nova Campanha - Faz Bem",
+      "lines": 622,
+      "sizeKB": 33.5,
+      "meta": {
+        "count": 6,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width,initial-scale=1,viewport-fit=cover",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\" media=\"(prefers-color-scheme: light)\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#0f2917",
+            "raw": "<meta name=\"theme-color\" content=\"#0f2917\" media=\"(prefers-color-scheme: dark)\">"
+          },
+          {
+            "type": "apple-mobile-web-app-capable",
+            "content": "yes",
+            "raw": "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">"
+          },
+          {
+            "type": "apple-mobile-web-app-status-bar-style",
+            "content": "black-translucent",
+            "raw": "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 1,
+          "totalLines": 6
+        },
+        "inlineScripts": {
+          "blocks": 2,
+          "totalLines": 435
+        },
+        "external": {
+          "css": 3,
+          "js": 1
+        }
+      },
+      "dependencies": {
+        "css": [
+          "style.css",
+          "mobile-enhancements.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [
+          "https://unpkg.com/imask"
+        ],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 14.22,
+      "priority": "Low"
+    },
+    {
+      "file": "receber-doacao.html",
+      "title": "Gerenciar Recebimentos - App Faz Bem",
+      "lines": 611,
+      "sizeKB": 33.86,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 22
+        },
+        "inlineScripts": {
+          "blocks": 2,
+          "totalLines": 482
+        },
+        "external": {
+          "css": 3,
+          "js": 1
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [
+          "https://unpkg.com/html5-qrcode"
+        ],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 13.11,
+      "priority": "Low"
+    },
+    {
+      "file": "perfil-entidade.html",
+      "title": "Perfil da Entidade - Faz Bem",
+      "lines": 139,
+      "sizeKB": 10.3,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 15
+        },
+        "inlineScripts": {
+          "blocks": 4,
+          "totalLines": 14
+        },
+        "external": {
+          "css": 3,
+          "js": 3
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+          "https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css"
+        ],
+        "js": [
+          "https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js",
+          "https://unpkg.com/imask",
+          "perfil-entidade.js"
+        ],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 12.39,
+      "priority": "Low"
+    },
+    {
+      "file": "cadastro-doador.html",
+      "title": "Cadastro de Doador - Faz Bem",
+      "lines": 317,
+      "sizeKB": 17.14,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 9
+        },
+        "inlineScripts": {
+          "blocks": 3,
+          "totalLines": 205
+        },
+        "external": {
+          "css": 2,
+          "js": 1
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [
+          "https://unpkg.com/imask"
+        ],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 12.17,
+      "priority": "Low"
+    },
+    {
+      "file": "gerenciar-agendamentos-global.html",
+      "title": "Visão Global de Agendamentos - Faz Bem",
+      "lines": 501,
+      "sizeKB": 27.31,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 14
+        },
+        "inlineScripts": {
+          "blocks": 2,
+          "totalLines": 367
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 12.01,
+      "priority": "Low"
+    },
+    {
+      "file": "configuracoes.html",
+      "title": "Configurações Gerais - Faz Bem",
+      "lines": 683,
+      "sizeKB": 34.62,
+      "meta": {
+        "count": 6,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width,initial-scale=1,viewport-fit=cover",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\" media=\"(prefers-color-scheme: light)\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#0f2917",
+            "raw": "<meta name=\"theme-color\" content=\"#0f2917\" media=\"(prefers-color-scheme: dark)\">"
+          },
+          {
+            "type": "apple-mobile-web-app-capable",
+            "content": "yes",
+            "raw": "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">"
+          },
+          {
+            "type": "apple-mobile-web-app-status-bar-style",
+            "content": "black-translucent",
+            "raw": "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 11
+        },
+        "inlineScripts": {
+          "blocks": 1,
+          "totalLines": 488
+        },
+        "external": {
+          "css": 3,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "mobile-enhancements.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 11.83,
+      "priority": "Low"
+    },
+    {
+      "file": "gerenciar-entidades.html",
+      "title": "Gerenciar Entidades - Faz Bem",
+      "lines": 450,
+      "sizeKB": 24.05,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 14
+        },
+        "inlineScripts": {
+          "blocks": 2,
+          "totalLines": 343
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 11.5,
+      "priority": "Low"
+    },
+    {
+      "file": "perfil-admin.html",
+      "title": "Meu Perfil - Administrador - Faz Bem",
+      "lines": 243,
+      "sizeKB": 11.74,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 8
+        },
+        "inlineScripts": {
+          "blocks": 3,
+          "totalLines": 145
+        },
+        "external": {
+          "css": 3,
+          "js": 1
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+          "https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css"
+        ],
+        "js": [
+          "https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"
+        ],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 11.43,
+      "priority": "Low"
+    },
+    {
+      "file": "gerenciar-campanhas.html",
+      "title": "Gerenciar Campanhas - Faz Bem",
+      "lines": 342,
+      "sizeKB": 16.66,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 14
+        },
+        "inlineScripts": {
+          "blocks": 2,
+          "totalLines": 235
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 10.42,
+      "priority": "Low"
+    },
+    {
+      "file": "gerenciar-doadores.html",
+      "title": "Gestão de Doadores - Faz Bem",
+      "lines": 342,
+      "sizeKB": 16.59,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 14
+        },
+        "inlineScripts": {
+          "blocks": 2,
+          "totalLines": 232
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 10.42,
+      "priority": "Low"
+    },
+    {
+      "file": "login.html",
+      "title": "Entrar ou Cadastrar - Faz Bem",
+      "lines": 251,
+      "sizeKB": 14.01,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 3
+        },
+        "inlineScripts": {
+          "blocks": 2,
+          "totalLines": 153
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 9.51,
+      "priority": "Low"
+    },
+    {
+      "file": "detalhes.html",
+      "title": "Detalhes da Campanha - App Faz Bem",
+      "lines": 433,
+      "sizeKB": 25.2,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 36
+        },
+        "inlineScripts": {
+          "blocks": 1,
+          "totalLines": 270
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 9.33,
+      "priority": "Low"
+    },
+    {
+      "file": "cadastro-entidade.html",
+      "title": "Cadastro de Entidade - Faz Bem",
+      "lines": 185,
+      "sizeKB": 14.62,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 11
+        },
+        "inlineScripts": {
+          "blocks": 2,
+          "totalLines": 2
+        },
+        "external": {
+          "css": 2,
+          "js": 2
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [
+          "https://unpkg.com/imask",
+          "cadastro-entidade.js"
+        ],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 8.85,
+      "priority": "Low"
+    },
+    {
+      "file": "superadmin.html",
+      "title": "Faz Bem - Painel do Administrador",
+      "lines": 143,
+      "sizeKB": 7.17,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 3
+        },
+        "inlineScripts": {
+          "blocks": 2,
+          "totalLines": 65
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 8.43,
+      "priority": "Low"
+    },
+    {
+      "file": "recuperar-senha.html",
+      "title": "Recuperar Senha - Faz Bem",
+      "lines": 130,
+      "sizeKB": 5.79,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 3
+        },
+        "inlineScripts": {
+          "blocks": 2,
+          "totalLines": 64
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 8.3,
+      "priority": "Low"
+    },
+    {
+      "file": "verificar-email.html",
+      "title": "Verifique seu E-mail - Faz Bem",
+      "lines": 119,
+      "sizeKB": 5.11,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 3
+        },
+        "inlineScripts": {
+          "blocks": 2,
+          "totalLines": 58
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 8.19,
+      "priority": "Low"
+    },
+    {
+      "file": "termos-de-servico.html",
+      "title": "Termos de Serviço - Faz Bem",
+      "lines": 88,
+      "sizeKB": 3.82,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 7
+        },
+        "inlineScripts": {
+          "blocks": 2,
+          "totalLines": 15
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 7.88,
+      "priority": "Low"
+    },
+    {
+      "file": "politica-de-privacidade.html",
+      "title": "Política de Privacidade - Faz Bem",
+      "lines": 82,
+      "sizeKB": 3.53,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 7
+        },
+        "inlineScripts": {
+          "blocks": 2,
+          "totalLines": 15
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 7.82,
+      "priority": "Low"
+    },
+    {
+      "file": "admin.html",
+      "title": "Faz Bem - Área da Entidade",
+      "lines": 255,
+      "sizeKB": 14.25,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 3
+        },
+        "inlineScripts": {
+          "blocks": 1,
+          "totalLines": 147
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 7.55,
+      "priority": "Low"
+    },
+    {
+      "file": "notificacoes.html",
+      "title": "Minhas Notificações - Faz Bem",
+      "lines": 237,
+      "sizeKB": 10.99,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 18
+        },
+        "inlineScripts": {
+          "blocks": 1,
+          "totalLines": 147
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 7.37,
+      "priority": "Low"
+    },
+    {
+      "file": "offline.html",
+      "title": "Offline - Faz Bem",
+      "lines": 95,
+      "sizeKB": 2.93,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width,initial-scale=1,viewport-fit=cover",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 56
+        },
+        "inlineScripts": {
+          "blocks": 1,
+          "totalLines": 4
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "style.css",
+          "mobile-enhancements.css"
+        ],
+        "js": [],
+        "fonts": 0,
+        "hasGoogleFonts": false,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 5.95,
+      "priority": "Low"
+    },
+    {
+      "file": "aguardando-aprovacao.html",
+      "title": "Aguardando Aprovação - Faz Bem",
+      "lines": 51,
+      "sizeKB": 2.34,
+      "meta": {
+        "count": 3,
+        "tags": [
+          {
+            "type": "unknown",
+            "content": "",
+            "raw": "<meta charset=\"UTF-8\">"
+          },
+          {
+            "type": "viewport",
+            "content": "width=device-width, initial-scale=1.0",
+            "raw": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+          },
+          {
+            "type": "theme-color",
+            "content": "#22c55e",
+            "raw": "<meta name=\"theme-color\" content=\"#22c55e\">"
+          }
+        ]
+      },
+      "inline": {
+        "inlineStyles": {
+          "blocks": 1,
+          "attributes": 0,
+          "totalLines": 1
+        },
+        "inlineScripts": {
+          "blocks": 1,
+          "totalLines": 4
+        },
+        "external": {
+          "css": 2,
+          "js": 0
+        }
+      },
+      "dependencies": {
+        "css": [
+          "/app-faz-bem/style.css",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        ],
+        "js": [],
+        "fonts": 3,
+        "hasGoogleFonts": true,
+        "hasTailwind": true,
+        "hasBootstrap": false
+      },
+      "mobile": {
+        "hasViewport": true,
+        "hasThemeColor": true,
+        "hasManifest": true
+      },
+      "complexity": 5.51,
+      "priority": "Low"
+    }
+  ]
+}
