@@ -83,17 +83,63 @@ Status: MVP em desenvolvimento (Rumo à publicação Play Store)
 
 ---
 
-## 📱 PWA
+## 📱 PWA & Offline
+
+### PWA Features
 
 | Item | Estado |
 |------|--------|
-| Manifest | Presente (atalhos, share target, ícone multi-size) |
-| Service Worker | Cache + sync + versionamento |
-| Offline Fallback | `offline.html` |
-| Share Target | Configurado (`share_target` → `share.html` se implementado) |
-| Shortcuts | Atalhos rápidos (Criar Campanha, Minhas Entregas) |
-| Background Sync | Fila IndexedDB para doações |
-| Próximos Ajustes | Ícones separados multi-arquivo, `start_url` & `scope` absolutos, auditoria Lighthouse |
+| **Manifest** | ✅ Completo (atalhos, share target, ícones multi-size) |
+| **Service Worker** | ✅ v0.4.0+ com cache estratégico e sync |
+| **Offline Fallback** | ✅ `offline.html` acessível |
+| **Share Target** | ✅ Configurado (`share_target` → `share.html`) |
+| **Shortcuts** | ✅ Atalhos rápidos (Criar Campanha, Minhas Entregas) |
+| **Background Sync** | ✅ Fila IndexedDB para doações offline |
+| **Icons** | ✅ 192px, 512px regular + 512px maskable |
+| **Add to Home Screen** | ✅ Suporte Android + Desktop |
+
+### Caching Strategies
+
+1. **HTML Navigation**: Network-first com fallback offline
+2. **Static Assets** (CSS/JS): Stale-while-revalidate para carregamento rápido
+3. **Images**: Cache-first com limite de 50 itens (LRU)
+4. **API Calls**: Network-first com timeout 6s + cache fallback
+5. **Offline Queue**: IndexedDB para doações com retry inteligente
+
+### Testing PWA
+
+#### Lighthouse Audit
+```bash
+# Chrome DevTools > Lighthouse > Progressive Web App
+# Critérios atendidos: manifest válido, SW controlando start_url, resposta offline
+```
+
+#### Offline Testing
+1. **Chrome DevTools** → Network → ☑️ Offline
+2. Recarregar página → deve mostrar `offline.html`
+3. Navegar → deve funcionar com conteúdo em cache
+
+#### Add to Home Screen (Android)
+1. Chrome → ⋮ → "Instalar app" / "Add to Home screen"
+2. Ícone aparece na tela inicial
+3. Abre em modo standalone (sem barra do navegador)
+
+### Service Worker Updates
+
+```javascript
+// Forçar atualização manual
+if ('serviceWorker' in navigator) {
+  const registration = await navigator.serviceWorker.getRegistration();
+  if (registration) await registration.update();
+}
+
+// Ativar imediatamente nova versão
+navigator.serviceWorker.controller.postMessage({type: 'SKIP_WAITING'});
+```
+
+### Documentation
+- **Detalhada**: `docs/pwa.md` - estratégias de cache, fluxo de atualização, troubleshooting
+- **Verificação**: `npm run pwa:sw:check` - valida estrutura do service worker
 
 ---
 

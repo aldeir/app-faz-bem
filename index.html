@@ -21,6 +21,10 @@
   <link href="assets/styles/design-tokens.css" rel="stylesheet">
   <link href="assets/styles/ui-core.css" rel="stylesheet">
   <script src="assets/js/ui-countdown.js" defer></script>
+  
+  <!-- Campaign Status Browser Utils - Exposes CampaignStatusUtils global -->
+  <!-- Uncomment to enable direct browser access to campaign status utilities -->
+  <!-- <script defer src="src/domain/campaign/status.browser.js"></script> -->
 
   <style>
   :root{
@@ -386,6 +390,19 @@
   }
   window.addEventListener('online',updateOfflineStatus);
   window.addEventListener('offline',updateOfflineStatus);
+
+  // Enhanced offline detection via service worker messages
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'OFFLINE_FALLBACK_USED') {
+        offlineBanner.classList.add('active');
+        announce('Conteúdo offline carregado. Conexão limitada detectada.');
+      } else if (event.data && event.data.type === 'ONLINE') {
+        offlineBanner.classList.remove('active');
+        announce('Conexão restaurada. Conteúdo atualizado.');
+      }
+    });
+  }
 
   async function initializeApp(){
     await injectHeader();
@@ -811,7 +828,21 @@ if (typeof window.initCountdownBadges === 'function') {
 
   initializeApp();
 
-  if('serviceWorker' in navigator){
+  // Service Worker Registration using helper module
+  if ('serviceWorker' in navigator && 'type' in HTMLScriptElement.prototype) {
+    // Modern browsers with module support
+    import('./src/pwa/registerServiceWorker.js')
+      .then(({ registerServiceWorker }) => {
+        registerServiceWorker('./service-worker.js', {
+          onUpdateReady: (registration) => {
+            console.log('SW update available');
+            // Could show user notification here
+          }
+        });
+      })
+      .catch(console.error);
+  } else if ('serviceWorker' in navigator) {
+    // Fallback for older browsers
     navigator.serviceWorker.register('service-worker.js').catch(console.error);
   }
   </script>

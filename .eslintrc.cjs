@@ -30,8 +30,7 @@ module.exports = {
       // For test files
       files: ['**/*.test.js', '**/*.spec.js'],
       env: {
-        jest: true,
-        vitest: true
+        jest: true
       },
       globals: {
         describe: 'readonly',
@@ -47,6 +46,20 @@ module.exports = {
       }
     },
     {
+      // For UMD browser builds
+      files: ['**/*.browser.js'],
+      env: {
+        browser: true,
+        amd: true
+      },
+      globals: {
+        define: 'readonly',
+        require: 'readonly',
+        module: 'readonly',
+        exports: 'readonly'
+      }
+    },
+    {
       // For service worker files
       files: ['service-worker.js', '**/service-worker.js'],
       env: {
@@ -57,6 +70,6 @@ module.exports = {
         caches: 'readonly',
         clients: 'readonly'
       }
-    }
+    },
   ]
 };
