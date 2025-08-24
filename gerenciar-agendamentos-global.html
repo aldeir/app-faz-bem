@@ -234,6 +234,8 @@
             }
             
             if (activeTab === 'completed') {
+                // TODO: Replace with status-utils.js computeDonationStatus() in next PR
+                // This donation status logic should be centralized
                 filteredDonations = filteredDonations.filter(d => d.status === 'completed' || d.items.every(i => i.status === 'completed'));
             } else if (activeTab === 'upcoming') {
                 filteredDonations = filteredDonations.filter(d => d.status === 'scheduled' && d.scheduledAt?.toDate() >= now && d.items.some(i => i.status !== 'completed'));

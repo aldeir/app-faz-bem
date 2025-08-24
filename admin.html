@@ -178,6 +178,8 @@
                 campaigns.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
 
                 campaigns.forEach(campaign => {
+                    // TODO: Replace with status-utils.js computeCampaignStatus() in next PR
+                    // This duplicates logic from gerenciar-campanhas.html and should be standardized
                     const isCompleted = campaign.expiresAt?.toDate() < now;
                     
                     if (campaign.status === 'upcoming' && campaign.startsAt?.toDate() > now) {

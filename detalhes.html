@@ -332,6 +332,8 @@
                     const isAnonymous = donation.privacy === 'anonymous';
                     const photoURL = isAnonymous ? 'https://placehold.co/40x40/9ca3af/ffffff?text=A' : donation.donorPhoto || 'https://placehold.co/40x40/e2e8f0/cbd5e0?text=Foto';
                     const displayName = isAnonymous ? 'Anônimo' : donation.donorName;
+                    // TODO: Replace with status-utils.js computeDonationStatus() in next PR
+                    // This should use centralized donation status logic
                     const isCompleted = Array.isArray(donation.items) && donation.items.some(item => item.status === 'completed');
 
                     const donorElement = document.createElement('div');

@@ -522,6 +522,8 @@ if (typeof window.initCountdownBadges === 'function') {
     const color=ensureColor(settings.color || 'gray');
     const cm=colorMap(color);
     const isActive=listKey==='active';
+    // TODO: Replace with status-utils.js computeCampaignStatus() in next PR
+    // This duplicates campaign status logic and should be centralized
     const isClosed=listKey==='recent' || (campaign.expiresAt?.toDate() && campaign.expiresAt.toDate()<=new Date());
     const baseBorder=`border ${cm.border}`;
     const cardClasses=`campaign-card ${isClosed?'campaign-encerrada':''} ${baseBorder}`;
