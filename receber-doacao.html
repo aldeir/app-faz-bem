@@ -25,20 +25,11 @@
         #qr-reader { width: 100%; max-width: 500px; border-radius: 0.75rem; overflow: hidden; }
         .view-toggle-btn.active { background-color: #16a34a; color: white; }
         .view-toggle-btn { background-color: #e5e7eb; color: #374151; }
-        .schedule-slot {
-            transition: all 0.2s ease-in-out; cursor: pointer; border: 1px solid #d1d5db;
-        }
-        .schedule-slot:not(:disabled):hover {
-            border-color: #3b82f6; transform: translateY(-2px);
-        }
-        .schedule-slot.active {
-            background-color: #3b82f6; color: white; border-color: #2563eb;
-            transform: translateY(-2px); box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
-        }
+        .schedule-slot { transition: all 0.2s ease-in-out; cursor: pointer; border: 1px solid #d1d5db; }
+        .schedule-slot:not(:disabled):hover { border-color: #3b82f6; transform: translateY(-2px); }
+        .schedule-slot.active { background-color: #3b82f6; color: white; border-color: #2563eb; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4); }
         .schedule-slot.active .slot-donors { color: #dbeafe; }
-        .schedule-slot:disabled {
-            background-color: #e5e7eb; color: #9ca3af; cursor: not-allowed;
-        }
+        .schedule-slot:disabled { background-color: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -127,7 +118,8 @@
     
     <script type="module">
         import { db, auth, paths } from './app-config.js';
-        import { collection, query, where, onSnapshot, getDoc, doc, updateDoc, getDocs, serverTimestamp } from './firebase-services.js'; // *** ALTERADO: adiciona serverTimestamp
+        // *** ALTERADO: já com serverTimestamp importado
+        import { collection, query, where, onSnapshot, getDoc, doc, updateDoc, getDocs, serverTimestamp } from './firebase-services.js';
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         import { showDetailsModal, showAlertModal } from './modal-handler.js';
@@ -165,14 +157,14 @@
         let html5QrCode;
         let lastScannedDonation = null;
 
-        // *** NOVO: sessão global e constante
+        // *** NOVO (versão anterior) + permanece
         let userSessionGlobal = null;
         const SUPERADMIN_ENTITY_ID = 'app_faz_bem';
 
         async function initializeApp() {
             await injectHeader();
             const userSession = await getCurrentUser();
-            userSessionGlobal = userSession; // *** NOVO
+            userSessionGlobal = userSession;
 
             if (userSession?.auth && ['entidade', 'superadmin'].includes(userSession.profile?.role)) {
                 const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
@@ -181,7 +173,7 @@
                 let idToQuery;
                 if (userSession.profile.role === 'superadmin') {
                     backLink.href = 'superadmin.html';
-                    idToQuery = SUPERADMIN_ENTITY_ID; // *** ALTERADO
+                    idToQuery = SUPERADMIN_ENTITY_ID;
                 } else {
                     backLink.href = 'admin.html';
                     idToQuery = userSession.auth.uid;
@@ -363,7 +355,7 @@
             return detailsHtml;
         }
 
-        // *** ALTERADO: adiciona validações de papel e serverTimestamp
+        // *** ALTERADO V6: remover serverTimestamp dentro do array e adicionar lastItemReceivedAt top-level
         async function processItemReception(donationId, itemIndex) {
             const donationRef = doc(db, paths.donationDoc(donationId));
             const docSnap = await getDoc(donationRef);
@@ -374,7 +366,6 @@
 
             const currentDonation = docSnap.data();
 
-            // Garantias de autorização local (ajuda UX e evita writes desnecessários)
             const role = userSessionGlobal?.profile?.role;
             const uid  = userSessionGlobal?.auth?.uid;
 
@@ -388,14 +379,14 @@
             const updatedItems = currentDonation.items ? currentDonation.items.map(i => ({ ...i })) : [];
             const item = updatedItems[itemIndex];
             if (!item) throw new Error('Item inválido.');
-            if (item.status === 'completed') return; // idempotente
+            if (item.status === 'completed') return;
 
             item.status = 'completed';
             item.receivedBy = auth.currentUser.uid;
-            item.receivedDate = serverTimestamp(); // *** ALTERADO
+            item.receivedDate = new Date(); // *** ALTERADO V6 (antes serverTimestamp())
 
             const allItemsCompleted = updatedItems.every(i => i.status === 'completed');
-            const dataToUpdate = { items: updatedItems };
+            const dataToUpdate = { items: updatedItems, lastItemReceivedAt: serverTimestamp() }; // *** ALTERADO V6 adiciona lastItemReceivedAt
             if (allItemsCompleted) {
                 dataToUpdate.status = 'completed';
             }
@@ -403,7 +394,6 @@
             try {
                 await updateDoc(donationRef, dataToUpdate);
             } catch (e) {
-                // Permitir diferenciar erro de permissão
                 if (e?.code === 'permission-denied') {
                     throw new Error('Permissão negada para atualizar este item.');
                 }
