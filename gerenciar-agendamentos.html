@@ -510,6 +510,8 @@
     function isDonationDelivered(d){
       const s = (d.status||'').toLowerCase();
       const done = ['completed','entregue','received'].includes(s);
+      // TODO: Replace with status-utils.js computeDonationStatus() in next PR
+      // This donation status logic should be centralized
       const itemsDone = Array.isArray(d.items) && d.items.length>0 && d.items.every(it => (it.status||'').toLowerCase()==='completed');
       return done || itemsDone || Boolean(d.receivedAt || d.entregueEm);
     }
