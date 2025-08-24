@@ -209,6 +209,14 @@ Status: MVP em desenvolvimento (Rumo à publicação Play Store)
 | `ui-refactor-inventory.md` | Documento explicativo do escopo de refatoração da UI |
 | `ui-refactor-inventory.json` | Estrutura de dados com o estado/migração de componentes UI |
 
+### Arquitetura & Decisões Técnicas
+
+| Documentação | Descrição |
+|--------------|-----------|
+| [docs/adr/ADR-0002-campaign-status-centralizacao.md](docs/adr/ADR-0002-campaign-status-centralizacao.md) | Decisão arquitetural sobre centralização do sistema de status de campanhas |
+| [docs/development/campaign-status.md](docs/development/campaign-status.md) | API e documentação completa do sistema de status de campanhas |
+| [docs/metrics.md](docs/metrics.md) | Métricas de performance e baseline de observabilidade |
+
 ### Estilos & Design
 
 | Arquivo | Descrição |
