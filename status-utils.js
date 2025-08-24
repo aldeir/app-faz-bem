@@ -1,27 +1,38 @@
 /**
- * Status Utilities for App Faz Bem
- * Centralized logic for campaign and donation status computation
+ * Status Utilities for App Faz Bem (Legacy Compatibility Layer)
  * 
- * @version 1.0.0
+ * ⚠️ MIGRATION NOTICE: Campaign status logic has been moved to src/domain/campaign/status.js
+ * This file provides backward compatibility while transitioning to the new centralized system.
+ * 
+ * @version 1.1.0 (Transitional)
  * @author App Faz Bem Team
+ * @deprecated Campaign status functions - use src/domain/campaign/status.js instead
  */
 
+import { 
+  CampaignStatus as NewCampaignStatus,
+  computeCampaignStatus as computeNewCampaignStatus,
+  parseDate as parseNewDate 
+} from './src/domain/campaign/status.js';
+import { warn } from './src/lib/logging/logger.js';
+
 // Version banner
-console.log('[Status Utils] v1.0.0 loaded');
+console.log('[Status Utils] v1.1.0 (Legacy Compatibility) loaded');
 
 /**
- * Campaign status enumeration
+ * Legacy campaign status enumeration
+ * @deprecated Use CampaignStatus from src/domain/campaign/status.js instead
  * @readonly
  * @enum {string}
  */
 export const CAMPAIGN_STATUS = {
   UPCOMING: 'upcoming',
   ACTIVE: 'active', 
-  COMPLETED: 'completed'
+  COMPLETED: 'completed'  // Legacy name for EXPIRED
 };
 
 /**
- * Donation status enumeration
+ * Donation status enumeration (unchanged)
  * @readonly
  * @enum {string}
  */
@@ -35,116 +46,62 @@ export const DONATION_STATUS = {
 
 /**
  * Normalizes timestamp from various formats to Date object
- * Handles Firestore Timestamp, Date objects, numbers, and ISO strings
- * 
+ * @deprecated Use parseDate from src/domain/campaign/status.js instead
  * @param {*} timestamp - Timestamp in various formats
  * @returns {Date|null} Normalized Date object or null if invalid
- * 
- * @example
- * normalizeTimestamp(new Date()) // returns Date
- * normalizeTimestamp(firestoreTimestamp) // returns Date
- * normalizeTimestamp('2023-12-01T10:00:00Z') // returns Date
- * normalizeTimestamp(1609459200000) // returns Date
- * normalizeTimestamp(null) // returns null
  */
 export function normalizeTimestamp(timestamp) {
-  if (!timestamp) return null;
-  
-  try {
-    // Firestore Timestamp object
-    if (timestamp && typeof timestamp.toDate === 'function') {
-      return timestamp.toDate();
-    }
-    
-    // Already a Date object
-    if (timestamp instanceof Date) {
-      return isNaN(timestamp.getTime()) ? null : timestamp;
-    }
-    
-    // Number (Unix timestamp in milliseconds)
-    if (typeof timestamp === 'number') {
-      const date = new Date(timestamp);
-      return isNaN(date.getTime()) ? null : date;
-    }
-    
-    // String (ISO format)
-    if (typeof timestamp === 'string') {
-      const date = new Date(timestamp);
-      return isNaN(date.getTime()) ? null : date;
-    }
-    
-    return null;
-  } catch (error) {
-    console.warn('[Status Utils] Failed to normalize timestamp:', timestamp, error);
-    return null;
-  }
+  return parseNewDate(timestamp);
 }
 
 /**
- * Computes campaign status based on dates and persisted status
- * Uses deterministic logic: checks expiresAt first, then startsAt, then status field
+ * Computes campaign status based on dates and persisted status (Legacy API)
+ * @deprecated Use computeCampaignStatus from src/domain/campaign/status.js instead
  * 
- * @param {Object} campaign - Campaign object
- * @param {*} campaign.startsAt - Campaign start date (Firestore Timestamp, Date, etc.)
- * @param {*} campaign.expiresAt - Campaign end date (Firestore Timestamp, Date, etc.)
+ * @param {Object} campaign - Campaign object (legacy format)
+ * @param {*} campaign.startsAt - Campaign start date
+ * @param {*} campaign.expiresAt - Campaign end date  
  * @param {string} campaign.status - Persisted status field
  * @param {Date} [now=new Date()] - Current date for comparison
  * @returns {string} Campaign status (UPCOMING, ACTIVE, or COMPLETED)
- * 
- * @example
- * // Campaign that ended yesterday
- * computeCampaignStatus({
- *   expiresAt: new Date('2023-11-30'),
- *   startsAt: new Date('2023-11-01'), 
- *   status: 'active'
- * }) // returns 'completed'
- * 
- * // Campaign starting tomorrow
- * computeCampaignStatus({
- *   startsAt: new Date('2023-12-02'),
- *   status: 'upcoming'
- * }) // returns 'upcoming'
  */
 export function computeCampaignStatus(campaign, now = new Date()) {
-  if (!campaign) return CAMPAIGN_STATUS.COMPLETED;
-  
-  const endDate = normalizeTimestamp(campaign.expiresAt);
-  const startDate = normalizeTimestamp(campaign.startsAt);
-  
-  // Priority 1: If campaign has expired, it's completed
-  if (endDate && endDate < now) {
+  if (!campaign) {
+    warn('computeCampaignStatus called with null/undefined campaign, falling back to COMPLETED');
     return CAMPAIGN_STATUS.COMPLETED;
   }
   
-  // Priority 2: If campaign hasn't started yet and is marked as upcoming
-  if (campaign.status === CAMPAIGN_STATUS.UPCOMING && startDate && startDate > now) {
-    return CAMPAIGN_STATUS.UPCOMING;
-  }
+  // Map legacy API to new API
+  const newStatus = computeNewCampaignStatus({
+    startsAt: campaign.startsAt,
+    endsAt: campaign.expiresAt,  // Legacy used 'expiresAt' instead of 'endsAt'
+    paused: campaign.paused || false,
+    now
+  });
   
-  // Priority 3: If we have a valid end date in the future, it's active
-  if (endDate && endDate >= now) {
-    return CAMPAIGN_STATUS.ACTIVE;
+  // Map new status values back to legacy values
+  switch (newStatus) {
+    case NewCampaignStatus.UPCOMING:
+      return CAMPAIGN_STATUS.UPCOMING;
+    case NewCampaignStatus.ACTIVE:
+      return CAMPAIGN_STATUS.ACTIVE;
+    case NewCampaignStatus.PAUSED:
+      // Legacy API doesn't have PAUSED, map to ACTIVE since it's temporarily inactive
+      return CAMPAIGN_STATUS.ACTIVE;
+    case NewCampaignStatus.EXPIRED:
+      return CAMPAIGN_STATUS.COMPLETED;
+    default:
+      warn('Unknown status returned from new campaign status system', { newStatus });
+      return CAMPAIGN_STATUS.COMPLETED;
   }
-  
-  // Priority 4: If no end date but has start date in the past, it's active
-  if (startDate && startDate <= now) {
-    return CAMPAIGN_STATUS.ACTIVE;
-  }
-  
-  // Fallback: use persisted status or default to active
-  return campaign.status || CAMPAIGN_STATUS.ACTIVE;
 }
 
 /**
- * Checks if a campaign is completed
- * Convenience function for common use case
- * 
+ * Checks if a campaign is completed (Legacy API)
+ * @deprecated Use isExpired from src/domain/campaign/status.js instead
  * @param {Object} campaign - Campaign object
  * @param {Date} [now=new Date()] - Current date for comparison
  * @returns {boolean} True if campaign is completed
- * 
- * @example
- * isCampaignCompleted({ expiresAt: new Date('2023-11-30') }) // true if past Nov 30
  */
 export function isCampaignCompleted(campaign, now = new Date()) {
   return computeCampaignStatus(campaign, now) === CAMPAIGN_STATUS.COMPLETED;
@@ -153,6 +110,7 @@ export function isCampaignCompleted(campaign, now = new Date()) {
 /**
  * Computes donation status based on scheduling and item completion
  * Considers scheduledAt, items status, and persisted status
+ * (Unchanged - donation logic remains in this module)
  * 
  * @param {Object} donation - Donation object
  * @param {*} donation.scheduledAt - Scheduled delivery date
