@@ -4,9 +4,15 @@
   "scripts": {
     "build-css": "tailwindcss -i ./input.css -o ./style.css --watch",
     "inventory": "node scripts/inventory-pages.mjs",
-    "test": "vitest"
+    "test": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "build:pwa": "echo 'PWA build placeholder - ready for implementation'",
+    "pwa:sw:check": "node scripts/verify-sw.js"
   },
   "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
     "tailwindcss": "^3.4.1",
     "vitest": "^1.0.0"
   }
