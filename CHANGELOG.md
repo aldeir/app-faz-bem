@@ -4,6 +4,27 @@ Todas as mudanças notáveis do projeto App Faz Bem serão documentadas neste ar
 
 > **Nota**: Este é um placeholder para o sistema de versionamento formal. Versões oficiais e changelog automatizado serão implementados futuramente com **semantic-release** ou **changesets**.
 
+## [v2.1.0] - 2024-12-24 (Campaign Status Strict Mode)
+
+### Added
+- **Strict Mode Support**: `computeCampaignStatus()` now accepts an optional `options` parameter with `strict: boolean` flag
+- **Enhanced Validation**: When `strict: true`, the function throws descriptive errors for invalid inputs:
+  - `RangeError` when `startAt > endAt` (inverted date range)
+  - `TypeError` for invalid Date instances or unparseable ISO-8601 strings
+- **TypeScript Support**: Added complete TypeScript declaration file (`status.d.ts`) with proper type definitions
+- **Comprehensive Tests**: Added 10 focused tests covering all strict mode scenarios and backward compatibility
+- **JSDoc Documentation**: Enhanced documentation with strict mode examples and error handling
+
+### Changed
+- **Function Signature**: `computeCampaignStatus(bounds = {}, options = {})` - backward compatible
+- **Version**: Updated to v2.1.0 in JSDoc and TypeScript declarations
+
+### Maintained
+- **Backward Compatibility**: All existing functionality preserved when `strict` is `false` or omitted
+- **Status Logic**: No changes to core status determination algorithm
+- **Performance**: Minimal overhead when not using strict mode
+- **Test Coverage**: All existing tests continue to pass (40 tests + 10 new strict mode tests)
+
 ## [v0.4.0] - 2024-12-19 (Primeiro Lote - PWA Enhancements)
 
 ### Added
