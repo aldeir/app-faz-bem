@@ -3,20 +3,32 @@
   "name": "App Faz Bem",
   "short_name": "Faz Bem",
   "description": "Conecte quem quer ajudar com quem precisa. Crie campanhas, doe itens e acompanhe impacto – mesmo offline.",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": "/index.html?src=pwa",
+  "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "fullscreen"],
+  "display_override": ["standalone"],
   "background_color": "#ffffff",
   "theme_color": "#22c55e",
   "orientation": "portrait-primary",
   "categories": ["charity", "productivity", "social", "utilities"],
   "icons": [
     {
-      "src": "logo.png",
-      "sizes": "72x72 96x96 128x128 144x144 152x152 192x192 384x384 512x512",
+      "src": "icon-192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
@@ -24,19 +36,19 @@
       "name": "Criar Campanha",
       "short_name": "Campanha",
       "description": "Ir diretamente para criação de campanha",
-      "url": "criar-campanha.html",
-      "icons": [{ "src": "logo.png", "sizes": "96x96" }]
+      "url": "/criar-campanha.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Minhas Entregas",
       "short_name": "Entregas",
       "description": "Ver agendamentos e doações",
-      "url": "minhas-entregas.html",
-      "icons": [{ "src": "logo.png", "sizes": "96x96" }]
+      "url": "/minhas-entregas.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     }
   ],
   "share_target": {
-    "action": "share.html",
+    "action": "/share.html",
     "method": "GET",
     "enctype": "application/x-www-form-urlencoded",
     "params": {

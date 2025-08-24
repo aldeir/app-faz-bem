@@ -4,6 +4,40 @@ Todas as mudanças notáveis do projeto App Faz Bem serão documentadas neste ar
 
 > **Nota**: Este é um placeholder para o sistema de versionamento formal. Versões oficiais e changelog automatizado serão implementados futuramente com **semantic-release** ou **changesets**.
 
+## [v0.4.0] - 2024-12-19 (Primeiro Lote - PWA Enhancements)
+
+### Added
+- **Service Worker v0.4.0**: Versão aprimorada com retry inteligente e controle de atualização
+- **Retry Logic**: Implementado backoff exponencial para doações offline (máximo 3 tentativas)
+- **Constantes BUILD_TS**: Timestamp de build para diagnóstico de versões
+- **Canal de atualização**: postMessage 'sw:update-ready' para notificar clientes
+- **Suporte SKIP_WAITING**: Ativação imediata via mensagem do cliente
+- **Ícones dedicados**: icon-192.png, icon-512.png, icon-maskable-512.png (placeholders)
+- **Precache expandido**: Inclui novos ícones e arquivos CSS essenciais
+- **Limite MAX_IMAGES**: Controle de cache de imagens (50 itens)
+
+### Changed
+- **manifest.json**: start_url absoluto com parâmetro PWA (/index.html?src=pwa)
+- **manifest.json**: scope ajustado para raiz (/)
+- **manifest.json**: Removido display_override "fullscreen" 
+- **manifest.json**: Ícones separados com propósitos específicos (any/maskable)
+- **manifest.json**: Shortcuts com caminhos absolutos e ícone 192px
+- **manifest.json**: share_target action absoluto (/share.html)
+- **Service Worker**: Removido skipWaiting automático do install (controle do cliente)
+- **Offline Queue**: Remoção de itens apenas após POST bem-sucedido
+- **Navigation Preload**: Correção do armazenamento no cache de páginas
+
+### Fixed
+- **Perda de doações**: Fila offline não remove itens antes do envio bem-sucedido
+- **Instalações múltiplas**: URLs absolutos previnem múltiplas entradas PWA
+- **Transparência de atualização**: UX clara para atualizações do Service Worker
+- **Ícones Android**: Separação de ícones maskable para melhor compatibilidade TWA
+
+### Observações
+- Ícones são placeholders do logo.png atual (necessário redimensionamento futuro)
+- Endpoint /api/offline-donation mantido como placeholder
+- Página share.html referenciada (verificar implementação antes do deploy)
+
 ## [Não Versionado] - Em Desenvolvimento
 
 ### 🎉 Foundation & Documentação
