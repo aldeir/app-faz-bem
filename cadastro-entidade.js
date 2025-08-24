@@ -168,7 +168,7 @@ signupForm.addEventListener('submit', async (e) => {
         errorDiv.textContent = "Por favor, preencha todos os campos obrigatórios corretamente.";
         errorDiv.classList.remove('hidden');
         return;
-    };
+    }
 
     setButtonLoading(true);
 

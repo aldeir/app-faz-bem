@@ -65,7 +65,7 @@ function warn(silent, ...args) {
  * @returns {Date|null}
  */
 function parseDate(value) {
-  if (value == null) return null;
+  if (value === null || value === undefined) return null;
 
   // Already a Date
   if (value instanceof Date) {
@@ -76,7 +76,7 @@ function parseDate(value) {
   if (
     typeof value === 'object' &&
     typeof value.seconds === 'number' &&
-    (value.nanoseconds == null || typeof value.nanoseconds === 'number')
+    (value.nanoseconds === null || value.nanoseconds === undefined || typeof value.nanoseconds === 'number')
   ) {
     try {
       const ms = (value.seconds * 1000) + Math.floor((value.nanoseconds || 0) / 1e6);
@@ -118,7 +118,7 @@ function normalizeDateInput(raw, fieldName, strict, silent) {
   if (!date) {
     if (strict) {
       throw new TypeError(`Invalid ${fieldName}: expected a parseable date value`);
-    } else if (raw != null) {
+    } else if (raw !== null && raw !== undefined) {
       warn(silent, `Invalid ${fieldName} provided ->`, raw);
     }
     return { date: null, valid: false };
@@ -165,7 +165,7 @@ function computeCampaignStatus(bounds = {}, options = {}) {
 
   // In non-strict mode, invalid date(s) => EXPIRED fallback (mimic legacy)
   if (!strict) {
-    if ((startsAt != null && !startValid) || (endsAt != null && !endValid)) {
+    if ((startsAt !== null && startsAt !== undefined && !startValid) || (endsAt !== null && endsAt !== undefined && !endValid)) {
       return CampaignStatus.EXPIRED;
     }
   }

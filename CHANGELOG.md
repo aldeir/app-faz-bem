@@ -4,6 +4,31 @@ Todas as mudanças notáveis do projeto App Faz Bem serão documentadas neste ar
 
 > **Nota**: Este é um placeholder para o sistema de versionamento formal. Versões oficiais e changelog automatizado serão implementados futuramente com **semantic-release** ou **changesets**.
 
+## [Unreleased] - 2.2.0 (PWA Phase 3)
+
+### Added
+- **PWA Tooling**: ESLint, Prettier, EditorConfig para qualidade de código
+- **CI/CD Pipeline**: GitHub Actions workflow com Node.js 18.x e 20.x
+- **Service Worker Verification**: Script `scripts/verify-sw.js` para validação automática
+- **Service Worker Registration Helper**: `src/pwa/registerServiceWorker.js` com detecção de atualizações
+- **Logger CommonJS**: Convertido `src/lib/logging/logger.js` para CommonJS (alinhamento com utilities)
+- **TypeScript Declarations**: `src/lib/logging/logger.d.ts` para suporte TypeScript
+- **Campaign Status UMD**: `src/domain/campaign/status.browser.js` para uso direto no browser
+- **NPM Scripts**: `lint`, `format`, `build:pwa`, `pwa:sw:check` para desenvolvimento
+- **PWA Documentation**: `docs/pwa.md` completo com estratégias e troubleshooting
+- **Offline Detection UX**: Service worker message integration para status offline
+
+### Changed
+- **index.html**: Service worker registration usa helper module com fallback
+- **README.md**: Seção PWA expandida com instruções de teste e verificação
+- **package.json**: Dependências de desenvolvimento (eslint, prettier) e scripts adicionais
+
+### Enhanced
+- **Update Flow**: Detecção automática de atualizações com eventos customizados
+- **Error Handling**: Fallback gracioso para browsers sem suporte a módulos
+- **Code Quality**: Linting configurado para ES modules, CommonJS, e service workers
+- **Developer Experience**: Verificação automática e documentação abrangente
+
 ## [v0.4.0] - 2024-12-19 (Primeiro Lote - PWA Enhancements)
 
 ### Added

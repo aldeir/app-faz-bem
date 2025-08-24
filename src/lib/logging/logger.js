@@ -62,7 +62,7 @@ function emit(level, message, context) {
  * @example
  * debug('Computing campaign status', { campaignId: '123', now: new Date() });
  */
-export function debug(message, context) {
+function debug(message, context) {
   if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') {
     return;
   }
@@ -85,7 +85,7 @@ export function debug(message, context) {
  * @example
  * info('Campaign status computed successfully', { status: 'active' });
  */
-export function info(message, context) {
+function info(message, context) {
   emit('info', message, context);
 }
 
@@ -99,7 +99,7 @@ export function info(message, context) {
  * @example
  * warn('Invalid date provided, using fallback', { providedDate: 'invalid' });
  */
-export function warn(message, context) {
+function warn(message, context) {
   emit('warn', message, context);
 }
 
@@ -113,15 +113,12 @@ export function warn(message, context) {
  * @example
  * error('Failed to parse campaign dates', { error: errorObj, campaign });
  */
-export function error(message, context) {
+function error(message, context) {
   emit('error', message, context);
 }
 
-/**
- * Default export with all logging functions
- * @namespace Logger
- */
-export default {
+// CommonJS exports
+module.exports = {
   debug,
   info,
   warn,
