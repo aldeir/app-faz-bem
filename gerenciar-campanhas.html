@@ -107,6 +107,8 @@
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         import { showConfirmationModal, showAlertModal } from './modal-handler.js';
+        import { computeCampaignStatus, getCampaignProgress } from './status-utils.js';
+        import { sortCampaigns, mergeComputedStatus } from './campaign-service.js';
 
         const loadingView = document.getElementById('loading-view');
         const managementView = document.getElementById('management-view');
@@ -178,21 +180,19 @@
 
                 if (!matchesSearch) return false;
 
-                const startDate = campaign.startsAt?.toDate();
-                const endDate = campaign.expiresAt?.toDate();
-                const isCompleted = endDate ? endDate < now : false;
-                const isUpcoming = campaign.status === 'upcoming' && startDate && startDate > now;
-                const isActive = !isCompleted && !isUpcoming;
+                // Use centralized status computation
+                const computedStatus = computeCampaignStatus(campaign, now);
 
                 if (activeTab === 'all') return true;
-                if (activeTab === 'active') return isActive;
-                if (activeTab === 'upcoming') return isUpcoming;
-                if (activeTab === 'completed') return isCompleted;
+                if (activeTab === 'active') return computedStatus === 'active';
+                if (activeTab === 'upcoming') return computedStatus === 'upcoming';
+                if (activeTab === 'completed') return computedStatus === 'completed';
                 
                 return false;
             });
 
-            filtered.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+            // Use centralized sorting
+            filtered = sortCampaigns(filtered);
             renderPaginatedList(filtered);
         }
 
@@ -234,33 +234,61 @@
             card.className = 'p-4 border-b last:border-b-0 hover:bg-gray-50';
 
             const now = new Date();
+            
+            // Use centralized status computation and enrichment
+            const enrichedCampaign = mergeComputedStatus(campaign, now);
+            const computedStatus = enrichedCampaign.computedStatus;
+            
+            // Map computed status to display format
+            let status;
+            switch (computedStatus) {
+                case 'upcoming':
+                    status = { text: 'Próxima', color: 'bg-blue-100 text-blue-800' };
+                    break;
+                case 'completed':
+                    status = { text: 'Concluída', color: 'bg-gray-100 text-gray-800' };
+                    break;
+                case 'active':
+                default:
+                    status = { text: 'Ativa', color: 'bg-green-100 text-green-800' };
+                    break;
+            }
+
             const startDate = campaign.startsAt?.toDate();
             const endDate = campaign.expiresAt?.toDate();
-
-            const isCompleted = endDate ? endDate < now : false;
-            let status;
-
-            if (campaign.status === 'upcoming' && startDate && startDate > now) {
-                status = { text: 'Próxima', color: 'bg-blue-100 text-blue-800' };
-            } else if (isCompleted) {
-                status = { text: 'Concluída', color: 'bg-gray-100 text-gray-800' };
-            } else {
-                status = { text: 'Ativa', color: 'bg-green-100 text-green-800' };
-            }
+            const isCompleted = computedStatus === 'completed';
 
             const actionButtons = `
                 <a href="detalhes.html?id=${campaign.id}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Ver</a>
                 <a href="criar-campanha.html?editId=${campaign.id}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Editar</a>
-                ${!isCompleted && campaign.status !== 'upcoming' ? `<button data-action="end" data-id="${campaign.id}" class="text-sm font-medium text-red-600 hover:text-red-800">Concluir Agora</button>` : ''}
+                ${!isCompleted && computedStatus !== 'upcoming' ? `<button data-action="end" data-id="${campaign.id}" class="text-sm font-medium text-red-600 hover:text-red-800">Concluir Agora</button>` : ''}
             `;
+
+            // Generate progress display if goal exists
+            let progressHTML = '';
+            if (enrichedCampaign.progress && enrichedCampaign.progress.goal > 0) {
+                const progress = enrichedCampaign.progress;
+                progressHTML = `
+                    <div class="mt-2">
+                        <div class="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>Progresso</span>
+                            <span>${progress.current}/${progress.goal} (${progress.percentage}%)</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: ${progress.percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            }
 
             card.innerHTML = `
                 <div class="grid grid-cols-12 gap-4 items-center">
                     <div class="col-span-12 md:col-span-5 flex items-center space-x-4">
                         <img src="${campaign.images?.[0] || 'https://placehold.co/96x64/e2e8f0/cbd5e0?text=Img'}" class="w-24 h-16 object-cover rounded-md bg-gray-200 flex-shrink-0">
-                        <div>
+                        <div class="flex-1">
                             <h4 class="font-bold text-lg text-gray-800">${campaign.title}</h4>
                             <p class="text-sm text-gray-500">Por: ${campaign.entityName}</p>
+                            ${progressHTML}
                         </div>
                     </div>
                     <div class="col-span-4 md:col-span-2 text-sm text-gray-600">
