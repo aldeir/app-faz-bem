@@ -2,7 +2,7 @@
  * Comprehensive test suite for campaign status utilities
  * Covers all edge cases and achieves 100% branch coverage
  * 
- * @version 2.0.0
+ * @version 2.1.0
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -289,6 +289,166 @@ describe('computeCampaignStatus', () => {
       // Should use current time (new Date()) and since we're between 2023-12-01 and 2023-12-31
       // and current time is likely in 2024/2025, the campaign should be EXPIRED
       expect(computeCampaignStatus(bounds)).toBe(CampaignStatus.EXPIRED);
+    });
+  });
+});
+
+describe('computeCampaignStatus strict mode', () => {
+  const fixedNow = new Date('2023-12-15T12:00:00Z');
+  
+  describe('strict mode validation', () => {
+    it('should throw RangeError when startAt is after endAt in strict mode', () => {
+      const bounds = {
+        startsAt: '2023-12-31T23:59:59Z', // After end date
+        endsAt: '2023-12-01T00:00:00Z',   // Before start date
+        now: fixedNow
+      };
+      
+      expect(() => {
+        computeCampaignStatus(bounds, { strict: true });
+      }).toThrow(RangeError);
+      
+      expect(() => {
+        computeCampaignStatus(bounds, { strict: true });
+      }).toThrow('startAt cannot be after endAt');
+    });
+    
+    it('should throw TypeError for invalid startsAt in strict mode', () => {
+      const bounds = {
+        startsAt: 'invalid-date',
+        endsAt: '2023-12-31T23:59:59Z',
+        now: fixedNow
+      };
+      
+      expect(() => {
+        computeCampaignStatus(bounds, { strict: true });
+      }).toThrow(TypeError);
+      
+      expect(() => {
+        computeCampaignStatus(bounds, { strict: true });
+      }).toThrow('Invalid startsAt date value: invalid-date');
+    });
+    
+    it('should throw TypeError for invalid endsAt in strict mode', () => {
+      const bounds = {
+        startsAt: '2023-12-01T00:00:00Z',
+        endsAt: 'invalid-date',
+        now: fixedNow
+      };
+      
+      expect(() => {
+        computeCampaignStatus(bounds, { strict: true });
+      }).toThrow(TypeError);
+      
+      expect(() => {
+        computeCampaignStatus(bounds, { strict: true });
+      }).toThrow('Invalid endsAt date value: invalid-date');
+    });
+    
+    it('should throw TypeError for invalid Date object in startsAt in strict mode', () => {
+      const bounds = {
+        startsAt: new Date('invalid'),
+        endsAt: '2023-12-31T23:59:59Z',
+        now: fixedNow
+      };
+      
+      expect(() => {
+        computeCampaignStatus(bounds, { strict: true });
+      }).toThrow(TypeError);
+    });
+    
+    it('should accept valid dates without throwing in strict mode', () => {
+      const bounds = {
+        startsAt: '2023-12-01T00:00:00Z',
+        endsAt: '2023-12-31T23:59:59Z',
+        now: fixedNow
+      };
+      
+      expect(() => {
+        computeCampaignStatus(bounds, { strict: true });
+      }).not.toThrow();
+      
+      expect(computeCampaignStatus(bounds, { strict: true })).toBe(CampaignStatus.ACTIVE);
+    });
+    
+    it('should accept Date objects in strict mode', () => {
+      const bounds = {
+        startsAt: new Date('2023-12-01T00:00:00Z'),
+        endsAt: new Date('2023-12-31T23:59:59Z'),
+        now: fixedNow
+      };
+      
+      expect(() => {
+        computeCampaignStatus(bounds, { strict: true });
+      }).not.toThrow();
+      
+      expect(computeCampaignStatus(bounds, { strict: true })).toBe(CampaignStatus.ACTIVE);
+    });
+    
+    it('should handle null/undefined dates gracefully in strict mode', () => {
+      const bounds1 = {
+        startsAt: null,
+        endsAt: '2023-12-31T23:59:59Z',
+        now: fixedNow
+      };
+      
+      const bounds2 = {
+        startsAt: '2023-12-01T00:00:00Z',
+        endsAt: null,
+        now: fixedNow
+      };
+      
+      expect(() => {
+        computeCampaignStatus(bounds1, { strict: true });
+      }).not.toThrow();
+      
+      expect(() => {
+        computeCampaignStatus(bounds2, { strict: true });
+      }).not.toThrow();
+    });
+  });
+  
+  describe('backward compatibility', () => {
+    it('should behave exactly like non-strict mode when strict is false', () => {
+      const bounds = {
+        startsAt: 'invalid-date',
+        endsAt: '2023-12-31T23:59:59Z',
+        now: fixedNow
+      };
+      
+      const nonStrictResult = computeCampaignStatus(bounds);
+      const strictFalseResult = computeCampaignStatus(bounds, { strict: false });
+      
+      expect(strictFalseResult).toBe(nonStrictResult);
+      expect(strictFalseResult).toBe(CampaignStatus.EXPIRED);
+    });
+    
+    it('should default to non-strict mode when no options provided', () => {
+      const bounds = {
+        startsAt: 'invalid-date',
+        endsAt: '2023-12-31T23:59:59Z',
+        now: fixedNow
+      };
+      
+      expect(() => {
+        computeCampaignStatus(bounds);
+      }).not.toThrow();
+      
+      expect(computeCampaignStatus(bounds)).toBe(CampaignStatus.EXPIRED);
+    });
+    
+    it('should default to non-strict mode when empty options provided', () => {
+      const bounds = {
+        startsAt: 'invalid-date',
+        endsAt: '2023-12-31T23:59:59Z',
+        now: fixedNow
+      };
+      
+      expect(() => {
+        computeCampaignStatus(bounds, {});
+      }).not.toThrow();
+      
+      expect(computeCampaignStatus(bounds, {})).toBe(CampaignStatus.EXPIRED);
     });
   });
 });

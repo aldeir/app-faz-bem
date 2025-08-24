@@ -2,7 +2,7 @@
  * Centralized Campaign Status Utilities for App Faz Bem
  * Hardened, testable status computation with robust error handling
  * 
- * @version 2.0.0
+ * @version 2.1.0
  * @author App Faz Bem Team
  */
 
@@ -32,6 +32,12 @@ export const CampaignStatus = Object.freeze({
  * @property {Date|string|null} [endsAt] - Campaign end date
  * @property {boolean} [paused] - Whether campaign is paused
  * @property {Date} [now] - Current date for comparison (defaults to new Date())
+ */
+
+/**
+ * Options for campaign status computation
+ * @typedef {Object} CampaignStatusOptions
+ * @property {boolean} [strict=false] - Enable strict validation mode
  */
 
 /**
@@ -83,7 +89,11 @@ export function parseDate(input) {
  * Uses defensive programming with fallback to EXPIRED for invalid inputs
  * 
  * @param {CampaignBounds} bounds - Campaign bounds object
+ * @param {CampaignStatusOptions} [options={}] - Options for status computation
  * @returns {CampaignStatusType} Computed status
+ * 
+ * @throws {RangeError} When strict mode is enabled and startAt > endAt
+ * @throws {TypeError} When strict mode is enabled and invalid date values are provided
  * 
  * @example
  * // Active campaign
@@ -109,9 +119,44 @@ export function parseDate(input) {
  *   startsAt: 'invalid-date',
  *   endsAt: 'also-invalid'
  * }) // Returns 'EXPIRED' (safe fallback)
+ * 
+ * @example
+ * // Strict mode validation
+ * computeCampaignStatus({
+ *   startsAt: '2023-12-31T23:59:59Z',
+ *   endsAt: '2023-11-01T00:00:00Z'
+ * }, { strict: true }) // Throws RangeError: startAt cannot be after endAt
  */
-export function computeCampaignStatus(bounds = {}) {
+export function computeCampaignStatus(bounds = {}, options = {}) {
   const { startsAt, endsAt, paused = false, now = new Date() } = bounds;
+  const { strict = false } = options;
+  
+  // Strict mode validation
+  if (strict) {
+    // Validate date inputs in strict mode
+    if (startsAt !== null && startsAt !== undefined) {
+      const parsedStart = parseDate(startsAt);
+      if (!parsedStart) {
+        throw new TypeError(`Invalid startsAt date value: ${startsAt}`);
+      }
+    }
+    
+    if (endsAt !== null && endsAt !== undefined) {
+      const parsedEnd = parseDate(endsAt);
+      if (!parsedEnd) {
+        throw new TypeError(`Invalid endsAt date value: ${endsAt}`);
+      }
+    }
+    
+    // Check for inverted date range in strict mode
+    if (startsAt && endsAt) {
+      const startDate = parseDate(startsAt);
+      const endDate = parseDate(endsAt);
+      if (startDate && endDate && startDate > endDate) {
+        throw new RangeError('startAt cannot be after endAt');
+      }
+    }
+  }
   
   // Validate and normalize current time
   const currentTime = parseDate(now) || new Date();
