@@ -127,7 +127,7 @@
     
     <script type="module">
         import { db, auth, paths } from './app-config.js';
-        import { collection, query, where, onSnapshot, getDoc, doc, updateDoc, getDocs } from './firebase-services.js';
+        import { collection, query, where, onSnapshot, getDoc, doc, updateDoc, getDocs, serverTimestamp } from './firebase-services.js'; // *** ALTERADO: adiciona serverTimestamp
         import { injectHeader } from './app-header.js';
         import { getCurrentUser } from './auth-service.js';
         import { showDetailsModal, showAlertModal } from './modal-handler.js';
@@ -165,10 +165,15 @@
         let html5QrCode;
         let lastScannedDonation = null;
 
+        // *** NOVO: sessão global e constante
+        let userSessionGlobal = null;
+        const SUPERADMIN_ENTITY_ID = 'app_faz_bem';
+
         async function initializeApp() {
             await injectHeader();
             const userSession = await getCurrentUser();
-            
+            userSessionGlobal = userSession; // *** NOVO
+
             if (userSession?.auth && ['entidade', 'superadmin'].includes(userSession.profile?.role)) {
                 const typesSnap = await getDoc(doc(db, paths.configDoc('campaignTypes')));
                 campaignTypeSettings = typesSnap.exists() ? typesSnap.data() : {};
@@ -176,7 +181,7 @@
                 let idToQuery;
                 if (userSession.profile.role === 'superadmin') {
                     backLink.href = 'superadmin.html';
-                    idToQuery = 'app_faz_bem';
+                    idToQuery = SUPERADMIN_ENTITY_ID; // *** ALTERADO
                 } else {
                     backLink.href = 'admin.html';
                     idToQuery = userSession.auth.uid;
@@ -192,7 +197,7 @@
         async function loadAllCampaignsForEntity(idToQuery) {
             const q = query(collection(db, paths.campaigns), where("entityId", "==", idToQuery));
             const querySnapshot = await getDocs(q);
-            querySnapshot.forEach(doc => campaignsData.set(doc.id, { id: doc.id, ...doc.data() }));
+            querySnapshot.forEach(docSnap => campaignsData.set(docSnap.id, { id: docSnap.id, ...docSnap.data() }));
         }
 
         function loadAllDonations(idToQuery) {
@@ -212,7 +217,7 @@
                 }
 
                 renderScheduleForSelectedDate();
-                if(document.getElementById('list-view').classList.contains('hidden') === false) {
+                if(!document.getElementById('list-view').classList.contains('hidden')) {
                     renderListView();
                 }
                 
@@ -333,7 +338,6 @@
             });
         }
         
-        // --- INÍCIO DA ALTERAÇÃO ---
         function generateItemDetailsHtml(item, campaignType) {
             let detailsHtml = '<div class="space-y-1">';
             const fieldsConfig = Array.isArray(campaignTypeSettings[campaignType]?.fields) ? campaignTypeSettings[campaignType].fields : Object.values(campaignTypeSettings[campaignType]?.fields || {});
@@ -358,36 +362,57 @@
             detailsHtml += '</div>';
             return detailsHtml;
         }
-        // --- FIM DA ALTERAÇÃO ---
 
+        // *** ALTERADO: adiciona validações de papel e serverTimestamp
         async function processItemReception(donationId, itemIndex) {
             const donationRef = doc(db, paths.donationDoc(donationId));
             const docSnap = await getDoc(donationRef);
 
-            if (docSnap.exists()) {
-                const currentDonation = docSnap.data();
-                const updatedItems = [...currentDonation.items];
-                const item = updatedItems[itemIndex];
-                
-                if (item.status === 'completed') return;
-
-                item.status = 'completed';
-                item.receivedBy = auth.currentUser.uid;
-                item.receivedDate = new Date();
-                
-                const allItemsCompleted = updatedItems.every(i => i.status === 'completed');
-                
-                const dataToUpdate = { items: updatedItems };
-                if (allItemsCompleted) {
-                    dataToUpdate.status = 'completed';
-                }
-                
-                await updateDoc(donationRef, dataToUpdate);
-
-                const donorId = currentDonation.donorId;
-                const message = `A sua doação do item "${item.type}" para a campanha "${currentDonation.campaignTitle}" foi recebida! Muito obrigado!`;
-                await createNotification(donorId, message, 'minhas-entregas.html');
+            if (!docSnap.exists()) {
+                throw new Error('Doação não encontrada.');
             }
+
+            const currentDonation = docSnap.data();
+
+            // Garantias de autorização local (ajuda UX e evita writes desnecessários)
+            const role = userSessionGlobal?.profile?.role;
+            const uid  = userSessionGlobal?.auth?.uid;
+
+            if (role === 'superadmin' && currentDonation.entityId !== SUPERADMIN_ENTITY_ID) {
+                throw new Error('Superadmin só pode receber itens de campanhas institucionais.');
+            }
+            if (role === 'entidade' && currentDonation.entityId !== uid) {
+                throw new Error('Esta doação pertence a outra entidade.');
+            }
+
+            const updatedItems = currentDonation.items ? currentDonation.items.map(i => ({ ...i })) : [];
+            const item = updatedItems[itemIndex];
+            if (!item) throw new Error('Item inválido.');
+            if (item.status === 'completed') return; // idempotente
+
+            item.status = 'completed';
+            item.receivedBy = auth.currentUser.uid;
+            item.receivedDate = serverTimestamp(); // *** ALTERADO
+
+            const allItemsCompleted = updatedItems.every(i => i.status === 'completed');
+            const dataToUpdate = { items: updatedItems };
+            if (allItemsCompleted) {
+                dataToUpdate.status = 'completed';
+            }
+
+            try {
+                await updateDoc(donationRef, dataToUpdate);
+            } catch (e) {
+                // Permitir diferenciar erro de permissão
+                if (e?.code === 'permission-denied') {
+                    throw new Error('Permissão negada para atualizar este item.');
+                }
+                throw e;
+            }
+
+            const donorId = currentDonation.donorId;
+            const message = `A sua doação do item "${item.type}" para a campanha "${currentDonation.campaignTitle}" foi recebida! Muito obrigado!`;
+            await createNotification(donorId, message, 'minhas-entregas.html');
         }
         
         function handleReceiveClick(e) {
@@ -421,8 +446,13 @@
             document.getElementById('modal-confirm-btn').onclick = async () => {
                 const modal = document.getElementById('app-modal');
                 modal.querySelector('#modal-message-body').innerHTML = '<div class="loader mx-auto"></div><p class="text-center mt-2">A processar...</p>';
-                await processItemReception(donationId, parseInt(itemIndex));
-                modal.classList.add('hidden');
+                try {
+                    await processItemReception(donationId, parseInt(itemIndex));
+                } catch (err) {
+                    await showAlertModal('Erro', err.message || 'Falha ao confirmar.');
+                } finally {
+                    modal.classList.add('hidden');
+                }
             };
             document.getElementById('modal-cancel-btn').onclick = () => document.getElementById('app-modal').classList.add('hidden');
         }
@@ -485,7 +515,7 @@
                 await showAlertModal('Sucesso!', 'Recebimento do item confirmado!');
                 closeAndResetQrModal();
             } catch (error) {
-                await showAlertModal('Erro ao Confirmar', 'Não foi possível confirmar o recebimento.');
+                await showAlertModal('Erro ao Confirmar', error.message || 'Não foi possível confirmar o recebimento.');
             } finally {
                 qrConfirmBtn.disabled = false;
                 qrConfirmBtn.textContent = 'Confirmar Recebimento';
