@@ -216,6 +216,121 @@ export function isExpired(status) {
  */
 export function getAllStatuses() {
   return Object.values(CampaignStatus);
+}/**
+ * Centralized Campaign Status Utilities for App Faz Bem
+ * Hardened, testable status computation with robust error handling
+ *
+ * @version 2.1.0  (adds optional strict mode + improved date validation)
+ * CHANGELOG (local header extract):
+ * 2.1.0
+ *   - Added optional strict mode via second parameter: computeCampaignStatus(bounds, { strict: true })
+ *   - In strict mode: invalid date inputs throw Error instead of silent fallback
+ *   - Inverted date range validation (startsAt > endsAt)
+ *   - Helpers: isCampaignExpired, isCampaignUpcoming
+ */
+import { warn } from '../../lib/logging/logger.js';
+
+export const CampaignStatus = Object.freeze({
+  UPCOMING: 'UPCOMING',
+  ACTIVE: 'ACTIVE',
+  PAUSED: 'PAUSED',
+  EXPIRED: 'EXPIRED'
+});
+
+/**
+ * @typedef {Object} CampaignBounds
+ * @property {Date|string|number|null} [startsAt]
+ * @property {Date|string|number|null} [endsAt]
+ * @property {boolean} [paused]
+ * @property {Date|string|number} [now]
+ */
+
+/**
+ * @typedef {Object} ComputeStatusOptions
+ * @property {boolean} [strict=false]
+ */
+
+export function parseDate(input) {
+  if (input == null) return null;
+  if (input instanceof Date) return Number.isNaN(input.getTime()) ? null : input;
+  if (typeof input === 'number') {
+    const d = new Date(input);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof input === 'string') {
+    const d = new Date(input);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  // Firestore Timestamp?
+  if (input && typeof input.toDate === 'function') {
+    try {
+      const d = input.toDate();
+      return d instanceof Date && !Number.isNaN(d.getTime()) ? d : null;
+    } catch {
+      return null;
+    }
+  }
+  warn('parseDate received unsupported type', { input });
+  return null;
+}
+
+function validateDateRange({ startDate, endDate }, strict) {
+  if (startDate && endDate && startDate > endDate) {
+    const msg = '[campaign-status] Inverted date range: startsAt > endsAt';
+    if (strict) throw new Error(msg);
+    warn(msg, { startDate, endDate });
+    return false;
+  }
+  return true;
+}
+
+/**
+ * computeCampaignStatus(bounds, options?)
+ * Strict mode: throws on invalid dates or inverted range.
+ * Non-strict: warnings + EXPIRED fallback.
+ */
+export function computeCampaignStatus(bounds = {}, options = {}) {
+  const { startsAt, endsAt, paused = false, now = new Date() } = bounds;
+  const { strict = false } = options;
+
+  const currentTime = parseDate(now) || new Date();
+
+  if (paused === true) return CampaignStatus.PAUSED;
+
+  const startDate = parseDate(startsAt);
+  const endDate = parseDate(endsAt);
+
+  const invalidStart = startsAt != null && !startDate;
+  const invalidEnd = endsAt != null && !endDate;
+
+  if (invalidStart || invalidEnd) {
+    const meta = { startsAt, endsAt, parsedStart: startDate, parsedEnd: endDate };
+    if (strict) {
+      throw new Error('[campaign-status] Invalid campaign dates in strict mode');
+    }
+    warn('Invalid campaign dates provided, falling back to EXPIRED', meta);
+    return CampaignStatus.EXPIRED;
+  }
+
+  if (!validateDateRange({ startDate, endDate }, strict)) {
+    return CampaignStatus.EXPIRED;
+  }
+
+  if (endDate && endDate < currentTime) return CampaignStatus.EXPIRED;
+  if (startDate && startDate > currentTime) return CampaignStatus.UPCOMING;
+  if ((!startDate || startDate <= currentTime) && (!endDate || endDate >= currentTime)) {
+    return CampaignStatus.ACTIVE;
+  }
+
+  return CampaignStatus.EXPIRED;
+}
+
+export function isCampaignExpired(bounds, options) {
+  return computeCampaignStatus(bounds, options) === CampaignStatus.EXPIRED;
+}
+
+export function isCampaignUpcoming(bounds, options) {
+  return computeCampaignStatus(bounds, options) === CampaignStatus.UPCOMING;
 }
 
 /**
